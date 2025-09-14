@@ -57,42 +57,53 @@ export default function Hero({ tourSettings }: HeroProps) {
   // Empty state - no hero images configured
   if (heroImages.length === 0) {
     return (
-      <section className="h-auto md:min-h-[75vh] relative overflow-hidden pt-8 md:pt-12" data-testid="hero-section">
-        {/* Simple gradient background for empty state */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-primary/60"></div>
+      <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden pt-16 pb-8" data-testid="hero-section">
+        {/* Enhanced gradient background for empty state */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-primary/60 to-primary/80"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
         
         {/* Content */}
-        <div className="relative z-10 text-center px-4 max-w-5xl mx-auto flex items-center justify-center min-h-0 md:min-h-[75vh] py-8 md:py-0">
-          <div className="animate-fade-in">
-            <h1 className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-4 md:mb-6" data-testid="hero-title">
-              <span className="block">
-                {tourSettings?.tourName?.split(' ').slice(0, -1).join(' ') || 'Weinberg'}
-              </span>
-              <span className="block text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-light text-white/80">
-                {tourSettings?.tourName?.split(' ').slice(-1)[0] || 'Tour 2025'}
-              </span>
-            </h1>
-            <p className="text-base sm:text-lg md:text-2xl text-white/90 mb-6 md:mb-8 max-w-3xl mx-auto font-light" data-testid="hero-description">
+        <div className="relative z-10 text-center px-4 max-w-6xl mx-auto">
+          <div className="animate-fade-in space-y-8">
+            <div>
+              <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white mb-4" data-testid="hero-title">
+                <span className="block leading-tight">
+                  {tourSettings?.tourName?.split(' ').slice(0, -1).join(' ') || 'Weinberg'}
+                </span>
+                <span className="block text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-light text-white/90 leading-tight">
+                  {tourSettings?.tourName?.split(' ').slice(-1)[0] || 'Tour 2025'}
+                </span>
+              </h1>
+            </div>
+            
+            <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-8 max-w-4xl mx-auto font-light leading-relaxed" data-testid="hero-description">
               {tourSettings?.description || 'Reiseführer für das kanadische Weinland-Abenteuer durch British Columbia'}
             </p>
-            <div className="flex flex-col gap-6 justify-center items-center">
+            
+            <div className="flex flex-col gap-6 items-center">
               <Button
                 onClick={scrollToTimeline}
-                className="bg-white text-primary px-8 py-3 text-base sm:text-lg font-semibold hover:bg-white/90 transition-all shadow-xl"
+                size="lg"
+                className="bg-white text-primary hover:bg-white/95 px-10 py-4 text-lg font-semibold shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105"
                 data-testid="hero-cta-button"
               >
                 Reiseplan ansehen
               </Button>
-              <div className="text-white text-base sm:text-lg md:text-xl font-bold bg-white/20 px-6 py-3 md:px-8 md:py-4 rounded-lg backdrop-blur-sm shadow-lg" data-testid="hero-dates">
-                {tourSettings?.startDate || '20. September'} - {tourSettings?.endDate || '6. Oktober 2025'}
+              
+              <div className="bg-white/25 backdrop-blur-md rounded-2xl px-8 py-4 shadow-xl border border-white/20" data-testid="hero-dates">
+                <div className="text-white text-lg sm:text-xl md:text-2xl font-bold">
+                  {tourSettings?.startDate || '20. September'} - {tourSettings?.endDate || '6. Oktober 2025'}
+                </div>
               </div>
             </div>
           </div>
         </div>
           
-        {/* Animated scroll indicator - Hidden on mobile */}
-        <div className="hidden sm:block absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 animate-float z-20" data-testid="scroll-indicator">
-          <ChevronDown className="w-8 h-8 text-white/80" />
+        {/* Animated scroll indicator */}
+        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 animate-float z-20" data-testid="scroll-indicator">
+          <div className="bg-white/20 backdrop-blur-sm rounded-full p-3 border border-white/30">
+            <ChevronDown className="w-6 h-6 text-white" />
+          </div>
         </div>
       </section>
     );
