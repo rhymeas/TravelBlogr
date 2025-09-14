@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import PrivacyWrapper from "@/components/PrivacyWrapper";
+import FloatingUploadButton from "@/components/FloatingUploadButton";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import LocationDetail from "@/pages/LocationDetail";
@@ -31,6 +32,7 @@ function App() {
           <Toaster />
           <PrivacyWrapper>
             <Router />
+            <FloatingUploadButton />
           </PrivacyWrapper>
         </TooltipProvider>
       </AuthProvider>
