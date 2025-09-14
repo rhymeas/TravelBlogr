@@ -29,21 +29,42 @@ export default function AdminPanel() {
   const [scenicSubtitle, setScenicSubtitle] = useState("");
   const [galleries, setGalleries] = useState<ScenicGalleryItem[]>([]);
   
-  // Collapsible sections state
+  // Collapsible sections state - all collapsed by default for cleaner admin interface
   const [collapsedSections, setCollapsedSections] = useState({
-    tourSettings: false,
-    heroImages: false,
-    privacySettings: false,
-    gpsSettings: false,
-    restaurantAccommodation: false,
-    locationsManagement: false,
-    imageManagement: false,
-    scenicLandscapes: false, // new section for scenic content
-    quickActions: true, // start collapsed for cleaner look
+    tourSettings: true,
+    heroImages: true,
+    privacySettings: true,
+    gpsSettings: true,
+    restaurantAccommodation: true,
+    locationsManagement: true,
+    imageManagement: true,
+    scenicLandscapes: true,
+    quickActions: true,
   });
 
   const toggleSection = (section: keyof typeof collapsedSections) => {
     setCollapsedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  // Smooth scroll to section function
+  const scrollToSection = (sectionId: string) => {
+    const element = document.querySelector(`[data-testid="${sectionId}"]`);
+    if (element) {
+      element.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start',
+        inline: 'nearest'
+      });
+    }
+  };
+
+  // Combined navigation function - toggles section and scrolls to it
+  const navigateToSection = (section: keyof typeof collapsedSections, sectionId: string) => {
+    if (collapsedSections[section]) {
+      toggleSection(section);
+    }
+    // Small delay to ensure section is expanded before scrolling
+    setTimeout(() => scrollToSection(sectionId), 100);
   };
   
   const { toast } = useToast();
@@ -263,10 +284,83 @@ export default function AdminPanel() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Tour Settings */}
-          <div className="lg:col-span-2 space-y-8">
+      {/* Main Layout with Sidebar */}
+      <div className="flex min-h-screen">
+        {/* Left Sidebar Navigation */}
+        <div className="w-64 bg-muted/30 border-r border-border sticky top-0 h-screen overflow-y-auto" data-testid="admin-sidebar">
+          <div className="p-4">
+            <h3 className="font-semibold text-foreground mb-4 text-lg">Admin Bereiche</h3>
+            <nav className="space-y-2">
+              <button 
+                onClick={() => navigateToSection('tourSettings', 'tour-settings-card')}
+                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.tourSettings ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                data-testid="nav-tour-settings"
+              >
+                ⚙️ Tour-Einstellungen
+              </button>
+              <button 
+                onClick={() => navigateToSection('heroImages', 'hero-images-card')}
+                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.heroImages ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                data-testid="nav-hero-images"
+              >
+                🖼️ Hero-Bilder verwalten
+              </button>
+              <button 
+                onClick={() => navigateToSection('scenicLandscapes', 'scenic-landscapes-card')}
+                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.scenicLandscapes ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                data-testid="nav-scenic-landscapes"
+              >
+                🏞️ Spektakuläre Landschaften
+              </button>
+              <button 
+                onClick={() => navigateToSection('privacySettings', 'privacy-settings-card')}
+                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.privacySettings ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                data-testid="nav-privacy-settings"
+              >
+                🔒 Privacy-Einstellungen
+              </button>
+              <button 
+                onClick={() => navigateToSection('gpsSettings', 'gps-settings-card')}
+                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.gpsSettings ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                data-testid="nav-gps-settings"
+              >
+                🚗 GPS Live-Tracking
+              </button>
+              <button 
+                onClick={() => navigateToSection('restaurantAccommodation', 'restaurant-accommodation-card')}
+                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.restaurantAccommodation ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                data-testid="nav-restaurant-accommodation"
+              >
+                🏨🍽️ Restaurant & Unterkunft
+              </button>
+              <button 
+                onClick={() => navigateToSection('locationsManagement', 'locations-management-card')}
+                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.locationsManagement ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                data-testid="nav-locations-management"
+              >
+                ⭐ Orte verwalten
+              </button>
+              <button 
+                onClick={() => navigateToSection('imageManagement', 'image-management-card')}
+                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.imageManagement ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                data-testid="nav-image-management"
+              >
+                📸 Bilder verwalten
+              </button>
+              <button 
+                onClick={() => navigateToSection('quickActions', 'quick-actions-card')}
+                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.quickActions ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                data-testid="nav-quick-actions"
+              >
+                ⚡ Schnellaktionen
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 max-w-5xl mx-auto px-6 py-12">
+          <div className="space-y-8">
             <Card data-testid="tour-settings-card">
               <CardHeader 
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
@@ -755,6 +849,93 @@ export default function AdminPanel() {
               )}
             </Card>
 
+            {/* Restaurant & Accommodation Management */}
+            <Card data-testid="restaurant-accommodation-card" className="border-2 border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800">
+              <CardHeader 
+                className="cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-950/40 transition-colors"
+                onClick={() => toggleSection('restaurantAccommodation')}
+                data-testid="restaurant-accommodation-header"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl font-bold text-orange-800 dark:text-orange-200 flex items-center gap-2">
+                      <Hotel className="w-6 h-6" />
+                      🏨🍽️ Restaurant & Unterkunft verwalten
+                    </CardTitle>
+                    <p className="text-orange-700 dark:text-orange-300 text-sm">
+                      Verwalte Restaurants und Unterkünfte für jeden Ort deiner Tour-Route.
+                    </p>
+                  </div>
+                  {collapsedSections.restaurantAccommodation ? 
+                    <ChevronDown className="w-4 h-4 text-orange-800 dark:text-orange-200" /> : 
+                    <ChevronUp className="w-4 h-4 text-orange-800 dark:text-orange-200" />
+                  }
+                </div>
+              </CardHeader>
+              {!collapsedSections.restaurantAccommodation && (
+                <CardContent>
+                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-4">
+                  <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200 mb-2">
+                    <AlertCircle className="w-5 h-5" />
+                    <span className="font-medium">So funktioniert's:</span>
+                  </div>
+                  <p className="text-blue-700 dark:text-blue-300 text-sm">
+                    Klicken Sie auf "Bearbeiten" bei einem Ort unten, um Restaurants und Unterkünfte hinzuzufügen.
+                    Im Bearbeitungsfenster finden Sie prominent die Restaurant & Unterkunft-Verwaltung.
+                  </p>
+                </div>
+                
+                {locations && locations.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-orange-800 dark:text-orange-200">Quick-Access zu Orten:</h4>
+                    <div className="grid gap-3">
+                      {locations.map((location) => {
+                        const hasRestaurants = location.restaurants && location.restaurants.length > 0;
+                        const hasAccommodation = location.accommodation && location.accommodation.trim() !== '';
+                        
+                        return (
+                          <div key={location.id} className="bg-white dark:bg-gray-800 border border-orange-200 dark:border-orange-700 rounded-lg p-4" data-testid={`quick-access-location-${location.slug}`}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <h3 className="font-medium text-gray-900 dark:text-gray-100">{location.name}</h3>
+                                <div className="flex items-center gap-4 mt-2 text-sm">
+                                  <div className="flex items-center gap-1">
+                                    <Hotel className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                    <span className={`${hasAccommodation ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                                      {hasAccommodation ? 'Unterkunft ✓' : 'Keine Unterkunft'}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <UtensilsCrossed className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                    <span className={`${hasRestaurants ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                                      {hasRestaurants ? `${location.restaurants.length} Restaurant(s) ✓` : 'Keine Restaurants'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <Button
+                                onClick={() => {
+                                  setSelectedLocation(location);
+                                  setShowLocationForm(true);
+                                }}
+                                className="bg-orange-600 hover:bg-orange-700 text-white"
+                                size="sm"
+                                data-testid={`quick-edit-${location.slug}`}
+                              >
+                                <Edit className="w-4 h-4 mr-1" />
+                                Restaurants & Unterkunft bearbeiten
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                </CardContent>
+              )}
+            </Card>
+
             {/* Privacy Settings */}
             <Card data-testid="privacy-settings-card">
               <CardHeader 
@@ -1204,10 +1385,164 @@ export default function AdminPanel() {
                 </CardContent>
               )}
             </Card>
-          </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
+            {/* Privacy Settings */}
+            <Card data-testid="privacy-settings-card">
+              <CardHeader 
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => toggleSection('privacySettings')}
+                data-testid="privacy-settings-header"
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Lock className="w-5 h-5" />
+                    Privacy-Einstellungen
+                  </CardTitle>
+                  {collapsedSections.privacySettings ? 
+                    <ChevronDown className="w-4 h-4" /> : 
+                    <ChevronUp className="w-4 h-4" />
+                  }
+                </div>
+              </CardHeader>
+              {!collapsedSections.privacySettings && (
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="privacy-enabled">Privacy-Schutz aktivieren</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Aktiviert Passwort-Schutz für die gesamte Tour-Website
+                      </p>
+                    </div>
+                    <Switch 
+                      id="privacy-enabled"
+                      checked={tourSettings?.privacyEnabled || false}
+                      onCheckedChange={(checked) => {
+                        updatePrivacySettingsMutation.mutate({ privacyEnabled: checked });
+                      }}
+                      data-testid="switch-privacy-enabled"
+                    />
+                  </div>
+                  
+                  {tourSettings?.privacyEnabled && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="privacy-password">Privacy-Passwort</Label>
+                        <div className="flex">
+                          <Input
+                            id="privacy-password"
+                            type={showPassword ? "text" : "password"}
+                            value={privacyPassword}
+                            onChange={(e) => setPrivacyPassword(e.target.value)}
+                            placeholder="Neues Passwort eingeben"
+                            data-testid="input-privacy-password"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="ml-2"
+                            onClick={() => setShowPassword(!showPassword)}
+                            data-testid="button-toggle-password-visibility"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="session-timeout">Session-Timeout (Minuten)</Label>
+                        <Input
+                          id="session-timeout"
+                          type="number"
+                          defaultValue={tourSettings?.sessionTimeout || 60}
+                          onBlur={(e) => {
+                            updatePrivacySettingsMutation.mutate({ sessionTimeout: parseInt(e.target.value) || 60 });
+                          }}
+                          data-testid="input-session-timeout"
+                        />
+                      </div>
+                      
+                      <Button
+                        onClick={() => {
+                          if (privacyPassword.trim()) {
+                            updatePrivacySettingsMutation.mutate({ privacyPassword: privacyPassword });
+                          }
+                        }}
+                        disabled={!privacyPassword.trim() || updatePrivacySettingsMutation.isPending}
+                        data-testid="button-save-privacy-password"
+                      >
+                        {updatePrivacySettingsMutation.isPending ? "Speichern..." : "Passwort speichern"}
+                      </Button>
+                    </>
+                  )}
+                </CardContent>
+              )}
+            </Card>
+
+            {/* GPS Settings */}
+            <Card data-testid="gps-settings-card">
+              <CardHeader 
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => toggleSection('gpsSettings')}
+                data-testid="gps-settings-header"
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <span>🚗</span>
+                    GPS Live-Tracking
+                  </CardTitle>
+                  {collapsedSections.gpsSettings ? 
+                    <ChevronDown className="w-4 h-4" /> : 
+                    <ChevronUp className="w-4 h-4" />
+                  }
+                </div>
+              </CardHeader>
+              {!collapsedSections.gpsSettings && (
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="gps-enabled">Live GPS-Tracking aktivieren</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Zeigt die aktuelle Position der Tour in Echtzeit an
+                      </p>
+                    </div>
+                    <Switch 
+                      id="gps-enabled"
+                      checked={tourSettings?.gpsEnabled || false}
+                      onCheckedChange={(checked) => {
+                        updateTourSettingsMutation.mutate({ gpsEnabled: checked });
+                      }}
+                      data-testid="switch-gps-enabled"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="gps-update-interval">Update-Intervall (Sekunden)</Label>
+                    <Input
+                      id="gps-update-interval"
+                      type="number"
+                      defaultValue={tourSettings?.gpsUpdateInterval || 30}
+                      onBlur={(e) => {
+                        updateTourSettingsMutation.mutate({ gpsUpdateInterval: parseInt(e.target.value) || 30 });
+                      }}
+                      data-testid="input-gps-update-interval"
+                    />
+                  </div>
+                  
+                  <div className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200 mb-2">
+                      <AlertCircle className="w-5 h-5" />
+                      <span className="font-medium">GPS Live-Tracking Info:</span>
+                    </div>
+                    <p className="text-yellow-700 dark:text-yellow-300 text-sm">
+                      Das GPS-Tracking funktioniert nur, wenn Location-Services im Browser aktiviert sind. 
+                      Die Position wird automatisch auf der Live-Feed Seite angezeigt.
+                    </p>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+
             {/* Quick Actions */}
             <Card data-testid="quick-actions-card">
               <CardHeader 
@@ -1228,26 +1563,26 @@ export default function AdminPanel() {
               </CardHeader>
               {!collapsedSections.quickActions && (
                 <CardContent className="space-y-2">
-                <Button variant="outline" className="w-full justify-start" data-testid="button-export">
-                  📱 Daten exportieren
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start"
-                  onClick={() => {
-                    queryClient.invalidateQueries();
-                    toast({
-                      title: "Cache geleert",
-                      description: "Alle Daten wurden neu geladen",
-                    });
-                  }}
-                  data-testid="button-clear-cache"
-                >
-                  🔄 Cache leeren
-                </Button>
-                <Button variant="outline" className="w-full justify-start" data-testid="button-statistics">
-                  📊 Statistiken anzeigen
-                </Button>
+                  <Button variant="outline" className="w-full justify-start" data-testid="button-export">
+                    📱 Daten exportieren
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => {
+                      queryClient.invalidateQueries();
+                      toast({
+                        title: "Cache geleert",
+                        description: "Alle Daten wurden neu geladen",
+                      });
+                    }}
+                    data-testid="button-clear-cache"
+                  >
+                    🔄 Cache leeren
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" data-testid="button-statistics">
+                    📊 Statistiken anzeigen
+                  </Button>
                 </CardContent>
               )}
             </Card>
