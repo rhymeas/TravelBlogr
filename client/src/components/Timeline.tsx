@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Wine, Mountain, MapPin, Utensils, Calendar, Home, ChevronRight } from "lucide-react";
+import { Calendar, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { Location } from "@shared/schema";
@@ -23,130 +23,108 @@ function formatDateRange(startDate: string, endDate: string): string {
   return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
 }
 
-function getCategoryIcon(highlights: string[]) {
-  const highlightStr = highlights.join(' ').toLowerCase();
-  if (highlightStr.includes('wein') || highlightStr.includes('wine')) {
-    return <Wine className="w-4 h-4 text-white" />;
-  }
-  if (highlightStr.includes('berg') || highlightStr.includes('mountain') || highlightStr.includes('rocky')) {
-    return <Mountain className="w-4 h-4 text-white" />;
-  }
-  return <MapPin className="w-4 h-4 text-white" />;
-}
-
 export default function Timeline({ locations }: TimelineProps) {
   return (
-    <div className="relative" data-testid="timeline">
+    <div className="relative max-w-4xl mx-auto" data-testid="timeline">
       {/* Timeline line */}
-      <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-0.5 bg-primary/20 transform -translate-x-1/2"></div>
+      <div className="hidden md:block absolute right-8 top-0 bottom-0 w-0.5 bg-primary/20"></div>
       
-      <div className="space-y-20">
+      <div className="space-y-12">
         {locations.map((location, index) => (
           <div key={location.id} className="relative" data-testid={`timeline-item-${location.slug}`}>
             {/* Timeline marker */}
-            <div className="hidden md:block absolute left-1/2 top-8 w-8 h-8 bg-primary rounded-full transform -translate-x-1/2 z-10 border-4 border-background shadow-lg flex items-center justify-center">
-              {getCategoryIcon(location.highlights || [])}
-            </div>
+            <div className="hidden md:block absolute right-4 top-8 w-8 h-8 bg-primary rounded-full z-10 shadow-lg"></div>
             
-            {/* Card positioned alternating left/right */}
-            <div className={`flex ${index % 2 === 0 ? 'md:justify-start' : 'md:justify-end'}`}>
-              <Card className={`w-full md:w-5/12 lg:w-2/5 bg-white shadow-lg hover:shadow-xl transition-shadow animate-fade-in ${index % 2 === 0 ? 'md:mr-auto' : 'md:ml-auto'}`}>
-                {/* Header with date */}
-                <div className="relative">
-                  <img 
-                    src={location.imageUrl || "https://images.unsplash.com/photo-1506905925346-21bda4d32df4"}
-                    alt={location.name}
-                    className="w-full h-56 object-cover rounded-t-lg"
-                    data-testid={`location-image-${location.slug}`}
-                  />
-                  <div className="absolute top-4 right-4 bg-primary/90 text-white px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm">
-                    <Calendar className="w-4 h-4 inline mr-1" />
-                    {formatDateRange(location.startDate, location.endDate)}
+            {/* Card */}
+            <Card className="w-full md:w-5/6 bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+              {/* Header with location name and date */}
+              <div className="flex items-center justify-between p-6 pb-4">
+                <h3 className="text-2xl font-bold text-gray-900" data-testid={`location-name-${location.slug}`}>
+                  {location.name}
+                </h3>
+                <div className="flex items-center text-primary font-medium">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  <span className="text-sm">{formatDateRange(location.startDate, location.endDate)}</span>
+                </div>
+              </div>
+
+              {/* Image */}
+              <div className="px-6 pb-4">
+                <img 
+                  src={location.imageUrl || "https://images.unsplash.com/photo-1506905925346-21bda4d32df4"}
+                  alt={location.name}
+                  className="w-full h-64 object-cover rounded-lg"
+                  data-testid={`location-image-${location.slug}`}
+                />
+              </div>
+
+              {/* Description */}
+              <div className="px-6 pb-4">
+                <p className="text-gray-600 text-base leading-relaxed" data-testid={`location-description-${location.slug}`}>
+                  {location.description}
+                </p>
+              </div>
+
+              {/* Restaurants and Activities grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 pb-4">
+                {/* Restaurants */}
+                <div>
+                  <div className="flex items-center mb-3">
+                    <span className="text-lg mr-2">🍽️</span>
+                    <h4 className="font-semibold text-primary">Restaurants</h4>
                   </div>
+                  <ul className="space-y-2">
+                    {location.restaurants?.slice(0, 2).map((restaurant, idx) => (
+                      <li key={idx} className="text-sm text-gray-700">
+                        • {typeof restaurant === 'string' ? restaurant : restaurant.name}
+                      </li>
+                    )) || (
+                      <li className="text-sm text-gray-500">• Lokale Spezialitäten entdecken</li>
+                    )}
+                  </ul>
                 </div>
 
-                <div className="p-6">
-                  {/* Location name and description */}
-                  <div className="mb-6">
-                    <h3 className="text-2xl font-bold text-foreground mb-2" data-testid={`location-name-${location.slug}`}>
-                      {location.name}
-                    </h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed" data-testid={`location-description-${location.slug}`}>
-                      {location.description}
-                    </p>
+                {/* Activities */}
+                <div>
+                  <div className="flex items-center mb-3">
+                    <span className="text-lg mr-2">⭐</span>
+                    <h4 className="font-semibold text-primary">Aktivitäten</h4>
                   </div>
+                  <ul className="space-y-2">
+                    {location.activities?.slice(0, 2).map((activity, idx) => (
+                      <li key={idx} className="text-sm text-gray-700">
+                        • {activity}
+                      </li>
+                    )) || (
+                      <li className="text-sm text-gray-500">• Entdeckungstouren vor Ort</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
 
-                  {/* Restaurants and Activities grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    {/* Restaurants */}
-                    <div>
-                      <div className="flex items-center mb-3">
-                        <Utensils className="w-4 h-4 text-primary mr-2" />
-                        <h4 className="font-semibold text-primary">Restaurants</h4>
-                      </div>
-                      <ul className="space-y-2">
-                        {location.restaurants?.slice(0, 2).map((restaurant, idx) => (
-                          <li key={idx} className="text-sm">
-                            <span className="font-medium">• {restaurant.name}</span>
-                            {restaurant.description && (
-                              <p className="text-muted-foreground text-xs mt-1 ml-3">
-                                {restaurant.description}
-                              </p>
-                            )}
-                          </li>
-                        )) || (
-                          <li className="text-sm text-muted-foreground">• Lokale Spezialitäten entdecken</li>
-                        )}
-                      </ul>
-                    </div>
+              {/* Accommodation */}
+              <div className="px-6 pb-4">
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Unterkunft:</span> {location.accommodation || 'Komfortable Unterkunft'} • 2 Nächte
+                </p>
+              </div>
 
-                    {/* Activities */}
-                    <div>
-                      <div className="flex items-center mb-3">
-                        <Mountain className="w-4 h-4 text-primary mr-2" />
-                        <h4 className="font-semibold text-primary">Aktivitäten</h4>
-                      </div>
-                      <ul className="space-y-2">
-                        {location.activities?.slice(0, 3).map((activity, idx) => (
-                          <li key={idx} className="text-sm">
-                            <span className="text-foreground">• {activity}</span>
-                          </li>
-                        )) || (
-                          <li className="text-sm text-muted-foreground">• Entdeckungstouren vor Ort</li>
-                        )}
-                      </ul>
-                    </div>
-                  </div>
-
-                  {/* Accommodation */}
-                  <div className="border-t border-border pt-4 mb-6">
-                    <div className="flex items-center mb-2">
-                      <Home className="w-4 h-4 text-muted-foreground mr-2" />
-                      <span className="text-sm font-medium text-muted-foreground">Unterkunft:</span>
-                    </div>
-                    <p className="text-sm text-foreground ml-6">
-                      {location.accommodation}
-                      {location.accommodationPrice && (
-                        <span className="text-muted-foreground ml-2">
-                          • {location.accommodationPrice}€ pro Nacht
-                        </span>
-                      )}
-                    </p>
-                  </div>
-
-                  {/* Details button */}
+              {/* Details button */}
+              <div className="px-6 pb-6">
+                <div className="flex justify-end">
                   <Link href={`/location/${location.slug}`}>
                     <Button 
-                      className="w-full bg-primary hover:bg-primary/90 text-white font-medium"
+                      variant="ghost"
+                      className="text-gray-700 hover:text-primary p-0 h-auto font-normal"
                       data-testid={`details-button-${location.slug}`}
                     >
                       Details ansehen
-                      <ChevronRight className="w-4 h-4 ml-2" />
+                      <ChevronRight className="w-4 h-4 ml-1" />
                     </Button>
                   </Link>
                 </div>
-              </Card>
-            </div>
+              </div>
+            </Card>
           </div>
         ))}
       </div>
