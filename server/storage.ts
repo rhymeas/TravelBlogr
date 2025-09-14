@@ -50,7 +50,6 @@ export interface IStorage {
   getTripPhotos(locationId: string): Promise<TripPhoto[]>;
   getAllTripPhotos(): Promise<TripPhoto[]>;
   addTripPhoto(tripPhoto: InsertTripPhoto): Promise<TripPhoto>;
-  updateTripPhoto(id: string, tripPhoto: Partial<InsertTripPhoto>): Promise<TripPhoto>;
   cleanupBrokenTripPhotos(): Promise<number>; // Returns number of photos removed
 
   // Tour settings
@@ -694,24 +693,6 @@ export class MemStorage implements IStorage {
     };
     this.tripPhotos.set(id, newTripPhoto);
     return newTripPhoto;
-  }
-
-  async updateTripPhoto(id: string, tripPhoto: Partial<InsertTripPhoto>): Promise<TripPhoto> {
-    const existing = this.tripPhotos.get(id);
-    if (!existing) {
-      throw new Error("Trip photo not found");
-    }
-
-    const updated = {
-      ...existing,
-      ...tripPhoto,
-      // Preserve original ID and uploadedAt
-      id: existing.id,
-      uploadedAt: existing.uploadedAt,
-    };
-
-    this.tripPhotos.set(id, updated);
-    return updated;
   }
 
   async cleanupBrokenTripPhotos(): Promise<number> {
@@ -1439,20 +1420,6 @@ export class DatabaseStorage implements IStorage {
   async addTripPhoto(tripPhoto: InsertTripPhoto): Promise<TripPhoto> {
     await this.ensureInitialized();
     const result = await db.insert(tripPhotos).values(tripPhoto).returning();
-    return result[0];
-  }
-
-  async updateTripPhoto(id: string, tripPhoto: Partial<InsertTripPhoto>): Promise<TripPhoto> {
-    await this.ensureInitialized();
-    const result = await db.update(tripPhotos)
-      .set(tripPhoto)
-      .where(eq(tripPhotos.id, id))
-      .returning();
-    
-    if (result.length === 0) {
-      throw new Error("Trip photo not found");
-    }
-    
     return result[0];
   }
 

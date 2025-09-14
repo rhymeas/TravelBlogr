@@ -2,18 +2,11 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
-import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema, insertLocationPingSchema, insertHeroImageSchema, insertScenicContentSchema, scenicContentUpdateSchema, insertCreatorSchema, type InsertTripPhoto } from "@shared/schema";
+import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema, insertLocationPingSchema, insertHeroImageSchema, insertScenicContentSchema, scenicContentUpdateSchema, insertCreatorSchema } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import multer from "multer";
 import { randomUUID } from "crypto";
-
-// Validation schema for trip photo caption updates - require caption field presence
-const updateTripPhotoCaptionSchema = z.object({
-  caption: z.string().max(500, "Bildunterschrift ist zu lang (maximal 500 Zeichen)").nullable(),
-}).refine(d => Object.prototype.hasOwnProperty.call(d, 'caption'), {
-  message: "Caption field is required for updates",
-});
 
 // Configure multer for file uploads
 const upload = multer({
@@ -110,30 +103,6 @@ function simpleAuthMiddleware(req: any, res: any, next: any) {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // OIDC Authentication routes
-  app.get('/api/auth/user', async (req: any, res) => {
-    try {
-      // Check if user is authenticated via OIDC (test framework or production)
-      if (req.isAuthenticated && req.isAuthenticated() && req.user) {
-        const userId = req.user.claims?.sub;
-        // Return basic user info from OIDC claims if storage lookup fails
-        return res.json({
-          id: req.user.claims?.sub,
-          email: req.user.claims?.email,
-          firstName: req.user.claims?.first_name,
-          lastName: req.user.claims?.last_name,
-          profileImageUrl: req.user.claims?.profile_image_url,
-        });
-      }
-      
-      // No OIDC authentication found
-      res.status(401).json({ message: "Unauthorized" });
-    } catch (error) {
-      console.error("Error fetching OIDC user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
-
   // Location routes
   app.get("/api/locations", async (req, res) => {
     try {
@@ -498,57 +467,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error adding centralized trip photo:", error);
       res.status(500).json({ 
         error: "Foto konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut." 
-      });
-    }
-  });
-
-  // PATCH route for updating trip photo captions - requires authentication
-  app.patch("/api/trip-photos/:id", simpleAuthMiddleware, async (req, res) => {
-    try {
-      const photoId = req.params.id;
-      
-      // Validate request body
-      const validation = updateTripPhotoCaptionSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({ 
-          error: "Ungültige Anfrage", 
-          details: validation.error.issues
-        });
-      }
-
-      // Build update object conditionally to prevent undefined overwrites
-      const updateData: Partial<InsertTripPhoto> = {};
-      if (validation.data.caption !== undefined) {
-        updateData.caption = validation.data.caption;
-      }
-
-      // Update the trip photo caption
-      const updatedPhoto = await storage.updateTripPhoto(photoId, updateData);
-
-      // Generate fresh display URL if photo has objectPath
-      if (updatedPhoto.objectPath) {
-        try {
-          const objectStorageService = new ObjectStorageService();
-          const freshImageUrl = await objectStorageService.getObjectEntityDisplayURL(updatedPhoto.objectPath);
-          updatedPhoto.imageUrl = freshImageUrl;
-        } catch (error) {
-          console.error('Error generating fresh display URL for updated photo:', photoId, error);
-          // Continue with existing imageUrl if regeneration fails
-        }
-      }
-
-      res.json(updatedPhoto);
-    } catch (error) {
-      console.error("Error updating trip photo caption:", error);
-      
-      if (error instanceof Error && error.message === "Trip photo not found") {
-        return res.status(404).json({ 
-          error: "Foto nicht gefunden" 
-        });
-      }
-      
-      res.status(500).json({ 
-        error: "Bildunterschrift konnte nicht aktualisiert werden" 
       });
     }
   });
