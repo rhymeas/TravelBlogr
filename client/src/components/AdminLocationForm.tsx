@@ -27,7 +27,6 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
     accommodationWebsite: "",
     distance: 0,
     imageUrl: "",
-    mapImageUrl: "",
     activities: [""],
     restaurants: [{ name: "", description: "", cuisine: "", websiteUrl: "", imageUrl: "" }] as RestaurantData[],
     experiences: [""],
@@ -50,7 +49,6 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
         accommodationWebsite: (location as any).accommodationWebsite || "",
         distance: location.distance || 0,
         imageUrl: location.imageUrl || "",
-        mapImageUrl: (location as any).mapImageUrl || "",
         activities: location.activities?.length ? location.activities : [""],
         restaurants: location.restaurants?.length ? location.restaurants.map(r => ({
           name: r.name || "",
@@ -240,15 +238,6 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
               onChange={(value) => setFormData(prev => ({ ...prev, imageUrl: value }))}
               placeholder="https://example.com/location-image.jpg"
               testId="location-main-image"
-            />
-
-            {/* Map Image */}
-            <ImageInput
-              label="Karten-Screenshot des Orts"
-              value={formData.mapImageUrl}
-              onChange={(value) => setFormData(prev => ({ ...prev, mapImageUrl: value }))}
-              placeholder="https://example.com/map-screenshot.jpg"
-              testId="location-map-image"
             />
 
             {/* Activities */}

@@ -17,7 +17,6 @@ export const locations = pgTable("locations", {
   accommodationCurrency: text("accommodation_currency").default("CAD"),
   distance: integer("distance"), // km from previous location
   imageUrl: text("image_url"),
-  mapImageUrl: text("map_image_url"), // Map screenshot or location map
   coordinates: jsonb("coordinates").$type<{ lat: number; lng: number }>(),
   activities: jsonb("activities").$type<string[]>().default([]),
   restaurants: jsonb("restaurants").$type<RestaurantData[]>().default([]),
