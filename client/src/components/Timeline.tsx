@@ -31,7 +31,11 @@ export default function Timeline({ locations }: TimelineProps) {
       
       <div className="space-y-0">
         {locations.map((location, index) => (
-          <div key={location.id} className={`relative ${index > 0 ? 'relative' : ''}`} style={index > 0 ? {marginTop: '-300px'} : {}} data-testid={`timeline-item-${location.slug}`}>
+          <div key={location.id} className="relative" style={
+            index === 1 ? {marginTop: '-300px'} : 
+            index > 1 ? {marginTop: '-150px'} : 
+            {}
+          } data-testid={`timeline-item-${location.slug}`}>
             {/* Timeline marker */}
             <div className="hidden md:block absolute left-1/2 top-8 w-8 h-8 bg-primary rounded-full transform -translate-x-1/2 z-10 border-4 border-white shadow-lg"></div>
             
@@ -75,15 +79,40 @@ export default function Timeline({ locations }: TimelineProps) {
                       <span className="text-lg mr-2">🍽️</span>
                       <h4 className="font-semibold text-primary">Restaurants</h4>
                     </div>
-                    <ul className="space-y-2">
+                    <div className="space-y-3">
                       {location.restaurants?.slice(0, 2).map((restaurant, idx) => (
-                        <li key={idx} className="text-sm text-gray-700">
-                          • {typeof restaurant === 'string' ? restaurant : restaurant.name}
-                        </li>
+                        <div key={idx} className="flex items-center gap-3" data-testid={`restaurant-item-${idx}`}>
+                          {(restaurant as any).imageUrl && (
+                            <img 
+                              src={(restaurant as any).imageUrl} 
+                              alt={typeof restaurant === 'string' ? restaurant : restaurant.name}
+                              className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                              data-testid={`restaurant-image-${idx}`}
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm text-gray-700">
+                              • {(restaurant as any).websiteUrl ? (
+                                <a href={(restaurant as any).websiteUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 underline" data-testid={`restaurant-link-${idx}`}>
+                                  {typeof restaurant === 'string' ? restaurant : restaurant.name}
+                                </a>
+                              ) : (
+                                <span data-testid={`restaurant-name-${idx}`}>
+                                  {typeof restaurant === 'string' ? restaurant : restaurant.name}
+                                </span>
+                              )}
+                            </div>
+                            {(restaurant as any).cuisine && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {(restaurant as any).cuisine}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       )) || (
-                        <li className="text-sm text-gray-500">• Lokale Spezialitäten entdecken</li>
+                        <div className="text-sm text-gray-500">• Lokale Spezialitäten entdecken</div>
                       )}
-                    </ul>
+                    </div>
                   </div>
 
                   {/* Activities */}
@@ -108,7 +137,47 @@ export default function Timeline({ locations }: TimelineProps) {
                 <div className="px-6 pb-4">
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                     <p className="text-sm text-gray-700">
-                      <span className="font-medium">Unterkunft:</span> {location.accommodation || 'Komfortable Unterkunft'} • 2 Nächte
+                      <span className="font-medium">Unterkunft:</span> {(location as any).accommodationWebsite ? (
+                        <a href={(location as any).accommodationWebsite} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 underline ml-1">
+                          {location.accommodation || 'Komfortable Unterkunft'}
+                        </a>
+                      ) : (
+                        <span className="ml-1">{location.accommodation || 'Komfortable Unterkunft'}</span>
+                      )} • 2 Nächte
+                    </p>
+                  </div>
+                </div>
+
+                {/* Fun Facts Preview */}
+                <div className="px-6 pb-4">
+                  <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                    <div className="flex items-center mb-2">
+                      <span className="text-lg mr-2">🎯</span>
+                      <h4 className="font-semibold text-amber-800">Wussten Sie schon?</h4>
+                    </div>
+                    <p className="text-sm text-amber-700">
+                      {(() => {
+                        // Show first fun fact or default based on location
+                        if ((location as any).funFacts?.length > 0) {
+                          return (location as any).funFacts[0];
+                        }
+                        switch (location.slug) {
+                          case 'penticton':
+                            return '"Penticton" bedeutet "ein Ort, um für immer zu bleiben" auf der ursprünglichen Okanagan-Sprache.';
+                          case 'vernon':
+                            return 'Vernon veranstaltet Westkanadas größten Winterkarneval - den zweitgrößten in ganz Nordamerika!';
+                          case 'jasper':
+                            return 'Jasper ist ein Dark Sky Reserve - einer der besten Orte für Sterne und Nordlichter in Kanada.';
+                          case 'golden':
+                            return 'Golden bietet Zugang zu über 300 Kilometern Mountainbike-Strecken in den Rocky Mountains.';
+                          case 'wells-gray':
+                            return 'Wells Gray ist als "Kanadas Wasserfall-Park" bekannt mit über 40 spektakulären Wasserfällen.';
+                          case 'sunshine-coast':
+                            return 'Die Sunshine Coast ist nur mit der Fähre erreichbar, obwohl sie auf dem Festland liegt.';
+                          default:
+                            return 'Entdecken Sie faszinierende Fakten über diese einzigartige kanadische Destination!';
+                        }
+                      })()}
                     </p>
                   </div>
                 </div>

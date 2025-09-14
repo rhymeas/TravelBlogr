@@ -78,7 +78,7 @@ export default function Hero({ tourSettings }: HeroProps) {
           >
             <div 
               style={{
-                backgroundImage: `url('${tourSettings?.heroImageUrl || image.url}')`,
+                backgroundImage: `url('${index === 0 && tourSettings?.heroImageUrl ? tourSettings.heroImageUrl : image.url}')`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center'
               }}

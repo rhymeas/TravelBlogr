@@ -63,9 +63,9 @@ export class MemStorage implements IStorage {
           "Promenade am Okanagan Lake"
         ],
         restaurants: [
-          { name: "Summerhill Pyramid Winery Restaurant", description: "Weinkellerei mit Pyramide und Restaurant" },
-          { name: "Burrowing Owl Estate Winery", description: "Weingut mit Restaurant und Weinproben" },
-          { name: "Naramata Bench Weinstraße", description: "Verschiedene Weingüter entlang der Route" }
+          { name: "Summerhill Pyramid Winery Restaurant", description: "Weinkellerei mit Pyramide und Restaurant" } as RestaurantData,
+          { name: "Burrowing Owl Estate Winery", description: "Weingut mit Restaurant und Weinproben" } as RestaurantData,
+          { name: "Naramata Bench Weinstraße", description: "Verschiedene Weingüter entlang der Route" } as RestaurantData
         ],
         experiences: [
           "Leichte Riesling-Flights und Weinproben",
@@ -90,8 +90,8 @@ export class MemStorage implements IStorage {
           "Wanderung um den Swan Lake"
         ],
         restaurants: [
-          { name: "Castle Restaurant", description: "Restaurant im Castle at Swan Lake" },
-          { name: "Vernon Downtown Bistro", description: "Lokale Küche im Stadtzentrum" }
+          { name: "Castle Restaurant", description: "Restaurant im Castle at Swan Lake" } as RestaurantData,
+          { name: "Vernon Downtown Bistro", description: "Lokale Küche im Stadtzentrum" } as RestaurantData
         ],
         experiences: [
           "Romantischer Aufenthalt im Castle",
@@ -123,9 +123,9 @@ export class MemStorage implements IStorage {
           "Stopp am Columbia Icefield für eine Gletschertour"
         ],
         restaurants: [
-          { name: "Fairmont Chateau Lake Louise", description: "Afternoon Tea mit spektakulärem Bergblick" },
-          { name: "Cedar House Restaurant & Chalets", description: "Alpine Küche am Fluss mit Bergkulisse" },
-          { name: "Banff Avenue Brewhouse", description: "Lokale Brauerei mit kanadischer Küche" }
+          { name: "Fairmont Chateau Lake Louise", description: "Afternoon Tea mit spektakulärem Bergblick" } as RestaurantData,
+          { name: "Cedar House Restaurant & Chalets", description: "Alpine Küche am Fluss mit Bergkulisse" } as RestaurantData,
+          { name: "Banff Avenue Brewhouse", description: "Lokale Brauerei mit kanadischer Küche" } as RestaurantData
         ],
         experiences: [
           "Der Icefields Parkway - eine der schönsten Panoramastraßen der Welt",
@@ -154,9 +154,9 @@ export class MemStorage implements IStorage {
           "Jasper Yellowhead Museum"
         ],
         restaurants: [
-          { name: "Jasper Park Lodge", description: "Fine Dining mit Blick auf den Beauvert Lake" },
-          { name: "The Raven Bistro", description: "Gourmet-Küche mit lokalen Zutaten" },
-          { name: "Earls Jasper", description: "Moderne kanadische Küche in entspannter Atmosphäre" }
+          { name: "Jasper Park Lodge", description: "Fine Dining mit Blick auf den Beauvert Lake" } as RestaurantData,
+          { name: "The Raven Bistro", description: "Gourmet-Küche mit lokalen Zutaten" } as RestaurantData,
+          { name: "Earls Jasper", description: "Moderne kanadische Küche in entspannter Atmosphäre" } as RestaurantData
         ],
         experiences: [
           "Spirit Island - eines der meistfotografierten Motive Kanadas",
@@ -185,9 +185,9 @@ export class MemStorage implements IStorage {
           "Mittags Wildlife-Bootsafari im Blue River-Tal"
         ],
         restaurants: [
-          { name: "Alpine Meadows Restaurant", description: "Hausgemachte Gerichte in rustikaler Atmosphäre" },
-          { name: "Wells Gray Inn", description: "Traditionelle kanadische Küche" },
-          { name: "Clearwater Country Inn", description: "Gemütliches Restaurant mit regionalen Spezialitäten" }
+          { name: "Alpine Meadows Restaurant", description: "Hausgemachte Gerichte in rustikaler Atmosphäre" } as RestaurantData,
+          { name: "Wells Gray Inn", description: "Traditionelle kanadische Küche" } as RestaurantData,
+          { name: "Clearwater Country Inn", description: "Gemütliches Restaurant mit regionalen Spezialitäten" } as RestaurantData
         ],
         experiences: [
           "Rivers Safari - sehr bequeme Sitzboote für Wildlife-Beobachtung",
@@ -213,9 +213,9 @@ export class MemStorage implements IStorage {
           "Historische Stadtführung"
         ],
         restaurants: [
-          { name: "Reynolds Hotel Restaurant", description: "Historisches Hotel-Restaurant" },
-          { name: "Duffey Lake Café", description: "Gemütliches Café mit lokalen Spezialitäten" },
-          { name: "Lillooet Bakery", description: "Frisches Gebäck und Kaffee" }
+          { name: "Reynolds Hotel Restaurant", description: "Historisches Hotel-Restaurant" } as RestaurantData,
+          { name: "Duffey Lake Café", description: "Gemütliches Café mit lokalen Spezialitäten" } as RestaurantData,
+          { name: "Lillooet Bakery", description: "Frisches Gebäck und Kaffee" } as RestaurantData
         ],
         experiences: [
           "Goldgräber-Geschichte erleben",
@@ -242,9 +242,9 @@ export class MemStorage implements IStorage {
           "Gibsons Landing erkunden"
         ],
         restaurants: [
-          { name: "The Wharf Restaurant", description: "Meeresfrüchte-Restaurant direkt am Wasser" },
-          { name: "Molly's Lane Café", description: "Gemütliches Café mit Aussicht auf den Pazifik" },
-          { name: "Coast Restaurant", description: "Fine Dining mit Fokus auf lokale Meeresfrüchte" }
+          { name: "The Wharf Restaurant", description: "Meeresfrüchte-Restaurant direkt am Wasser" } as RestaurantData,
+          { name: "Molly's Lane Café", description: "Gemütliches Café mit Aussicht auf den Pazifik" } as RestaurantData,
+          { name: "Coast Restaurant", description: "Fine Dining mit Fokus auf lokale Meeresfrüchte" } as RestaurantData
         ],
         experiences: [
           "Sonnenuntergang über dem Pazifik",
@@ -262,15 +262,17 @@ export class MemStorage implements IStorage {
         ...location,
         id,
         accommodation: location.accommodation || null,
+        accommodationWebsite: location.accommodationWebsite || null,
         accommodationPrice: location.accommodationPrice || null,
         accommodationCurrency: location.accommodationCurrency || null,
         distance: location.distance || null,
         imageUrl: location.imageUrl || null,
         coordinates: location.coordinates || null,
         activities: location.activities ? [...location.activities] : null,
-        restaurants: location.restaurants ? [...location.restaurants] : null,
+        restaurants: location.restaurants ? [...location.restaurants] as RestaurantData[] : null,
         experiences: location.experiences ? [...location.experiences] : null,
         highlights: location.highlights ? [...location.highlights] : null,
+        funFacts: location.funFacts ? [...location.funFacts] : null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -313,15 +315,17 @@ export class MemStorage implements IStorage {
       ...location,
       id,
       accommodation: location.accommodation || null,
+      accommodationWebsite: location.accommodationWebsite || null,
       accommodationPrice: location.accommodationPrice || null,
       accommodationCurrency: location.accommodationCurrency || null,
       distance: location.distance || null,
       imageUrl: location.imageUrl || null,
       coordinates: location.coordinates || null,
       activities: location.activities ? [...location.activities] : null,
-      restaurants: location.restaurants ? [...location.restaurants] : null,
+      restaurants: location.restaurants ? [...location.restaurants] as RestaurantData[] : null,
       experiences: location.experiences ? [...location.experiences] : null,
       highlights: location.highlights ? [...location.highlights] : null,
+      funFacts: location.funFacts ? [...location.funFacts] : null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -335,9 +339,23 @@ export class MemStorage implements IStorage {
       throw new Error("Location not found");
     }
     
+    // Handle array updates properly to avoid type issues
+    const updatedData = { ...location };
+    delete updatedData.activities;
+    delete updatedData.restaurants;
+    delete updatedData.experiences;
+    delete updatedData.highlights;
+    delete updatedData.funFacts;
+    
     const updated: Location = {
       ...existing,
-      ...location,
+      ...updatedData,
+      // Ensure arrays are properly typed when updating
+      activities: location.activities ? [...location.activities] : existing.activities,
+      restaurants: location.restaurants ? [...location.restaurants] as RestaurantData[] : existing.restaurants,
+      experiences: location.experiences ? [...location.experiences] : existing.experiences,
+      highlights: location.highlights ? [...location.highlights] : existing.highlights,
+      funFacts: location.funFacts ? [...location.funFacts] : existing.funFacts,
       updatedAt: new Date(),
     };
     this.locations.set(id, updated);
