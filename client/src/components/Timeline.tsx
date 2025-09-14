@@ -29,13 +29,15 @@ export default function Timeline({ locations }: TimelineProps) {
       {/* Timeline line - extends full height with strong visibility */}
       <div className="hidden md:block absolute left-1/2 top-0 h-full w-1 bg-primary transform -translate-x-1/2 shadow-md"></div>
       
-      <div className="space-y-0">
+      <div className="space-y-6 md:space-y-0">
         {locations.map((location, index) => (
-          <div key={location.id} className="relative" style={
-            index === 1 ? {marginTop: '-300px'} : 
-            index > 1 ? {marginTop: '-150px'} : 
-            {}
-          } data-testid={`timeline-item-${location.slug}`}>
+          <div 
+            key={location.id} 
+            className={`relative ${
+              index === 1 ? 'md:-mt-[300px]' : 
+              index > 1 ? 'md:-mt-[150px]' : ''
+            }`}
+            data-testid={`timeline-item-${location.slug}`}>
             {/* Timeline marker */}
             <div className="hidden md:block absolute left-1/2 top-8 w-8 h-8 bg-primary rounded-full transform -translate-x-1/2 z-10 border-4 border-white shadow-lg"></div>
             
