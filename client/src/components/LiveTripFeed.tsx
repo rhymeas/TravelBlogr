@@ -1,14 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ObjectUploader } from "@/components/ObjectUploader";
-import { Badge } from "@/components/ui/badge";
-import { Camera, Upload, Clock, User, RefreshCw } from "lucide-react";
+import { Plus, Clock, User, Camera, Send, Image } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { TripPhoto } from "@shared/schema";
@@ -20,22 +16,27 @@ interface LiveTripFeedProps {
 }
 
 export function LiveTripFeed({ locationId, locationName, showUpload = true }: LiveTripFeedProps) {
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [uploadCaption, setUploadCaption] = useState("");
-  const [uploadedBy, setUploadedBy] = useState("");
-  const [uploadImageUrl, setUploadImageUrl] = useState("");
+  const [caption, setCaption] = useState("");
+  const [name, setName] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Query to fetch trip photos
-  const { data: tripPhotos = [], isLoading, refetch } = useQuery<TripPhoto[]>({
+  // Query to fetch trip photos with auto-refresh
+  const { data: tripPhotos = [], isLoading } = useQuery<TripPhoto[]>({
     queryKey: ["/api/locations", locationId, "trip-photos"],
     refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 
-  // Mutation for adding trip photos
-  const addTripPhotoMutation = useMutation({
-    mutationFn: async (tripPhotoData: any) => {
-      const response = await apiRequest("POST", `/api/locations/${locationId}/trip-photos`, tripPhotoData);
+  // Simple upload mutation
+  const uploadMutation = useMutation({
+    mutationFn: async ({ imageUrl, caption, uploadedBy }: any) => {
+      const response = await apiRequest("POST", `/api/locations/${locationId}/trip-photos`, {
+        imageUrl,
+        caption: caption || null,
+        uploadedBy: uploadedBy || null,
+      });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Upload fehlgeschlagen");
@@ -44,122 +45,93 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/locations", locationId, "trip-photos"] });
-      setIsUploadModalOpen(false);
-      setUploadCaption("");
-      setUploadedBy("");
-      setUploadImageUrl("");
+      setCaption("");
+      setName("");
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       toast({
-        title: "Foto hochgeladen!",
-        description: "Ihr Reisefoto wurde erfolgreich geteilt.",
+        title: "Gepostet!",
+        description: "Ihr Beitrag wurde erfolgreich geteilt.",
       });
     },
     onError: (error: Error) => {
-      let errorMessage = "Ihr Foto konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut.";
-      
-      // Handle specific error messages from server
-      if (error.message.includes("Zu viele Anfragen")) {
-        errorMessage = "Zu viele Uploads. Bitte warten Sie eine Minute und versuchen Sie es erneut.";
-      } else if (error.message.includes("Location nicht gefunden")) {
-        errorMessage = "Diese Location existiert nicht mehr. Bitte laden Sie die Seite neu.";
-      } else if (error.message.includes("Host ist nicht erlaubt")) {
-        errorMessage = "Diese Bild-URL ist nicht erlaubt. Bitte verwenden Sie das Upload-Feld.";
-      } else if (error.message.includes("HTTPS")) {
-        errorMessage = "Nur sichere HTTPS-Links sind erlaubt.";
-      } else if (error.message.includes("Bilddateien")) {
-        errorMessage = "Nur Bilddateien (JPG, PNG, WebP, GIF) sind erlaubt.";
-      } else if (error.message.includes("zu lang")) {
-        errorMessage = error.message; // Use the specific length error message
-      } else if (error.message) {
-        errorMessage = error.message; // Use server error message if available
-      }
-      
       toast({
         title: "Upload fehlgeschlagen",
-        description: errorMessage,
+        description: error.message || "Bitte versuchen Sie es erneut.",
         variant: "destructive",
       });
     },
   });
 
-  // Handle upload completion from ObjectUploader
-  const handleUploadComplete = async (result: any) => {
-    if (result.successful && result.successful.length > 0) {
-      const uploadedFile = result.successful[0];
-      const uploadUrl = uploadedFile.uploadURL;
-      
-      try {
-        // Normalize the object path and get the public URL
-        const response = await apiRequest("POST", "/api/objects/normalize", {
-          imageURL: uploadUrl
+  // Handle file selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Basic validation
+      if (file.size > 10485760) { // 10MB
+        toast({
+          title: "Datei zu groß",
+          description: "Bitte wählen Sie eine Datei unter 10MB.",
+          variant: "destructive",
         });
-        const data = await response.json();
-        setUploadImageUrl(data.publicURL || uploadUrl);
-      } catch (error) {
-        console.error("Error processing uploaded image:", error);
-        setUploadImageUrl(uploadUrl); // Fallback to direct URL
+        return;
       }
+      setSelectedFile(file);
     }
   };
 
-  // Get upload parameters for ObjectUploader
-  const getUploadParameters = async () => {
-    const response = await apiRequest("POST", "/api/objects/upload");
-    const data = await response.json();
-    return {
-      method: "PUT" as const,
-      url: data.uploadURL,
-    };
-  };
-
-  // Validate form inputs
-  const validateForm = () => {
-    if (!uploadImageUrl) {
+  // Handle upload
+  const handleUpload = async () => {
+    if (!selectedFile && !caption.trim()) {
       toast({
-        title: "Kein Foto",
-        description: "Bitte laden Sie ein Foto hoch.",
+        title: "Nichts zu posten",
+        description: "Bitte wählen Sie ein Foto oder geben Sie Text ein.",
         variant: "destructive",
       });
-      return false;
-    }
-
-    if (uploadCaption.length > 500) {
-      toast({
-        title: "Bildunterschrift zu lang",
-        description: "Bitte kürzen Sie die Bildunterschrift auf maximal 500 Zeichen.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (uploadedBy.length > 100) {
-      toast({
-        title: "Name zu lang",
-        description: "Bitte kürzen Sie den Namen auf maximal 100 Zeichen.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    return true;
-  };
-
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
       return;
     }
 
-    addTripPhotoMutation.mutate({
-      imageUrl: uploadImageUrl,
-      caption: uploadCaption,
-      uploadedBy: uploadedBy || null,
-    });
+    setUploading(true);
+    try {
+      let imageUrl = "";
+      
+      if (selectedFile) {
+        // Get upload URL
+        const uploadResponse = await apiRequest("POST", "/api/objects/upload");
+        const { uploadURL } = await uploadResponse.json();
+        
+        // Upload file directly
+        const uploadFileResponse = await fetch(uploadURL, {
+          method: "PUT",
+          body: selectedFile,
+        });
+        
+        if (!uploadFileResponse.ok) {
+          throw new Error("Datei-Upload fehlgeschlagen");
+        }
+        
+        imageUrl = uploadURL;
+      }
+
+      // Create post
+      await uploadMutation.mutateAsync({
+        imageUrl,
+        caption: caption.trim(),
+        uploadedBy: name.trim(),
+      });
+    } catch (error) {
+      toast({
+        title: "Upload fehlgeschlagen",
+        description: error instanceof Error ? error.message : "Bitte versuchen Sie es erneut.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
   };
 
-  // Format timestamp for display
-  const formatTimestamp = (date: Date | string | null) => {
+  // Format timestamp
+  const formatTime = (date: Date | string | null) => {
     if (!date) return '';
     const timestamp = typeof date === 'string' ? new Date(date) : date;
     return timestamp.toLocaleString('de-DE', {
@@ -171,189 +143,169 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
   };
 
   return (
-    <Card className="w-full" data-testid="live-trip-feed">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold flex items-center" data-testid="feed-title">
-            <Camera className="w-5 h-5 mr-2 text-primary" />
-            Live Reise-Feed
-          </CardTitle>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => refetch()}
-              data-testid="refresh-feed"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </Button>
-            <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" data-testid="upload-photo-button">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Foto teilen
+    <div className="space-y-4" data-testid="live-trip-feed">
+      {/* Simple Upload Area - Facebook Style */}
+      {showUpload && (
+        <Card className="p-4" data-testid="upload-area">
+          <div className="space-y-3">
+            {/* Text Input */}
+            <Textarea
+              placeholder={`Was möchten Sie aus ${locationName} teilen?`}
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              className="border-0 shadow-none resize-none text-base focus-visible:ring-0 p-0"
+              rows={2}
+              maxLength={500}
+              data-testid="post-text-input"
+            />
+            
+            {/* File Preview */}
+            {selectedFile && (
+              <div className="flex items-center space-x-2 p-2 bg-blue-50 rounded-lg" data-testid="file-preview">
+                <Image className="w-4 h-4 text-blue-600" />
+                <span className="text-sm text-blue-800">{selectedFile.name}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedFile(null);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                  className="ml-auto h-6 w-6 p-0"
+                  data-testid="remove-file"
+                >
+                  ×
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md" data-testid="upload-modal">
-                <DialogHeader>
-                  <DialogTitle>Reisefoto für {locationName} teilen</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="photo-upload">Foto hochladen</Label>
-                    <ObjectUploader
-                      maxNumberOfFiles={1}
-                      maxFileSize={10485760} // 10MB
-                      onGetUploadParameters={getUploadParameters}
-                      onComplete={handleUploadComplete}
-                      buttonClassName="w-full"
-                    >
-                      <div className="flex items-center justify-center py-4">
-                        <Upload className="w-5 h-5 mr-2" />
-                        {uploadImageUrl ? "Foto ändern" : "Foto auswählen"}
-                      </div>
-                    </ObjectUploader>
-                    {uploadImageUrl && (
-                      <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-700" data-testid="upload-success">
-                        ✓ Foto erfolgreich hochgeladen
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center justify-between pt-2 border-t">
+              <div className="flex items-center space-x-3">
+                {/* Photo Upload Button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center space-x-1 text-blue-600 hover:bg-blue-50"
+                  data-testid="photo-upload-button"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Foto</span>
+                </Button>
+                
+                {/* Hidden File Input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  data-testid="file-input"
+                />
+
+                {/* Name Input */}
+                <Input
+                  placeholder="Name (optional)"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-32 h-8 text-xs"
+                  maxLength={100}
+                  data-testid="name-input"
+                />
+              </div>
+
+              {/* Post Button */}
+              <Button
+                onClick={handleUpload}
+                disabled={uploading || (!selectedFile && !caption.trim())}
+                size="sm"
+                className="flex items-center space-x-1"
+                data-testid="post-button"
+              >
+                {uploading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                    <span>Posten...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3 h-3" />
+                    <span>Posten</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Feed Title */}
+      <div className="flex items-center space-x-2 px-1" data-testid="feed-title">
+        <Camera className="w-5 h-5 text-primary" />
+        <h3 className="font-semibold text-lg">Live aus {locationName}</h3>
+        <div className="ml-auto text-xs text-muted-foreground">
+          {tripPhotos.length} {tripPhotos.length === 1 ? 'Beitrag' : 'Beiträge'}
+        </div>
+      </div>
+
+      {/* Feed Content */}
+      {isLoading ? (
+        <Card className="p-8" data-testid="loading-posts">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </Card>
+      ) : tripPhotos.length === 0 ? (
+        <Card className="p-8 text-center" data-testid="no-posts">
+          <Camera className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+          <p className="font-medium text-muted-foreground">Noch keine Beiträge</p>
+          <p className="text-sm text-muted-foreground/70">Seien Sie der Erste, der etwas aus {locationName} teilt!</p>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {tripPhotos.map((photo) => (
+            <Card key={photo.id} className="overflow-hidden" data-testid={`post-${photo.id}`}>
+              {/* Post Header */}
+              <div className="p-3 pb-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    {photo.uploadedBy && (
+                      <div className="flex items-center space-x-1" data-testid={`post-author-${photo.id}`}>
+                        <User className="w-4 h-4 text-muted-foreground" />
+                        <span className="font-medium text-sm">{photo.uploadedBy}</span>
                       </div>
                     )}
                   </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <Label htmlFor="caption">Bildunterschrift (optional)</Label>
-                      <span className={`text-xs ${uploadCaption.length > 500 ? 'text-red-500' : 'text-muted-foreground'}`}>
-                        {uploadCaption.length}/500
-                      </span>
-                    </div>
-                    <Textarea
-                      id="caption"
-                      placeholder="Beschreiben Sie diesen Moment..."
-                      value={uploadCaption}
-                      onChange={(e) => setUploadCaption(e.target.value)}
-                      className={`resize-none ${uploadCaption.length > 500 ? 'border-red-500' : ''}`}
-                      rows={3}
-                      maxLength={500}
-                      data-testid="input-caption"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <Label htmlFor="uploaded-by">Name (optional)</Label>
-                      <span className={`text-xs ${uploadedBy.length > 100 ? 'text-red-500' : 'text-muted-foreground'}`}>
-                        {uploadedBy.length}/100
-                      </span>
-                    </div>
-                    <Input
-                      id="uploaded-by"
-                      placeholder="Ihr Name"
-                      value={uploadedBy}
-                      onChange={(e) => setUploadedBy(e.target.value)}
-                      className={uploadedBy.length > 100 ? 'border-red-500' : ''}
-                      maxLength={100}
-                      data-testid="input-name"
-                    />
-                  </div>
-
-                  <div className="flex justify-end space-x-2">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      disabled={addTripPhotoMutation.isPending}
-                      onClick={() => setIsUploadModalOpen(false)}
-                      data-testid="cancel-upload"
-                    >
-                      Abbrechen
-                    </Button>
-                    <Button 
-                      type="submit" 
-                      disabled={
-                        addTripPhotoMutation.isPending || 
-                        !uploadImageUrl || 
-                        uploadCaption.length > 500 || 
-                        uploadedBy.length > 100
-                      }
-                      data-testid="submit-photo"
-                    >
-                      {addTripPhotoMutation.isPending ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Wird hochgeladen...
-                        </>
-                      ) : (
-                        "Foto teilen"
-                      )}
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Aktuelle Fotos von {locationName}
-        </p>
-      </CardHeader>
-
-      <CardContent className="pt-0">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8" data-testid="loading-photos">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : tripPhotos.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground" data-testid="no-photos">
-            <Camera className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
-            <p className="font-medium">Noch keine Fotos geteilt</p>
-            <p className="text-sm">Seien Sie der Erste, der ein Foto von {locationName} teilt!</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {tripPhotos.map((photo) => (
-              <div 
-                key={photo.id} 
-                className="border rounded-lg overflow-hidden bg-card" 
-                data-testid={`trip-photo-${photo.id}`}
-              >
-                {/* Photo */}
-                <div className="aspect-video bg-muted overflow-hidden">
-                  <img
-                    src={photo.imageUrl}
-                    alt={photo.caption || "Reisefoto"}
-                    className="w-full h-full object-cover"
-                    data-testid={`photo-image-${photo.id}`}
-                  />
-                </div>
-                
-                {/* Photo Details */}
-                <div className="p-3 space-y-2">
-                  {photo.caption && (
-                    <p className="text-sm" data-testid={`photo-caption-${photo.id}`}>
-                      {photo.caption}
-                    </p>
-                  )}
-                  
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <div className="flex items-center space-x-2">
-                      {photo.uploadedBy && (
-                        <div className="flex items-center" data-testid={`photo-author-${photo.id}`}>
-                          <User className="w-3 h-3 mr-1" />
-                          <span>{photo.uploadedBy}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center" data-testid={`photo-timestamp-${photo.id}`}>
-                      <Clock className="w-3 h-3 mr-1" />
-                      <span>{formatTimestamp(photo.uploadedAt)}</span>
-                    </div>
+                  <div className="flex items-center space-x-1 text-xs text-muted-foreground" data-testid={`post-time-${photo.id}`}>
+                    <Clock className="w-3 h-3" />
+                    <span>{formatTime(photo.uploadedAt)}</span>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+
+              {/* Post Content */}
+              {photo.caption && (
+                <div className="px-3 pb-2">
+                  <p className="text-sm" data-testid={`post-caption-${photo.id}`}>{photo.caption}</p>
+                </div>
+              )}
+
+              {/* Post Image */}
+              {photo.imageUrl && (
+                <div className="relative">
+                  <img
+                    src={photo.imageUrl}
+                    alt={photo.caption || "Reisefoto"}
+                    className="w-full object-cover max-h-96"
+                    data-testid={`post-image-${photo.id}`}
+                  />
+                </div>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
