@@ -77,6 +77,7 @@ export const tourSettings = pgTable("tour_settings", {
   sessionTimeout: integer("session_timeout").default(10080), // default 7 days in minutes
   // GPS settings
   gpsActivatedByAdmin: boolean("gps_activated_by_admin").default(false),
+  gpsUpdateInterval: integer("gps_update_interval").default(30), // GPS update interval in seconds
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

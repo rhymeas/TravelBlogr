@@ -16,6 +16,8 @@ interface ImageInputProps {
   className?: string;
   testId?: string;
   required?: boolean;
+  allowMultiple?: boolean;
+  onMultipleChange?: (urls: string[]) => void;
 }
 
 interface ImageValidationState {
@@ -31,7 +33,9 @@ export function ImageInput({
   placeholder = "https://example.com/image.jpg",
   className = "",
   testId = "image-input",
-  required = false
+  required = false,
+  allowMultiple = false,
+  onMultipleChange
 }: ImageInputProps) {
   const [inputMode, setInputMode] = useState<"url" | "upload">("url");
   const [showUpload, setShowUpload] = useState(false);
@@ -88,23 +92,54 @@ export function ImageInput({
   // Handle upload completion
   const handleUploadComplete = async (result: any) => {
     if (result.successful && result.successful.length > 0) {
-      const uploadedFile = result.successful[0];
-      const uploadUrl = uploadedFile.uploadURL;
-      
-      try {
-        // Normalize the object path and get the public URL
-        const response = await apiRequest("POST", "/api/objects/normalize", {
-          imageURL: uploadUrl
-        });
-        const data = await response.json();
-        onChange(data.publicURL || uploadUrl);
-        setShowUpload(false); // Close upload mode
-        setInputMode("url"); // Switch to URL mode to show the result
-      } catch (error) {
-        console.error("Error processing uploaded image:", error);
-        onChange(uploadUrl); // Fallback to direct URL
-        setShowUpload(false);
-        setInputMode("url");
+      if (allowMultiple && result.successful.length > 1) {
+        // Handle multiple files
+        try {
+          const normalizedUrls = await Promise.all(
+            result.successful.map(async (file: any) => {
+              try {
+                const response = await apiRequest("POST", "/api/objects/normalize", {
+                  imageURL: file.uploadURL
+                });
+                const data = await response.json();
+                return data.publicURL || file.uploadURL;
+              } catch (error) {
+                console.error("Error processing uploaded image:", error);
+                return file.uploadURL; // Fallback to direct URL
+              }
+            })
+          );
+          onMultipleChange?.(normalizedUrls);
+          setShowUpload(false);
+          setInputMode("url");
+        } catch (error) {
+          console.error("Error processing multiple uploaded images:", error);
+          // Fallback: use direct URLs
+          const fallbackUrls = result.successful.map((file: any) => file.uploadURL);
+          onMultipleChange?.(fallbackUrls);
+          setShowUpload(false);
+          setInputMode("url");
+        }
+      } else {
+        // Handle single file (original behavior)
+        const uploadedFile = result.successful[0];
+        const uploadUrl = uploadedFile.uploadURL;
+        
+        try {
+          // Normalize the object path and get the public URL
+          const response = await apiRequest("POST", "/api/objects/normalize", {
+            imageURL: uploadUrl
+          });
+          const data = await response.json();
+          onChange(data.publicURL || uploadUrl);
+          setShowUpload(false); // Close upload mode
+          setInputMode("url"); // Switch to URL mode to show the result
+        } catch (error) {
+          console.error("Error processing uploaded image:", error);
+          onChange(uploadUrl); // Fallback to direct URL
+          setShowUpload(false);
+          setInputMode("url");
+        }
       }
     }
   };
@@ -228,22 +263,25 @@ export function ImageInput({
                 <Camera className="w-8 h-8 text-primary" />
               </div>
               <div>
-                <h4 className="font-medium mb-2">Bild hochladen</h4>
+                <h4 className="font-medium mb-2">{allowMultiple ? "Bilder hochladen" : "Bild hochladen"}</h4>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Wählen Sie ein Bild von Ihrem Gerät aus (max. 10MB)
+                  {allowMultiple 
+                    ? "Wählen Sie mehrere Bilder von Ihrem Gerät aus (max. 10 Dateien, je 10MB)"
+                    : "Wählen Sie ein Bild von Ihrem Gerät aus (max. 10MB)"
+                  }
                 </p>
               </div>
               
               <div className="flex flex-col items-center gap-3">
                 <ObjectUploader
-                  maxNumberOfFiles={1}
+                  maxNumberOfFiles={allowMultiple ? 10 : 1}
                   maxFileSize={10485760} // 10MB
                   onGetUploadParameters={getUploadParameters}
                   onComplete={handleUploadComplete}
                   buttonClassName="w-full max-w-xs"
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  Datei auswählen
+                  {allowMultiple ? "Dateien auswählen" : "Datei auswählen"}
                 </ObjectUploader>
                 
                 <Button

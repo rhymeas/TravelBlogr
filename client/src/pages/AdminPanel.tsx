@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { ArrowLeft, Plus, Edit, Trash2, Upload, Lock, Eye, EyeOff, Hotel, UtensilsCrossed, AlertCircle, Star, ChevronDown, ChevronUp, Camera } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Upload, Lock, Eye, EyeOff, Hotel, UtensilsCrossed, AlertCircle, Star, ChevronDown, ChevronUp, Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,14 @@ export default function AdminPanel() {
   const [privacyPassword, setPrivacyPassword] = useState("");
   const [editingHeroImage, setEditingHeroImage] = useState<HeroImage | null>(null);
   const [heroImageForm, setHeroImageForm] = useState({ title: "", description: "", imageUrl: "" });
+  
+  // Bulk upload state
+  const [bulkUploadMode, setBulkUploadMode] = useState(false);
+  const [bulkImageUrls, setBulkImageUrls] = useState<string[]>([]);
+  const [bulkUploadDefaults, setBulkUploadDefaults] = useState({
+    titlePrefix: "Hero Bild",
+    description: "Automatisch hochgeladenes Hero-Bild"
+  });
   
   // Scenic content state
   const [scenicTitle, setScenicTitle] = useState("");
@@ -263,6 +271,38 @@ export default function AdminPanel() {
       toast({
         title: "Fehler",
         description: `Fehler beim Löschen des Hero-Bilds: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Bulk creation mutation
+  const createBulkHeroImagesMutation = useMutation({
+    mutationFn: async (imageUrls: string[]) => {
+      const currentSortOrder = heroImages?.length || 0;
+      const promises = imageUrls.map((url, index) => 
+        apiRequest("POST", "/api/hero-images", {
+          title: `${bulkUploadDefaults.titlePrefix} ${currentSortOrder + index + 1}`,
+          description: bulkUploadDefaults.description,
+          imageUrl: url,
+          sortOrder: currentSortOrder + index
+        })
+      );
+      await Promise.all(promises);
+    },
+    onSuccess: (_, imageUrls) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/hero-images"] });
+      setBulkImageUrls([]);
+      setBulkUploadMode(false);
+      toast({
+        title: "Erfolg",
+        description: `${imageUrls.length} Hero-Bilder wurden erfolgreich hinzugefügt`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Fehler",
+        description: `Fehler beim Hinzufügen der Hero-Bilder: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -559,76 +599,204 @@ export default function AdminPanel() {
               </CardHeader>
               {!collapsedSections.heroImages && (
                 <CardContent className="space-y-6">
-                {/* Add New Hero Image Form */}
-                <div className="border rounded p-3 space-y-3">
-                  <h4 className="text-sm font-medium">Neues Hero-Bild hinzufügen</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="hero-title">Titel</Label>
-                      <Input
-                        id="hero-title"
-                        value={heroImageForm.title}
-                        onChange={(e) => setHeroImageForm(prev => ({ ...prev, title: e.target.value }))}
-                        placeholder="z.B. Penticton Wine Country"
-                        data-testid="input-hero-title"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="hero-description">Beschreibung</Label>
-                      <Input
-                        id="hero-description"
-                        value={heroImageForm.description}
-                        onChange={(e) => setHeroImageForm(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="z.B. Naramata Bench Weinberge über dem Okanagan Lake"
-                        data-testid="input-hero-description"
-                      />
-                    </div>
-                  </div>
-                  <ImageInput
-                    label="Bild-URL"
-                    value={heroImageForm.imageUrl}
-                    onChange={(value) => setHeroImageForm(prev => ({ ...prev, imageUrl: value }))}
-                    placeholder="https://example.com/image.jpg"
-                    testId="hero-image-url"
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => {
-                        if (editingHeroImage) {
-                          updateHeroImageMutation.mutate({
-                            id: editingHeroImage.id,
-                            data: heroImageForm
-                          });
-                        } else {
-                          createHeroImageMutation.mutate({
-                            ...heroImageForm,
-                            sortOrder: (heroImages?.length || 0)
-                          });
-                        }
-                      }}
-                      disabled={!heroImageForm.title || !heroImageForm.description || !heroImageForm.imageUrl || createHeroImageMutation.isPending || updateHeroImageMutation.isPending}
-                      data-testid="button-save-hero-image"
-                    >
-                      {createHeroImageMutation.isPending || updateHeroImageMutation.isPending 
-                        ? "Speichern..." 
-                        : editingHeroImage 
-                          ? "Änderungen speichern" 
-                          : "Hero-Bild hinzufügen"
-                      }
-                    </Button>
-                    {editingHeroImage && (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setEditingHeroImage(null);
-                          setHeroImageForm({ title: "", description: "", imageUrl: "" });
+                {/* Upload Mode Toggle */}
+                <div className="border rounded p-3 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium">Hero-Bilder hinzufügen</h4>
+                    <div className="flex items-center gap-3">
+                      <Label htmlFor="bulk-upload-toggle" className="text-sm cursor-pointer">
+                        {bulkUploadMode ? "Mehrere Bilder" : "Einzelnes Bild"}
+                      </Label>
+                      <Switch
+                        id="bulk-upload-toggle"
+                        checked={bulkUploadMode}
+                        onCheckedChange={(checked) => {
+                          setBulkUploadMode(checked);
+                          if (checked) {
+                            // Reset single image form when switching to bulk
+                            setEditingHeroImage(null);
+                            setHeroImageForm({ title: "", description: "", imageUrl: "" });
+                          } else {
+                            // Reset bulk form when switching to single
+                            setBulkImageUrls([]);
+                          }
                         }}
-                        data-testid="button-cancel-edit"
-                      >
-                        Abbrechen
-                      </Button>
-                    )}
+                        data-testid="toggle-bulk-upload"
+                      />
+                    </div>
                   </div>
+
+                  {!bulkUploadMode ? (
+                    /* Single Image Upload Form */
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="hero-title">Titel</Label>
+                          <Input
+                            id="hero-title"
+                            value={heroImageForm.title}
+                            onChange={(e) => setHeroImageForm(prev => ({ ...prev, title: e.target.value }))}
+                            placeholder="z.B. Penticton Wine Country"
+                            data-testid="input-hero-title"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="hero-description">Beschreibung</Label>
+                          <Input
+                            id="hero-description"
+                            value={heroImageForm.description}
+                            onChange={(e) => setHeroImageForm(prev => ({ ...prev, description: e.target.value }))}
+                            placeholder="z.B. Naramata Bench Weinberge über dem Okanagan Lake"
+                            data-testid="input-hero-description"
+                          />
+                        </div>
+                      </div>
+                      <ImageInput
+                        label="Bild-URL"
+                        value={heroImageForm.imageUrl}
+                        onChange={(value) => setHeroImageForm(prev => ({ ...prev, imageUrl: value }))}
+                        placeholder="https://example.com/image.jpg"
+                        testId="hero-image-url"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            if (editingHeroImage) {
+                              updateHeroImageMutation.mutate({
+                                id: editingHeroImage.id,
+                                data: heroImageForm
+                              });
+                            } else {
+                              createHeroImageMutation.mutate({
+                                ...heroImageForm,
+                                sortOrder: (heroImages?.length || 0)
+                              });
+                            }
+                          }}
+                          disabled={!heroImageForm.title || !heroImageForm.description || !heroImageForm.imageUrl || createHeroImageMutation.isPending || updateHeroImageMutation.isPending}
+                          data-testid="button-save-hero-image"
+                        >
+                          {createHeroImageMutation.isPending || updateHeroImageMutation.isPending 
+                            ? "Speichern..." 
+                            : editingHeroImage 
+                              ? "Änderungen speichern" 
+                              : "Hero-Bild hinzufügen"
+                          }
+                        </Button>
+                        {editingHeroImage && (
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setEditingHeroImage(null);
+                              setHeroImageForm({ title: "", description: "", imageUrl: "" });
+                            }}
+                            data-testid="button-cancel-edit"
+                          >
+                            Abbrechen
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    /* Bulk Upload Form */
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="bulk-title-prefix">Titel-Präfix</Label>
+                          <Input
+                            id="bulk-title-prefix"
+                            value={bulkUploadDefaults.titlePrefix}
+                            onChange={(e) => setBulkUploadDefaults(prev => ({ ...prev, titlePrefix: e.target.value }))}
+                            placeholder="z.B. Hero Bild"
+                            data-testid="input-bulk-title-prefix"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Automatisch nummeriert: "Hero Bild 1", "Hero Bild 2", etc.
+                          </p>
+                        </div>
+                        <div>
+                          <Label htmlFor="bulk-description">Standard-Beschreibung</Label>
+                          <Input
+                            id="bulk-description"
+                            value={bulkUploadDefaults.description}
+                            onChange={(e) => setBulkUploadDefaults(prev => ({ ...prev, description: e.target.value }))}
+                            placeholder="z.B. Automatisch hochgeladenes Hero-Bild"
+                            data-testid="input-bulk-description"
+                          />
+                        </div>
+                      </div>
+                      
+                      <ImageInput
+                        label="Mehrere Bilder hochladen"
+                        value=""
+                        onChange={() => {}} // Not used in bulk mode
+                        allowMultiple={true}
+                        onMultipleChange={(urls) => setBulkImageUrls(urls)}
+                        placeholder="Mehrere Bilder auswählen..."
+                        testId="bulk-hero-images"
+                      />
+
+                      {bulkImageUrls.length > 0 && (
+                        <div className="space-y-3">
+                          <h5 className="text-sm font-medium">Vorschau ({bulkImageUrls.length} Bilder)</h5>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {bulkImageUrls.map((url, index) => (
+                              <div key={index} className="relative group">
+                                <img
+                                  src={url}
+                                  alt={`Bulk upload ${index + 1}`}
+                                  className="w-full h-24 object-cover rounded border"
+                                  data-testid={`bulk-preview-${index}`}
+                                />
+                                <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
+                                  <p className="text-white text-xs text-center">
+                                    {bulkUploadDefaults.titlePrefix} {(heroImages?.length || 0) + index + 1}
+                                  </p>
+                                </div>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => {
+                                    setBulkImageUrls(prev => prev.filter((_, i) => i !== index));
+                                  }}
+                                  data-testid={`button-remove-bulk-${index}`}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            if (bulkImageUrls.length > 0) {
+                              createBulkHeroImagesMutation.mutate(bulkImageUrls);
+                            }
+                          }}
+                          disabled={bulkImageUrls.length === 0 || !bulkUploadDefaults.titlePrefix || !bulkUploadDefaults.description || createBulkHeroImagesMutation.isPending}
+                          data-testid="button-save-bulk-hero-images"
+                        >
+                          {createBulkHeroImagesMutation.isPending 
+                            ? `Speichern (${bulkImageUrls.length})...` 
+                            : `${bulkImageUrls.length} Hero-Bilder hinzufügen`
+                          }
+                        </Button>
+                        {bulkImageUrls.length > 0 && (
+                          <Button
+                            variant="outline"
+                            onClick={() => setBulkImageUrls([])}
+                            data-testid="button-clear-bulk-images"
+                          >
+                            Alle entfernen
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Hero Images List */}
@@ -975,7 +1143,7 @@ export default function AdminPanel() {
                                   <div className="flex items-center gap-1">
                                     <UtensilsCrossed className="w-4 h-4 text-green-600 dark:text-green-400" />
                                     <span className={`${hasRestaurants ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
-                                      {hasRestaurants ? `${location.restaurants.length} Restaurant(s) ✓` : 'Keine Restaurants'}
+                                      {hasRestaurants ? `${location.restaurants?.length || 0} Restaurant(s) ✓` : 'Keine Restaurants'}
                                     </span>
                                   </div>
                                 </div>
@@ -1644,9 +1812,9 @@ export default function AdminPanel() {
                     </div>
                     <Switch 
                       id="gps-enabled"
-                      checked={tourSettings?.gpsEnabled || false}
+                      checked={tourSettings?.gpsActivatedByAdmin || false}
                       onCheckedChange={(checked) => {
-                        updateTourSettingsMutation.mutate({ gpsEnabled: checked });
+                        updateTourSettingsMutation.mutate({ gpsActivatedByAdmin: checked });
                       }}
                       data-testid="switch-gps-enabled"
                     />
