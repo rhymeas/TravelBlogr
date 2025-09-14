@@ -78,14 +78,14 @@ export default function Hero({ tourSettings }: HeroProps) {
   // Show loading state if hero images are loading
   if (heroImagesLoading) {
     return (
-      <section className="min-h-screen relative overflow-hidden pt-16 flex items-center justify-center" data-testid="hero-loading">
+      <section className="min-h-[75vh] relative overflow-hidden pt-12 flex items-center justify-center" data-testid="hero-loading">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </section>
     );
   }
 
   return (
-    <section className="min-h-screen relative overflow-hidden pt-16" data-testid="hero-section">
+    <section className="min-h-[75vh] relative overflow-hidden pt-12" data-testid="hero-section">
       {/* Background Image Slideshow */}
       <div className="absolute inset-0">
         {heroImages.map((image, index) => (
@@ -125,7 +125,7 @@ export default function Hero({ tourSettings }: HeroProps) {
       </button>
 
       {/* Content */}
-      <div className="relative z-10 text-center px-4 max-w-5xl mx-auto flex items-center justify-center min-h-screen">
+      <div className="relative z-10 text-center px-4 max-w-5xl mx-auto flex items-center justify-center min-h-[75vh]">
         <div className="animate-fade-in">
           <div className="mb-4">
             <span className="inline-block bg-primary/20 text-white px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm border border-white/20">
