@@ -218,7 +218,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/locations/:locationId/trip-photos", async (req, res) => {
     try {
       const tripPhotos = await storage.getTripPhotos(req.params.locationId);
-      res.json(tripPhotos);
+      
+      // Generate fresh display URLs from stored objectPath for each photo
+      const objectStorageService = new ObjectStorageService();
+      const photosWithUrls = await Promise.all(
+        tripPhotos.map(async (photo) => {
+          if (photo.objectPath) {
+            try {
+              const freshImageUrl = await objectStorageService.getObjectEntityDisplayURL(photo.objectPath);
+              return { ...photo, imageUrl: freshImageUrl };
+            } catch (error) {
+              console.error('Error generating display URL for photo:', photo.id, error);
+              return photo; // Return original if URL generation fails
+            }
+          }
+          return photo;
+        })
+      );
+      
+      res.json(photosWithUrls);
     } catch (error) {
       console.error("Error fetching trip photos:", error);
       res.status(500).json({ error: "Failed to fetch trip photos" });
@@ -265,7 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle file upload to object storage
       try {
         const objectStorageService = new ObjectStorageService();
-        const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+        const { uploadURL, objectPath } = await objectStorageService.getObjectEntityUploadInfo();
         
         // Upload file to object storage
         const uploadResponse = await fetch(uploadURL, {
@@ -280,10 +298,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           throw new Error('Upload zu Object Storage fehlgeschlagen');
         }
 
-        // Create trip photo record
+        // Store objectPath for permanent access (don't store expiring displayURL)
+        // We'll generate fresh display URLs on GET requests
+
+        // Create trip photo record with objectPath
         const tripPhotoData = {
           locationId: req.params.locationId,
-          imageUrl: uploadURL, 
+          objectPath: objectPath, // Store permanent path
+          imageUrl: '/placeholder', // Placeholder - real URL generated on GET
           caption: caption || null,
           uploadedBy: uploadedBy || null,
         };
@@ -310,7 +332,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/trip-photos", async (req, res) => {
     try {
       const tripPhotos = await storage.getAllTripPhotos();
-      res.json(tripPhotos);
+      
+      // Generate fresh display URLs from stored objectPath for each photo
+      const objectStorageService = new ObjectStorageService();
+      const photosWithUrls = await Promise.all(
+        tripPhotos.map(async (photo) => {
+          if (photo.objectPath) {
+            try {
+              const freshImageUrl = await objectStorageService.getObjectEntityDisplayURL(photo.objectPath);
+              return { ...photo, imageUrl: freshImageUrl };
+            } catch (error) {
+              console.error('Error generating display URL for photo:', photo.id, error);
+              return photo; // Return original if URL generation fails
+            }
+          }
+          return photo;
+        })
+      );
+      
+      res.json(photosWithUrls);
     } catch (error) {
       console.error("Error fetching all trip photos:", error);
       res.status(500).json({ error: "Failed to fetch trip photos" });
@@ -358,7 +398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle file upload to object storage
       try {
         const objectStorageService = new ObjectStorageService();
-        const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+        const { uploadURL, objectPath } = await objectStorageService.getObjectEntityUploadInfo();
         
         // Upload file to object storage
         const uploadResponse = await fetch(uploadURL, {
@@ -373,10 +413,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           throw new Error('Upload zu Object Storage fehlgeschlagen');
         }
 
-        // Create trip photo record
+        // Store objectPath for permanent access (don't store expiring displayURL)
+        // We'll generate fresh display URLs on GET requests
+
+        // Create trip photo record with objectPath
         const tripPhotoData = {
           locationId: locationId || null, // Optional location tag
-          imageUrl: uploadURL, 
+          objectPath: objectPath, // Store permanent path
+          imageUrl: '/placeholder', // Placeholder - real URL generated on GET
           caption: caption || null,
           uploadedBy: uploadedBy || null,
         };

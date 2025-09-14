@@ -154,6 +154,48 @@ export class ObjectStorageService {
     });
   }
 
+  // Gets a display URL for an uploaded object entity.
+  async getObjectEntityDisplayURL(objectPath: string): Promise<string> {
+    const { bucketName, objectName } = parseObjectPath(objectPath);
+
+    // Sign URL for GET method with longer TTL for display (24 hours)
+    return signObjectURL({
+      bucketName,
+      objectName,
+      method: "GET",
+      ttlSec: 86400, // 24 hours
+    });
+  }
+
+  // Gets the upload URL and object path for an object entity.
+  async getObjectEntityUploadInfo(): Promise<{ uploadURL: string; objectPath: string }> {
+    const privateObjectDir = this.getPrivateObjectDir();
+    if (!privateObjectDir) {
+      throw new Error(
+        "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' " +
+          "tool and set PRIVATE_OBJECT_DIR env var."
+      );
+    }
+
+    const objectId = randomUUID();
+    const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+
+    // Sign URL for PUT method with TTL
+    const uploadURL = await signObjectURL({
+      bucketName,
+      objectName,
+      method: "PUT",
+      ttlSec: 900,
+    });
+
+    return {
+      uploadURL,
+      objectPath: fullPath
+    };
+  }
+
   // Gets the object entity file from the object path.
   async getObjectEntityFile(objectPath: string): Promise<File> {
     if (!objectPath.startsWith("/objects/")) {
