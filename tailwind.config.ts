@@ -67,26 +67,7 @@ export default {
         serif: ["var(--font-serif)", "Georgia", "serif"],
         mono: ["var(--font-mono)", "Menlo", "monospace"],
       },
-      animation: {
-        'fade-in': 'fadeIn 0.5s ease-in-out',
-        'slide-up': 'slideUp 0.6s ease-out',
-        'bounce-soft': 'bounceSoft 2s infinite',
-        'pulse-slow': 'pulse 3s infinite',
-      },
       keyframes: {
-        fadeIn: {
-          from: { opacity: '0' },
-          to: { opacity: '1' }
-        },
-        slideUp: {
-          from: { transform: 'translateY(30px)', opacity: '0' },
-          to: { transform: 'translateY(0)', opacity: '1' }
-        },
-        bounceSoft: {
-          '0%, 20%, 50%, 80%, 100%': { transform: 'translateY(0)' },
-          '40%': { transform: 'translateY(-10px)' },
-          '60%': { transform: 'translateY(-5px)' }
-        },
         "accordion-down": {
           from: {
             height: "0",
@@ -103,6 +84,39 @@ export default {
             height: "0",
           },
         },
+        fadeIn: {
+          from: { 
+            opacity: "0", 
+            transform: "translateY(20px)" 
+          },
+          to: { 
+            opacity: "1", 
+            transform: "translateY(0)" 
+          },
+        },
+        slideUp: {
+          from: { 
+            transform: "translateY(100%)" 
+          },
+          to: { 
+            transform: "translateY(0)" 
+          },
+        },
+        float: {
+          "0%, 100%": { 
+            transform: "translateY(0px)" 
+          },
+          "50%": { 
+            transform: "translateY(-10px)" 
+          },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+        "fade-in": "fadeIn 0.6s ease-in-out",
+        "slide-up": "slideUp 0.4s ease-out",
+        "float": "float 3s ease-in-out infinite",
       },
     },
   },
