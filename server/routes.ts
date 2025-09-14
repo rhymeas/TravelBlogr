@@ -171,6 +171,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/objects/normalize", async (req, res) => {
+    if (!req.body.imageURL) {
+      return res.status(400).json({ error: "imageURL is required" });
+    }
+
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = objectStorageService.normalizeObjectEntityPath(req.body.imageURL);
+      
+      // For direct uploads, the image URL is already public-accessible
+      // We return the original URL as publicURL since it's already accessible
+      res.json({
+        objectPath: objectPath,
+        publicURL: req.body.imageURL
+      });
+    } catch (error) {
+      console.error("Error normalizing object path:", error);
+      res.status(500).json({ error: "Failed to normalize object path" });
+    }
+  });
+
   app.put("/api/location-images", async (req, res) => {
     if (!req.body.imageURL || !req.body.locationId) {
       return res.status(400).json({ error: "imageURL and locationId are required" });

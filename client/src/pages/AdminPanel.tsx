@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ImageGallery } from "@/components/ImageGallery";
+import { ImageInput } from "@/components/ImageInput";
 import AdminLocationForm from "@/components/AdminLocationForm";
 import type { Location, TourSettings } from "@shared/schema";
 
@@ -165,19 +166,15 @@ export default function AdminPanel() {
                     />
                   </div>
                 </div>
-                <div>
-                  <Label htmlFor="hero-image-url">Hero-Bild URL</Label>
-                  <Input
-                    id="hero-image-url"
-                    type="url"
-                    defaultValue={tourSettings?.heroImageUrl || ""}
-                    onBlur={(e) => {
-                      updateTourSettingsMutation.mutate({ heroImageUrl: e.target.value });
-                    }}
-                    placeholder="https://example.com/hero-image.jpg"
-                    data-testid="input-hero-image-url"
-                  />
-                </div>
+                <ImageInput
+                  label="Hero-Bild der Tour"
+                  value={tourSettings?.heroImageUrl || ""}
+                  onChange={(value) => {
+                    updateTourSettingsMutation.mutate({ heroImageUrl: value });
+                  }}
+                  placeholder="https://example.com/hero-image.jpg"
+                  testId="tour-hero-image"
+                />
                 <div>
                   <Label htmlFor="description">Beschreibung</Label>
                   <Textarea

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { ImageInput } from "@/components/ImageInput";
 import type { Location, RestaurantData } from "@shared/schema";
 
 interface AdminLocationFormProps {
@@ -230,17 +231,14 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
               />
             </div>
 
-            {/* Image URL */}
-            <div>
-              <Label htmlFor="image-url">Bild-URL</Label>
-              <Input
-                id="image-url"
-                type="url"
-                value={formData.imageUrl}
-                onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
-                data-testid="input-image-url"
-              />
-            </div>
+            {/* Main Location Image */}
+            <ImageInput
+              label="Hauptbild des Orts"
+              value={formData.imageUrl}
+              onChange={(value) => setFormData(prev => ({ ...prev, imageUrl: value }))}
+              placeholder="https://example.com/location-image.jpg"
+              testId="location-main-image"
+            />
 
             {/* Activities */}
             <div>
@@ -329,11 +327,12 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                       placeholder="Website URL (z.B. https://restaurant.com)"
                       data-testid={`restaurant-website-${index}`}
                     />
-                    <Input
+                    <ImageInput
+                      label="Restaurant Bild"
                       value={(restaurant as any).imageUrl || ''}
-                      onChange={(e) => updateArrayItem('restaurants', index, { ...restaurant, imageUrl: e.target.value })}
-                      placeholder="Bild URL"
-                      data-testid={`restaurant-image-${index}`}
+                      onChange={(value) => updateArrayItem('restaurants', index, { ...restaurant, imageUrl: value })}
+                      placeholder="https://example.com/restaurant-image.jpg"
+                      testId={`restaurant-image-${index}`}
                     />
                   </div>
                 </div>
