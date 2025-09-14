@@ -1,11 +1,13 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { apiRequest } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 
 interface AuthContextType {
   isAuthenticated: boolean;
   login: (password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isLoading: boolean;
+  user?: any; // OIDC user data if available
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -17,15 +19,27 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [localStorageAuth, setLocalStorageAuth] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Check for OIDC authentication via /api/auth/user
+  const { data: oidcUser, isLoading: oidcLoading } = useQuery({
+    queryKey: ["/api/auth/user"],
+    retry: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+  });
 
   // Check localStorage on mount
   useEffect(() => {
     const loggedIn = localStorage.getItem(STORAGE_KEY) === "true";
-    setIsAuthenticated(loggedIn);
+    setLocalStorageAuth(loggedIn);
     setIsLoading(false);
   }, []);
+
+  // Determine authentication status: either localStorage OR OIDC
+  const isAuthenticated = localStorageAuth || !!oidcUser;
+  const overallLoading = isLoading || oidcLoading;
 
   const login = async (password: string): Promise<{ success: boolean; error?: string }> => {
     try {
@@ -38,7 +52,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (response.success) {
         // Set localStorage and update state
         localStorage.setItem(STORAGE_KEY, "true");
-        setIsAuthenticated(true);
+        setLocalStorageAuth(true);
         
         return { success: true };
       } else {
@@ -61,14 +75,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = () => {
     localStorage.removeItem(STORAGE_KEY);
-    setIsAuthenticated(false);
+    setLocalStorageAuth(false);
+    
+    // If OIDC user exists, redirect to OIDC logout
+    if (oidcUser) {
+      window.location.href = "/api/logout";
+    }
   };
 
   const value: AuthContextType = {
     isAuthenticated,
     login,
     logout,
-    isLoading,
+    isLoading: overallLoading,
+    user: oidcUser, // Expose OIDC user data if available
   };
 
   return (

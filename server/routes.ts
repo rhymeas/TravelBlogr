@@ -110,6 +110,30 @@ function simpleAuthMiddleware(req: any, res: any, next: any) {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // OIDC Authentication routes
+  app.get('/api/auth/user', async (req: any, res) => {
+    try {
+      // Check if user is authenticated via OIDC (test framework or production)
+      if (req.isAuthenticated && req.isAuthenticated() && req.user) {
+        const userId = req.user.claims?.sub;
+        // Return basic user info from OIDC claims if storage lookup fails
+        return res.json({
+          id: req.user.claims?.sub,
+          email: req.user.claims?.email,
+          firstName: req.user.claims?.first_name,
+          lastName: req.user.claims?.last_name,
+          profileImageUrl: req.user.claims?.profile_image_url,
+        });
+      }
+      
+      // No OIDC authentication found
+      res.status(401).json({ message: "Unauthorized" });
+    } catch (error) {
+      console.error("Error fetching OIDC user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
   // Location routes
   app.get("/api/locations", async (req, res) => {
     try {
