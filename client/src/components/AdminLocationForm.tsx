@@ -25,6 +25,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
     description: "",
     accommodation: "",
     accommodationWebsite: "",
+    accommodationImageUrl: "",
     distance: 0,
     imageUrl: "",
     mapImageUrl: "",
@@ -48,6 +49,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
         description: location.description || "",
         accommodation: location.accommodation || "",
         accommodationWebsite: (location as any).accommodationWebsite || "",
+        accommodationImageUrl: (location as any).accommodationImageUrl || "",
         distance: location.distance || 0,
         imageUrl: location.imageUrl || "",
         mapImageUrl: (location as any).mapImageUrl || "",
@@ -234,6 +236,15 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                 data-testid="input-accommodation-website"
               />
             </div>
+
+            {/* Accommodation Image */}
+            <ImageInput
+              label="Unterkunft Bild"
+              value={formData.accommodationImageUrl}
+              onChange={(value) => setFormData(prev => ({ ...prev, accommodationImageUrl: value }))}
+              placeholder="https://example.com/hotel-image.jpg"
+              testId="accommodation-image"
+            />
 
             {/* Main Location Image */}
             <ImageInput

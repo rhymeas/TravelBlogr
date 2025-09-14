@@ -13,6 +13,7 @@ export const locations = pgTable("locations", {
   description: text("description").notNull(),
   accommodation: text("accommodation"),
   accommodationWebsite: text("accommodation_website"),
+  accommodationImageUrl: text("accommodation_image_url"),
   accommodationPrice: integer("accommodation_price"),
   accommodationCurrency: text("accommodation_currency").default("CAD"),
   distance: integer("distance"), // km from previous location
