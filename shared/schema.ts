@@ -63,6 +63,10 @@ export const tourSettings = pgTable("tour_settings", {
   currency: text("currency").default("CAD"),
   heroImageUrl: text("hero_image_url"),
   description: text("description"),
+  // Privacy settings
+  privacyEnabled: boolean("privacy_enabled").default(false),
+  privacyPassword: text("privacy_password"), // hashed password
+  sessionTimeout: integer("session_timeout").default(10080), // default 7 days in minutes
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

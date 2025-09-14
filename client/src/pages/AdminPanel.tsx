@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { ArrowLeft, Plus, Edit, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Upload, Lock, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -18,6 +19,8 @@ import type { Location, TourSettings } from "@shared/schema";
 export default function AdminPanel() {
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [showLocationForm, setShowLocationForm] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [privacyPassword, setPrivacyPassword] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -44,6 +47,43 @@ export default function AdminPanel() {
       toast({
         title: "Fehler",
         description: `Fehler beim Aktualisieren der Einstellungen: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updatePrivacySettingsMutation = useMutation({
+    mutationFn: async (data: { privacyEnabled?: boolean; privacyPassword?: string; sessionTimeout?: number }) => {
+      // If password is provided, hash it on the server side
+      const payload: any = {};
+      
+      if (data.privacyEnabled !== undefined) {
+        payload.privacyEnabled = data.privacyEnabled;
+      }
+      
+      if (data.privacyPassword !== undefined) {
+        // Password will be hashed on the server
+        payload.privacyPassword = data.privacyPassword;
+      }
+      
+      if (data.sessionTimeout !== undefined) {
+        payload.sessionTimeout = data.sessionTimeout;
+      }
+      
+      await apiRequest("PUT", "/api/tour-settings", payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tour-settings"] });
+      toast({
+        title: "Erfolg",
+        description: "Privacy-Einstellungen wurden aktualisiert",
+      });
+      setPrivacyPassword(""); // Clear password field after save
+    },
+    onError: (error) => {
+      toast({
+        title: "Fehler",
+        description: `Fehler beim Aktualisieren der Privacy-Einstellungen: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -185,6 +225,134 @@ export default function AdminPanel() {
                     }}
                     data-testid="textarea-description"
                   />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Privacy Settings */}
+            <Card data-testid="privacy-settings-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lock className="w-5 h-5" />
+                  Privacy-Einstellungen
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Privacy Toggle */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label htmlFor="privacy-enabled">Privacy-Login aktivieren</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Wenn aktiviert, ist ein Passwort erforderlich, um die Tour zu sehen
+                    </p>
+                  </div>
+                  <Switch
+                    id="privacy-enabled"
+                    checked={tourSettings?.privacyEnabled || false}
+                    onCheckedChange={(checked) => {
+                      updatePrivacySettingsMutation.mutate({ privacyEnabled: checked });
+                    }}
+                    data-testid="switch-privacy-enabled"
+                  />
+                </div>
+
+                {/* Password Section - only show when privacy is enabled */}
+                {tourSettings?.privacyEnabled && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="privacy-password">Privacy-Passwort</Label>
+                      <div className="relative">
+                        <Input
+                          id="privacy-password"
+                          type={showPassword ? "text" : "password"}
+                          value={privacyPassword}
+                          onChange={(e) => setPrivacyPassword(e.target.value)}
+                          placeholder="Neues Passwort eingeben..."
+                          className="pr-10"
+                          data-testid="input-privacy-password"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowPassword(!showPassword)}
+                          data-testid="button-toggle-password-visibility"
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4 text-gray-400" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-gray-400" />
+                          )}
+                        </Button>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            if (privacyPassword.trim()) {
+                              updatePrivacySettingsMutation.mutate({ privacyPassword: privacyPassword.trim() });
+                            }
+                          }}
+                          disabled={!privacyPassword.trim() || updatePrivacySettingsMutation.isPending}
+                          size="sm"
+                          data-testid="button-save-password"
+                        >
+                          {updatePrivacySettingsMutation.isPending ? "Speichern..." : "Passwort speichern"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setPrivacyPassword("")}
+                          size="sm"
+                          data-testid="button-clear-password"
+                        >
+                          Leeren
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Das Passwort wird sicher gehasht gespeichert. Leer lassen, um das aktuelle Passwort zu behalten.
+                      </p>
+                    </div>
+
+                    {/* Session Timeout */}
+                    <div className="space-y-2">
+                      <Label htmlFor="session-timeout">Session-Timeout (Minuten)</Label>
+                      <Select
+                        value={(tourSettings?.sessionTimeout || 10080).toString()}
+                        onValueChange={(value) => {
+                          updatePrivacySettingsMutation.mutate({ sessionTimeout: parseInt(value) });
+                        }}
+                      >
+                        <SelectTrigger data-testid="select-session-timeout">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="60">1 Stunde</SelectItem>
+                          <SelectItem value="360">6 Stunden</SelectItem>
+                          <SelectItem value="720">12 Stunden</SelectItem>
+                          <SelectItem value="1440">1 Tag</SelectItem>
+                          <SelectItem value="4320">3 Tage</SelectItem>
+                          <SelectItem value="10080">7 Tage (Standard)</SelectItem>
+                          <SelectItem value="20160">14 Tage</SelectItem>
+                          <SelectItem value="43200">30 Tage</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Wie lange sollen Nutzer eingeloggt bleiben?
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                {/* Current Status */}
+                <div className="bg-muted p-3 rounded-lg">
+                  <p className="text-sm font-medium">
+                    Status: {tourSettings?.privacyEnabled ? "🔒 Privacy aktiviert" : "🔓 Öffentlich zugänglich"}
+                  </p>
+                  {tourSettings?.privacyEnabled && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Session-Timeout: {Math.floor((tourSettings?.sessionTimeout || 10080) / 1440)} Tag(e)
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -4,42 +4,8 @@ import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
 import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema } from "@shared/schema";
 import { z } from "zod";
+import bcrypt from "bcrypt";
 
-// Rate limiting storage for IP tracking
-const rateLimitStorage = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 10; // max 10 requests per minute
-
-// Security middleware for trip photo uploads
-function rateLimitMiddleware(req: any, res: any, next: any) {
-  const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
-  const now = Date.now();
-  
-  // Clean expired entries
-  const expiredIPs: string[] = [];
-  rateLimitStorage.forEach((data, ip) => {
-    if (now > data.resetTime) {
-      expiredIPs.push(ip);
-    }
-  });
-  expiredIPs.forEach(ip => rateLimitStorage.delete(ip));
-  
-  // Check current IP
-  const current = rateLimitStorage.get(clientIP);
-  if (!current) {
-    rateLimitStorage.set(clientIP, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
-    return next();
-  }
-  
-  if (current.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return res.status(429).json({
-      error: "Zu viele Anfragen. Bitte warten Sie eine Minute bevor Sie erneut versuchen."
-    });
-  }
-  
-  current.count++;
-  next();
-}
 
 // Validate image URL security
 function validateImageUrl(imageUrl: string): { valid: boolean; error?: string } {
@@ -107,8 +73,7 @@ function simpleAuthMiddleware(req: any, res: any, next: any) {
     return next();
   }
   
-  // For trip photo uploads, allow public access but with rate limiting
-  // In production, you might want to require some form of authentication
+  // For trip photo uploads, allow public access
   next();
 }
 
@@ -237,7 +202,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/locations/:locationId/trip-photos", 
-    rateLimitMiddleware, 
     simpleAuthMiddleware, 
     async (req, res) => {
     try {
@@ -318,13 +282,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid settings data", details: validation.error });
       }
 
-      const settings = await storage.updateTourSettings(validation.data);
+      const updateData = { ...validation.data };
+
+      // Handle password hashing if privacyPassword is provided
+      if (updateData.privacyPassword) {
+        if (updateData.privacyPassword.trim().length < 6) {
+          return res.status(400).json({ 
+            error: "Passwort muss mindestens 6 Zeichen lang sein" 
+          });
+        }
+        
+        // Hash the password
+        const saltRounds = 12;
+        updateData.privacyPassword = await bcrypt.hash(updateData.privacyPassword.trim(), saltRounds);
+      }
+
+      const settings = await storage.updateTourSettings(updateData);
       res.json(settings);
     } catch (error) {
       console.error("Error updating tour settings:", error);
       res.status(500).json({ error: "Failed to update tour settings" });
     }
   });
+
+  // Privacy authentication routes
+  app.get("/api/privacy-status", async (req, res) => {
+    try {
+      const settings = await storage.getTourSettings();
+      const privacyEnabled = settings?.privacyEnabled || false;
+      
+      res.json({ 
+        privacyEnabled
+      });
+    } catch (error) {
+      console.error("Error fetching privacy status:", error);
+      res.status(500).json({ error: "Failed to fetch privacy status" });
+    }
+  });
+
+  app.post("/api/simple-login", async (req, res) => {
+    try {
+      const { password } = req.body;
+      
+      if (!password) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Passwort ist erforderlich" 
+        });
+      }
+
+      // Get tour settings to check password
+      const settings = await storage.getTourSettings();
+      
+      if (!settings?.privacyEnabled) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Privacy-Login ist nicht aktiviert" 
+        });
+      }
+
+      if (!settings.privacyPassword) {
+        return res.status(500).json({ 
+          success: false, 
+          message: "Kein Privacy-Passwort konfiguriert" 
+        });
+      }
+
+      // Verify password
+      const isValid = await bcrypt.compare(password, settings.privacyPassword);
+      
+      if (!isValid) {
+        return res.status(401).json({ 
+          success: false, 
+          message: "Ungültiges Passwort" 
+        });
+      }
+
+      res.json({ 
+        success: true,
+        message: "Login erfolgreich"
+      });
+    } catch (error) {
+      console.error("Error during simple login:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Login fehlgeschlagen" 
+      });
+    }
+  });
+
 
   // Object storage routes for image uploads
   app.get("/public-objects/:filePath(*)", async (req, res) => {

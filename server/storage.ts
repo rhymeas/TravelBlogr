@@ -348,6 +348,9 @@ export class MemStorage implements IStorage {
       currency: "CAD",
       heroImageUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
       description: "Entdecke die atemberaubende Schönheit Kanadas - von den Weinbergen des Okanagan-Tals bis zu den majestätischen Rocky Mountains",
+      privacyEnabled: false,
+      privacyPassword: null,
+      sessionTimeout: 10080, // 7 days in minutes
       updatedAt: new Date(),
     };
   }
