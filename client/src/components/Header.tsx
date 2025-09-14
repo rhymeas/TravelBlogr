@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Camera, Settings, Menu, X } from "lucide-react";
+import { Home, Camera, Settings, Menu, X, Map } from "lucide-react";
 import { useState } from "react";
 
 export default function Header() {
@@ -12,11 +12,29 @@ export default function Header() {
     return false;
   };
 
-  const navLinks = [
-    { href: "/", label: "Startseite", icon: Home },
-    { href: "/live-feed", label: "Live Feed", icon: Camera },
-    { href: "/admin", label: "Editieren", icon: Settings },
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+    setMobileMenuOpen(false);
+  };
+
+  // Create navigation links with context-aware Reiseverlauf on home page
+  const baseNavLinks = [
+    { href: "/", label: "Startseite", icon: Home, type: "link" },
   ];
+
+  const homePageScrollLinks = location === "/" ? [
+    { href: "#timeline", label: "Reiseverlauf", icon: Map, type: "scroll", scrollTarget: "timeline" },
+  ] : [];
+
+  const otherNavLinks = [
+    { href: "/live-feed", label: "Live Feed", icon: Camera, type: "link" },
+    { href: "/admin", label: "Editieren", icon: Settings, type: "link" },
+  ];
+
+  const navLinks = [...baseNavLinks, ...homePageScrollLinks, ...otherNavLinks];
 
   return (
     <header className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800" data-testid="main-header">
@@ -34,6 +52,21 @@ export default function Header() {
           <div className="hidden md:flex items-center space-x-6">
             {navLinks.map((link) => {
               const Icon = link.icon;
+              
+              if (link.type === "scroll") {
+                return (
+                  <button
+                    key={link.href}
+                    onClick={() => scrollToSection((link as any).scrollTarget || "timeline")}
+                    className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
+                    data-testid={`nav-${link.label.toLowerCase().replace(/\s+/g, "-")}`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{link.label}</span>
+                  </button>
+                );
+              }
+              
               return (
                 <Link 
                   key={link.href} 
@@ -74,6 +107,21 @@ export default function Header() {
           <div className="px-4 py-3 space-y-1">
             {navLinks.map((link) => {
               const Icon = link.icon;
+              
+              if (link.type === "scroll") {
+                return (
+                  <button
+                    key={link.href}
+                    onClick={() => scrollToSection((link as any).scrollTarget || "timeline")}
+                    className="flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-gray-800 w-full text-left"
+                    data-testid={`mobile-nav-${link.label.toLowerCase().replace(/\s+/g, "-")}`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span>{link.label}</span>
+                  </button>
+                );
+              }
+              
               return (
                 <Link 
                   key={link.href} 
