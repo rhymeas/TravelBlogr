@@ -695,7 +695,7 @@ export default function AdminPanel() {
                       <SelectTrigger data-testid="select-location">
                         <SelectValue placeholder="Ort für Bilderverwaltung auswählen..." />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="z-50 max-h-60 overflow-auto" position="popper">
                         {locations?.map((location) => (
                           <SelectItem key={location.id} value={location.id}>
                             {location.name}
