@@ -375,7 +375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Validate form data
-      const { caption, uploadedBy, locationId } = req.body;
+      const { caption, uploadedBy, locationId, creatorId } = req.body;
       
       // Validate caption length
       if (caption && caption.length > 500) {
@@ -425,6 +425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create trip photo record with objectPath
         const tripPhotoData = {
           locationId: locationId || null, // Optional location tag
+          creatorId: creatorId || null, // Creator who uploaded the photo
           objectPath: objectPath, // Store permanent path
           imageUrl: '/placeholder', // Placeholder - real URL generated on GET
           caption: caption || null,
