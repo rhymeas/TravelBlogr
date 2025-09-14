@@ -86,7 +86,6 @@ export default function LiveFeedPage() {
 
   // File selection handler
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("File selection handler called", e.target.files);
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 10485760) { // 10MB
@@ -109,7 +108,6 @@ export default function LiveFeedPage() {
       }
       
       setSelectedFile(file);
-      console.log("Opening upload modal with file:", file.name);
       setShowUploadModal(true);
     }
   };
@@ -359,17 +357,6 @@ export default function LiveFeedPage() {
         <DialogContent className="sm:max-w-md" data-testid="upload-modal">
           <DialogHeader>
             <DialogTitle>Foto teilen</DialogTitle>
-            <DialogClose asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-4 top-4"
-                onClick={handleCloseModal}
-                data-testid="button-close-modal"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </DialogClose>
           </DialogHeader>
           
           <div className="space-y-4">
@@ -459,10 +446,7 @@ export default function LiveFeedPage() {
 
       {/* Simple floating upload button */}
       <button
-        onClick={() => {
-          console.log("FAB clicked, fileInputRef.current:", fileInputRef.current);
-          fileInputRef.current?.click();
-        }}
+        onClick={() => fileInputRef.current?.click()}
         className="fixed bottom-6 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center"
         data-testid="floating-upload-button"
       >
