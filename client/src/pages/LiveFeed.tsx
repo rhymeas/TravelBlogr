@@ -1,9 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { User, Camera } from "lucide-react";
+import { User, Camera, Edit2 } from "lucide-react";
+import { useState } from "react";
 import Header from "@/components/Header";
+import { useAuth } from "@/hooks/useAuth";
 import type { Location, TripPhoto, Creator } from "@shared/schema";
 
 export default function LiveFeedPage() {
+  const { isAuthenticated } = useAuth();
+  const [editingPhotoId, setEditingPhotoId] = useState<string | null>(null);
+
   // Fetch locations for location name lookup
   const { data: locations } = useQuery<Location[]>({
     queryKey: ["/api/locations"],
@@ -159,6 +164,22 @@ export default function LiveFeedPage() {
                         </div>
                       </div>
                     </div>
+                    
+                    {/* Edit button - only show for authenticated users */}
+                    {isAuthenticated && (
+                      <button
+                        onClick={() => setEditingPhotoId(editingPhotoId === photo.id ? null : photo.id)}
+                        className={`p-2 rounded-full transition-all duration-200 ${
+                          editingPhotoId === photo.id
+                            ? 'bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400'
+                            : 'text-gray-400 dark:text-gray-500 hover:text-teal-500 dark:hover:text-teal-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                        }`}
+                        data-testid={`button-edit-photo-${photo.id}`}
+                        title={editingPhotoId === photo.id ? 'Bearbeitung beenden' : 'Foto bearbeiten'}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
 
                   {/* Photo image */}
