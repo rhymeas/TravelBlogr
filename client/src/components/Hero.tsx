@@ -127,7 +127,7 @@ export default function Hero({ tourSettings }: HeroProps) {
           <p className="text-lg text-white/70 mb-8" data-testid="hero-location-description">
             {heroImages[currentImage].description}
           </p>
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+          <div className="flex flex-col gap-6 justify-center items-center">
             <Button
               onClick={scrollToTimeline}
               className="bg-primary text-white px-10 py-4 text-lg font-semibold hover:bg-primary/90 transition-all shadow-xl backdrop-blur-sm border border-white/10"
@@ -135,19 +135,7 @@ export default function Hero({ tourSettings }: HeroProps) {
             >
               Reiseplan ansehen
             </Button>
-            <Button
-              onClick={() => {
-                const element = document.getElementById('locations');
-                if (element) {
-                  element.scrollIntoView({ behavior: 'smooth' });
-                }
-              }}
-              className="bg-white/20 text-white px-10 py-4 text-lg font-semibold hover:bg-white/30 transition-all shadow-xl backdrop-blur-sm border border-white/20"
-              data-testid="hero-locations-button"
-            >
-              Standorte erkunden
-            </Button>
-            <div className="text-white/90 text-lg font-medium bg-white/10 px-6 py-3 rounded-full backdrop-blur-sm border border-white/20" data-testid="hero-dates">
+            <div className="text-white text-xl font-bold bg-primary/20 px-8 py-4 rounded-lg backdrop-blur-sm border border-white/20 shadow-lg" data-testid="hero-dates">
               {tourSettings?.startDate || '20. September'} - {tourSettings?.endDate || '6. Oktober 2025'}
             </div>
           </div>
