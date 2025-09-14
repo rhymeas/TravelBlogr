@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Calendar, MapPin, DollarSign } from "lucide-react";
+import { CalendarDays, Utensils, Star } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Location } from "@shared/schema";
@@ -10,16 +10,36 @@ interface LocationCardProps {
 }
 
 export default function LocationCard({ location, variant = "default" }: LocationCardProps) {
+  // Format date range for header
+  const formatDateRange = (startDate: string, endDate: string) => {
+    const start = startDate.split('.').slice(0, 2).join('/');
+    const end = endDate.split('.').slice(0, 2).join('/');
+    return `${start}-${end}`;
+  };
+
   return (
     <Link href={`/location/${location.slug}`}>
       <Card 
-        className="group hover:shadow-xl transition-shadow cursor-pointer border border-border"
+        className="group hover:shadow-xl transition-shadow cursor-pointer border border-border max-w-lg"
         data-testid={`location-card-${location.slug}`}
       >
         <CardContent className="p-0">
+          {/* Header with location name and date */}
+          <div className="flex justify-between items-center p-6 pb-4">
+            <h3 className="text-2xl font-bold text-foreground" data-testid={`location-name-${location.slug}`}>
+              {location.name}
+            </h3>
+            <div className="flex items-center text-teal-600 text-sm font-medium">
+              <CalendarDays className="w-4 h-4 mr-2" />
+              <span data-testid={`location-dates-${location.slug}`}>
+                {formatDateRange(location.startDate, location.endDate)}
+              </span>
+            </div>
+          </div>
+
           {/* Image */}
           {location.imageUrl && (
-            <div className="aspect-video w-full overflow-hidden rounded-t-lg">
+            <div className="aspect-[4/3] w-full overflow-hidden mx-6 rounded-lg mb-4">
               <img 
                 src={location.imageUrl} 
                 alt={location.name}
@@ -29,62 +49,65 @@ export default function LocationCard({ location, variant = "default" }: Location
             </div>
           )}
           
-          <div className="p-6">
-            {/* Header */}
-            <div className="flex justify-between items-start mb-3">
-              <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors" data-testid={`location-name-${location.slug}`}>
-                {location.name}
-              </h3>
-              <Badge variant="secondary" className="ml-2" data-testid={`location-dates-${location.slug}`}>
-                {location.startDate.split('.').slice(0, 2).join('.')}-{location.endDate.split('.').slice(0, 2).join('.')}
-              </Badge>
-            </div>
-            
-            {/* Description */}
-            <p className="text-muted-foreground mb-4 line-clamp-3" data-testid={`location-description-${location.slug}`}>
+          {/* Description */}
+          <div className="px-6 mb-6">
+            <p className="text-muted-foreground text-base leading-relaxed" data-testid={`location-description-${location.slug}`}>
               {location.description}
             </p>
+          </div>
 
-            {/* Metadata */}
-            <div className="flex flex-wrap gap-3 text-sm text-muted-foreground mb-4">
-              <div className="flex items-center">
-                <Calendar className="w-4 h-4 mr-1" />
-                <span data-testid={`location-duration-${location.slug}`}>
-                  {location.startDate} - {location.endDate}
-                </span>
+          {/* Dining and Activities sections */}
+          <div className="grid grid-cols-2 gap-4 px-6 mb-6">
+            {/* Dining Section */}
+            <div className="border border-border rounded-lg p-4">
+              <div className="flex items-center mb-3">
+                <Utensils className="w-4 h-4 mr-2 text-teal-600" />
+                <h4 className="font-medium text-teal-600">Dining</h4>
               </div>
-              {location.distance && (
-                <div className="flex items-center">
-                  <MapPin className="w-4 h-4 mr-1" />
-                  <span data-testid={`location-distance-${location.slug}`}>{location.distance} km</span>
-                </div>
-              )}
-              {location.accommodationPrice && (
-                <div className="flex items-center">
-                  <DollarSign className="w-4 h-4 mr-1" />
-                  <span data-testid={`location-price-${location.slug}`}>
-                    {location.accommodationPrice} {location.accommodationCurrency}
-                  </span>
-                </div>
-              )}
-            </div>
-            
-            {/* Highlights */}
-            {location.highlights && location.highlights.length > 0 && (
-              <div className="flex flex-wrap gap-2" data-testid={`location-highlights-${location.slug}`}>
-                {location.highlights.slice(0, 3).map((highlight, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
-                    {highlight}
-                  </Badge>
-                ))}
-                {location.highlights.length > 3 && (
-                  <Badge variant="outline" className="text-xs">
-                    +{location.highlights.length - 3} mehr
-                  </Badge>
+              <div className="space-y-2">
+                {location.restaurants && location.restaurants.length > 0 ? (
+                  location.restaurants.slice(0, 2).map((restaurant, index) => (
+                    <div key={index} className="text-sm text-muted-foreground">
+                      • {restaurant.name}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-muted-foreground">Empfehlungen verfügbar</div>
                 )}
               </div>
-            )}
+            </div>
+
+            {/* Activities Section */}
+            <div className="border border-border rounded-lg p-4">
+              <div className="flex items-center mb-3">
+                <Star className="w-4 h-4 mr-2 text-teal-600" />
+                <h4 className="font-medium text-teal-600">Activities</h4>
+              </div>
+              <div className="space-y-2">
+                {location.activities && location.activities.length > 0 ? (
+                  location.activities.slice(0, 2).map((activity, index) => (
+                    <div key={index} className="text-sm text-muted-foreground">
+                      • {activity}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-muted-foreground">Aktivitäten verfügbar</div>
+                )}
+              </div>
+            </div>
           </div>
+
+          {/* Accommodation information */}
+          {location.accommodation && (
+            <div className="px-6 pb-6">
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium">Accommodation:</span> {location.accommodation}
+                {location.accommodationPrice && (
+                  <span> • {location.accommodationPrice} {location.accommodationCurrency}</span>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </Link>
