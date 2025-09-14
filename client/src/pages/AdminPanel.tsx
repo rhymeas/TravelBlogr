@@ -32,7 +32,7 @@ export default function AdminPanel() {
     gpsSettings: false,
     restaurantAccommodation: false,
     locationsManagement: false,
-    quickImageUpload: true, // start collapsed for cleaner look
+    imageManagement: false,
     quickActions: true, // start collapsed for cleaner look
   });
 
@@ -779,6 +779,103 @@ export default function AdminPanel() {
               )}
             </Card>
 
+            {/* Image Management - Fixed and moved from sidebar */}
+            <Card className="border-2 border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800" data-testid="image-management-card">
+              <CardHeader 
+                className="cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors"
+                onClick={() => toggleSection('imageManagement')}
+                data-testid="image-management-header"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl font-bold text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                      <Upload className="w-6 h-6" />
+                      📸 Bilder für Orte verwalten
+                    </CardTitle>
+                    <p className="text-blue-700 dark:text-blue-300 text-sm">
+                      Lade Bilder hoch und verwalte die Bildergalerien für jeden Ort deiner Tour.
+                    </p>
+                  </div>
+                  {collapsedSections.imageManagement ? 
+                    <ChevronDown className="w-4 h-4 text-blue-800 dark:text-blue-200" /> : 
+                    <ChevronUp className="w-4 h-4 text-blue-800 dark:text-blue-200" />
+                  }
+                </div>
+              </CardHeader>
+              {!collapsedSections.imageManagement && (
+                <CardContent className="space-y-6">
+                  {!selectedLocation ? (
+                    <div className="space-y-4">
+                      <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                        <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200 mb-2">
+                          <Upload className="w-5 h-5" />
+                          <span className="font-medium">Ort für Bilderverwaltung auswählen:</span>
+                        </div>
+                        <p className="text-blue-700 dark:text-blue-300 text-sm">
+                          Wähle einen Ort aus, um dessen Bilder zu verwalten. Du kannst Bilder hochladen, bearbeiten und als Hauptbild festlegen.
+                        </p>
+                      </div>
+                      
+                      {locations && locations.length > 0 ? (
+                        <div className="grid gap-3">
+                          {locations.map((location) => (
+                            <Card 
+                              key={location.id} 
+                              className="cursor-pointer hover:bg-muted/50 transition-colors border-2 hover:border-blue-300" 
+                              onClick={() => setSelectedLocation(location)}
+                              data-testid={`select-location-${location.slug}`}
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <h4 className="font-medium text-gray-900 dark:text-gray-100">{location.name}</h4>
+                                    <p className="text-sm text-muted-foreground">{location.startDate} - {location.endDate}</p>
+                                  </div>
+                                  <div className="text-blue-600 dark:text-blue-400">
+                                    <Upload className="w-5 h-5" />
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Star className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                          <p>Noch keine Orte vorhanden</p>
+                          <p className="text-sm">Erstelle zuerst einen Ort, um Bilder hochladen zu können</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-lg font-semibold text-blue-800 dark:text-blue-200">Bilder verwalten für: {selectedLocation.name}</h4>
+                          <p className="text-sm text-blue-600 dark:text-blue-400">{selectedLocation.startDate} - {selectedLocation.endDate}</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          onClick={() => setSelectedLocation(null)}
+                          size="sm"
+                          data-testid="button-back-to-location-list"
+                        >
+                          <ArrowLeft className="w-4 h-4 mr-2" />
+                          Anderen Ort wählen
+                        </Button>
+                      </div>
+                      
+                      <ImageGallery 
+                        locationId={selectedLocation.id} 
+                        isAdmin={true}
+                        className="border border-blue-200 dark:border-blue-700 rounded-lg"
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              )}
+            </Card>
+
             {/* Locations Management */}
             <Card data-testid="locations-management-card">
               <CardHeader 
@@ -853,66 +950,6 @@ export default function AdminPanel() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Quick Image Upload */}
-            <Card className="border-2 border-primary/20 bg-primary/5" data-testid="quick-image-upload">
-              <CardHeader 
-                className="cursor-pointer hover:bg-primary/10 transition-colors"
-                onClick={() => toggleSection('quickImageUpload')}
-                data-testid="quick-image-upload-header"
-              >
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center text-primary">
-                    <Upload className="w-5 h-5 mr-2" />
-                    📸 Bilder verwalten
-                  </CardTitle>
-                  {collapsedSections.quickImageUpload ? 
-                    <ChevronDown className="w-4 h-4 text-primary" /> : 
-                    <ChevronUp className="w-4 h-4 text-primary" />
-                  }
-                </div>
-              </CardHeader>
-              {!collapsedSections.quickImageUpload && (
-                <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="location-select">Ort auswählen</Label>
-                    <Select onValueChange={(value) => {
-                      const location = locations?.find(l => l.id === value);
-                      setSelectedLocation(location || null);
-                    }}>
-                      <SelectTrigger data-testid="select-location">
-                        <SelectValue placeholder="Ort für Bilderverwaltung auswählen..." />
-                      </SelectTrigger>
-                      <SelectContent className="z-50 max-h-60 overflow-auto" position="popper">
-                        {locations?.map((location) => (
-                          <SelectItem key={location.id} value={location.id}>
-                            {location.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  {!selectedLocation && (
-                    <div className="bg-muted/50 rounded-lg p-4 text-center">
-                      <p className="text-sm text-muted-foreground">
-                        👆 Wähle einen Ort aus, um Bilder hochzuladen und zu verwalten
-                      </p>
-                    </div>
-                  )}
-                </div>
-                
-                {selectedLocation && (
-                  <ImageGallery 
-                    locationId={selectedLocation.id} 
-                    isAdmin={true}
-                    className="mt-4"
-                  />
-                )}
-                </CardContent>
-              )}
-            </Card>
-
             {/* Quick Actions */}
             <Card data-testid="quick-actions-card">
               <CardHeader 
