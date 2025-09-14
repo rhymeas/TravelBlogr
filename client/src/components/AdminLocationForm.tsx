@@ -23,12 +23,14 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
     endDate: "",
     description: "",
     accommodation: "",
+    accommodationWebsite: "",
     distance: 0,
     imageUrl: "",
     activities: [""],
-    restaurants: [{ name: "", description: "", cuisine: "" }] as RestaurantData[],
+    restaurants: [{ name: "", description: "", cuisine: "", websiteUrl: "", imageUrl: "" }] as RestaurantData[],
     experiences: [""],
     highlights: [""],
+    funFacts: [""],
   });
 
   const { toast } = useToast();
@@ -43,12 +45,20 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
         endDate: location.endDate || "",
         description: location.description || "",
         accommodation: location.accommodation || "",
+        accommodationWebsite: (location as any).accommodationWebsite || "",
         distance: location.distance || 0,
         imageUrl: location.imageUrl || "",
         activities: location.activities?.length ? location.activities : [""],
-        restaurants: location.restaurants?.length ? location.restaurants : [{ name: "", description: "", cuisine: "" }],
+        restaurants: location.restaurants?.length ? location.restaurants.map(r => ({
+          name: r.name || "",
+          description: r.description || "",
+          cuisine: r.cuisine || "",
+          websiteUrl: r.websiteUrl || "",
+          imageUrl: r.imageUrl || ""
+        })) : [{ name: "", description: "", cuisine: "", websiteUrl: "", imageUrl: "" }],
         experiences: location.experiences?.length ? location.experiences : [""],
         highlights: location.highlights?.length ? location.highlights : [""],
+        funFacts: (location as any).funFacts?.length ? (location as any).funFacts : [""],
       });
     }
   }, [location]);
@@ -61,6 +71,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
         restaurants: data.restaurants.filter(r => r.name.trim()),
         experiences: data.experiences.filter(e => e.trim()),
         highlights: data.highlights.filter(h => h.trim()),
+        funFacts: data.funFacts.filter(f => f.trim()),
         coordinates: location?.coordinates || { lat: 0, lng: 0 },
       };
 
@@ -206,6 +217,19 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
               </div>
             </div>
 
+            {/* Accommodation Website */}
+            <div>
+              <Label htmlFor="accommodation-website">Unterkunft Website</Label>
+              <Input
+                id="accommodation-website"
+                type="url"
+                value={formData.accommodationWebsite}
+                onChange={(e) => setFormData(prev => ({ ...prev, accommodationWebsite: e.target.value }))}
+                placeholder="https://hotel-website.com"
+                data-testid="input-accommodation-website"
+              />
+            </div>
+
             {/* Image URL */}
             <div>
               <Label htmlFor="image-url">Bild-URL</Label>
@@ -292,12 +316,26 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                       <Minus className="w-4 h-4" />
                     </Button>
                   </div>
-                  <Input
-                    value={restaurant.description}
-                    onChange={(e) => updateArrayItem('restaurants', index, { ...restaurant, description: e.target.value })}
-                    placeholder="Beschreibung"
-                    data-testid={`restaurant-description-${index}`}
-                  />
+                  <div className="space-y-2">
+                    <Input
+                      value={restaurant.description}
+                      onChange={(e) => updateArrayItem('restaurants', index, { ...restaurant, description: e.target.value })}
+                      placeholder="Beschreibung"
+                      data-testid={`restaurant-description-${index}`}
+                    />
+                    <Input
+                      value={(restaurant as any).websiteUrl || ''}
+                      onChange={(e) => updateArrayItem('restaurants', index, { ...restaurant, websiteUrl: e.target.value })}
+                      placeholder="Website URL (z.B. https://restaurant.com)"
+                      data-testid={`restaurant-website-${index}`}
+                    />
+                    <Input
+                      value={(restaurant as any).imageUrl || ''}
+                      onChange={(e) => updateArrayItem('restaurants', index, { ...restaurant, imageUrl: e.target.value })}
+                      placeholder="Bild URL"
+                      data-testid={`restaurant-image-${index}`}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -365,6 +403,41 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                     size="sm"
                     onClick={() => removeArrayItem('highlights', index)}
                     data-testid={`remove-highlight-${index}`}
+                  >
+                    <Minus className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            {/* Fun Facts */}
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <Label>Wissenswertes & Fun Facts</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addArrayItem('funFacts', '')}
+                  data-testid="add-fun-fact"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+              {formData.funFacts.map((funFact, index) => (
+                <div key={index} className="flex gap-2 mb-2">
+                  <Input
+                    value={funFact}
+                    onChange={(e) => updateArrayItem('funFacts', index, e.target.value)}
+                    placeholder="Interessante Tatsache oder Fun Fact..."
+                    data-testid={`fun-fact-${index}`}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => removeArrayItem('funFacts', index)}
+                    data-testid={`remove-fun-fact-${index}`}
                   >
                     <Minus className="w-4 h-4" />
                   </Button>

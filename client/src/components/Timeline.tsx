@@ -25,11 +25,11 @@ function formatDateRange(startDate: string, endDate: string): string {
 
 export default function Timeline({ locations }: TimelineProps) {
   return (
-    <div className="relative py-8" data-testid="timeline">
-      {/* Timeline line - extends full height */}
-      <div className="hidden md:block absolute left-1/2 top-0 h-full w-0.5 bg-primary/30 transform -translate-x-1/2"></div>
+    <div className="relative py-8 min-h-full" data-testid="timeline">
+      {/* Timeline line - extends full height with better visibility */}
+      <div className="hidden md:block absolute left-1/2 top-0 h-full w-1 bg-primary/50 transform -translate-x-1/2 shadow-sm"></div>
       
-      <div className="space-y-20">
+      <div className="space-y-12">
         {locations.map((location, index) => (
           <div key={location.id} className="relative" data-testid={`timeline-item-${location.slug}`}>
             {/* Timeline marker */}

@@ -136,38 +136,73 @@ export default function LocationDetail() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Accommodation Details */}
+            {/* Enhanced Accommodation Details */}
             {location.accommodation && (
-              <Card data-testid="location-accommodation">
+              <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10" data-testid="location-accommodation">
                 <CardContent className="pt-6">
-                  <h3 className="font-semibold text-foreground mb-4">🏨 Unterkunft</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-foreground flex items-center">
+                      🏨 <span className="ml-2">Ihre Unterkunft</span>
+                    </h3>
+                    <div className="bg-primary/20 text-primary px-2 py-1 rounded-full text-xs font-medium">
+                      Premium
+                    </div>
+                  </div>
                   
-                  {/* Accommodation Name */}
-                  <div className="mb-4">
-                    <h4 className="font-medium text-foreground text-sm mb-1">{location.accommodation}</h4>
-                    <p className="text-xs text-muted-foreground">Zentral gelegene Unterkunft mit modernen Annehmlichkeiten</p>
+                  {/* Accommodation Name with Link */}
+                  <div className="mb-6 p-4 bg-white rounded-lg border border-primary/10 shadow-sm">
+                    <h4 className="font-bold text-foreground text-base mb-2">{location.accommodation}</h4>
+                    <p className="text-sm text-muted-foreground mb-3">Zentral gelegene Unterkunft mit modernen Annehmlichkeiten</p>
+                    {(location as any).accommodationWebsite && (
+                      <a 
+                        href={(location as any).accommodationWebsite} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center text-primary hover:text-primary/80 text-sm font-medium transition-colors"
+                        data-testid="accommodation-website-link"
+                      >
+                        🌐 Website besuchen
+                        <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    )}
                   </div>
 
                   {/* Included Services */}
-                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                    <div className="text-xs text-muted-foreground">
-                      <div>• 2 Nächte Aufenthalt</div>
-                      <div>• Inkl. Frühstück</div>
-                      <div>• Kostenfreies WLAN</div>
+                  <div className="bg-white rounded-lg p-4 mb-4 border border-primary/10">
+                    <h5 className="text-sm font-bold text-foreground mb-3 flex items-center">
+                      ✨ <span className="ml-2">Inklusiv-Leistungen</span>
+                    </h5>
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      <div className="flex items-center">
+                        <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+                        2 Nächte Aufenthalt
+                      </div>
+                      <div className="flex items-center">
+                        <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+                        Inkl. Frühstück
+                      </div>
+                      <div className="flex items-center">
+                        <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+                        Kostenfreies WLAN
+                      </div>
                     </div>
                   </div>
 
                   {/* Amenities */}
                   <div className="mb-4">
-                    <h5 className="text-sm font-medium text-foreground mb-2">Ausstattung</h5>
-                    <div className="space-y-1 text-xs text-muted-foreground">
+                    <h5 className="text-sm font-bold text-foreground mb-3 flex items-center">
+                      🛏️ <span className="ml-2">Ausstattung</span>
+                    </h5>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                       <div className="flex items-center">
                         <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></span>
                         Klimaanlage
                       </div>
                       <div className="flex items-center">
                         <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></span>
-                        Privates Badezimmer
+                        Privates Bad
                       </div>
                       <div className="flex items-center">
                         <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></span>
@@ -175,21 +210,21 @@ export default function LocationDetail() {
                       </div>
                       <div className="flex items-center">
                         <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></span>
-                        Concierge Service
+                        Concierge
                       </div>
                     </div>
                   </div>
 
                   {/* Check-in Information */}
-                  <div className="border-t border-border pt-3">
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="font-medium text-foreground">Check-in:</span>
-                        <div className="text-muted-foreground">15:00 Uhr</div>
+                  <div className="border-t border-primary/20 pt-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="text-center p-2 bg-white rounded border border-primary/10">
+                        <span className="font-bold text-foreground block">Check-in</span>
+                        <div className="text-primary font-medium">15:00 Uhr</div>
                       </div>
-                      <div>
-                        <span className="font-medium text-foreground">Check-out:</span>
-                        <div className="text-muted-foreground">11:00 Uhr</div>
+                      <div className="text-center p-2 bg-white rounded border border-primary/10">
+                        <span className="font-bold text-foreground block">Check-out</span>
+                        <div className="text-primary font-medium">11:00 Uhr</div>
                       </div>
                     </div>
                   </div>
@@ -197,21 +232,55 @@ export default function LocationDetail() {
               </Card>
             )}
 
-            {/* Restaurants */}
+            {/* Enhanced Restaurants */}
             {location.restaurants && location.restaurants.length > 0 && (
               <Card data-testid="location-restaurants">
                 <CardContent className="pt-6">
-                  <h3 className="font-semibold text-foreground mb-4">🍽️ Restaurants</h3>
+                  <h3 className="font-semibold text-foreground mb-4">🍽️ Restaurants & Kulinarik</h3>
                   <div className="space-y-4">
                     {location.restaurants.map((restaurant, index) => (
-                      <div key={index} className="border-b border-border last:border-b-0 pb-3 last:pb-0" data-testid={`restaurant-${index}`}>
-                        <h4 className="font-medium text-foreground text-sm">{restaurant.name}</h4>
-                        <p className="text-xs text-muted-foreground mt-1">{restaurant.description}</p>
-                        {restaurant.cuisine && (
-                          <Badge variant="secondary" className="mt-2 text-xs">
-                            {restaurant.cuisine}
-                          </Badge>
+                      <div key={index} className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow" data-testid={`restaurant-${index}`}>
+                        {/* Restaurant Image */}
+                        {restaurant.imageUrl && (
+                          <div className="mb-3">
+                            <img 
+                              src={restaurant.imageUrl} 
+                              alt={restaurant.name}
+                              className="w-full h-32 object-cover rounded-lg"
+                              data-testid={`restaurant-image-${index}`}
+                            />
+                          </div>
                         )}
+                        
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-foreground text-base mb-1">{restaurant.name}</h4>
+                            <p className="text-sm text-muted-foreground mb-2">{restaurant.description}</p>
+                            
+                            <div className="flex items-center gap-2 mb-2">
+                              {restaurant.cuisine && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {restaurant.cuisine}
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            {restaurant.websiteUrl && (
+                              <a 
+                                href={restaurant.websiteUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-primary hover:text-primary/80 text-sm font-medium transition-colors"
+                                data-testid={`restaurant-website-${index}`}
+                              >
+                                🌐 Website & Reservierung
+                                <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                              </a>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -230,6 +299,36 @@ export default function LocationDetail() {
                         {highlight}
                       </Badge>
                     ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Fun Facts Section */}
+            {((location as any).funFacts && (location as any).funFacts.length > 0) || location.slug === 'penticton' && (
+              <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200" data-testid="location-fun-facts">
+                <CardContent className="pt-6">
+                  <h3 className="font-bold text-foreground mb-4 flex items-center">
+                    🎯 <span className="ml-2">Wussten Sie schon?</span>
+                  </h3>
+                  <div className="space-y-3">
+                    {(location as any).funFacts?.length > 0 ? (location as any).funFacts.map((fact: string, index: number) => (
+                      <div key={index} className="flex items-start bg-white/60 rounded-lg p-3 border border-amber-100" data-testid={`fun-fact-${index}`}>
+                        <span className="text-amber-600 font-bold mr-3 mt-0.5">•</span>
+                        <p className="text-sm text-foreground leading-relaxed">{fact}</p>
+                      </div>
+                    )) : location.slug === 'penticton' ? [
+                      '"Penticton" bedeutet auf der ursprünglichen Okanagan-Sprache "ein Ort, um für immer zu bleiben" - bezogen auf die Wasserwege zwischen Okanagan und Skaha Lake.',
+                      'Das südliche Okanagan ist Teil der nördlichsten Spitze der Sonoran-Wüste, die sich 3.000 Meilen bis nach Mexiko erstreckt.',
+                      'Die Region erhält bis zu 2.000 Sonnenstunden pro Jahr und 14 Stunden direktes Sonnenlicht täglich im Sommer - mehr als die Weinberge in Kalifornien.',
+                      'Der erste Weinberg wurde 1859 von einem französischen katholischen Priester namens Charles Pandosy angelegt - ausschließlich für Messwein.',
+                      'Bären sind ein großes Problem in den Weinbergen - sie essen nicht nur die Trauben, sondern reißen ganze Rebstöcke mitsamt den Wurzeln heraus!'
+                    ].map((fact, index) => (
+                      <div key={index} className="flex items-start bg-white/60 rounded-lg p-3 border border-amber-100" data-testid={`fun-fact-${index}`}>
+                        <span className="text-amber-600 font-bold mr-3 mt-0.5">•</span>
+                        <p className="text-sm text-foreground leading-relaxed">{fact}</p>
+                      </div>
+                    )) : null}
                   </div>
                 </CardContent>
               </Card>

@@ -166,6 +166,19 @@ export default function AdminPanel() {
                   </div>
                 </div>
                 <div>
+                  <Label htmlFor="hero-image-url">Hero-Bild URL</Label>
+                  <Input
+                    id="hero-image-url"
+                    type="url"
+                    defaultValue={tourSettings?.heroImageUrl || ""}
+                    onBlur={(e) => {
+                      updateTourSettingsMutation.mutate({ heroImageUrl: e.target.value });
+                    }}
+                    placeholder="https://example.com/hero-image.jpg"
+                    data-testid="input-hero-image-url"
+                  />
+                </div>
+                <div>
                   <Label htmlFor="description">Beschreibung</Label>
                   <Textarea
                     id="description"

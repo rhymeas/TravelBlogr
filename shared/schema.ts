@@ -12,6 +12,7 @@ export const locations = pgTable("locations", {
   endDate: text("end_date").notNull(),
   description: text("description").notNull(),
   accommodation: text("accommodation"),
+  accommodationWebsite: text("accommodation_website"),
   accommodationPrice: integer("accommodation_price"),
   accommodationCurrency: text("accommodation_currency").default("CAD"),
   distance: integer("distance"), // km from previous location
@@ -21,6 +22,7 @@ export const locations = pgTable("locations", {
   restaurants: jsonb("restaurants").$type<RestaurantData[]>().default([]),
   experiences: jsonb("experiences").$type<string[]>().default([]),
   highlights: jsonb("highlights").$type<string[]>().default([]),
+  funFacts: jsonb("fun_facts").$type<string[]>().default([]),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -55,6 +57,8 @@ export interface RestaurantData {
   name: string;
   description: string;
   cuisine?: string;
+  websiteUrl?: string;
+  imageUrl?: string;
 }
 
 // Schema exports
