@@ -35,6 +35,10 @@ export function LiveTripFeed({ locationId, locationName }: LiveTripFeedProps) {
   const addTripPhotoMutation = useMutation({
     mutationFn: async (tripPhotoData: any) => {
       const response = await apiRequest("POST", `/api/locations/${locationId}/trip-photos`, tripPhotoData);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Upload fehlgeschlagen");
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -48,10 +52,29 @@ export function LiveTripFeed({ locationId, locationName }: LiveTripFeedProps) {
         description: "Ihr Reisefoto wurde erfolgreich geteilt.",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
+      let errorMessage = "Ihr Foto konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut.";
+      
+      // Handle specific error messages from server
+      if (error.message.includes("Zu viele Anfragen")) {
+        errorMessage = "Zu viele Uploads. Bitte warten Sie eine Minute und versuchen Sie es erneut.";
+      } else if (error.message.includes("Location nicht gefunden")) {
+        errorMessage = "Diese Location existiert nicht mehr. Bitte laden Sie die Seite neu.";
+      } else if (error.message.includes("Host ist nicht erlaubt")) {
+        errorMessage = "Diese Bild-URL ist nicht erlaubt. Bitte verwenden Sie das Upload-Feld.";
+      } else if (error.message.includes("HTTPS")) {
+        errorMessage = "Nur sichere HTTPS-Links sind erlaubt.";
+      } else if (error.message.includes("Bilddateien")) {
+        errorMessage = "Nur Bilddateien (JPG, PNG, WebP, GIF) sind erlaubt.";
+      } else if (error.message.includes("zu lang")) {
+        errorMessage = error.message; // Use the specific length error message
+      } else if (error.message) {
+        errorMessage = error.message; // Use server error message if available
+      }
+      
       toast({
         title: "Upload fehlgeschlagen",
-        description: "Ihr Foto konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -87,15 +110,43 @@ export function LiveTripFeed({ locationId, locationName }: LiveTripFeedProps) {
     };
   };
 
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Validate form inputs
+  const validateForm = () => {
     if (!uploadImageUrl) {
       toast({
         title: "Kein Foto",
         description: "Bitte laden Sie ein Foto hoch.",
         variant: "destructive",
       });
+      return false;
+    }
+
+    if (uploadCaption.length > 500) {
+      toast({
+        title: "Bildunterschrift zu lang",
+        description: "Bitte kürzen Sie die Bildunterschrift auf maximal 500 Zeichen.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (uploadedBy.length > 100) {
+      toast({
+        title: "Name zu lang",
+        description: "Bitte kürzen Sie den Namen auf maximal 100 Zeichen.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  // Handle form submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
       return;
     }
 
@@ -169,25 +220,38 @@ export function LiveTripFeed({ locationId, locationName }: LiveTripFeedProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="caption">Bildunterschrift (optional)</Label>
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="caption">Bildunterschrift (optional)</Label>
+                      <span className={`text-xs ${uploadCaption.length > 500 ? 'text-red-500' : 'text-muted-foreground'}`}>
+                        {uploadCaption.length}/500
+                      </span>
+                    </div>
                     <Textarea
                       id="caption"
                       placeholder="Beschreiben Sie diesen Moment..."
                       value={uploadCaption}
                       onChange={(e) => setUploadCaption(e.target.value)}
-                      className="resize-none"
+                      className={`resize-none ${uploadCaption.length > 500 ? 'border-red-500' : ''}`}
                       rows={3}
+                      maxLength={500}
                       data-testid="input-caption"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="uploaded-by">Name (optional)</Label>
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="uploaded-by">Name (optional)</Label>
+                      <span className={`text-xs ${uploadedBy.length > 100 ? 'text-red-500' : 'text-muted-foreground'}`}>
+                        {uploadedBy.length}/100
+                      </span>
+                    </div>
                     <Input
                       id="uploaded-by"
                       placeholder="Ihr Name"
                       value={uploadedBy}
                       onChange={(e) => setUploadedBy(e.target.value)}
+                      className={uploadedBy.length > 100 ? 'border-red-500' : ''}
+                      maxLength={100}
                       data-testid="input-name"
                     />
                   </div>
@@ -196,6 +260,7 @@ export function LiveTripFeed({ locationId, locationName }: LiveTripFeedProps) {
                     <Button 
                       type="button" 
                       variant="outline" 
+                      disabled={addTripPhotoMutation.isPending}
                       onClick={() => setIsUploadModalOpen(false)}
                       data-testid="cancel-upload"
                     >
@@ -203,10 +268,22 @@ export function LiveTripFeed({ locationId, locationName }: LiveTripFeedProps) {
                     </Button>
                     <Button 
                       type="submit" 
-                      disabled={addTripPhotoMutation.isPending || !uploadImageUrl}
+                      disabled={
+                        addTripPhotoMutation.isPending || 
+                        !uploadImageUrl || 
+                        uploadCaption.length > 500 || 
+                        uploadedBy.length > 100
+                      }
                       data-testid="submit-photo"
                     >
-                      {addTripPhotoMutation.isPending ? "Wird hochgeladen..." : "Foto teilen"}
+                      {addTripPhotoMutation.isPending ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Wird hochgeladen...
+                        </>
+                      ) : (
+                        "Foto teilen"
+                      )}
                     </Button>
                   </div>
                 </form>

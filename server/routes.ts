@@ -5,6 +5,113 @@ import { ObjectStorageService } from "./objectStorage";
 import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema } from "@shared/schema";
 import { z } from "zod";
 
+// Rate limiting storage for IP tracking
+const rateLimitStorage = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 10; // max 10 requests per minute
+
+// Security middleware for trip photo uploads
+function rateLimitMiddleware(req: any, res: any, next: any) {
+  const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+  const now = Date.now();
+  
+  // Clean expired entries
+  const expiredIPs: string[] = [];
+  rateLimitStorage.forEach((data, ip) => {
+    if (now > data.resetTime) {
+      expiredIPs.push(ip);
+    }
+  });
+  expiredIPs.forEach(ip => rateLimitStorage.delete(ip));
+  
+  // Check current IP
+  const current = rateLimitStorage.get(clientIP);
+  if (!current) {
+    rateLimitStorage.set(clientIP, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return next();
+  }
+  
+  if (current.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return res.status(429).json({
+      error: "Zu viele Anfragen. Bitte warten Sie eine Minute bevor Sie erneut versuchen."
+    });
+  }
+  
+  current.count++;
+  next();
+}
+
+// Validate image URL security
+function validateImageUrl(imageUrl: string): { valid: boolean; error?: string } {
+  try {
+    const url = new URL(imageUrl);
+    
+    // Only allow HTTPS URLs
+    if (url.protocol !== 'https:') {
+      return { valid: false, error: "Nur HTTPS URLs sind erlaubt" };
+    }
+    
+    // Allow specific trusted hostnames
+    const allowedHosts = [
+      'storage.googleapis.com',
+      'images.unsplash.com',
+      'plus.unsplash.com',
+      'cdn.pixabay.com',
+      'images.pexels.com',
+      // Add Google Cloud Storage bucket hostname pattern
+      'repl-default-bucket'
+    ];
+    
+    const isAllowedHost = allowedHosts.some(host => 
+      url.hostname === host || 
+      url.hostname.endsWith('.' + host) ||
+      url.hostname.includes(host) // For bucket names in GCS
+    );
+    
+    if (!isAllowedHost) {
+      return { valid: false, error: "Bild-Host ist nicht erlaubt" };
+    }
+    
+    // Check for image file extensions or query parameters that indicate images
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+    const hasImageExtension = imageExtensions.some(ext => 
+      url.pathname.toLowerCase().includes(ext)
+    );
+    
+    // For some services like Unsplash, check query parameters
+    const hasImageFormat = url.searchParams.get('fm') || url.pathname.includes('photo');
+    
+    if (!hasImageExtension && !hasImageFormat) {
+      return { valid: false, error: "Nur Bilddateien sind erlaubt (jpg, png, webp, gif)" };
+    }
+    
+    return { valid: true };
+  } catch (error) {
+    return { valid: false, error: "Ungültige URL" };
+  }
+}
+
+// Simple auth validation for sensitive operations
+function simpleAuthMiddleware(req: any, res: any, next: any) {
+  const adminToken = req.headers['admin-token'];
+  const authHeader = req.headers.authorization;
+  
+  // Allow requests with admin token
+  if (adminToken === process.env.ADMIN_TOKEN && process.env.ADMIN_TOKEN) {
+    return next();
+  }
+  
+  // Allow requests with basic auth (for admin panel)
+  if (authHeader && authHeader.startsWith('Basic ')) {
+    // For now, allow any basic auth - in production, validate credentials
+    return next();
+  }
+  
+  // For trip photo uploads, allow public access but with rate limiting
+  // In production, you might want to require some form of authentication
+  next();
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // Location routes
@@ -129,19 +236,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/locations/:locationId/trip-photos", async (req, res) => {
+  app.post("/api/locations/:locationId/trip-photos", 
+    rateLimitMiddleware, 
+    simpleAuthMiddleware, 
+    async (req, res) => {
     try {
+      // First check if location exists
+      const location = await storage.getLocation(req.params.locationId);
+      if (!location) {
+        return res.status(404).json({ 
+          error: "Location nicht gefunden. Bitte wählen Sie eine gültige Location." 
+        });
+      }
+
+      // Validate the basic schema first
       const tripPhotoData = { ...req.body, locationId: req.params.locationId };
       const validation = insertTripPhotoSchema.safeParse(tripPhotoData);
       if (!validation.success) {
-        return res.status(400).json({ error: "Invalid trip photo data", details: validation.error });
+        return res.status(400).json({ 
+          error: "Ungültige Foto-Daten", 
+          details: validation.error.errors.map(e => e.message).join(", ")
+        });
+      }
+
+      // Validate the image URL security
+      if (validation.data.imageUrl) {
+        const urlValidation = validateImageUrl(validation.data.imageUrl);
+        if (!urlValidation.valid) {
+          return res.status(400).json({ 
+            error: urlValidation.error || "Ungültige Bild-URL" 
+          });
+        }
+      }
+
+      // Additional validation for required fields
+      if (!validation.data.imageUrl) {
+        return res.status(400).json({ 
+          error: "Bild-URL ist erforderlich" 
+        });
+      }
+
+      // Validate caption length (prevent very long captions)
+      if (validation.data.caption && validation.data.caption.length > 500) {
+        return res.status(400).json({ 
+          error: "Bildunterschrift ist zu lang (maximal 500 Zeichen)" 
+        });
+      }
+
+      // Validate uploadedBy length if provided
+      if (validation.data.uploadedBy && validation.data.uploadedBy.length > 100) {
+        return res.status(400).json({ 
+          error: "Name ist zu lang (maximal 100 Zeichen)" 
+        });
       }
 
       const tripPhoto = await storage.addTripPhoto(validation.data);
       res.status(201).json(tripPhoto);
     } catch (error) {
       console.error("Error adding trip photo:", error);
-      res.status(500).json({ error: "Failed to add trip photo" });
+      res.status(500).json({ 
+        error: "Foto konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut." 
+      });
     }
   });
 
