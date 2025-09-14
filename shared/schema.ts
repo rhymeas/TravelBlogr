@@ -70,6 +70,17 @@ export const tourSettings = pgTable("tour_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Location pings for live GPS tracking
+export const locationPings = pgTable("location_pings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  latitude: text("latitude").notNull(), // Store as text for precision
+  longitude: text("longitude").notNull(), // Store as text for precision
+  accuracy: integer("accuracy"), // GPS accuracy in meters
+  deviceId: text("device_id"), // Optional device/session identifier
+  timestamp: timestamp("timestamp").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Restaurant data type
 export interface RestaurantData {
   name: string;
@@ -101,6 +112,11 @@ export const insertTourSettingsSchema = createInsertSchema(tourSettings).omit({
   updatedAt: true,
 });
 
+export const insertLocationPingSchema = createInsertSchema(locationPings).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type Location = typeof locations.$inferSelect;
 export type InsertLocation = z.infer<typeof insertLocationSchema>;
 export type LocationImage = typeof locationImages.$inferSelect;
@@ -109,3 +125,5 @@ export type TripPhoto = typeof tripPhotos.$inferSelect;
 export type InsertTripPhoto = z.infer<typeof insertTripPhotoSchema>;
 export type TourSettings = typeof tourSettings.$inferSelect;
 export type InsertTourSettings = z.infer<typeof insertTourSettingsSchema>;
+export type LocationPing = typeof locationPings.$inferSelect;
+export type InsertLocationPing = z.infer<typeof insertLocationPingSchema>;

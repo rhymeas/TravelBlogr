@@ -7,6 +7,8 @@ import {
   InsertTripPhoto,
   TourSettings, 
   InsertTourSettings,
+  LocationPing,
+  InsertLocationPing,
   RestaurantData 
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -34,18 +36,25 @@ export interface IStorage {
   // Tour settings
   getTourSettings(): Promise<TourSettings | undefined>;
   updateTourSettings(settings: Partial<InsertTourSettings>): Promise<TourSettings>;
+
+  // Location pings for live GPS tracking
+  addLocationPing(ping: InsertLocationPing): Promise<LocationPing>;
+  getLatestLocationPing(): Promise<LocationPing | undefined>;
+  getLocationPings(limit?: number): Promise<LocationPing[]>;
 }
 
 export class MemStorage implements IStorage {
   private locations: Map<string, Location>;
   private locationImages: Map<string, LocationImage>;
   private tripPhotos: Map<string, TripPhoto>;
+  private locationPings: Map<string, LocationPing>;
   private tourSettings: TourSettings | undefined;
 
   constructor() {
     this.locations = new Map();
     this.locationImages = new Map();
     this.tripPhotos = new Map();
+    this.locationPings = new Map();
     this.initializeData();
   }
 
@@ -519,6 +528,44 @@ export class MemStorage implements IStorage {
       };
     }
     return this.tourSettings;
+  }
+
+  async addLocationPing(ping: InsertLocationPing): Promise<LocationPing> {
+    const id = randomUUID();
+    const newLocationPing: LocationPing = {
+      ...ping,
+      id,
+      deviceId: ping.deviceId || null,
+      accuracy: ping.accuracy || null,
+      timestamp: ping.timestamp || new Date(),
+      createdAt: new Date(),
+    };
+    this.locationPings.set(id, newLocationPing);
+    return newLocationPing;
+  }
+
+  async getLatestLocationPing(): Promise<LocationPing | undefined> {
+    const pings = Array.from(this.locationPings.values())
+      .sort((a, b) => {
+        const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return dateB - dateA;
+      });
+    return pings[0];
+  }
+
+  async getLocationPings(limit?: number): Promise<LocationPing[]> {
+    const pings = Array.from(this.locationPings.values())
+      .sort((a, b) => {
+        const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return dateB - dateA;
+      });
+    
+    if (limit) {
+      return pings.slice(0, limit);
+    }
+    return pings;
   }
 }
 

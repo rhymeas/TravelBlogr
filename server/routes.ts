@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
-import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema } from "@shared/schema";
+import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema, insertLocationPingSchema } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 
@@ -445,6 +445,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error setting location image:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Location ping routes for live GPS tracking
+  app.post("/api/location-ping", async (req, res) => {
+    try {
+      const validation = insertLocationPingSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Ungültige GPS-Daten", 
+          details: validation.error.issues 
+        });
+      }
+
+      // Validate coordinate ranges
+      const lat = parseFloat(validation.data.latitude);
+      const lng = parseFloat(validation.data.longitude);
+      
+      if (lat < -90 || lat > 90) {
+        return res.status(400).json({ 
+          error: "Ungültige Breitengrad-Koordinate (muss zwischen -90 und 90 sein)" 
+        });
+      }
+      
+      if (lng < -180 || lng > 180) {
+        return res.status(400).json({ 
+          error: "Ungültige Längengrad-Koordinate (muss zwischen -180 und 180 sein)" 
+        });
+      }
+
+      const locationPing = await storage.addLocationPing(validation.data);
+      res.status(201).json(locationPing);
+    } catch (error) {
+      console.error("Error saving location ping:", error);
+      res.status(500).json({ error: "Fehler beim Speichern der GPS-Position" });
+    }
+  });
+
+  app.get("/api/location-ping/latest", async (req, res) => {
+    try {
+      const latestPing = await storage.getLatestLocationPing();
+      if (!latestPing) {
+        return res.status(404).json({ error: "Keine GPS-Position gefunden" });
+      }
+      res.json(latestPing);
+    } catch (error) {
+      console.error("Error fetching latest location ping:", error);
+      res.status(500).json({ error: "Fehler beim Abrufen der GPS-Position" });
+    }
+  });
+
+  app.get("/api/location-pings", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const locationPings = await storage.getLocationPings(limit);
+      res.json(locationPings);
+    } catch (error) {
+      console.error("Error fetching location pings:", error);
+      res.status(500).json({ error: "Fehler beim Abrufen der GPS-Positionen" });
     }
   });
 

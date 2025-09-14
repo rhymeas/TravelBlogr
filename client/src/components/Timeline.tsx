@@ -1,8 +1,14 @@
 import { Link } from "wouter";
-import { Calendar, ChevronRight } from "lucide-react";
+import { Calendar, ChevronRight, MapPin, Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import type { Location } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import CarIcon from "@/components/CarIcon";
+import geolocationService from "@/lib/geolocationService";
+import { getCurrentCarPosition, getPositionMessage, calculateTimelinePosition } from "@/lib/positionCalculator";
+import type { Location, LocationPing } from "@shared/schema";
 
 interface TimelineProps {
   locations: Location[];
@@ -24,10 +30,137 @@ function formatDateRange(startDate: string, endDate: string): string {
 }
 
 export default function Timeline({ locations }: TimelineProps) {
+  const { toast } = useToast();
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const [carPosition, setCarPosition] = useState<any>(null);
+  const [isTrackingEnabled, setIsTrackingEnabled] = useState(false);
+  const [isRequestingPermission, setIsRequestingPermission] = useState(false);
+
+  // Fetch latest location ping for car positioning
+  const { data: latestPing, refetch: refetchPing } = useQuery<LocationPing>({
+    queryKey: ["/api/location-ping/latest"],
+    enabled: isTrackingEnabled,
+    refetchInterval: 2 * 60 * 1000, // Check every 2 minutes for updates
+  });
+
+  // Calculate car position when latest ping changes
+  useEffect(() => {
+    if (latestPing && locations.length > 0) {
+      const newCarPosition = getCurrentCarPosition(latestPing, locations);
+      setCarPosition(newCarPosition);
+    }
+  }, [latestPing, locations]);
+
+  // Handle GPS permission request
+  const handleEnableTracking = async () => {
+    setIsRequestingPermission(true);
+    
+    try {
+      const result = await geolocationService.requestLocationTracking();
+      
+      toast({
+        title: result.success ? "🚗 Live-Tracking aktiviert!" : "ℹ️ GPS optional",
+        description: result.message,
+        variant: result.success ? "default" : "destructive",
+      });
+
+      if (result.success) {
+        setIsTrackingEnabled(true);
+        // Immediately fetch the first ping
+        setTimeout(() => refetchPing(), 1000);
+      }
+    } catch (error) {
+      toast({
+        title: "GPS-Fehler",
+        description: "Das Live-Auto ist optional. Die App funktioniert trotzdem!",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRequestingPermission(false);
+    }
+  };
+
+  // Calculate car visual position on timeline
+  const carTimelinePosition = carPosition && timelineRef.current
+    ? calculateTimelinePosition(carPosition, timelineRef.current)
+    : null;
+
   return (
-    <div className="relative py-8 min-h-full" data-testid="timeline">
+    <div className="relative py-8 min-h-full" data-testid="timeline" ref={timelineRef}>
       {/* Timeline line - extends full height with strong visibility */}
       <div className="hidden md:block absolute left-1/2 top-0 h-full w-1 bg-primary transform -translate-x-1/2 shadow-md"></div>
+      
+      {/* Car Icon positioned on timeline */}
+      {carTimelinePosition && carTimelinePosition.isVisible && (
+        <div 
+          className="hidden md:block absolute left-1/2 transform -translate-x-1/2 z-30"
+          style={{ top: `${carTimelinePosition.top}px` }}
+        >
+          <CarIcon
+            isVisible={true}
+            position="middle"
+            isMoving={carPosition?.isMoving || false}
+          />
+        </div>
+      )}
+
+      {/* Live Tracking Enable Button - shown when not tracking */}
+      {!isTrackingEnabled && (
+        <div className="mb-8 text-center">
+          <Card className="inline-block p-6 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="text-4xl">🚗</div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Live Auto-Tracking
+              </h3>
+              <p className="text-gray-600 text-center max-w-md">
+                Aktiviert das süße Auto-Icon auf der Timeline! Zeigt euren Reisefortschritt in Echtzeit.
+                <br />
+                <span className="text-sm text-gray-500">
+                  Vollständig optional - die App funktioniert auch ohne GPS.
+                </span>
+              </p>
+              <Button
+                onClick={handleEnableTracking}
+                disabled={isRequestingPermission}
+                className="bg-primary hover:bg-primary/90"
+                data-testid="button-enable-tracking"
+              >
+                {isRequestingPermission ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin mr-2">🚗</div>
+                    GPS-Berechtigung anfragen...
+                  </div>
+                ) : (
+                  <div className="flex items-center">
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Live-Auto aktivieren
+                  </div>
+                )}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Car Position Status - shown when tracking is enabled */}
+      {isTrackingEnabled && carPosition && (
+        <div className="mb-8 text-center">
+          <Card className="inline-block p-4 bg-green-50 border-green-200">
+            <div className="flex items-center space-x-3">
+              <div className="text-2xl">🚗</div>
+              <div>
+                <div className="text-sm font-medium text-green-800">
+                  Live-Tracking aktiv
+                </div>
+                <div className="text-xs text-green-600">
+                  {getPositionMessage(carPosition, locations)}
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
       
       <div className="space-y-6 md:space-y-0">
         {locations.map((location, index) => (
