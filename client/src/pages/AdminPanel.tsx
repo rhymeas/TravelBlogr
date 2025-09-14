@@ -345,108 +345,105 @@ export default function AdminPanel() {
     <div className="min-h-screen bg-background" data-testid="admin-panel">
       <Header />
       {/* Admin Header */}
-      <div className="bg-primary text-primary-foreground py-8" data-testid="admin-header">
+      <div className="border-b py-4" data-testid="admin-header">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-4xl md:text-5xl font-bold">Admin Panel</h1>
-          <p className="text-primary-foreground/90 mt-2">Verwalte deine Tour-Inhalte</p>
+          <h1 className="text-2xl font-semibold">Admin Panel</h1>
+          <p className="text-sm text-muted-foreground mt-1">Verwalte deine Tour-Inhalte</p>
         </div>
       </div>
 
       {/* Main Layout with Sidebar */}
       <div className="flex min-h-screen">
         {/* Left Sidebar Navigation */}
-        <div className="w-64 bg-muted/30 border-r border-border sticky top-0 h-screen overflow-y-auto" data-testid="admin-sidebar">
-          <div className="p-4">
-            <h3 className="font-semibold text-foreground mb-4 text-lg">Admin Bereiche</h3>
-            <nav className="space-y-2">
+        <div className="w-56 border-r sticky top-0 h-screen overflow-y-auto" data-testid="admin-sidebar">
+          <div className="p-3">
+            <h3 className="font-medium text-sm text-muted-foreground mb-3 uppercase">Navigation</h3>
+            <nav className="space-y-1">
               <button 
                 onClick={() => navigateToSection('tourSettings', 'tour-settings-card')}
-                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.tourSettings ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                className={`w-full text-left px-3 py-1.5 rounded text-sm hover:bg-muted ${!collapsedSections.tourSettings ? 'bg-muted font-medium' : ''}`}
                 data-testid="nav-tour-settings"
               >
-                ⚙️ Tour-Einstellungen
+                Tour-Einstellungen
               </button>
               <button 
                 onClick={() => navigateToSection('heroImages', 'hero-images-card')}
-                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.heroImages ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                className={`w-full text-left px-3 py-1.5 rounded text-sm hover:bg-muted ${!collapsedSections.heroImages ? 'bg-muted font-medium' : ''}`}
                 data-testid="nav-hero-images"
               >
-                🖼️ Hero-Bilder verwalten
+                Hero-Bilder
               </button>
               <button 
                 onClick={() => navigateToSection('scenicLandscapes', 'scenic-landscapes-card')}
-                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.scenicLandscapes ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                className={`w-full text-left px-3 py-1.5 rounded text-sm hover:bg-muted ${!collapsedSections.scenicLandscapes ? 'bg-muted font-medium' : ''}`}
                 data-testid="nav-scenic-landscapes"
               >
-                🏞️ Spektakuläre Landschaften
+                Landschaften
               </button>
               <button 
                 onClick={() => navigateToSection('privacySettings', 'privacy-settings-card')}
-                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.privacySettings ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                className={`w-full text-left px-3 py-1.5 rounded text-sm hover:bg-muted ${!collapsedSections.privacySettings ? 'bg-muted font-medium' : ''}`}
                 data-testid="nav-privacy-settings"
               >
-                🔒 Privacy-Einstellungen
+                Privacy
               </button>
               <button 
                 onClick={() => navigateToSection('gpsSettings', 'gps-settings-card')}
-                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.gpsSettings ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                className={`w-full text-left px-3 py-1.5 rounded text-sm hover:bg-muted ${!collapsedSections.gpsSettings ? 'bg-muted font-medium' : ''}`}
                 data-testid="nav-gps-settings"
               >
-                🚗 GPS Live-Tracking
+                GPS Tracking
               </button>
               <button 
                 onClick={() => navigateToSection('restaurantAccommodation', 'restaurant-accommodation-card')}
-                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.restaurantAccommodation ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                className={`w-full text-left px-3 py-1.5 rounded text-sm hover:bg-muted ${!collapsedSections.restaurantAccommodation ? 'bg-muted font-medium' : ''}`}
                 data-testid="nav-restaurant-accommodation"
               >
-                🏨🍽️ Restaurant & Unterkunft
+                Restaurants & Hotels
               </button>
               <button 
                 onClick={() => navigateToSection('creatorManagement', 'creator-management-card')}
-                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.creatorManagement ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                className={`w-full text-left px-3 py-1.5 rounded text-sm hover:bg-muted ${!collapsedSections.creatorManagement ? 'bg-muted font-medium' : ''}`}
                 data-testid="nav-creator-management"
               >
-                👥 Personen verwalten
+                Personen
               </button>
               <button 
                 onClick={() => navigateToSection('locationsManagement', 'locations-management-card')}
-                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.locationsManagement ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                className={`w-full text-left px-3 py-1.5 rounded text-sm hover:bg-muted ${!collapsedSections.locationsManagement ? 'bg-muted font-medium' : ''}`}
                 data-testid="nav-locations-management"
               >
-                ⭐ Orte verwalten
+                Orte
               </button>
               <button 
                 onClick={() => navigateToSection('imageManagement', 'image-management-card')}
-                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.imageManagement ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                className={`w-full text-left px-3 py-1.5 rounded text-sm hover:bg-muted ${!collapsedSections.imageManagement ? 'bg-muted font-medium' : ''}`}
                 data-testid="nav-image-management"
               >
-                📸 Bilder verwalten
+                Bilder
               </button>
               <button 
                 onClick={() => navigateToSection('quickActions', 'quick-actions-card')}
-                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.quickActions ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                className={`w-full text-left px-3 py-1.5 rounded text-sm hover:bg-muted ${!collapsedSections.quickActions ? 'bg-muted font-medium' : ''}`}
                 data-testid="nav-quick-actions"
               >
-                ⚡ Schnellaktionen
+                Schnellaktionen
               </button>
             </nav>
           </div>
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 max-w-5xl mx-auto px-6 py-12">
-          <div className="space-y-8">
+        <div className="flex-1 max-w-5xl mx-auto px-4 py-6">
+          <div className="space-y-4">
             <Card data-testid="tour-settings-card">
               <CardHeader 
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                className="cursor-pointer py-3"
                 onClick={() => toggleSection('tourSettings')}
                 data-testid="tour-settings-header"
               >
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <span>⚙️</span>
-                    Tour-Einstellungen
-                  </CardTitle>
+                  <CardTitle className="text-base font-medium">Tour-Einstellungen</CardTitle>
                   {collapsedSections.tourSettings ? 
                     <ChevronDown className="w-4 h-4" /> : 
                     <ChevronUp className="w-4 h-4" />
@@ -543,17 +540,14 @@ export default function AdminPanel() {
             {/* Hero Images Management */}
             <Card data-testid="hero-images-card">
               <CardHeader 
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                className="cursor-pointer py-3"
                 onClick={() => toggleSection('heroImages')}
                 data-testid="hero-images-header"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Upload className="w-5 h-5" />
-                      Hero-Bilder verwalten
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
+                    <CardTitle className="text-base font-medium">Hero-Bilder verwalten</CardTitle>
+                    <p className="text-xs text-muted-foreground">
                       Verwalte die Slideshow-Bilder auf der Startseite
                     </p>
                   </div>
@@ -566,8 +560,8 @@ export default function AdminPanel() {
               {!collapsedSections.heroImages && (
                 <CardContent className="space-y-6">
                 {/* Add New Hero Image Form */}
-                <div className="border rounded-lg p-4 space-y-4 bg-muted/50">
-                  <h4 className="font-medium">Neues Hero-Bild hinzufügen</h4>
+                <div className="border rounded p-3 space-y-3">
+                  <h4 className="text-sm font-medium">Neues Hero-Bild hinzufügen</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="hero-title">Titel</Label>
@@ -709,14 +703,12 @@ export default function AdminPanel() {
             {/* Scenic Landscapes Management */}
             <Card data-testid="scenic-landscapes-card">
               <CardHeader 
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                className="cursor-pointer py-3"
                 onClick={() => toggleSection('scenicLandscapes')}
                 data-testid="scenic-landscapes-header"
               >
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    🏞️ Spektakuläre Landschaften verwalten
-                  </CardTitle>
+                  <CardTitle className="text-base font-medium">Spektakuläre Landschaften verwalten</CardTitle>
                   {collapsedSections.scenicLandscapes ? 
                     <ChevronDown className="w-4 h-4" /> : 
                     <ChevronUp className="w-4 h-4" />
@@ -1014,15 +1006,12 @@ export default function AdminPanel() {
             {/* Privacy Settings */}
             <Card data-testid="privacy-settings-card">
               <CardHeader 
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                className="cursor-pointer py-3"
                 onClick={() => toggleSection('privacySettings')}
                 data-testid="privacy-settings-header"
               >
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Lock className="w-5 h-5" />
-                    Privacy-Einstellungen
-                  </CardTitle>
+                  <CardTitle className="text-base font-medium">Privacy-Einstellungen</CardTitle>
                   {collapsedSections.privacySettings ? 
                     <ChevronDown className="w-4 h-4" /> : 
                     <ChevronUp className="w-4 h-4" />
@@ -1137,9 +1126,9 @@ export default function AdminPanel() {
                 )}
 
                 {/* Current Status */}
-                <div className="bg-muted p-3 rounded-lg">
-                  <p className="text-sm font-medium">
-                    Status: {tourSettings?.privacyEnabled ? "🔒 Privacy aktiviert" : "🔓 Öffentlich zugänglich"}
+                <div className="bg-muted p-2 rounded">
+                  <p className="text-sm">
+                    Status: {tourSettings?.privacyEnabled ? "Privacy aktiviert" : "Öffentlich zugänglich"}
                   </p>
                   {tourSettings?.privacyEnabled && (
                     <p className="text-xs text-muted-foreground mt-1">
@@ -1154,15 +1143,12 @@ export default function AdminPanel() {
             {/* GPS Settings */}
             <Card data-testid="gps-settings-card">
               <CardHeader 
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                className="cursor-pointer py-3"
                 onClick={() => toggleSection('gpsSettings')}
                 data-testid="gps-settings-header"
               >
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <span className="text-2xl">🚗</span>
-                    GPS Live-Tracking Einstellungen
-                  </CardTitle>
+                  <CardTitle className="text-base font-medium">GPS Live-Tracking Einstellungen</CardTitle>
                   {collapsedSections.gpsSettings ? 
                     <ChevronDown className="w-4 h-4" /> : 
                     <ChevronUp className="w-4 h-4" />
@@ -1190,9 +1176,9 @@ export default function AdminPanel() {
                 </div>
 
                 {/* GPS Status */}
-                <div className="bg-muted p-3 rounded-lg">
-                  <p className="text-sm font-medium">
-                    Status: {tourSettings?.gpsActivatedByAdmin ? "🚗 GPS Live-Tracking aktiv" : "⏸️ GPS manuell aktivierbar"}
+                <div className="bg-muted p-2 rounded">
+                  <p className="text-sm">
+                    Status: {tourSettings?.gpsActivatedByAdmin ? "GPS Live-Tracking aktiv" : "GPS manuell aktivierbar"}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {tourSettings?.gpsActivatedByAdmin 
@@ -1208,15 +1194,12 @@ export default function AdminPanel() {
             {/* Creator Management */}
             <Card data-testid="creator-management-card">
               <CardHeader 
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                className="cursor-pointer py-3"
                 onClick={() => toggleSection('creatorManagement')}
                 data-testid="creator-management-header"
               >
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <span className="text-2xl">👥</span>
-                    Personen verwalten
-                  </CardTitle>
+                  <CardTitle className="text-base font-medium">Personen verwalten</CardTitle>
                   {collapsedSections.creatorManagement ? 
                     <ChevronDown className="w-4 h-4" /> : 
                     <ChevronUp className="w-4 h-4" />
@@ -1226,8 +1209,8 @@ export default function AdminPanel() {
               {!collapsedSections.creatorManagement && (
                 <CardContent className="space-y-6">
                   {/* Add New Creator */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold">Neue Person hinzufügen</h3>
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium">Neue Person hinzufügen</h3>
                     <div className="flex gap-2">
                       <Input
                         placeholder="Name der Person"
@@ -1256,8 +1239,8 @@ export default function AdminPanel() {
                   </div>
 
                   {/* List of Creators */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold">Vorhandene Personen</h3>
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium">Vorhandene Personen</h3>
                     {creatorsLoading ? (
                       <div className="text-center py-4 text-muted-foreground">
                         Personen werden geladen...
@@ -1265,7 +1248,7 @@ export default function AdminPanel() {
                     ) : creators && creators.length > 0 ? (
                       <div className="space-y-2">
                         {creators.map((creator) => (
-                          <div key={creator.id} className="flex items-center justify-between bg-muted/30 p-3 rounded-lg" data-testid={`creator-item-${creator.id}`}>
+                          <div key={creator.id} className="flex items-center justify-between border p-2 rounded" data-testid={`creator-item-${creator.id}`}>
                             {editingCreator?.id === creator.id ? (
                               <div className="flex gap-2 flex-1">
                                 <Input
@@ -1348,25 +1331,22 @@ export default function AdminPanel() {
 
 
             {/* Image Management - Fixed and moved from sidebar */}
-            <Card className="border-2 border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800" data-testid="image-management-card">
+            <Card data-testid="image-management-card">
               <CardHeader 
-                className="cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors"
+                className="cursor-pointer py-3"
                 onClick={() => toggleSection('imageManagement')}
                 data-testid="image-management-header"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-xl font-bold text-blue-800 dark:text-blue-200 flex items-center gap-2">
-                      <Upload className="w-6 h-6" />
-                      📸 Bilder für Orte verwalten
-                    </CardTitle>
-                    <p className="text-blue-700 dark:text-blue-300 text-sm">
+                    <CardTitle className="text-base font-medium">Bilder für Orte verwalten</CardTitle>
+                    <p className="text-xs text-muted-foreground">
                       Lade Bilder hoch und verwalte die Bildergalerien für jeden Ort deiner Tour.
                     </p>
                   </div>
                   {collapsedSections.imageManagement ? 
-                    <ChevronDown className="w-4 h-4 text-blue-800 dark:text-blue-200" /> : 
-                    <ChevronUp className="w-4 h-4 text-blue-800 dark:text-blue-200" />
+                    <ChevronDown className="w-4 h-4" /> : 
+                    <ChevronUp className="w-4 h-4" />
                   }
                 </div>
               </CardHeader>
@@ -1376,13 +1356,10 @@ export default function AdminPanel() {
                     <div className="space-y-6">
                       {/* Modern Header Section */}
                       <div className="text-center max-w-md mx-auto">
-                        <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-600/5 flex items-center justify-center mb-4">
-                          <Camera className="w-8 h-8 text-blue-600" />
-                        </div>
-                        <h3 className="text-xl font-semibold text-foreground mb-2">
+                        <h3 className="text-sm font-medium mb-2">
                           Ort für Bilderverwaltung auswählen
                         </h3>
-                        <p className="text-muted-foreground text-sm">
+                        <p className="text-xs text-muted-foreground">
                           Wählen Sie einen Ort aus, um dessen Bilder zu verwalten. Sie können Bilder hochladen, bearbeiten und als Hauptbild festlegen.
                         </p>
                       </div>
@@ -1393,35 +1370,26 @@ export default function AdminPanel() {
                           {locations.map((location) => (
                             <Card 
                               key={location.id} 
-                              className="cursor-pointer group hover:shadow-md transition-all duration-200 border hover:border-blue-300 dark:hover:border-blue-600" 
+                              className="cursor-pointer hover:border-primary" 
                               onClick={() => setSelectedLocation(location)}
                               data-testid={`select-location-${location.slug}`}
                             >
-                              <CardContent className="p-6">
+                              <CardContent className="p-3">
                                 <div className="flex items-center justify-between">
                                   <div className="flex-1">
-                                    <div className="flex items-center gap-3 mb-2">
-                                      <div className="w-3 h-3 rounded-full bg-green-500 flex-shrink-0"></div>
-                                      <h4 className="font-semibold text-lg text-foreground group-hover:text-blue-600 transition-colors">
-                                        {location.name}
-                                      </h4>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground ml-6">
-                                      📅 {location.startDate} - {location.endDate}
+                                    <h4 className="font-medium text-sm">
+                                      {location.name}
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground">
+                                      {location.startDate} - {location.endDate}
                                     </p>
                                     {location.description && (
-                                      <p className="text-sm text-muted-foreground mt-1 ml-6 line-clamp-2">
+                                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                                         {location.description}
                                       </p>
                                     )}
                                   </div>
-                                  <div className="flex items-center gap-3 text-muted-foreground group-hover:text-blue-600 transition-colors">
-                                    <div className="text-center">
-                                      <Camera className="w-6 h-6 mx-auto mb-1" />
-                                      <span className="text-xs">Bilder verwalten</span>
-                                    </div>
-                                    <ArrowLeft className="w-5 h-5 rotate-180" />
-                                  </div>
+                                  <ArrowLeft className="w-4 h-4 rotate-180 text-muted-foreground" />
                                 </div>
                               </CardContent>
                             </Card>
@@ -1495,15 +1463,12 @@ export default function AdminPanel() {
             {/* Locations Management */}
             <Card data-testid="locations-management-card">
               <CardHeader 
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                className="cursor-pointer py-3"
                 onClick={() => toggleSection('locationsManagement')}
                 data-testid="locations-management-header"
               >
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Star className="w-5 h-5" />
-                    Orte verwalten
-                  </CardTitle>
+                  <CardTitle className="text-base font-medium">Orte verwalten</CardTitle>
                   <div className="flex items-center gap-2">
                     <Button
                       onClick={(e) => {
@@ -1566,15 +1531,12 @@ export default function AdminPanel() {
             {/* Privacy Settings */}
             <Card data-testid="privacy-settings-card">
               <CardHeader 
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                className="cursor-pointer py-3"
                 onClick={() => toggleSection('privacySettings')}
                 data-testid="privacy-settings-header"
               >
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Lock className="w-5 h-5" />
-                    Privacy-Einstellungen
-                  </CardTitle>
+                  <CardTitle className="text-base font-medium">Privacy-Einstellungen</CardTitle>
                   {collapsedSections.privacySettings ? 
                     <ChevronDown className="w-4 h-4" /> : 
                     <ChevronUp className="w-4 h-4" />
@@ -1659,15 +1621,12 @@ export default function AdminPanel() {
             {/* GPS Settings */}
             <Card data-testid="gps-settings-card">
               <CardHeader 
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                className="cursor-pointer py-3"
                 onClick={() => toggleSection('gpsSettings')}
                 data-testid="gps-settings-header"
               >
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <span>🚗</span>
-                    GPS Live-Tracking
-                  </CardTitle>
+                  <CardTitle className="text-base font-medium">GPS Live-Tracking</CardTitle>
                   {collapsedSections.gpsSettings ? 
                     <ChevronDown className="w-4 h-4" /> : 
                     <ChevronUp className="w-4 h-4" />
@@ -1723,15 +1682,12 @@ export default function AdminPanel() {
             {/* Quick Actions */}
             <Card data-testid="quick-actions-card">
               <CardHeader 
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                className="cursor-pointer py-3"
                 onClick={() => toggleSection('quickActions')}
                 data-testid="quick-actions-header"
               >
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <span>⚡</span>
-                    Schnellaktionen
-                  </CardTitle>
+                  <CardTitle className="text-base font-medium">Schnellaktionen</CardTitle>
                   {collapsedSections.quickActions ? 
                     <ChevronDown className="w-4 h-4" /> : 
                     <ChevronUp className="w-4 h-4" />

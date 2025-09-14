@@ -242,7 +242,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                   onClick={() => addArrayItem('activities', '')}
                   data-testid="add-activity"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3 h-3" />
                 </Button>
               </div>
               {formData.activities.map((activity, index) => (
@@ -260,35 +260,28 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                     onClick={() => removeArrayItem('activities', index)}
                     data-testid={`remove-activity-${index}`}
                   >
-                    <Minus className="w-4 h-4" />
+                    <Minus className="w-3 h-3" />
                   </Button>
                 </div>
               ))}
             </div>
 
             {/* ACCOMMODATION & RESTAURANTS MANAGEMENT - PROMINENT SECTION */}
-            <Card className="border-2 border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800" data-testid="accommodation-restaurants-section">
-              <CardHeader>
-                <CardTitle className="text-xl font-bold text-orange-800 dark:text-orange-200 flex items-center gap-2">
-                  <Hotel className="w-6 h-6" />
-                  <UtensilsCrossed className="w-6 h-6" />
-                  Unterkunft & Restaurants verwalten
-                </CardTitle>
-                <p className="text-orange-700 dark:text-orange-300 text-sm">
+            <Card data-testid="accommodation-restaurants-section">
+              <CardHeader className="py-3">
+                <CardTitle className="text-base font-medium">Unterkunft & Restaurants verwalten</CardTitle>
+                <p className="text-xs text-muted-foreground">
                   Hier können Sie die Unterkunft und Restaurants für {formData.name || 'diese Location'} hinzufügen und bearbeiten.
                 </p>
               </CardHeader>
               <CardContent className="space-y-8">
                 {/* ACCOMMODATION SECTION */}
-                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6" data-testid="accommodation-management">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Hotel className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    <h4 className="text-lg font-semibold text-blue-800 dark:text-blue-200">Unterkunft</h4>
-                  </div>
+                <div className="border rounded p-3" data-testid="accommodation-management">
+                  <h4 className="text-sm font-medium mb-3">Unterkunft</h4>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div>
-                      <Label htmlFor="accommodation" className="text-sm font-medium">Unterkunft Name</Label>
+                      <Label htmlFor="accommodation" className="text-sm">Unterkunft Name</Label>
                       <Input
                         id="accommodation"
                         value={formData.accommodation}
@@ -299,8 +292,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                     </div>
                     
                     <div>
-                      <Label htmlFor="accommodation-website" className="text-sm font-medium flex items-center gap-2">
-                        <ExternalLink className="w-4 h-4" />
+                      <Label htmlFor="accommodation-website" className="text-sm">
                         Unterkunft Website
                       </Label>
                       <Input
@@ -320,8 +312,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                     </div>
                     
                     <div>
-                      <Label className="text-sm font-medium flex items-center gap-2">
-                        <Image className="w-4 h-4" />
+                      <Label className="text-sm">
                         Unterkunft Bild
                       </Label>
                       <ImageInput
@@ -348,38 +339,33 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                 </div>
 
                 {/* RESTAURANTS SECTION */}
-                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-6" data-testid="restaurants-management">
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-2">
-                      <UtensilsCrossed className="w-5 h-5 text-green-600 dark:text-green-400" />
-                      <h4 className="text-lg font-semibold text-green-800 dark:text-green-200">Restaurants</h4>
-                    </div>
+                <div className="border rounded p-3" data-testid="restaurants-management">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="text-sm font-medium">Restaurants</h4>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => addArrayItem('restaurants', { name: '', description: '', cuisine: '', websiteUrl: '', imageUrl: '' })}
-                      className="border-green-300 text-green-700 hover:bg-green-100 dark:border-green-600 dark:text-green-300 dark:hover:bg-green-900/20"
                       data-testid="add-restaurant"
                     >
-                      <Plus className="w-4 h-4 mr-1" />
+                      <Plus className="w-3 h-3 mr-1" />
                       Restaurant hinzufügen
                     </Button>
                   </div>
                   
                   {formData.restaurants.length === 0 || (formData.restaurants.length === 1 && !formData.restaurants[0].name) ? (
-                    <div className="text-center py-8 text-green-700 dark:text-green-300">
-                      <UtensilsCrossed className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p>Noch keine Restaurants hinzugefügt</p>
-                      <p className="text-sm opacity-75">Klicken Sie auf "Restaurant hinzufügen" um zu starten</p>
+                    <div className="text-center py-4 text-muted-foreground">
+                      <p className="text-sm">Noch keine Restaurants hinzugefügt</p>
+                      <p className="text-xs">Klicken Sie auf "Restaurant hinzufügen" um zu starten</p>
                     </div>
                   ) : (
                     <div className="space-y-6">
                       {formData.restaurants.map((restaurant, index) => (
-                        <Card key={index} className="border border-green-200 dark:border-green-700 bg-white dark:bg-green-950/10">
-                          <CardHeader className="pb-3">
+                        <Card key={index} className="border">
+                          <CardHeader className="py-2">
                             <div className="flex justify-between items-center">
-                              <CardTitle className="text-base font-medium text-green-800 dark:text-green-200">
+                              <CardTitle className="text-sm font-medium">
                                 Restaurant #{index + 1}
                               </CardTitle>
                               <Button
@@ -387,7 +373,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => removeArrayItem('restaurants', index)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                                className="hover:text-destructive"
                                 data-testid={`remove-restaurant-${index}`}
                               >
                                 <X className="w-4 h-4" />
@@ -397,7 +383,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                           <CardContent className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
-                                <Label className="text-sm font-medium">Restaurant Name*</Label>
+                                <Label className="text-sm">Restaurant Name*</Label>
                                 <Input
                                   value={restaurant.name}
                                   onChange={(e) => updateArrayItem('restaurants', index, { ...restaurant, name: e.target.value })}
@@ -406,7 +392,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                                 />
                               </div>
                               <div>
-                                <Label className="text-sm font-medium">Küchenstil</Label>
+                                <Label className="text-sm">Küchenstil</Label>
                                 <Input
                                   value={restaurant.cuisine || ''}
                                   onChange={(e) => updateArrayItem('restaurants', index, { ...restaurant, cuisine: e.target.value })}
@@ -417,7 +403,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                             </div>
                             
                             <div>
-                              <Label className="text-sm font-medium">Beschreibung</Label>
+                              <Label className="text-sm">Beschreibung</Label>
                               <Textarea
                                 value={restaurant.description}
                                 onChange={(e) => updateArrayItem('restaurants', index, { ...restaurant, description: e.target.value })}
@@ -428,8 +414,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                             </div>
                             
                             <div>
-                              <Label className="text-sm font-medium flex items-center gap-2">
-                                <ExternalLink className="w-4 h-4" />
+                              <Label className="text-sm">
                                 Website URL
                               </Label>
                               <Input
@@ -447,8 +432,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                             </div>
                             
                             <div>
-                              <Label className="text-sm font-medium flex items-center gap-2">
-                                <Image className="w-4 h-4" />
+                              <Label className="text-sm">
                                 Restaurant Bild
                               </Label>
                               <ImageInput
@@ -491,7 +475,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                   onClick={() => addArrayItem('experiences', '')}
                   data-testid="add-experience"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3 h-3" />
                 </Button>
               </div>
               {formData.experiences.map((experience, index) => (
@@ -509,7 +493,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                     onClick={() => removeArrayItem('experiences', index)}
                     data-testid={`remove-experience-${index}`}
                   >
-                    <Minus className="w-4 h-4" />
+                    <Minus className="w-3 h-3" />
                   </Button>
                 </div>
               ))}
@@ -526,7 +510,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                   onClick={() => addArrayItem('highlights', '')}
                   data-testid="add-highlight"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3 h-3" />
                 </Button>
               </div>
               {formData.highlights.map((highlight, index) => (
@@ -544,7 +528,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                     onClick={() => removeArrayItem('highlights', index)}
                     data-testid={`remove-highlight-${index}`}
                   >
-                    <Minus className="w-4 h-4" />
+                    <Minus className="w-3 h-3" />
                   </Button>
                 </div>
               ))}
@@ -561,7 +545,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                   onClick={() => addArrayItem('funFacts', '')}
                   data-testid="add-fun-fact"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3 h-3" />
                 </Button>
               </div>
               {formData.funFacts.map((funFact, index) => (
@@ -579,7 +563,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                     onClick={() => removeArrayItem('funFacts', index)}
                     data-testid={`remove-fun-fact-${index}`}
                   >
-                    <Minus className="w-4 h-4" />
+                    <Minus className="w-3 h-3" />
                   </Button>
                 </div>
               ))}
