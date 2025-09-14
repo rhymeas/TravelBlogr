@@ -25,19 +25,20 @@ function formatDateRange(startDate: string, endDate: string): string {
 
 export default function Timeline({ locations }: TimelineProps) {
   return (
-    <div className="relative" data-testid="timeline">
-      {/* Timeline line */}
-      <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-0.5 bg-primary/20 transform -translate-x-1/2"></div>
+    <div className="relative py-8" data-testid="timeline">
+      {/* Timeline line - extends full height */}
+      <div className="hidden md:block absolute left-1/2 top-0 h-full w-0.5 bg-primary/30 transform -translate-x-1/2"></div>
       
       <div className="space-y-20">
         {locations.map((location, index) => (
           <div key={location.id} className="relative" data-testid={`timeline-item-${location.slug}`}>
             {/* Timeline marker */}
-            <div className="hidden md:block absolute left-1/2 top-8 w-8 h-8 bg-primary rounded-full transform -translate-x-1/2 z-10 border-4 border-background shadow-lg"></div>
+            <div className="hidden md:block absolute left-1/2 top-8 w-8 h-8 bg-primary rounded-full transform -translate-x-1/2 z-10 border-4 border-white shadow-lg"></div>
             
-            {/* Card positioned alternating left/right */}
+            {/* Card positioned alternating left/right - now clickable */}
             <div className={`flex ${index % 2 === 0 ? 'md:justify-start' : 'md:justify-end'}`}>
-              <Card className={`w-full md:w-5/12 lg:w-2/5 bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow ${index % 2 === 0 ? 'md:mr-auto' : 'md:ml-auto'}`}>
+              <Link href={`/location/${location.slug}`} className="w-full md:w-5/12 lg:w-2/5">
+                <Card className={`w-full bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-[1.02] ${index % 2 === 0 ? 'md:mr-auto' : 'md:ml-auto'}`}>
                 {/* Header with location name and date */}
                 <div className="flex items-center justify-between p-6 pb-4">
                   <h3 className="text-2xl font-bold text-gray-900" data-testid={`location-name-${location.slug}`}>
@@ -112,22 +113,21 @@ export default function Timeline({ locations }: TimelineProps) {
                   </div>
                 </div>
 
-                {/* Details button */}
+                {/* Clickable indicator */}
                 <div className="px-6 pb-6">
                   <div className="flex justify-end">
-                    <Link href={`/location/${location.slug}`}>
-                      <Button 
-                        variant="ghost"
-                        className="text-gray-700 hover:text-primary p-0 h-auto font-normal"
-                        data-testid={`details-button-${location.slug}`}
-                      >
-                        Details ansehen
-                        <ChevronRight className="w-4 h-4 ml-1" />
-                      </Button>
-                    </Link>
+                    <Button 
+                      variant="ghost"
+                      className="text-gray-700 hover:text-primary p-0 h-auto font-normal pointer-events-none"
+                      data-testid={`details-button-${location.slug}`}
+                    >
+                      Details ansehen
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
                   </div>
                 </div>
-              </Card>
+                </Card>
+              </Link>
             </div>
           </div>
         ))}

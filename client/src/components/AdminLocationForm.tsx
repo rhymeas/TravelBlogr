@@ -23,8 +23,6 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
     endDate: "",
     description: "",
     accommodation: "",
-    accommodationPrice: 0,
-    accommodationCurrency: "CAD",
     distance: 0,
     imageUrl: "",
     activities: [""],
@@ -45,8 +43,6 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
         endDate: location.endDate || "",
         description: location.description || "",
         accommodation: location.accommodation || "",
-        accommodationPrice: location.accommodationPrice || 0,
-        accommodationCurrency: location.accommodationCurrency || "CAD",
         distance: location.distance || 0,
         imageUrl: location.imageUrl || "",
         activities: location.activities?.length ? location.activities : [""],
@@ -188,7 +184,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
             </div>
 
             {/* Accommodation */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="accommodation">Unterkunft</Label>
                 <Input
@@ -196,16 +192,6 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                   value={formData.accommodation}
                   onChange={(e) => setFormData(prev => ({ ...prev, accommodation: e.target.value }))}
                   data-testid="input-accommodation"
-                />
-              </div>
-              <div>
-                <Label htmlFor="accommodation-price">Preis</Label>
-                <Input
-                  id="accommodation-price"
-                  type="number"
-                  value={formData.accommodationPrice}
-                  onChange={(e) => setFormData(prev => ({ ...prev, accommodationPrice: parseInt(e.target.value) || 0 }))}
-                  data-testid="input-accommodation-price"
                 />
               </div>
               <div>

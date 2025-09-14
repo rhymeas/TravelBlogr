@@ -63,12 +63,6 @@ export default function LocationDetail() {
                 <span data-testid="location-distance">{location.distance} km</span>
               </div>
             )}
-            {location.accommodationPrice && (
-              <div className="flex items-center">
-                <DollarSign className="w-4 h-4 mr-2" />
-                <span data-testid="location-price">{location.accommodationPrice} {location.accommodationCurrency}</span>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -154,20 +148,14 @@ export default function LocationDetail() {
                     <p className="text-xs text-muted-foreground">Zentral gelegene Unterkunft mit modernen Annehmlichkeiten</p>
                   </div>
 
-                  {/* Pricing Information */}
-                  {location.accommodationPrice && (
-                    <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-foreground">Preis pro Nacht</span>
-                        <span className="text-lg font-bold text-primary">{location.accommodationPrice} {location.accommodationCurrency || '€'}</span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        <div>• 2 Nächte Aufenthalt</div>
-                        <div>• Inkl. Frühstück</div>
-                        <div>• Kostenfreies WLAN</div>
-                      </div>
+                  {/* Included Services */}
+                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                    <div className="text-xs text-muted-foreground">
+                      <div>• 2 Nächte Aufenthalt</div>
+                      <div>• Inkl. Frühstück</div>
+                      <div>• Kostenfreies WLAN</div>
                     </div>
-                  )}
+                  </div>
 
                   {/* Amenities */}
                   <div className="mb-4">
