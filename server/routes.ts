@@ -267,7 +267,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Validate form data
-      const { caption, uploadedBy } = req.body;
+      const { caption, uploadedBy, creatorId } = req.body;
+      
+      // Debug log to verify data received
+      console.log('Received upload data:', { caption, uploadedBy, creatorId });
       
       // Validate caption length
       if (caption && caption.length > 500) {
@@ -307,6 +310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create trip photo record with objectPath
         const tripPhotoData = {
           locationId: req.params.locationId,
+          creatorId: creatorId || null, // Store creator ID for proper attribution
           objectPath: objectPath, // Store permanent path
           imageUrl: '/placeholder', // Placeholder - real URL generated on GET
           caption: caption || null,
@@ -374,8 +378,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Validate form data
-      const { caption, uploadedBy, locationId, creatorId } = req.body;
+      // Extract FormData fields - handle empty strings properly
+      const caption = req.body?.caption || null;
+      const uploadedBy = req.body?.uploadedBy || null;
+      const locationId = req.body?.locationId || null;
+      const creatorId = req.body?.creatorId || null;
+      
+      // Debug log to verify data received
+      console.log('===== CENTRALIZED ROUTE DEBUG =====');
+      console.log('req.body type:', typeof req.body);
+      console.log('req.body keys:', Object.keys(req.body || {}));
+      console.log('req.body full:', JSON.stringify(req.body, null, 2));
+      console.log('req.file:', req.file ? { fieldname: req.file.fieldname, originalname: req.file.originalname, size: req.file.size } : 'Missing');
+      console.log('Raw field checks:');
+      console.log('- req.body.caption:', typeof req.body?.caption, '=', req.body?.caption);
+      console.log('- req.body.uploadedBy:', typeof req.body?.uploadedBy, '=', req.body?.uploadedBy);
+      console.log('- req.body.locationId:', typeof req.body?.locationId, '=', req.body?.locationId);
+      console.log('- req.body.creatorId:', typeof req.body?.creatorId, '=', req.body?.creatorId);
+      console.log('Extracted values:', { caption, uploadedBy, locationId, creatorId });
+      console.log('=================================');
       
       // Validate caption length
       if (caption && caption.length > 500) {

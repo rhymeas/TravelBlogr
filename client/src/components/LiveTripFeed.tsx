@@ -4,10 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Clock, User, Camera, Send, Image, Upload } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { TripPhoto } from "@shared/schema";
+import type { TripPhoto, Creator } from "@shared/schema";
 
 interface LiveTripFeedProps {
   locationId: string;
@@ -18,10 +19,16 @@ interface LiveTripFeedProps {
 export function LiveTripFeed({ locationId, locationName, showUpload = true }: LiveTripFeedProps) {
   const [caption, setCaption] = useState("");
   const [name, setName] = useState("");
+  const [selectedCreatorId, setSelectedCreatorId] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Query to fetch creators
+  const { data: creators = [] } = useQuery<Creator[]>({
+    queryKey: ["/api/creators"],
+  });
 
   // Query to fetch trip photos with auto-refresh
   const { data: tripPhotos = [], isLoading } = useQuery<TripPhoto[]>({
@@ -31,11 +38,12 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
 
   // Simplified direct file upload mutation
   const uploadMutation = useMutation({
-    mutationFn: async ({ file, caption, uploadedBy }: { file: File; caption: string; uploadedBy: string }) => {
+    mutationFn: async ({ file, caption, uploadedBy, creatorId }: { file: File; caption: string; uploadedBy: string; creatorId: string }) => {
       const formData = new FormData();
       formData.append('image', file);
       if (caption) formData.append('caption', caption);
       if (uploadedBy) formData.append('uploadedBy', uploadedBy);
+      if (creatorId) formData.append('creatorId', creatorId);
 
       const response = await fetch(`/api/locations/${locationId}/trip-photos`, {
         method: 'POST',
@@ -52,6 +60,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
       queryClient.invalidateQueries({ queryKey: ["/api/locations", locationId, "trip-photos"] });
       setCaption("");
       setName("");
+      setSelectedCreatorId("");
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       toast({
@@ -118,6 +127,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
         file: selectedFile,
         caption: caption.trim(),
         uploadedBy: name.trim(),
+        creatorId: selectedCreatorId,
       });
     } catch (error) {
       // Error handling is already in the mutation
@@ -180,6 +190,20 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                   </Button>
                 </div>
 
+                {/* Creator Selection */}
+                <Select value={selectedCreatorId} onValueChange={setSelectedCreatorId}>
+                  <SelectTrigger data-testid="creator-select">
+                    <SelectValue placeholder="Wer postet dieses Foto?" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {creators.map((creator) => (
+                      <SelectItem key={creator.id} value={creator.id}>
+                        {creator.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
                 {/* Caption Input */}
                 <Textarea
                   placeholder={`Beschreibung für Ihr Foto aus ${locationName}...`}
@@ -191,9 +215,9 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                   data-testid="post-text-input"
                 />
 
-                {/* Name Input */}
+                {/* Name Input - Optional for additional context */}
                 <Input
-                  placeholder="Ihr Name (optional)"
+                  placeholder="Zusätzliche Namensangabe (optional)"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   maxLength={100}
