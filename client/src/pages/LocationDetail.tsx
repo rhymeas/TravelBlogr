@@ -51,7 +51,7 @@ export default function LocationDetail() {
               </Button>
             </Link>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-2" data-testid="location-title">{location.name}</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-2 pr-8" data-testid="location-title">{location.name}</h1>
           <div className="flex flex-wrap gap-4 text-primary-foreground/90">
             <div className="flex items-center">
               <Calendar className="w-4 h-4 mr-2" />

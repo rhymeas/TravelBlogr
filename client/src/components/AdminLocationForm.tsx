@@ -164,6 +164,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                 <Label htmlFor="start-date">Start-Datum</Label>
                 <Input
                   id="start-date"
+                  type="datetime-local"
                   value={formData.startDate}
                   onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
                   required
@@ -174,6 +175,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                 <Label htmlFor="end-date">End-Datum</Label>
                 <Input
                   id="end-date"
+                  type="datetime-local"
                   value={formData.endDate}
                   onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
                   required
