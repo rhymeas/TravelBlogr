@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { ArrowLeft, Plus, Edit, Trash2, Upload, Lock, Eye, EyeOff, Hotel, UtensilsCrossed, AlertCircle, Star } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Upload, Lock, Eye, EyeOff, Hotel, UtensilsCrossed, AlertCircle, Star, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,23 @@ export default function AdminPanel() {
   const [privacyPassword, setPrivacyPassword] = useState("");
   const [editingHeroImage, setEditingHeroImage] = useState<HeroImage | null>(null);
   const [heroImageForm, setHeroImageForm] = useState({ title: "", description: "", imageUrl: "" });
+  
+  // Collapsible sections state
+  const [collapsedSections, setCollapsedSections] = useState({
+    tourSettings: false,
+    heroImages: false,
+    privacySettings: false,
+    gpsSettings: false,
+    restaurantAccommodation: false,
+    locationsManagement: false,
+    quickImageUpload: true, // start collapsed for cleaner look
+    quickActions: true, // start collapsed for cleaner look
+  });
+
+  const toggleSection = (section: keyof typeof collapsedSections) => {
+    setCollapsedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -211,10 +228,24 @@ export default function AdminPanel() {
           {/* Tour Settings */}
           <div className="lg:col-span-2 space-y-8">
             <Card data-testid="tour-settings-card">
-              <CardHeader>
-                <CardTitle>Tour-Einstellungen</CardTitle>
+              <CardHeader 
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => toggleSection('tourSettings')}
+                data-testid="tour-settings-header"
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <span>⚙️</span>
+                    Tour-Einstellungen
+                  </CardTitle>
+                  {collapsedSections.tourSettings ? 
+                    <ChevronDown className="w-4 h-4" /> : 
+                    <ChevronUp className="w-4 h-4" />
+                  }
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              {!collapsedSections.tourSettings && (
+                <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="tour-name">Tour-Name</Label>
                   <Input
@@ -296,21 +327,35 @@ export default function AdminPanel() {
                     data-testid="textarea-description"
                   />
                 </div>
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
 
             {/* Hero Images Management */}
             <Card data-testid="hero-images-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Upload className="w-5 h-5" />
-                  Hero-Bilder verwalten
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Verwalte die Slideshow-Bilder auf der Startseite
-                </p>
+              <CardHeader 
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => toggleSection('heroImages')}
+                data-testid="hero-images-header"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Upload className="w-5 h-5" />
+                      Hero-Bilder verwalten
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Verwalte die Slideshow-Bilder auf der Startseite
+                    </p>
+                  </div>
+                  {collapsedSections.heroImages ? 
+                    <ChevronDown className="w-4 h-4" /> : 
+                    <ChevronUp className="w-4 h-4" />
+                  }
+                </div>
               </CardHeader>
-              <CardContent className="space-y-6">
+              {!collapsedSections.heroImages && (
+                <CardContent className="space-y-6">
                 {/* Add New Hero Image Form */}
                 <div className="border rounded-lg p-4 space-y-4 bg-muted/50">
                   <h4 className="font-medium">Neues Hero-Bild hinzufügen</h4>
@@ -448,18 +493,30 @@ export default function AdminPanel() {
                     </div>
                   )}
                 </div>
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
 
             {/* Privacy Settings */}
             <Card data-testid="privacy-settings-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Lock className="w-5 h-5" />
-                  Privacy-Einstellungen
-                </CardTitle>
+              <CardHeader 
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => toggleSection('privacySettings')}
+                data-testid="privacy-settings-header"
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Lock className="w-5 h-5" />
+                    Privacy-Einstellungen
+                  </CardTitle>
+                  {collapsedSections.privacySettings ? 
+                    <ChevronDown className="w-4 h-4" /> : 
+                    <ChevronUp className="w-4 h-4" />
+                  }
+                </div>
               </CardHeader>
-              <CardContent className="space-y-6">
+              {!collapsedSections.privacySettings && (
+                <CardContent className="space-y-6">
                 {/* Privacy Toggle */}
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
@@ -576,18 +633,30 @@ export default function AdminPanel() {
                     </p>
                   )}
                 </div>
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
 
             {/* GPS Settings */}
             <Card data-testid="gps-settings-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span className="text-2xl">🚗</span>
-                  GPS Live-Tracking Einstellungen
-                </CardTitle>
+              <CardHeader 
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => toggleSection('gpsSettings')}
+                data-testid="gps-settings-header"
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="text-2xl">🚗</span>
+                    GPS Live-Tracking Einstellungen
+                  </CardTitle>
+                  {collapsedSections.gpsSettings ? 
+                    <ChevronDown className="w-4 h-4" /> : 
+                    <ChevronUp className="w-4 h-4" />
+                  }
+                </div>
               </CardHeader>
-              <CardContent className="space-y-6">
+              {!collapsedSections.gpsSettings && (
+                <CardContent className="space-y-6">
                 {/* GPS Toggle */}
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
@@ -618,22 +687,36 @@ export default function AdminPanel() {
                     }
                   </p>
                 </div>
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
 
             {/* QUICK ACCESS - RESTAURANT & ACCOMMODATION MANAGEMENT */}
             <Card className="border-2 border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800" data-testid="restaurant-accommodation-quick-access">
-              <CardHeader>
-                <CardTitle className="text-xl font-bold text-orange-800 dark:text-orange-200 flex items-center gap-2">
-                  <Hotel className="w-6 h-6" />
-                  <UtensilsCrossed className="w-6 h-6" />
-                  Restaurant & Unterkunft Management
-                </CardTitle>
-                <p className="text-orange-700 dark:text-orange-300 text-sm">
-                  Hier können Sie für jeden Ort Restaurants und Unterkünfte verwalten.
-                </p>
+              <CardHeader 
+                className="cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-950/40 transition-colors"
+                onClick={() => toggleSection('restaurantAccommodation')}
+                data-testid="restaurant-accommodation-header"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl font-bold text-orange-800 dark:text-orange-200 flex items-center gap-2">
+                      <Hotel className="w-6 h-6" />
+                      <UtensilsCrossed className="w-6 h-6" />
+                      Restaurant & Unterkunft Management
+                    </CardTitle>
+                    <p className="text-orange-700 dark:text-orange-300 text-sm">
+                      Hier können Sie für jeden Ort Restaurants und Unterkünfte verwalten.
+                    </p>
+                  </div>
+                  {collapsedSections.restaurantAccommodation ? 
+                    <ChevronDown className="w-4 h-4 text-orange-800 dark:text-orange-200" /> : 
+                    <ChevronUp className="w-4 h-4 text-orange-800 dark:text-orange-200" />
+                  }
+                </div>
               </CardHeader>
-              <CardContent>
+              {!collapsedSections.restaurantAccommodation && (
+                <CardContent>
                 <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-4">
                   <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200 mb-2">
                     <AlertCircle className="w-5 h-5" />
@@ -692,28 +775,44 @@ export default function AdminPanel() {
                     </div>
                   </div>
                 )}
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
 
             {/* Locations Management */}
             <Card data-testid="locations-management-card">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Star className="w-5 h-5" />
-                  Orte verwalten
-                </CardTitle>
-                <Button
-                  onClick={() => {
-                    setSelectedLocation(null);
-                    setShowLocationForm(true);
-                  }}
-                  data-testid="button-add-location"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Ort hinzufügen
-                </Button>
+              <CardHeader 
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => toggleSection('locationsManagement')}
+                data-testid="locations-management-header"
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Star className="w-5 h-5" />
+                    Orte verwalten
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent header toggle when clicking button
+                        setSelectedLocation(null);
+                        setShowLocationForm(true);
+                      }}
+                      data-testid="button-add-location"
+                      size="sm"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Ort hinzufügen
+                    </Button>
+                    {collapsedSections.locationsManagement ? 
+                      <ChevronDown className="w-4 h-4" /> : 
+                      <ChevronUp className="w-4 h-4" />
+                    }
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent>
+              {!collapsedSections.locationsManagement && (
+                <CardContent>
                 <div className="space-y-4">
                   {locations?.map((location) => (
                     <div key={location.id} className="flex items-center justify-between p-4 border border-border rounded-lg" data-testid={`location-item-${location.slug}`}>
@@ -747,7 +846,8 @@ export default function AdminPanel() {
                     </div>
                   ))}
                 </div>
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
           </div>
 
@@ -755,13 +855,24 @@ export default function AdminPanel() {
           <div className="space-y-6">
             {/* Quick Image Upload */}
             <Card className="border-2 border-primary/20 bg-primary/5" data-testid="quick-image-upload">
-              <CardHeader>
-                <CardTitle className="flex items-center text-primary">
-                  <Upload className="w-5 h-5 mr-2" />
-                  📸 Bilder verwalten
-                </CardTitle>
+              <CardHeader 
+                className="cursor-pointer hover:bg-primary/10 transition-colors"
+                onClick={() => toggleSection('quickImageUpload')}
+                data-testid="quick-image-upload-header"
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center text-primary">
+                    <Upload className="w-5 h-5 mr-2" />
+                    📸 Bilder verwalten
+                  </CardTitle>
+                  {collapsedSections.quickImageUpload ? 
+                    <ChevronDown className="w-4 h-4 text-primary" /> : 
+                    <ChevronUp className="w-4 h-4 text-primary" />
+                  }
+                </div>
               </CardHeader>
-              <CardContent>
+              {!collapsedSections.quickImageUpload && (
+                <CardContent>
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="location-select">Ort auswählen</Label>
@@ -790,23 +901,38 @@ export default function AdminPanel() {
                     </div>
                   )}
                 </div>
-              </CardContent>
+                
+                {selectedLocation && (
+                  <ImageGallery 
+                    locationId={selectedLocation.id} 
+                    isAdmin={true}
+                    className="mt-4"
+                  />
+                )}
+                </CardContent>
+              )}
             </Card>
-              
-            {selectedLocation && (
-              <ImageGallery 
-                locationId={selectedLocation.id} 
-                isAdmin={true}
-                className="mt-4"
-              />
-            )}
 
             {/* Quick Actions */}
             <Card data-testid="quick-actions-card">
-              <CardHeader>
-                <CardTitle>Schnellaktionen</CardTitle>
+              <CardHeader 
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => toggleSection('quickActions')}
+                data-testid="quick-actions-header"
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <span>⚡</span>
+                    Schnellaktionen
+                  </CardTitle>
+                  {collapsedSections.quickActions ? 
+                    <ChevronDown className="w-4 h-4" /> : 
+                    <ChevronUp className="w-4 h-4" />
+                  }
+                </div>
               </CardHeader>
-              <CardContent className="space-y-2">
+              {!collapsedSections.quickActions && (
+                <CardContent className="space-y-2">
                 <Button variant="outline" className="w-full justify-start" data-testid="button-export">
                   📱 Daten exportieren
                 </Button>
@@ -827,7 +953,8 @@ export default function AdminPanel() {
                 <Button variant="outline" className="w-full justify-start" data-testid="button-statistics">
                   📊 Statistiken anzeigen
                 </Button>
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
           </div>
         </div>
