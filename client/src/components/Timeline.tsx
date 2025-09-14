@@ -109,44 +109,7 @@ export default function Timeline({ locations }: TimelineProps) {
         </div>
       )}
 
-      {/* Live Tracking Enable Button - shown when not tracking and admin hasn't activated GPS */}
-      {!isTrackingEnabled && !tourSettings?.gpsActivatedByAdmin && (
-        <div className="mb-8 text-center">
-          <Card className="inline-block p-6 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="text-4xl">🚗</div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Live Auto-Tracking
-              </h3>
-              <p className="text-gray-600 text-center max-w-md">
-                Aktiviert das süße Auto-Icon auf der Timeline! Zeigt euren Reisefortschritt in Echtzeit.
-                <br />
-                <span className="text-sm text-gray-500">
-                  Vollständig optional - die App funktioniert auch ohne GPS.
-                </span>
-              </p>
-              <Button
-                onClick={handleEnableTracking}
-                disabled={isRequestingPermission}
-                className="bg-primary hover:bg-primary/90"
-                data-testid="button-enable-tracking"
-              >
-                {isRequestingPermission ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin mr-2">🚗</div>
-                    GPS-Berechtigung anfragen...
-                  </div>
-                ) : (
-                  <div className="flex items-center">
-                    <MapPin className="w-4 h-4 mr-2" />
-                    Live-Auto aktivieren
-                  </div>
-                )}
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+      {/* GPS activation is only available in Admin Panel - no frontend prompts */}
 
       {/* Car Position Status - shown when tracking is enabled */}
       {isTrackingEnabled && carPosition && (
