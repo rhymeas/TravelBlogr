@@ -189,6 +189,28 @@ export default function LocationDetail() {
               isAdmin={false}
             />
 
+            {/* Map Screenshot */}
+            {(location as any).mapImageUrl && (
+              <Card data-testid="location-map">
+                <CardContent className="pt-6">
+                  <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center">
+                    📍 <span className="ml-2">Lage & Karte</span>
+                  </h2>
+                  <div className="aspect-video rounded-xl overflow-hidden border border-border">
+                    <img 
+                      src={(location as any).mapImageUrl} 
+                      alt={`Karte von ${location.name}`}
+                      className="w-full h-full object-cover"
+                      data-testid="location-map-image"
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-3 text-center">
+                    📍 Genaue Lage und Umgebung von {location.name}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Description */}
             <Card data-testid="location-description">
               <CardContent className="pt-6">
