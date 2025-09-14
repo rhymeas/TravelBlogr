@@ -13,6 +13,28 @@ export default function Header() {
     queryKey: ["/api/tour-settings"],
   });
 
+  // Helper function to extract initials from tour name
+  const getInitialsFromTourName = (tourName: string | undefined): string => {
+    if (!tourName) return "WT"; // Default fallback
+    
+    // Split by spaces and get first two words
+    const words = tourName.trim().split(/\s+/);
+    
+    if (words.length === 0) return "WT";
+    
+    if (words.length === 1) {
+      // If only one word, take first two characters
+      const word = words[0].toUpperCase();
+      return word.length >= 2 ? word.substring(0, 2) : word + "T";
+    }
+    
+    // Take first letter of first two words
+    const firstInitial = words[0].charAt(0).toUpperCase();
+    const secondInitial = words[1].charAt(0).toUpperCase();
+    
+    return firstInitial + secondInitial;
+  };
+
   const isActive = (path: string) => {
     if (path === "/" && location === "/") return true;
     if (path !== "/" && location.startsWith(path)) return true;
@@ -50,7 +72,9 @@ export default function Header() {
           {/* Logo/Brand */}
           <Link href="/" className="flex items-center space-x-3 text-foreground" data-testid="header-logo">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">WT</span>
+              <span className="text-primary-foreground font-bold text-sm" data-testid="header-logo-initials">
+                {getInitialsFromTourName(tourSettings?.tourName)}
+              </span>
             </div>
             <span className="font-semibold text-lg hidden sm:block" data-testid="header-tour-name">
               {tourSettings?.tourName || 'Weinberg Tour 2025'}
