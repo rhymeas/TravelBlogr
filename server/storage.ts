@@ -87,15 +87,25 @@ export class MemStorage implements IStorage {
         coordinates: { lat: 50.2676, lng: -119.2721 },
         activities: [
           "Erkundung des Castle at Swan Lake",
-          "Wanderung um den Swan Lake"
+          "Wanderung um den Swan Lake",
+          "Besuch der Lavendelfarm mit Führung",
+          "Weingutbesichtigungen mit geführten Touren",
+          "Bootsverleih am Okanagan Lake (auch Hausboote verfügbar)",
+          "Zugang zu 110 km langen wunderbaren Stränden am Okanagan Lake",
+          "Geführte Weintouren mit professionellem Guide"
         ],
         restaurants: [
           { name: "Castle Restaurant", description: "Restaurant im Castle at Swan Lake" } as RestaurantData,
+          { name: "Summerhill Pyramid Winery Restaurant", description: "Weinkellerei mit Pyramide und Restaurant - einzigartige architektonische Erfahrung" } as RestaurantData,
           { name: "Vernon Downtown Bistro", description: "Lokale Küche im Stadtzentrum" } as RestaurantData
         ],
         experiences: [
           "Romantischer Aufenthalt im Castle",
-          "Malerische Seenlandschaft"
+          "Malerische Seenlandschaft am Swan Lake",
+          "Duftende Lavendelfelder mit geführten Farm-Touren",
+          "Hausboot-Erlebnis auf dem Okanagan Lake",
+          "Weinverkostungen in der einzigartigen Pyramiden-Weinkellerei",
+          "Entspannung an 110 km langen Okanagan-Stränden"
         ],
         highlights: ["Swan Lake", "The Castle"]
       },
