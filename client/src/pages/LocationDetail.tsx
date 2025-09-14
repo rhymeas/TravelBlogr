@@ -142,17 +142,69 @@ export default function LocationDetail() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Accommodation */}
+            {/* Accommodation Details */}
             {location.accommodation && (
               <Card data-testid="location-accommodation">
                 <CardContent className="pt-6">
-                  <h3 className="font-semibold text-foreground mb-3">🏨 Unterkunft</h3>
-                  <p className="text-sm text-muted-foreground">{location.accommodation}</p>
+                  <h3 className="font-semibold text-foreground mb-4">🏨 Unterkunft</h3>
+                  
+                  {/* Accommodation Name */}
+                  <div className="mb-4">
+                    <h4 className="font-medium text-foreground text-sm mb-1">{location.accommodation}</h4>
+                    <p className="text-xs text-muted-foreground">Zentral gelegene Unterkunft mit modernen Annehmlichkeiten</p>
+                  </div>
+
+                  {/* Pricing Information */}
                   {location.accommodationPrice && (
-                    <div className="mt-2 text-sm font-medium text-foreground">
-                      {location.accommodationPrice} {location.accommodationCurrency}
+                    <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium text-foreground">Preis pro Nacht</span>
+                        <span className="text-lg font-bold text-primary">{location.accommodationPrice} {location.accommodationCurrency || '€'}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        <div>• 2 Nächte Aufenthalt</div>
+                        <div>• Inkl. Frühstück</div>
+                        <div>• Kostenfreies WLAN</div>
+                      </div>
                     </div>
                   )}
+
+                  {/* Amenities */}
+                  <div className="mb-4">
+                    <h5 className="text-sm font-medium text-foreground mb-2">Ausstattung</h5>
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      <div className="flex items-center">
+                        <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></span>
+                        Klimaanlage
+                      </div>
+                      <div className="flex items-center">
+                        <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></span>
+                        Privates Badezimmer
+                      </div>
+                      <div className="flex items-center">
+                        <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></span>
+                        TV & Minibar
+                      </div>
+                      <div className="flex items-center">
+                        <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></span>
+                        Concierge Service
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Check-in Information */}
+                  <div className="border-t border-border pt-3">
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="font-medium text-foreground">Check-in:</span>
+                        <div className="text-muted-foreground">15:00 Uhr</div>
+                      </div>
+                      <div>
+                        <span className="font-medium text-foreground">Check-out:</span>
+                        <div className="text-muted-foreground">11:00 Uhr</div>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}

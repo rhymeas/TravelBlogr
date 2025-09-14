@@ -234,35 +234,53 @@ export default function AdminPanel() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Image Gallery Management */}
-            <div>
-              <div className="mb-4">
-                <Label htmlFor="location-select">Ort für Bilderverwaltung auswählen</Label>
-                <Select onValueChange={(value) => {
-                  const location = locations?.find(l => l.id === value);
-                  setSelectedLocation(location || null);
-                }}>
-                  <SelectTrigger data-testid="select-location">
-                    <SelectValue placeholder="Ort auswählen..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locations?.map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
-                        {location.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Quick Image Upload */}
+            <Card className="border-2 border-primary/20 bg-primary/5" data-testid="quick-image-upload">
+              <CardHeader>
+                <CardTitle className="flex items-center text-primary">
+                  <Upload className="w-5 h-5 mr-2" />
+                  📸 Bilder verwalten
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="location-select">Ort auswählen</Label>
+                    <Select onValueChange={(value) => {
+                      const location = locations?.find(l => l.id === value);
+                      setSelectedLocation(location || null);
+                    }}>
+                      <SelectTrigger data-testid="select-location">
+                        <SelectValue placeholder="Ort für Bilderverwaltung auswählen..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {locations?.map((location) => (
+                          <SelectItem key={location.id} value={location.id}>
+                            {location.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {!selectedLocation && (
+                    <div className="bg-muted/50 rounded-lg p-4 text-center">
+                      <p className="text-sm text-muted-foreground">
+                        👆 Wähle einen Ort aus, um Bilder hochzuladen und zu verwalten
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
               
-              {selectedLocation && (
-                <ImageGallery 
-                  locationId={selectedLocation.id} 
-                  isAdmin={true}
-                  className="mt-4"
-                />
-              )}
-            </div>
+            {selectedLocation && (
+              <ImageGallery 
+                locationId={selectedLocation.id} 
+                isAdmin={true}
+                className="mt-4"
+              />
+            )}
 
             {/* Quick Actions */}
             <Card data-testid="quick-actions-card">
