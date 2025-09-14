@@ -1,41 +1,43 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { TourSettings } from "@shared/schema";
+import type { TourSettings, HeroImage } from "@shared/schema";
 
 interface HeroProps {
   tourSettings?: TourSettings;
 }
 
-const heroImages = [
+// Fallback images in case database is empty
+const defaultHeroImages = [
   {
-    url: "https://images.unsplash.com/photo-1528190336454-13cd56b45b5a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
-    location: "Penticton Wine Country",
+    imageUrl: "https://images.unsplash.com/photo-1528190336454-13cd56b45b5a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+    title: "Penticton Wine Country",
     description: "Naramata Bench Weinberge über dem Okanagan Lake"
   },
   {
-    url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
-    location: "Jasper National Park",
+    imageUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+    title: "Jasper National Park",
     description: "Maligne Lake mit der berühmten Spirit Island"
   },
   {
-    url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
-    location: "Golden Rocky Mountains",
+    imageUrl: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+    title: "Golden Rocky Mountains",
     description: "Kicking Horse River zwischen majestätischen Gipfeln"
   },
   {
-    url: "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
-    location: "Vernon - Kalamalka Lake",
+    imageUrl: "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+    title: "Vernon - Kalamalka Lake",
     description: "Das türkisfarbene Juwel des Okanagan Valley"
   },
   {
-    url: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
-    location: "Wells Gray Provincial Park",
+    imageUrl: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+    title: "Wells Gray Provincial Park",
     description: "Helmcken Falls - 141 Meter spektakulärer Wasserfall"
   },
   {
-    url: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
-    location: "Sunshine Coast",
+    imageUrl: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+    title: "Sunshine Coast",
     description: "Powell River & Desolation Sound Marine Park"
   }
 ];
@@ -43,12 +45,20 @@ const heroImages = [
 export default function Hero({ tourSettings }: HeroProps) {
   const [currentImage, setCurrentImage] = useState(0);
 
+  // Fetch hero images from database
+  const { data: dbHeroImages, isLoading: heroImagesLoading } = useQuery<HeroImage[]>({
+    queryKey: ["/api/hero-images"],
+  });
+
+  // Use database images if available, otherwise fallback to default images
+  const heroImages = dbHeroImages && dbHeroImages.length > 0 ? dbHeroImages : defaultHeroImages;
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImage((prev) => (prev + 1) % heroImages.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [heroImages.length]);
 
   const scrollToTimeline = () => {
     const element = document.getElementById('timeline');
@@ -65,6 +75,15 @@ export default function Hero({ tourSettings }: HeroProps) {
     setCurrentImage((prev) => (prev - 1 + heroImages.length) % heroImages.length);
   };
 
+  // Show loading state if hero images are loading
+  if (heroImagesLoading) {
+    return (
+      <section className="min-h-screen relative overflow-hidden pt-16 flex items-center justify-center" data-testid="hero-loading">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </section>
+    );
+  }
+
   return (
     <section className="min-h-screen relative overflow-hidden pt-16" data-testid="hero-section">
       {/* Background Image Slideshow */}
@@ -78,7 +97,7 @@ export default function Hero({ tourSettings }: HeroProps) {
           >
             <div 
               style={{
-                backgroundImage: `url('${index === 0 && tourSettings?.heroImageUrl ? tourSettings.heroImageUrl : image.url}')`,
+                backgroundImage: `url('${image.imageUrl}')`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center'
               }}
@@ -110,7 +129,7 @@ export default function Hero({ tourSettings }: HeroProps) {
         <div className="animate-fade-in">
           <div className="mb-4">
             <span className="inline-block bg-primary/20 text-white px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm border border-white/20">
-              {heroImages[currentImage].location}
+              {heroImages[currentImage].title}
             </span>
           </div>
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6" data-testid="hero-title">

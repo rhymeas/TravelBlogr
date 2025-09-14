@@ -81,6 +81,18 @@ export const locationPings = pgTable("location_pings", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Hero images for slideshow on homepage
+export const heroImages = pgTable("hero_images", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  imageUrl: text("image_url").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  objectPath: text("object_path"), // for object storage
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Restaurant data type
 export interface RestaurantData {
   name: string;
@@ -117,6 +129,12 @@ export const insertLocationPingSchema = createInsertSchema(locationPings).omit({
   createdAt: true,
 });
 
+export const insertHeroImageSchema = createInsertSchema(heroImages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type Location = typeof locations.$inferSelect;
 export type InsertLocation = z.infer<typeof insertLocationSchema>;
 export type LocationImage = typeof locationImages.$inferSelect;
@@ -127,3 +145,5 @@ export type TourSettings = typeof tourSettings.$inferSelect;
 export type InsertTourSettings = z.infer<typeof insertTourSettingsSchema>;
 export type LocationPing = typeof locationPings.$inferSelect;
 export type InsertLocationPing = z.infer<typeof insertLocationPingSchema>;
+export type HeroImage = typeof heroImages.$inferSelect;
+export type InsertHeroImage = z.infer<typeof insertHeroImageSchema>;

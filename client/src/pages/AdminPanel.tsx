@@ -14,13 +14,15 @@ import { apiRequest } from "@/lib/queryClient";
 import { ImageGallery } from "@/components/ImageGallery";
 import { ImageInput } from "@/components/ImageInput";
 import AdminLocationForm from "@/components/AdminLocationForm";
-import type { Location, TourSettings } from "@shared/schema";
+import type { Location, TourSettings, HeroImage } from "@shared/schema";
 
 export default function AdminPanel() {
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [showLocationForm, setShowLocationForm] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [privacyPassword, setPrivacyPassword] = useState("");
+  const [editingHeroImage, setEditingHeroImage] = useState<HeroImage | null>(null);
+  const [heroImageForm, setHeroImageForm] = useState({ title: "", description: "", imageUrl: "" });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -30,6 +32,10 @@ export default function AdminPanel() {
 
   const { data: tourSettings, isLoading: settingsLoading } = useQuery<TourSettings>({
     queryKey: ["/api/tour-settings"],
+  });
+
+  const { data: heroImages, isLoading: heroImagesLoading } = useQuery<HeroImage[]>({
+    queryKey: ["/api/hero-images"],
   });
 
   const updateTourSettingsMutation = useMutation({
@@ -104,6 +110,70 @@ export default function AdminPanel() {
       toast({
         title: "Fehler",
         description: `Fehler beim Löschen des Orts: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Hero Images mutations
+  const createHeroImageMutation = useMutation({
+    mutationFn: async (data: { title: string; description: string; imageUrl: string; sortOrder: number }) => {
+      await apiRequest("POST", "/api/hero-images", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/hero-images"] });
+      setHeroImageForm({ title: "", description: "", imageUrl: "" });
+      toast({
+        title: "Erfolg",
+        description: "Hero-Bild wurde hinzugefügt",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Fehler",
+        description: `Fehler beim Hinzufügen des Hero-Bilds: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateHeroImageMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<{ title: string; description: string; imageUrl: string }> }) => {
+      await apiRequest("PUT", `/api/hero-images/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/hero-images"] });
+      setEditingHeroImage(null);
+      setHeroImageForm({ title: "", description: "", imageUrl: "" });
+      toast({
+        title: "Erfolg",
+        description: "Hero-Bild wurde aktualisiert",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Fehler",
+        description: `Fehler beim Aktualisieren des Hero-Bilds: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteHeroImageMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/hero-images/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/hero-images"] });
+      toast({
+        title: "Erfolg",
+        description: "Hero-Bild wurde gelöscht",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Fehler",
+        description: `Fehler beim Löschen des Hero-Bilds: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -225,6 +295,158 @@ export default function AdminPanel() {
                     }}
                     data-testid="textarea-description"
                   />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Hero Images Management */}
+            <Card data-testid="hero-images-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Upload className="w-5 h-5" />
+                  Hero-Bilder verwalten
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Verwalte die Slideshow-Bilder auf der Startseite
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Add New Hero Image Form */}
+                <div className="border rounded-lg p-4 space-y-4 bg-muted/50">
+                  <h4 className="font-medium">Neues Hero-Bild hinzufügen</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="hero-title">Titel</Label>
+                      <Input
+                        id="hero-title"
+                        value={heroImageForm.title}
+                        onChange={(e) => setHeroImageForm(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="z.B. Penticton Wine Country"
+                        data-testid="input-hero-title"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="hero-description">Beschreibung</Label>
+                      <Input
+                        id="hero-description"
+                        value={heroImageForm.description}
+                        onChange={(e) => setHeroImageForm(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="z.B. Naramata Bench Weinberge über dem Okanagan Lake"
+                        data-testid="input-hero-description"
+                      />
+                    </div>
+                  </div>
+                  <ImageInput
+                    label="Bild-URL"
+                    value={heroImageForm.imageUrl}
+                    onChange={(value) => setHeroImageForm(prev => ({ ...prev, imageUrl: value }))}
+                    placeholder="https://example.com/image.jpg"
+                    testId="hero-image-url"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        if (editingHeroImage) {
+                          updateHeroImageMutation.mutate({
+                            id: editingHeroImage.id,
+                            data: heroImageForm
+                          });
+                        } else {
+                          createHeroImageMutation.mutate({
+                            ...heroImageForm,
+                            sortOrder: (heroImages?.length || 0)
+                          });
+                        }
+                      }}
+                      disabled={!heroImageForm.title || !heroImageForm.description || !heroImageForm.imageUrl || createHeroImageMutation.isPending || updateHeroImageMutation.isPending}
+                      data-testid="button-save-hero-image"
+                    >
+                      {createHeroImageMutation.isPending || updateHeroImageMutation.isPending 
+                        ? "Speichern..." 
+                        : editingHeroImage 
+                          ? "Änderungen speichern" 
+                          : "Hero-Bild hinzufügen"
+                      }
+                    </Button>
+                    {editingHeroImage && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setEditingHeroImage(null);
+                          setHeroImageForm({ title: "", description: "", imageUrl: "" });
+                        }}
+                        data-testid="button-cancel-edit"
+                      >
+                        Abbrechen
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Hero Images List */}
+                <div className="space-y-4">
+                  <h4 className="font-medium">Aktuelle Hero-Bilder ({heroImages?.length || 0})</h4>
+                  {heroImagesLoading ? (
+                    <div className="flex items-center justify-center py-8" data-testid="hero-images-loading">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                  ) : heroImages && heroImages.length > 0 ? (
+                    <div className="space-y-3">
+                      {heroImages.map((image) => (
+                        <div key={image.id} className="flex items-center gap-4 p-4 border rounded-lg" data-testid={`hero-image-${image.id}`}>
+                          <img 
+                            src={image.imageUrl} 
+                            alt={image.title}
+                            className="w-20 h-16 object-cover rounded"
+                            onError={(e) => {
+                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA4MCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjY0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNCAyNEg1NlY0MEgyNFYyNFoiIGZpbGw9IiNEMUQ1REIiLz4KPC9zdmc+';
+                            }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h5 className="font-medium truncate">{image.title}</h5>
+                            <p className="text-sm text-muted-foreground truncate">{image.description}</p>
+                            <p className="text-xs text-muted-foreground">Reihenfolge: {image.sortOrder + 1}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setEditingHeroImage(image);
+                                setHeroImageForm({
+                                  title: image.title,
+                                  description: image.description,
+                                  imageUrl: image.imageUrl
+                                });
+                              }}
+                              data-testid={`button-edit-hero-${image.id}`}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm("Hero-Bild wirklich löschen?")) {
+                                  deleteHeroImageMutation.mutate(image.id);
+                                }
+                              }}
+                              disabled={deleteHeroImageMutation.isPending}
+                              data-testid={`button-delete-hero-${image.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground" data-testid="no-hero-images">
+                      <Upload className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>Noch keine Hero-Bilder vorhanden</p>
+                      <p className="text-sm">Füge das erste Hero-Bild für die Startseiten-Slideshow hinzu</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

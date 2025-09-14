@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
-import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema, insertLocationPingSchema } from "@shared/schema";
+import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema, insertLocationPingSchema, insertHeroImageSchema } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 
@@ -261,6 +261,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         error: "Foto konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut." 
       });
+    }
+  });
+
+  // Hero images routes
+  app.get("/api/hero-images", async (req, res) => {
+    try {
+      const heroImages = await storage.getHeroImages();
+      res.json(heroImages);
+    } catch (error) {
+      console.error("Error fetching hero images:", error);
+      res.status(500).json({ error: "Failed to fetch hero images" });
+    }
+  });
+
+  app.post("/api/hero-images", async (req, res) => {
+    try {
+      const validation = insertHeroImageSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid hero image data", details: validation.error });
+      }
+
+      // Validate the image URL security
+      if (validation.data.imageUrl) {
+        const urlValidation = validateImageUrl(validation.data.imageUrl);
+        if (!urlValidation.valid) {
+          return res.status(400).json({ 
+            error: urlValidation.error || "Ungültige Bild-URL" 
+          });
+        }
+      }
+
+      const heroImage = await storage.createHeroImage(validation.data);
+      res.status(201).json(heroImage);
+    } catch (error) {
+      console.error("Error creating hero image:", error);
+      res.status(500).json({ error: "Failed to create hero image" });
+    }
+  });
+
+  app.put("/api/hero-images/:id", async (req, res) => {
+    try {
+      const validation = insertHeroImageSchema.partial().safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid hero image data", details: validation.error });
+      }
+
+      // Validate the image URL security if provided
+      if (validation.data.imageUrl) {
+        const urlValidation = validateImageUrl(validation.data.imageUrl);
+        if (!urlValidation.valid) {
+          return res.status(400).json({ 
+            error: urlValidation.error || "Ungültige Bild-URL" 
+          });
+        }
+      }
+
+      const heroImage = await storage.updateHeroImage(req.params.id, validation.data);
+      res.json(heroImage);
+    } catch (error) {
+      console.error("Error updating hero image:", error);
+      if (error.message === "Hero image not found") {
+        return res.status(404).json({ error: "Hero image not found" });
+      }
+      res.status(500).json({ error: "Failed to update hero image" });
+    }
+  });
+
+  app.delete("/api/hero-images/:id", async (req, res) => {
+    try {
+      await storage.deleteHeroImage(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting hero image:", error);
+      res.status(500).json({ error: "Failed to delete hero image" });
+    }
+  });
+
+  app.put("/api/hero-images/reorder", async (req, res) => {
+    try {
+      const { imageIds } = req.body;
+      if (!Array.isArray(imageIds)) {
+        return res.status(400).json({ error: "imageIds must be an array" });
+      }
+
+      await storage.reorderHeroImages(imageIds);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error reordering hero images:", error);
+      res.status(500).json({ error: "Failed to reorder hero images" });
     }
   });
 

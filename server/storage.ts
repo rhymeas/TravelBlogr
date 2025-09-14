@@ -9,6 +9,8 @@ import {
   InsertTourSettings,
   LocationPing,
   InsertLocationPing,
+  HeroImage,
+  InsertHeroImage,
   RestaurantData 
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -41,6 +43,13 @@ export interface IStorage {
   addLocationPing(ping: InsertLocationPing): Promise<LocationPing>;
   getLatestLocationPing(): Promise<LocationPing | undefined>;
   getLocationPings(limit?: number): Promise<LocationPing[]>;
+
+  // Hero images for homepage slideshow
+  getHeroImages(): Promise<HeroImage[]>;
+  createHeroImage(heroImage: InsertHeroImage): Promise<HeroImage>;
+  updateHeroImage(id: string, heroImage: Partial<InsertHeroImage>): Promise<HeroImage>;
+  deleteHeroImage(id: string): Promise<void>;
+  reorderHeroImages(imageIds: string[]): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -48,6 +57,7 @@ export class MemStorage implements IStorage {
   private locationImages: Map<string, LocationImage>;
   private tripPhotos: Map<string, TripPhoto>;
   private locationPings: Map<string, LocationPing>;
+  private heroImages: Map<string, HeroImage>;
   private tourSettings: TourSettings | undefined;
 
   constructor() {
@@ -55,6 +65,7 @@ export class MemStorage implements IStorage {
     this.locationImages = new Map();
     this.tripPhotos = new Map();
     this.locationPings = new Map();
+    this.heroImages = new Map();
     this.initializeData();
   }
 
@@ -362,6 +373,59 @@ export class MemStorage implements IStorage {
       sessionTimeout: 10080, // 7 days in minutes
       updatedAt: new Date(),
     };
+
+    // Initialize hero images with the existing hardcoded images
+    const defaultHeroImages: InsertHeroImage[] = [
+      {
+        imageUrl: "https://images.unsplash.com/photo-1528190336454-13cd56b45b5a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+        title: "Penticton Wine Country",
+        description: "Naramata Bench Weinberge über dem Okanagan Lake",
+        sortOrder: 0
+      },
+      {
+        imageUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+        title: "Jasper National Park",
+        description: "Maligne Lake mit der berühmten Spirit Island",
+        sortOrder: 1
+      },
+      {
+        imageUrl: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+        title: "Golden Rocky Mountains",
+        description: "Kicking Horse River zwischen majestätischen Gipfeln",
+        sortOrder: 2
+      },
+      {
+        imageUrl: "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+        title: "Vernon - Kalamalka Lake",
+        description: "Das türkisfarbene Juwel des Okanagan Valley",
+        sortOrder: 3
+      },
+      {
+        imageUrl: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+        title: "Wells Gray Provincial Park",
+        description: "Helmcken Falls - 141 Meter spektakulärer Wasserfall",
+        sortOrder: 4
+      },
+      {
+        imageUrl: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+        title: "Sunshine Coast",
+        description: "Powell River & Desolation Sound Marine Park",
+        sortOrder: 5
+      }
+    ];
+
+    // Create hero images
+    defaultHeroImages.forEach(heroImageData => {
+      const id = randomUUID();
+      const heroImage: HeroImage = {
+        ...heroImageData,
+        id,
+        objectPath: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      this.heroImages.set(id, heroImage);
+    });
   }
 
   async getLocations(): Promise<Location[]> {
@@ -566,6 +630,56 @@ export class MemStorage implements IStorage {
       return pings.slice(0, limit);
     }
     return pings;
+  }
+
+  async getHeroImages(): Promise<HeroImage[]> {
+    return Array.from(this.heroImages.values())
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
+  async createHeroImage(heroImage: InsertHeroImage): Promise<HeroImage> {
+    const id = randomUUID();
+    const newHeroImage: HeroImage = {
+      ...heroImage,
+      id,
+      objectPath: heroImage.objectPath || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.heroImages.set(id, newHeroImage);
+    return newHeroImage;
+  }
+
+  async updateHeroImage(id: string, heroImage: Partial<InsertHeroImage>): Promise<HeroImage> {
+    const existing = this.heroImages.get(id);
+    if (!existing) {
+      throw new Error("Hero image not found");
+    }
+    
+    const updated: HeroImage = {
+      ...existing,
+      ...heroImage,
+      updatedAt: new Date(),
+    };
+    this.heroImages.set(id, updated);
+    return updated;
+  }
+
+  async deleteHeroImage(id: string): Promise<void> {
+    this.heroImages.delete(id);
+  }
+
+  async reorderHeroImages(imageIds: string[]): Promise<void> {
+    imageIds.forEach((imageId, index) => {
+      const image = this.heroImages.get(imageId);
+      if (image) {
+        this.heroImages.set(imageId, {
+          ...image,
+          sortOrder: index,
+          updatedAt: new Date(),
+        });
+      }
+    });
   }
 }
 
