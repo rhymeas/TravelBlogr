@@ -1,0 +1,417 @@
+import { 
+  Location, 
+  InsertLocation, 
+  LocationImage, 
+  InsertLocationImage, 
+  TourSettings, 
+  InsertTourSettings,
+  RestaurantData 
+} from "@shared/schema";
+import { randomUUID } from "crypto";
+
+// Interface for storage operations
+export interface IStorage {
+  // Location operations
+  getLocations(): Promise<Location[]>;
+  getLocation(id: string): Promise<Location | undefined>;
+  getLocationBySlug(slug: string): Promise<Location | undefined>;
+  createLocation(location: InsertLocation): Promise<Location>;
+  updateLocation(id: string, location: Partial<InsertLocation>): Promise<Location>;
+  deleteLocation(id: string): Promise<void>;
+
+  // Location images
+  getLocationImages(locationId: string): Promise<LocationImage[]>;
+  addLocationImage(image: InsertLocationImage): Promise<LocationImage>;
+  deleteLocationImage(id: string): Promise<void>;
+  setMainImage(locationId: string, imageId: string): Promise<void>;
+
+  // Tour settings
+  getTourSettings(): Promise<TourSettings | undefined>;
+  updateTourSettings(settings: Partial<InsertTourSettings>): Promise<TourSettings>;
+}
+
+export class MemStorage implements IStorage {
+  private locations: Map<string, Location>;
+  private locationImages: Map<string, LocationImage>;
+  private tourSettings: TourSettings | undefined;
+
+  constructor() {
+    this.locations = new Map();
+    this.locationImages = new Map();
+    this.initializeData();
+  }
+
+  private initializeData() {
+    // Initialize with actual tour data from PDF
+    const initialLocations: InsertLocation[] = [
+      {
+        name: "Penticton",
+        slug: "penticton",
+        startDate: "20.09.2025",
+        endDate: "22.09.2025",
+        description: "Okanagan-Tal Weinreise mit geführten Weintouren, Weingut Burrowing Owl Estate Winery mit Restaurant und Picknick am See.",
+        accommodation: "Penticton Beach House",
+        accommodationPrice: 860,
+        distance: 395,
+        imageUrl: "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+        coordinates: { lat: 49.4949, lng: -119.5937 },
+        activities: [
+          "Weinverkostung im Burrowing Owl Estate Winery",
+          "Geführte Weintour durch mehrere Weingüter", 
+          "Picknick am Okanagan Lake in einem Provinzialpark",
+          "Besuch Kentucky-Alleyne Provincial Park",
+          "Promenade am Okanagan Lake"
+        ],
+        restaurants: [
+          { name: "Summerhill Pyramid Winery Restaurant", description: "Weinkellerei mit Pyramide und Restaurant" },
+          { name: "Burrowing Owl Estate Winery", description: "Weingut mit Restaurant und Weinproben" },
+          { name: "Naramata Bench Weinstraße", description: "Verschiedene Weingüter entlang der Route" }
+        ],
+        experiences: [
+          "Leichte Riesling-Flights und Weinproben",
+          "110 km lange wunderbare Strände am Okanagan Lake",
+          "Geführte Weintouren mit professionellem Guide"
+        ],
+        highlights: ["Weingüter", "Okanagan Lake", "Weinproben"]
+      },
+      {
+        name: "Vernon", 
+        slug: "vernon",
+        startDate: "22.09.2025",
+        endDate: "23.09.2025",
+        description: "Zwischenstopp am Swan Lake mit dem märchenhaften Castle at Swan Lake.",
+        accommodation: "The Castle at Swan Lake",
+        accommodationPrice: 371,
+        distance: 120,
+        imageUrl: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+        coordinates: { lat: 50.2676, lng: -119.2721 },
+        activities: [
+          "Erkundung des Castle at Swan Lake",
+          "Wanderung um den Swan Lake"
+        ],
+        restaurants: [
+          { name: "Castle Restaurant", description: "Restaurant im Castle at Swan Lake" },
+          { name: "Vernon Downtown Bistro", description: "Lokale Küche im Stadtzentrum" }
+        ],
+        experiences: [
+          "Romantischer Aufenthalt im Castle",
+          "Malerische Seenlandschaft"
+        ],
+        highlights: ["Swan Lake", "The Castle"]
+      },
+      {
+        name: "Golden",
+        slug: "golden", 
+        startDate: "23.09.2025",
+        endDate: "27.09.2025",
+        description: "Rocky Mountains mit den berühmten Seen Lake Moraine und Lake Louise, Banff Gondel auf den Sulphur Mountain.",
+        accommodation: "Chalet Ernest Feuz & Cedar House Restaurant",
+        accommodationPrice: 1975,
+        distance: 295,
+        imageUrl: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+        coordinates: { lat: 51.3003, lng: -116.9637 },
+        activities: [
+          "Morgenlicht am Lake Louise (früh besuchen um Menschenmassen zu entgehen)",
+          "Johnston Canyon Catwalk",
+          "Athabasca Falls",
+          "Columbia Icefield Centre",
+          "Peyto Lake Panoramadeck",
+          "Gondelfahrt auf Sulphur Mountain",
+          "Kaffee im Fairmont Chateau Lake Louise",
+          "Banff Gondel auf den Sulphur Mountain",
+          "Revelstoke Railway Museum",
+          "Stopp am Columbia Icefield für eine Gletschertour"
+        ],
+        restaurants: [
+          { name: "Fairmont Chateau Lake Louise", description: "Afternoon Tea mit spektakulärem Bergblick" },
+          { name: "Cedar House Restaurant & Chalets", description: "Alpine Küche am Fluss mit Bergkulisse" },
+          { name: "Banff Avenue Brewhouse", description: "Lokale Brauerei mit kanadischer Küche" }
+        ],
+        experiences: [
+          "Der Icefields Parkway - eine der schönsten Panoramastraßen der Welt",
+          "Gletschertour am Columbia Icefield",
+          "Morgenlicht-Fotografie am Lake Louise"
+        ],
+        highlights: ["Lake Louise", "Banff", "Columbia Icefield", "Gondel"]
+      },
+      {
+        name: "Jasper",
+        slug: "jasper",
+        startDate: "27.09.2025", 
+        endDate: "29.09.2025",
+        description: "Jasper Nationalpark mit Bootsfahrt auf dem Maligne Lake zur Spirit Island und Jasper SkyTram.",
+        accommodation: "Deluxe Blockhütte",
+        accommodationPrice: 2349,
+        distance: 330,
+        imageUrl: "https://images.unsplash.com/photo-1516298773066-c48f8e9bd92b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+        coordinates: { lat: 52.8737, lng: -118.0814 },
+        activities: [
+          "Bootsfahrt auf dem Maligne Lake zur Spirit Island",
+          "Fahrt mit dem Jasper SkyTram für Bergblicke",
+          "Besuch der Athabasca Falls",
+          "Maligne Canyon Wanderung",
+          "Lake Agnes Tea House Trail",
+          "Jasper Yellowhead Museum"
+        ],
+        restaurants: [
+          { name: "Jasper Park Lodge", description: "Fine Dining mit Blick auf den Beauvert Lake" },
+          { name: "The Raven Bistro", description: "Gourmet-Küche mit lokalen Zutaten" },
+          { name: "Earls Jasper", description: "Moderne kanadische Küche in entspannter Atmosphäre" }
+        ],
+        experiences: [
+          "Spirit Island - eines der meistfotografierten Motive Kanadas",
+          "Rogers-Pass-Centre und Meadow-in-the-Sky Drive",
+          "Wildlife Viewing - Bären, Elche und Bergziegen"
+        ],
+        highlights: ["Maligne Lake", "SkyTram", "Spirit Island", "Wildlife"]
+      },
+      {
+        name: "Clearwater",
+        slug: "clearwater",
+        startDate: "29.09.2025",
+        endDate: "01.10.2025", 
+        description: "Wells Gray Park mit spektakulären Wasserfällen - große Anzahl an Wasserfällen zum Entdecken.",
+        accommodation: "Alpine Meadows",
+        accommodationPrice: 731,
+        distance: 360,
+        imageUrl: "https://images.unsplash.com/photo-1568454537842-d933259bb258?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+        coordinates: { lat: 51.6428, lng: -120.0275 },
+        activities: [
+          "Helmcken Falls - spektakulärer Wasserfall",
+          "Triple Decker Falls",
+          "Third Canyon Falls", 
+          "Moul Falls",
+          "Sylvia and Godwin Falls",
+          "Mittags Wildlife-Bootsafari im Blue River-Tal"
+        ],
+        restaurants: [
+          { name: "Alpine Meadows Restaurant", description: "Hausgemachte Gerichte in rustikaler Atmosphäre" },
+          { name: "Wells Gray Inn", description: "Traditionelle kanadische Küche" },
+          { name: "Clearwater Country Inn", description: "Gemütliches Restaurant mit regionalen Spezialitäten" }
+        ],
+        experiences: [
+          "Rivers Safari - sehr bequeme Sitzboote für Wildlife-Beobachtung",
+          "Wasserfälle-Fotografie in Wells Gray Park",
+          "Begegnung mit der unberührten Wildnis"
+        ],
+        highlights: ["Helmcken Falls", "Wells Gray Park", "Wildlife Safari", "Wasserfälle"]
+      },
+      {
+        name: "Lillooet",
+        slug: "lillooet", 
+        startDate: "01.10.2025",
+        endDate: "02.10.2025",
+        description: "Historische Goldgräberstadt mit Stopps am Duffey Lake Lookout und Kaffeepause.",
+        accommodation: "Reynolds Hotel", 
+        accommodationPrice: 346,
+        distance: 400,
+        imageUrl: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+        coordinates: { lat: 50.6866, lng: -121.9346 },
+        activities: [
+          "Duffey Lake Lookout - spektakulärer Aussichtspunkt",
+          "Lillooet Kaffeepause im Stadtzentrum", 
+          "Historische Stadtführung"
+        ],
+        restaurants: [
+          { name: "Reynolds Hotel Restaurant", description: "Historisches Hotel-Restaurant" },
+          { name: "Duffey Lake Café", description: "Gemütliches Café mit lokalen Spezialitäten" },
+          { name: "Lillooet Bakery", description: "Frisches Gebäck und Kaffee" }
+        ],
+        experiences: [
+          "Goldgräber-Geschichte erleben",
+          "Malerische Berglandschaft am Duffey Lake",
+          "Einblick in die First Nations Kultur"
+        ],
+        highlights: ["Duffey Lake", "Geschichte", "Fraser River"]
+      },
+      {
+        name: "Sunshine Coast", 
+        slug: "sunshine-coast",
+        startDate: "02.10.2025",
+        endDate: "06.10.2025",
+        description: "Entspannter Abschluss an der Pazifikküste mit Beachfront Cottage ohne Hund.",
+        accommodation: "Beachfront Cottage",
+        accommodationPrice: 2147,
+        distance: 230,
+        imageUrl: "https://images.unsplash.com/photo-1439066615861-d1af74d74000?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+        coordinates: { lat: 49.6247, lng: -123.9707 },
+        activities: [
+          "Entspannung am Strand",
+          "Spaziergänge entlang der Küste",
+          "Meeresblick vom Cottage genießen",
+          "Gibsons Landing erkunden"
+        ],
+        restaurants: [
+          { name: "The Wharf Restaurant", description: "Meeresfrüchte-Restaurant direkt am Wasser" },
+          { name: "Molly's Lane Café", description: "Gemütliches Café mit Aussicht auf den Pazifik" },
+          { name: "Coast Restaurant", description: "Fine Dining mit Fokus auf lokale Meeresfrüchte" }
+        ],
+        experiences: [
+          "Sonnenuntergang über dem Pazifik",
+          "Entspannung nach der intensiven Reise",
+          "Abschied von der kanadischen Wildnis"
+        ],
+        highlights: ["Pazifik", "Strand", "Entspannung", "Cottage"]
+      }
+    ];
+
+    // Create locations
+    initialLocations.forEach(location => {
+      const id = randomUUID();
+      const newLocation: Location = {
+        ...location,
+        id,
+        accommodation: location.accommodation || null,
+        accommodationPrice: location.accommodationPrice || null,
+        accommodationCurrency: location.accommodationCurrency || null,
+        distance: location.distance || null,
+        imageUrl: location.imageUrl || null,
+        coordinates: location.coordinates || null,
+        activities: location.activities ? [...location.activities] : null,
+        restaurants: location.restaurants ? [...location.restaurants] : null,
+        experiences: location.experiences ? [...location.experiences] : null,
+        highlights: location.highlights ? [...location.highlights] : null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      this.locations.set(id, newLocation);
+    });
+
+    // Initialize tour settings
+    this.tourSettings = {
+      id: randomUUID(),
+      tourName: "Weinberg Tour 2025",
+      startDate: "20.09.2025",
+      endDate: "06.10.2025", 
+      totalDistance: 2130,
+      totalCost: 8779,
+      currency: "CAD",
+      heroImageUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080",
+      description: "Entdecke die atemberaubende Schönheit Kanadas - von den Weinbergen des Okanagan-Tals bis zu den majestätischen Rocky Mountains",
+      updatedAt: new Date(),
+    };
+  }
+
+  async getLocations(): Promise<Location[]> {
+    return Array.from(this.locations.values()).sort((a, b) => 
+      new Date(a.startDate.split('.').reverse().join('-')).getTime() - 
+      new Date(b.startDate.split('.').reverse().join('-')).getTime()
+    );
+  }
+
+  async getLocation(id: string): Promise<Location | undefined> {
+    return this.locations.get(id);
+  }
+
+  async getLocationBySlug(slug: string): Promise<Location | undefined> {
+    return Array.from(this.locations.values()).find(loc => loc.slug === slug);
+  }
+
+  async createLocation(location: InsertLocation): Promise<Location> {
+    const id = randomUUID();
+    const newLocation: Location = {
+      ...location,
+      id,
+      accommodation: location.accommodation || null,
+      accommodationPrice: location.accommodationPrice || null,
+      accommodationCurrency: location.accommodationCurrency || null,
+      distance: location.distance || null,
+      imageUrl: location.imageUrl || null,
+      coordinates: location.coordinates || null,
+      activities: location.activities ? [...location.activities] : null,
+      restaurants: location.restaurants ? [...location.restaurants] : null,
+      experiences: location.experiences ? [...location.experiences] : null,
+      highlights: location.highlights ? [...location.highlights] : null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.locations.set(id, newLocation);
+    return newLocation;
+  }
+
+  async updateLocation(id: string, location: Partial<InsertLocation>): Promise<Location> {
+    const existing = this.locations.get(id);
+    if (!existing) {
+      throw new Error("Location not found");
+    }
+    
+    const updated: Location = {
+      ...existing,
+      ...location,
+      updatedAt: new Date(),
+    };
+    this.locations.set(id, updated);
+    return updated;
+  }
+
+  async deleteLocation(id: string): Promise<void> {
+    this.locations.delete(id);
+    // Also delete related images
+    const imagesToDelete = Array.from(this.locationImages.values())
+      .filter(img => img.locationId === id);
+    imagesToDelete.forEach(img => this.locationImages.delete(img.id));
+  }
+
+  async getLocationImages(locationId: string): Promise<LocationImage[]> {
+    return Array.from(this.locationImages.values())
+      .filter(img => img.locationId === locationId)
+      .sort((a, b) => b.isMain ? 1 : -1);
+  }
+
+  async addLocationImage(image: InsertLocationImage): Promise<LocationImage> {
+    const id = randomUUID();
+    const newImage: LocationImage = {
+      ...image,
+      id,
+      caption: image.caption || null,
+      isMain: image.isMain || null,
+      objectPath: image.objectPath || null,
+      createdAt: new Date(),
+    };
+    this.locationImages.set(id, newImage);
+    return newImage;
+  }
+
+  async deleteLocationImage(id: string): Promise<void> {
+    this.locationImages.delete(id);
+  }
+
+  async setMainImage(locationId: string, imageId: string): Promise<void> {
+    // Set all images for location to not main
+    Array.from(this.locationImages.values())
+      .filter(img => img.locationId === locationId)
+      .forEach(img => {
+        this.locationImages.set(img.id, { ...img, isMain: false });
+      });
+    
+    // Set specified image as main
+    const image = this.locationImages.get(imageId);
+    if (image) {
+      this.locationImages.set(imageId, { ...image, isMain: true });
+    }
+  }
+
+  async getTourSettings(): Promise<TourSettings | undefined> {
+    return this.tourSettings;
+  }
+
+  async updateTourSettings(settings: Partial<InsertTourSettings>): Promise<TourSettings> {
+    if (!this.tourSettings) {
+      const id = randomUUID();
+      this.tourSettings = {
+        ...settings,
+        id,
+        updatedAt: new Date(),
+      } as TourSettings;
+    } else {
+      this.tourSettings = {
+        ...this.tourSettings,
+        ...settings,
+        updatedAt: new Date(),
+      };
+    }
+    return this.tourSettings;
+  }
+}
+
+export const storage = new MemStorage();
