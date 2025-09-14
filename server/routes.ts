@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
-import { insertLocationSchema, insertLocationImageSchema, insertTourSettingsSchema } from "@shared/schema";
+import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -115,6 +115,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error setting main image:", error);
       res.status(500).json({ error: "Failed to set main image" });
+    }
+  });
+
+  // Trip photos routes
+  app.get("/api/locations/:locationId/trip-photos", async (req, res) => {
+    try {
+      const tripPhotos = await storage.getTripPhotos(req.params.locationId);
+      res.json(tripPhotos);
+    } catch (error) {
+      console.error("Error fetching trip photos:", error);
+      res.status(500).json({ error: "Failed to fetch trip photos" });
+    }
+  });
+
+  app.post("/api/locations/:locationId/trip-photos", async (req, res) => {
+    try {
+      const tripPhotoData = { ...req.body, locationId: req.params.locationId };
+      const validation = insertTripPhotoSchema.safeParse(tripPhotoData);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid trip photo data", details: validation.error });
+      }
+
+      const tripPhoto = await storage.addTripPhoto(validation.data);
+      res.status(201).json(tripPhoto);
+    } catch (error) {
+      console.error("Error adding trip photo:", error);
+      res.status(500).json({ error: "Failed to add trip photo" });
     }
   });
 

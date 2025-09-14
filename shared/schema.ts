@@ -39,6 +39,17 @@ export const locationImages = pgTable("location_images", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Trip photos for live feed during tour
+export const tripPhotos = pgTable("trip_photos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  locationId: varchar("location_id").references(() => locations.id).notNull(),
+  imageUrl: text("image_url").notNull(),
+  caption: text("caption"),
+  objectPath: text("object_path"), // for object storage
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+  uploadedBy: text("uploaded_by"), // optional field for user identification
+});
+
 // Tour settings for general configuration
 export const tourSettings = pgTable("tour_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -74,6 +85,11 @@ export const insertLocationImageSchema = createInsertSchema(locationImages).omit
   createdAt: true,
 });
 
+export const insertTripPhotoSchema = createInsertSchema(tripPhotos).omit({
+  id: true,
+  uploadedAt: true,
+});
+
 export const insertTourSettingsSchema = createInsertSchema(tourSettings).omit({
   id: true,
   updatedAt: true,
@@ -83,5 +99,7 @@ export type Location = typeof locations.$inferSelect;
 export type InsertLocation = z.infer<typeof insertLocationSchema>;
 export type LocationImage = typeof locationImages.$inferSelect;
 export type InsertLocationImage = z.infer<typeof insertLocationImageSchema>;
+export type TripPhoto = typeof tripPhotos.$inferSelect;
+export type InsertTripPhoto = z.infer<typeof insertTripPhotoSchema>;
 export type TourSettings = typeof tourSettings.$inferSelect;
 export type InsertTourSettings = z.infer<typeof insertTourSettingsSchema>;

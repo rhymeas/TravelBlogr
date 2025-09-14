@@ -3,6 +3,8 @@ import {
   InsertLocation, 
   LocationImage, 
   InsertLocationImage, 
+  TripPhoto,
+  InsertTripPhoto,
   TourSettings, 
   InsertTourSettings,
   RestaurantData 
@@ -25,6 +27,10 @@ export interface IStorage {
   deleteLocationImage(id: string): Promise<void>;
   setMainImage(locationId: string, imageId: string): Promise<void>;
 
+  // Trip photos
+  getTripPhotos(locationId: string): Promise<TripPhoto[]>;
+  addTripPhoto(tripPhoto: InsertTripPhoto): Promise<TripPhoto>;
+
   // Tour settings
   getTourSettings(): Promise<TourSettings | undefined>;
   updateTourSettings(settings: Partial<InsertTourSettings>): Promise<TourSettings>;
@@ -33,11 +39,13 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private locations: Map<string, Location>;
   private locationImages: Map<string, LocationImage>;
+  private tripPhotos: Map<string, TripPhoto>;
   private tourSettings: TourSettings | undefined;
 
   constructor() {
     this.locations = new Map();
     this.locationImages = new Map();
+    this.tripPhotos = new Map();
     this.initializeData();
   }
 
@@ -458,6 +466,30 @@ export class MemStorage implements IStorage {
     if (image) {
       this.locationImages.set(imageId, { ...image, isMain: true });
     }
+  }
+
+  async getTripPhotos(locationId: string): Promise<TripPhoto[]> {
+    return Array.from(this.tripPhotos.values())
+      .filter(photo => photo.locationId === locationId)
+      .sort((a, b) => {
+        const dateA = a.uploadedAt ? new Date(a.uploadedAt).getTime() : 0;
+        const dateB = b.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
+        return dateB - dateA;
+      });
+  }
+
+  async addTripPhoto(tripPhoto: InsertTripPhoto): Promise<TripPhoto> {
+    const id = randomUUID();
+    const newTripPhoto: TripPhoto = {
+      ...tripPhoto,
+      id,
+      caption: tripPhoto.caption || null,
+      objectPath: tripPhoto.objectPath || null,
+      uploadedBy: tripPhoto.uploadedBy || null,
+      uploadedAt: new Date(),
+    };
+    this.tripPhotos.set(id, newTripPhoto);
+    return newTripPhoto;
   }
 
   async getTourSettings(): Promise<TourSettings | undefined> {

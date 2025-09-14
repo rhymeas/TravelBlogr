@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ImageGallery } from "@/components/ImageGallery";
+import { LiveTripFeed } from "@/components/LiveTripFeed";
 import type { Location } from "@shared/schema";
 
 export default function LocationDetail() {
@@ -389,6 +390,12 @@ export default function LocationDetail() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Live Trip Feed */}
+            <LiveTripFeed 
+              locationId={location.id} 
+              locationName={location.name}
+            />
 
             {/* Edit Button */}
             <Link href="/admin">
