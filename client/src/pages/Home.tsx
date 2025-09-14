@@ -74,7 +74,7 @@ export default function Home() {
                 Orte
               </button>
               <Link href="/admin">
-                <Button data-testid="nav-admin">Admin</Button>
+                <Button data-testid="nav-admin">Editieren</Button>
               </Link>
             </div>
 
@@ -123,7 +123,7 @@ export default function Home() {
                 Orte
               </button>
               <Link href="/admin" className="block">
-                <Button className="w-full" data-testid="mobile-nav-admin">Admin</Button>
+                <Button className="w-full" data-testid="mobile-nav-admin">Editieren</Button>
               </Link>
             </nav>
           </div>
