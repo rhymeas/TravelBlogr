@@ -135,7 +135,7 @@ export default function Timeline({ locations }: TimelineProps) {
           <div 
             key={location.id} 
             className={`relative ${
-              index > 0 ? 'md:-mt-72 lg:-mt-80 xl:-mt-96' : ''
+              index > 0 ? 'md:-mt-[438px] lg:-mt-[470px] xl:-mt-[534px]' : ''
             }`}
             data-testid={`timeline-item-${location.slug}`}>
             {/* Timeline marker */}
