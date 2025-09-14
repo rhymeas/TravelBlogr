@@ -53,7 +53,7 @@ export class MemStorage implements IStorage {
         accommodation: "Penticton Beach House",
         accommodationPrice: 860,
         distance: 395,
-        imageUrl: "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+        imageUrl: "https://plus.unsplash.com/premium_photo-1754211686859-913f71e422e1?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         coordinates: { lat: 49.4949, lng: -119.5937 },
         activities: [
           "Weinverkostung im Burrowing Owl Estate Winery",
@@ -83,7 +83,7 @@ export class MemStorage implements IStorage {
         accommodation: "The Castle at Swan Lake",
         accommodationPrice: 371,
         distance: 120,
-        imageUrl: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+        imageUrl: "https://images.unsplash.com/photo-1755331039789-7e5680e26e8f?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         coordinates: { lat: 50.2676, lng: -119.2721 },
         activities: [
           "Erkundung des Castle at Swan Lake",
@@ -118,7 +118,7 @@ export class MemStorage implements IStorage {
         accommodation: "Chalet Ernest Feuz & Cedar House Restaurant",
         accommodationPrice: 1975,
         distance: 295,
-        imageUrl: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+        imageUrl: "https://images.unsplash.com/photo-1590100958871-a8d13c35ac33?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         coordinates: { lat: 51.3003, lng: -116.9637 },
         activities: [
           "Morgenlicht am Lake Louise (früh besuchen um Menschenmassen zu entgehen)",
@@ -153,7 +153,7 @@ export class MemStorage implements IStorage {
         accommodation: "Deluxe Blockhütte",
         accommodationPrice: 2349,
         distance: 330,
-        imageUrl: "https://images.unsplash.com/photo-1516298773066-c48f8e9bd92b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+        imageUrl: "https://images.unsplash.com/photo-1587381419916-78fc843a36f8?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         coordinates: { lat: 52.8737, lng: -118.0814 },
         activities: [
           "Bootsfahrt auf dem Maligne Lake zur Spirit Island",
@@ -184,7 +184,7 @@ export class MemStorage implements IStorage {
         accommodation: "Alpine Meadows",
         accommodationPrice: 731,
         distance: 360,
-        imageUrl: "https://images.unsplash.com/photo-1568454537842-d933259bb258?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+        imageUrl: "https://images.unsplash.com/photo-1625458647696-75b52c2e7483?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         coordinates: { lat: 51.6428, lng: -120.0275 },
         activities: [
           "Helmcken Falls - spektakulärer Wasserfall",
@@ -215,7 +215,7 @@ export class MemStorage implements IStorage {
         accommodation: "Reynolds Hotel", 
         accommodationPrice: 346,
         distance: 400,
-        imageUrl: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+        imageUrl: "https://images.unsplash.com/photo-1636569878287-48d4d61c0cb2?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         coordinates: { lat: 50.6866, lng: -121.9346 },
         activities: [
           "Duffey Lake Lookout - spektakulärer Aussichtspunkt",
@@ -243,7 +243,7 @@ export class MemStorage implements IStorage {
         accommodation: "Beachfront Cottage",
         accommodationPrice: 2147,
         distance: 230,
-        imageUrl: "https://images.unsplash.com/photo-1439066615861-d1af74d74000?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+        imageUrl: "https://images.unsplash.com/photo-1602175439588-55b44e8a6719?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         coordinates: { lat: 49.6247, lng: -123.9707 },
         activities: [
           "Entspannung am Strand",
