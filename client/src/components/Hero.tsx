@@ -78,14 +78,14 @@ export default function Hero({ tourSettings }: HeroProps) {
   // Show loading state if hero images are loading
   if (heroImagesLoading) {
     return (
-      <section className="min-h-[75vh] relative overflow-hidden pt-12 flex items-center justify-center" data-testid="hero-loading">
+      <section className="h-auto md:min-h-[75vh] relative overflow-hidden pt-8 md:pt-12 flex items-center justify-center" data-testid="hero-loading">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </section>
     );
   }
 
   return (
-    <section className="min-h-[75vh] relative overflow-hidden pt-12" data-testid="hero-section">
+    <section className="h-auto md:min-h-[75vh] relative overflow-hidden pt-8 md:pt-12" data-testid="hero-section">
       {/* Background Image Slideshow */}
       <div className="absolute inset-0">
         {heroImages.map((image, index) => (
@@ -108,53 +108,53 @@ export default function Hero({ tourSettings }: HeroProps) {
         ))}
       </div>
 
-      {/* Navigation Controls */}
+      {/* Navigation Controls - Hidden on mobile */}
       <button
         onClick={prevImage}
-        className="absolute left-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/20 hover:bg-white/30 text-white p-2 rounded-full transition-all"
+        className="hidden sm:flex absolute left-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/20 hover:bg-white/30 text-white p-2 rounded-full transition-all items-center justify-center"
         data-testid="hero-prev-button"
       >
         <ArrowLeft className="w-6 h-6" />
       </button>
       <button
         onClick={nextImage}
-        className="absolute right-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/20 hover:bg-white/30 text-white p-2 rounded-full transition-all"
+        className="hidden sm:flex absolute right-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/20 hover:bg-white/30 text-white p-2 rounded-full transition-all items-center justify-center"
         data-testid="hero-next-button"
       >
         <ArrowRight className="w-6 h-6" />
       </button>
 
       {/* Content */}
-      <div className="relative z-10 text-center px-4 max-w-5xl mx-auto flex items-center justify-center min-h-[75vh]">
+      <div className="relative z-10 text-center px-4 max-w-5xl mx-auto flex items-center justify-center min-h-0 md:min-h-[75vh] py-8 md:py-0 pb-24 md:pb-0">
         <div className="animate-fade-in">
           <div className="mb-4">
             <span className="inline-block bg-primary/20 text-white px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm border border-white/20">
               {heroImages[currentImage].title}
             </span>
           </div>
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6" data-testid="hero-title">
+          <h1 className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-4 md:mb-6" data-testid="hero-title">
             <span className="block">
               {tourSettings?.tourName?.split(' ').slice(0, -1).join(' ') || 'Weinberg'}
             </span>
-            <span className="block text-4xl md:text-6xl lg:text-7xl font-light text-primary">
+            <span className="block text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-light text-primary">
               {tourSettings?.tourName?.split(' ').slice(-1)[0] || 'Tour 2025'}
             </span>
           </h1>
-          <p className="text-xl md:text-2xl text-white/90 mb-4 max-w-3xl mx-auto font-light" data-testid="hero-description">
+          <p className="text-base sm:text-lg md:text-2xl text-white/90 mb-3 md:mb-4 max-w-3xl mx-auto font-light" data-testid="hero-description">
             {tourSettings?.description || 'Reiseführer für das kanadische Weinland-Abenteuer durch British Columbia'}
           </p>
-          <p className="text-lg text-white/70 mb-8" data-testid="hero-location-description">
+          <p className="text-sm sm:text-base md:text-lg text-white/70 mb-6 md:mb-8" data-testid="hero-location-description">
             {heroImages[currentImage].description}
           </p>
           <div className="flex flex-col gap-6 justify-center items-center">
             <Button
               onClick={scrollToTimeline}
-              className="bg-primary text-white px-10 py-4 text-lg font-semibold hover:bg-primary/90 transition-all shadow-xl backdrop-blur-sm border border-white/10"
+              className="bg-primary text-white px-8 py-3 text-base sm:text-lg font-semibold hover:bg-primary/90 transition-all shadow-xl backdrop-blur-sm border border-white/10"
               data-testid="hero-cta-button"
             >
               Reiseplan ansehen
             </Button>
-            <div className="text-white text-xl font-bold bg-primary/20 px-8 py-4 rounded-lg backdrop-blur-sm border border-white/20 shadow-lg" data-testid="hero-dates">
+            <div className="text-white text-base sm:text-lg md:text-xl font-bold bg-primary/20 px-6 py-3 md:px-8 md:py-4 rounded-lg backdrop-blur-sm border border-white/20 shadow-lg" data-testid="hero-dates">
               {tourSettings?.startDate || '20. September'} - {tourSettings?.endDate || '6. Oktober 2025'}
             </div>
           </div>
@@ -162,7 +162,7 @@ export default function Hero({ tourSettings }: HeroProps) {
       </div>
 
       {/* Image Indicators */}
-      <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2" data-testid="hero-indicators">
+      <div className="absolute bottom-6 sm:bottom-20 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2" data-testid="hero-indicators">
         {heroImages.map((_, index) => (
           <button
             key={index}
@@ -175,8 +175,8 @@ export default function Hero({ tourSettings }: HeroProps) {
         ))}
       </div>
         
-      {/* Animated scroll indicator */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 animate-float z-20" data-testid="scroll-indicator">
+      {/* Animated scroll indicator - Hidden on mobile */}
+      <div className="hidden sm:block absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 animate-float z-20" data-testid="scroll-indicator">
         <ChevronDown className="w-8 h-8 text-white/80" />
       </div>
     </section>
