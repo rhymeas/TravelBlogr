@@ -304,35 +304,91 @@ export default function LocationDetail() {
               </Card>
             )}
 
-            {/* Fun Facts Section */}
-            {((location as any).funFacts && (location as any).funFacts.length > 0) || location.slug === 'penticton' && (
-              <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200" data-testid="location-fun-facts">
-                <CardContent className="pt-6">
-                  <h3 className="font-bold text-foreground mb-4 flex items-center">
-                    🎯 <span className="ml-2">Wussten Sie schon?</span>
-                  </h3>
-                  <div className="space-y-3">
-                    {(location as any).funFacts?.length > 0 ? (location as any).funFacts.map((fact: string, index: number) => (
+            {/* Fun Facts Section - Now for ALL locations */}
+            <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200" data-testid="location-fun-facts">
+              <CardContent className="pt-6">
+                <h3 className="font-bold text-foreground mb-4 flex items-center">
+                  🎯 <span className="ml-2">Wussten Sie schon?</span>
+                </h3>
+                <div className="space-y-3">
+                  {(location as any).funFacts?.length > 0 ? (location as any).funFacts.map((fact: string, index: number) => (
+                    <div key={index} className="flex items-start bg-white/60 rounded-lg p-3 border border-amber-100" data-testid={`fun-fact-${index}`}>
+                      <span className="text-amber-600 font-bold mr-3 mt-0.5">•</span>
+                      <p className="text-sm text-foreground leading-relaxed">{fact}</p>
+                    </div>
+                  )) : (() => {
+                    // Default fun facts based on location slug
+                    const getDefaultFunFacts = (slug: string) => {
+                      switch (slug) {
+                        case 'penticton':
+                          return [
+                            '"Penticton" bedeutet auf der ursprünglichen Okanagan-Sprache "ein Ort, um für immer zu bleiben" - bezogen auf die Wasserwege zwischen Okanagan und Skaha Lake.',
+                            'Das südliche Okanagan ist Teil der nördlichsten Spitze der Sonoran-Wüste, die sich 3.000 Meilen bis nach Mexiko erstreckt.',
+                            'Die Region erhält bis zu 2.000 Sonnenstunden pro Jahr und 14 Stunden direktes Sonnenlicht täglich im Sommer - mehr als die Weinberge in Kalifornien.',
+                            'Der erste Weinberg wurde 1859 von einem französischen katholischen Priester namens Charles Pandosy angelegt - ausschließlich für Messwein.',
+                            'Bären sind ein großes Problem in den Weinbergen - sie essen nicht nur die Trauben, sondern reißen ganze Rebstöcke mitsamt den Wurzeln heraus!'
+                          ];
+                        case 'vernon':
+                          return [
+                            'Vernons ursprünglicher indigener Name war "Nintle-Moos-Chin", was "über den Bach springen" bedeutet - die Ufer des BX Creek waren so nah, dass Menschen wortwörtlich darüber springen konnten.',
+                            'Vernon veranstaltet Westkanadas größten Winterkarneval und ist der zweitgrößte in ganz Nordamerika!',
+                            'Die Vernon Vipers gewannen den Royal Bank Cup sechs Mal, einschließlich aufeinanderfolgender Siege 2009 und 2010.',
+                            'Vernons Flagge wurde von kanadischen Soldaten in Afghanistan gehisst, bevor sie 2010 offiziell angenommen wurde.',
+                            'Die Stadt hat 28 historische Wandgemälde im Stadtzentrum, die ihre Geschichte darstellen.'
+                          ];
+                        case 'jasper':
+                          return [
+                            'Jasper ist der größte Nationalpark in den kanadischen Rocky Mountains und gehört zum UNESCO-Weltkulturerbe.',
+                            'Der Park ist ein Dark Sky Reserve - einer der besten Orte, um Sterne und Nordlichter in den kanadischen Rockies zu sehen.',
+                            'Jasper beherbergt Tausende von einheimischen Tieren, darunter Maultierhirsche, Dickhornschafe, Karibus, Luchse und Pumas.',
+                            'Die berühmte Maligne Lake und Spirit Island gehören zu den meistfotografierten Orten Kanadas.',
+                            'Der Park bietet ganzjährig Outdoor-Aktivitäten von Rafting und Wandern bis hin zu Skifahren und Camping.'
+                          ];
+                        case 'golden':
+                          return [
+                            'Golden ist berühmt für Wildwasser-Rafting am Kicking Horse River - einer der Top-Rafting-Destinationen in den kanadischen Rockies.',
+                            'Die strategische Lage macht es zum perfekten Stopp auf dem Trans-Canada Highway zwischen den Rockies und dem Inneren von BC.',
+                            'Golden ist ein beliebter Ausgangspunkt für die Erkundung sowohl des Yoho National Parks als auch des Glacier National Parks.',
+                            'Die Stadt liegt auf 1.024 Metern über dem Meeresspiegel im Columbia River Valley.',
+                            'Golden bietet Zugang zu über 300 Kilometern Mountainbike-Strecken und gilt als Mekka für Outdoor-Enthusiasten.'
+                          ];
+                        case 'wells-gray':
+                          return [
+                            'Wells Gray ist als "Kanadas Wasserfall-Park" bekannt - der berühmteste Park für Wasserfälle in der Region.',
+                            'Die Helmcken Falls stürzen beeindruckende 140 Meter in einen Abgrund und frieren im Winter zu einem Eisturm.',
+                            'Der Park wurde 1939 über 541.000 Hektar gegründet und ist der viertgrößte Provinzpark in BC.',
+                            'Schwarzbären werden häufig im Mai und Juni beim Fressen neuer Triebe gesehen.',
+                            'Clearwater Lake Touren bietet Wildtier-Kreuzfahrten, bei denen man Karibus und Hirsche beim Schwimmen über den See sehen kann!'
+                          ];
+                        case 'sunshine-coast':
+                          return [
+                            'Obwohl sie auf dem Festland liegt, ist die Sunshine Coast nur mit der Fähre erreichbar - was ihr ein Inselgefühl verleiht.',
+                            'Die Region ist eine weniger touristische Alternative zu anderen Küstenzielen und bietet ein authentischeres Küsten-BC-Erlebnis.',
+                            'Die Sunshine Coast erstreckt sich über 180 Kilometer entlang der Pazifikküste nordwestlich von Vancouver.',
+                            'Powell River ist bekannt als "Dive Capital of Canada" mit über 40 Schiffswracks zum Erkunden.',
+                            'Das Gebiet bietet perfekte Outdoor-Abenteuer ohne die Menschenmengen berühmterer Ziele.'
+                          ];
+                        default:
+                          return [
+                            'Diese wunderschöne kanadische Destination bietet atemberaubende Landschaften und einzigartige Erlebnisse.',
+                            'British Columbia ist bekannt für seine vielfältige Natur von Weinregionen bis zu alpinen Gipfeln.',
+                            'Die Region ist ein Paradies für Outdoor-Enthusiasten und Naturliebhaber.',
+                            'Jede Destination auf unserer Reise wurde sorgfältig für ihre besonderen Eigenschaften ausgewählt.',
+                            'Kanada bietet einige der spektakulärsten Landschaften der Welt.'
+                          ];
+                      }
+                    };
+                    
+                    return getDefaultFunFacts(location.slug).map((fact, index) => (
                       <div key={index} className="flex items-start bg-white/60 rounded-lg p-3 border border-amber-100" data-testid={`fun-fact-${index}`}>
                         <span className="text-amber-600 font-bold mr-3 mt-0.5">•</span>
                         <p className="text-sm text-foreground leading-relaxed">{fact}</p>
                       </div>
-                    )) : location.slug === 'penticton' ? [
-                      '"Penticton" bedeutet auf der ursprünglichen Okanagan-Sprache "ein Ort, um für immer zu bleiben" - bezogen auf die Wasserwege zwischen Okanagan und Skaha Lake.',
-                      'Das südliche Okanagan ist Teil der nördlichsten Spitze der Sonoran-Wüste, die sich 3.000 Meilen bis nach Mexiko erstreckt.',
-                      'Die Region erhält bis zu 2.000 Sonnenstunden pro Jahr und 14 Stunden direktes Sonnenlicht täglich im Sommer - mehr als die Weinberge in Kalifornien.',
-                      'Der erste Weinberg wurde 1859 von einem französischen katholischen Priester namens Charles Pandosy angelegt - ausschließlich für Messwein.',
-                      'Bären sind ein großes Problem in den Weinbergen - sie essen nicht nur die Trauben, sondern reißen ganze Rebstöcke mitsamt den Wurzeln heraus!'
-                    ].map((fact, index) => (
-                      <div key={index} className="flex items-start bg-white/60 rounded-lg p-3 border border-amber-100" data-testid={`fun-fact-${index}`}>
-                        <span className="text-amber-600 font-bold mr-3 mt-0.5">•</span>
-                        <p className="text-sm text-foreground leading-relaxed">{fact}</p>
-                      </div>
-                    )) : null}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                    ));
+                  })()}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Edit Button */}
             <Link href="/admin">

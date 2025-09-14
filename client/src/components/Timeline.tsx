@@ -29,7 +29,7 @@ export default function Timeline({ locations }: TimelineProps) {
       {/* Timeline line - extends full height with strong visibility */}
       <div className="hidden md:block absolute left-1/2 top-0 h-full w-1 bg-primary transform -translate-x-1/2 shadow-md"></div>
       
-      <div className="space-y-12">
+      <div className="space-y-4">
         {locations.map((location, index) => (
           <div key={location.id} className="relative" data-testid={`timeline-item-${location.slug}`}>
             {/* Timeline marker */}
@@ -37,7 +37,7 @@ export default function Timeline({ locations }: TimelineProps) {
             
             {/* Card positioned alternating left/right - now clickable */}
             <div className={`flex ${index % 2 === 0 ? 'md:justify-start' : 'md:justify-end'}`}>
-              <Link href={`/location/${location.slug}`} className="w-full md:w-5/12 lg:w-2/5">
+              <Link href={`/location/${location.slug}`} className="w-full md:w-7/12 lg:w-1/2">
                 <Card className={`w-full bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-[1.02] ${index % 2 === 0 ? 'md:mr-auto' : 'md:ml-auto'}`}>
                 {/* Header with location name and date */}
                 <div className="flex items-center justify-between p-6 pb-4">
