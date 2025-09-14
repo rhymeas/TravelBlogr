@@ -4,6 +4,7 @@ import { ArrowLeft, MapPin, Calendar, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ImageGallery } from "@/components/ImageGallery";
 import type { Location } from "@shared/schema";
 
 export default function LocationDetail() {
@@ -87,6 +88,12 @@ export default function LocationDetail() {
                 />
               </div>
             )}
+
+            {/* Image Gallery */}
+            <ImageGallery 
+              locationId={location.id} 
+              isAdmin={false}
+            />
 
             {/* Description */}
             <Card data-testid="location-description">

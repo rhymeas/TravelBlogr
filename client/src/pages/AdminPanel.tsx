@@ -10,10 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { ObjectUploader } from "@/components/ObjectUploader";
+import { ImageGallery } from "@/components/ImageGallery";
 import AdminLocationForm from "@/components/AdminLocationForm";
 import type { Location, TourSettings } from "@shared/schema";
-import type { UploadResult } from "@uppy/core";
 
 export default function AdminPanel() {
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
@@ -69,40 +68,6 @@ export default function AdminPanel() {
     },
   });
 
-  const handleGetUploadParameters = async () => {
-    const response = await fetch("/api/objects/upload", { method: "POST" });
-    const data = await response.json();
-    return {
-      method: "PUT" as const,
-      url: data.uploadURL,
-    };
-  };
-
-  const handleImageUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-    if (result.successful.length > 0 && selectedLocation) {
-      const uploadedFile = result.successful[0];
-      try {
-        await apiRequest("PUT", "/api/location-images", {
-          imageURL: uploadedFile.uploadURL,
-          locationId: selectedLocation.id,
-          caption: `Bild für ${selectedLocation.name}`,
-          isMain: false,
-        });
-        
-        queryClient.invalidateQueries({ queryKey: ["/api/locations"] });
-        toast({
-          title: "Erfolg",
-          description: "Bild wurde erfolgreich hochgeladen",
-        });
-      } catch (error) {
-        toast({
-          title: "Fehler",
-          description: "Fehler beim Speichern des Bildes",
-          variant: "destructive",
-        });
-      }
-    }
-  };
 
   if (locationsLoading || settingsLoading) {
     return (
@@ -269,45 +234,35 @@ export default function AdminPanel() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Image Upload */}
-            <Card data-testid="image-upload-card">
-              <CardHeader>
-                <CardTitle>Bilder verwalten</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="location-select">Ort auswählen</Label>
-                  <Select onValueChange={(value) => {
-                    const location = locations?.find(l => l.id === value);
-                    setSelectedLocation(location || null);
-                  }}>
-                    <SelectTrigger data-testid="select-location">
-                      <SelectValue placeholder="Ort auswählen..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locations?.map((location) => (
-                        <SelectItem key={location.id} value={location.id}>
-                          {location.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                {selectedLocation && (
-                  <ObjectUploader
-                    maxNumberOfFiles={5}
-                    maxFileSize={10485760}
-                    onGetUploadParameters={handleGetUploadParameters}
-                    onComplete={handleImageUploadComplete}
-                    buttonClassName="w-full"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Bilder hochladen
-                  </ObjectUploader>
-                )}
-              </CardContent>
-            </Card>
+            {/* Image Gallery Management */}
+            <div>
+              <div className="mb-4">
+                <Label htmlFor="location-select">Ort für Bilderverwaltung auswählen</Label>
+                <Select onValueChange={(value) => {
+                  const location = locations?.find(l => l.id === value);
+                  setSelectedLocation(location || null);
+                }}>
+                  <SelectTrigger data-testid="select-location">
+                    <SelectValue placeholder="Ort auswählen..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {locations?.map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {selectedLocation && (
+                <ImageGallery 
+                  locationId={selectedLocation.id} 
+                  isAdmin={true}
+                  className="mt-4"
+                />
+              )}
+            </div>
 
             {/* Quick Actions */}
             <Card data-testid="quick-actions-card">
