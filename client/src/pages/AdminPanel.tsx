@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { ArrowLeft, Plus, Edit, Trash2, Upload, Lock, Eye, EyeOff, Hotel, UtensilsCrossed, AlertCircle, Star, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Upload, Lock, Eye, EyeOff, Hotel, UtensilsCrossed, AlertCircle, Star, ChevronDown, ChevronUp, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
