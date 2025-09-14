@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ImageGallery } from "@/components/ImageGallery";
 import Header from "@/components/Header";
+import { calculateNights, formatNights } from "@/lib/utils";
 import type { Location } from "@shared/schema";
 
 export default function LocationDetail() {
@@ -231,7 +232,7 @@ export default function LocationDetail() {
                     <div className="space-y-2 text-sm text-muted-foreground">
                       <div className="flex items-center">
                         <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
-                        2 Nächte Aufenthalt
+                        {formatNights(calculateNights(location.startDate, location.endDate))} Aufenthalt
                       </div>
                       <div className="flex items-center">
                         <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
