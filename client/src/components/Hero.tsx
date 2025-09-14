@@ -122,7 +122,7 @@ export default function Hero({ tourSettings }: HeroProps) {
             </span>
           </h1>
           <p className="text-xl md:text-2xl text-white/90 mb-4 max-w-3xl mx-auto font-light" data-testid="hero-description">
-            {tourSettings?.description || 'Entdecke die atemberaubende Schönheit Kanadas - von den Weinbergen des Okanagan-Tals bis zu den majestätischen Rocky Mountains'}
+            {tourSettings?.description || 'Reiseführer für das kanadische Weinland-Abenteuer durch British Columbia'}
           </p>
           <p className="text-lg text-white/70 mb-8" data-testid="hero-location-description">
             {heroImages[currentImage].description}
@@ -133,7 +133,19 @@ export default function Hero({ tourSettings }: HeroProps) {
               className="bg-primary text-white px-10 py-4 text-lg font-semibold hover:bg-primary/90 transition-all shadow-xl backdrop-blur-sm border border-white/10"
               data-testid="hero-cta-button"
             >
-              Reise entdecken
+              Reiseplan ansehen
+            </Button>
+            <Button
+              onClick={() => {
+                const element = document.getElementById('locations');
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              className="bg-white/20 text-white px-10 py-4 text-lg font-semibold hover:bg-white/30 transition-all shadow-xl backdrop-blur-sm border border-white/20"
+              data-testid="hero-locations-button"
+            >
+              Standorte erkunden
             </Button>
             <div className="text-white/90 text-lg font-medium bg-white/10 px-6 py-3 rounded-full backdrop-blur-sm border border-white/20" data-testid="hero-dates">
               {tourSettings?.startDate || '20. September'} - {tourSettings?.endDate || '6. Oktober 2025'}

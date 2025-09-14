@@ -26,12 +26,12 @@ function formatDateRange(startDate: string, endDate: string): string {
 function getCategoryIcon(highlights: string[]) {
   const highlightStr = highlights.join(' ').toLowerCase();
   if (highlightStr.includes('wein') || highlightStr.includes('wine')) {
-    return <Wine className="w-5 h-5 mr-2 text-primary" />;
+    return <Wine className="w-4 h-4 text-white" />;
   }
   if (highlightStr.includes('berg') || highlightStr.includes('mountain') || highlightStr.includes('rocky')) {
-    return <Mountain className="w-5 h-5 mr-2 text-primary" />;
+    return <Mountain className="w-4 h-4 text-white" />;
   }
-  return <MapPin className="w-5 h-5 mr-2 text-primary" />;
+  return <MapPin className="w-4 h-4 text-white" />;
 }
 
 export default function Timeline({ locations }: TimelineProps) {
@@ -44,10 +44,8 @@ export default function Timeline({ locations }: TimelineProps) {
         {locations.map((location, index) => (
           <div key={location.id} className="relative" data-testid={`timeline-item-${location.slug}`}>
             {/* Timeline marker */}
-            <div className="hidden md:block absolute left-1/2 top-8 w-6 h-6 bg-primary rounded-full transform -translate-x-1/2 z-10 border-4 border-background shadow-lg">
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                {getCategoryIcon(location.highlights || [])}
-              </div>
+            <div className="hidden md:block absolute left-1/2 top-8 w-8 h-8 bg-primary rounded-full transform -translate-x-1/2 z-10 border-4 border-background shadow-lg flex items-center justify-center">
+              {getCategoryIcon(location.highlights || [])}
             </div>
             
             {/* Card positioned alternating left/right */}

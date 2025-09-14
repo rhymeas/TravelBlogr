@@ -7,23 +7,7 @@ interface LocationCardProps {
 }
 
 export default function LocationCard({ location }: LocationCardProps) {
-  const getCategoryFromHighlights = (highlights: string[] | null): string => {
-    if (!highlights || highlights.length === 0) return "Alpine Adventure";
-    
-    const highlightStr = highlights.join(' ').toLowerCase();
-    if (highlightStr.includes('wein') || highlightStr.includes('wine')) {
-      return "Wine Country";
-    }
-    if (highlightStr.includes('berg') || highlightStr.includes('mountain') || highlightStr.includes('alpine')) {
-      return "Alpine Adventure";
-    }
-    if (highlightStr.includes('wild') || highlightStr.includes('natur') || highlightStr.includes('wilderness')) {
-      return "Wilderness";
-    }
-    return "Alpine Adventure";
-  };
-
-  const getIcon = (category: string) => {
+  const getIcon = (category: string | null) => {
     switch (category) {
       case "Wine Country":
         return <Wine className="mr-2 h-4 w-4" />;
@@ -37,11 +21,10 @@ export default function LocationCard({ location }: LocationCardProps) {
   };
 
   const formatDateRange = (startDate: string, endDate: string) => {
-    // Handle German date format (DD.MM.YYYY)
-    const start = new Date(startDate.split('.').reverse().join('-'));
-    const end = new Date(endDate.split('.').reverse().join('-'));
-    const startMonth = start.toLocaleDateString('de-DE', { month: 'short' });
-    const endMonth = end.toLocaleDateString('de-DE', { month: 'short' });
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const startMonth = start.toLocaleDateString('en-US', { month: 'short' });
+    const endMonth = end.toLocaleDateString('en-US', { month: 'short' });
     
     if (startMonth === endMonth) {
       return `${startMonth} ${start.getDate()}-${end.getDate()}`;
@@ -49,10 +32,8 @@ export default function LocationCard({ location }: LocationCardProps) {
     return `${startMonth} ${start.getDate()} - ${endMonth} ${end.getDate()}`;
   };
 
-  const category = getCategoryFromHighlights(location.highlights);
-
   return (
-    <Card className="group cursor-pointer hover:shadow-lg transition-shadow" data-testid={`location-card-${location.slug}`}>
+    <Card className="group cursor-pointer hover:shadow-lg transition-shadow" data-testid={`location-card-${location.id}`}>
       <div className="relative overflow-hidden">
         <img 
           src={location.imageUrl || "https://images.unsplash.com/photo-1506905925346-21bda4d32df4"}
@@ -69,8 +50,8 @@ export default function LocationCard({ location }: LocationCardProps) {
         </div>
         <p className="text-muted-foreground text-sm mb-3">{location.description}</p>
         <div className="flex items-center text-primary text-sm">
-          {getIcon(category)}
-          <span>{category}</span>
+          {getIcon(location.category)}
+          <span>{location.category}</span>
         </div>
       </CardContent>
     </Card>
