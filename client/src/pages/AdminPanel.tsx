@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { ArrowLeft, Plus, Edit, Trash2, Upload, Lock, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Upload, Lock, Eye, EyeOff, Hotel, UtensilsCrossed, AlertCircle, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -621,10 +621,87 @@ export default function AdminPanel() {
               </CardContent>
             </Card>
 
+            {/* QUICK ACCESS - RESTAURANT & ACCOMMODATION MANAGEMENT */}
+            <Card className="border-2 border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800" data-testid="restaurant-accommodation-quick-access">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-orange-800 dark:text-orange-200 flex items-center gap-2">
+                  <Hotel className="w-6 h-6" />
+                  <UtensilsCrossed className="w-6 h-6" />
+                  Restaurant & Unterkunft Management
+                </CardTitle>
+                <p className="text-orange-700 dark:text-orange-300 text-sm">
+                  Hier können Sie für jeden Ort Restaurants und Unterkünfte verwalten.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-4">
+                  <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200 mb-2">
+                    <AlertCircle className="w-5 h-5" />
+                    <span className="font-medium">So funktioniert's:</span>
+                  </div>
+                  <p className="text-blue-700 dark:text-blue-300 text-sm">
+                    Klicken Sie auf "Bearbeiten" bei einem Ort unten, um Restaurants und Unterkünfte hinzuzufügen.
+                    Im Bearbeitungsfenster finden Sie prominent die Restaurant & Unterkunft-Verwaltung.
+                  </p>
+                </div>
+                
+                {locations && locations.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-orange-800 dark:text-orange-200">Quick-Access zu Orten:</h4>
+                    <div className="grid gap-3">
+                      {locations.map((location) => {
+                        const hasRestaurants = location.restaurants && location.restaurants.length > 0;
+                        const hasAccommodation = location.accommodation && location.accommodation.trim() !== '';
+                        
+                        return (
+                          <div key={location.id} className="bg-white dark:bg-gray-800 border border-orange-200 dark:border-orange-700 rounded-lg p-4" data-testid={`quick-access-location-${location.slug}`}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <h3 className="font-medium text-gray-900 dark:text-gray-100">{location.name}</h3>
+                                <div className="flex items-center gap-4 mt-2 text-sm">
+                                  <div className="flex items-center gap-1">
+                                    <Hotel className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                    <span className={`${hasAccommodation ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                                      {hasAccommodation ? 'Unterkunft ✓' : 'Keine Unterkunft'}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <UtensilsCrossed className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                    <span className={`${hasRestaurants ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                                      {hasRestaurants ? `${location.restaurants.length} Restaurant(s) ✓` : 'Keine Restaurants'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <Button
+                                onClick={() => {
+                                  setSelectedLocation(location);
+                                  setShowLocationForm(true);
+                                }}
+                                className="bg-orange-600 hover:bg-orange-700 text-white"
+                                size="sm"
+                                data-testid={`quick-edit-${location.slug}`}
+                              >
+                                <Edit className="w-4 h-4 mr-1" />
+                                Restaurants & Unterkunft bearbeiten
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Locations Management */}
             <Card data-testid="locations-management-card">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Orte verwalten</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Star className="w-5 h-5" />
+                  Orte verwalten
+                </CardTitle>
                 <Button
                   onClick={() => {
                     setSelectedLocation(null);
