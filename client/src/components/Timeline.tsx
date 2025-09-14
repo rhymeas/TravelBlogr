@@ -171,20 +171,20 @@ export default function Timeline({ locations }: TimelineProps) {
                   <img 
                     src={location.imageUrl || "https://images.unsplash.com/photo-1506905925346-21bda4d32df4"}
                     alt={location.name}
-                    className="w-full h-64 object-cover rounded-lg"
+                    className="w-full h-32 md:h-64 object-cover rounded-lg"
                     data-testid={`location-image-${location.slug}`}
                   />
                 </div>
 
-                {/* Description */}
-                <div className="px-6 pb-4">
+                {/* Description - hidden on mobile */}
+                <div className="hidden md:block px-6 pb-4">
                   <p className="text-gray-600 text-base leading-relaxed" data-testid={`location-description-${location.slug}`}>
                     {location.description}
                   </p>
                 </div>
 
-                {/* Restaurants and Activities grid - boxed in subtle gray */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-6 pb-4">
+                {/* Restaurants and Activities grid - hidden on mobile */}
+                <div className="hidden md:grid grid-cols-1 md:grid-cols-2 gap-4 px-6 pb-4">
                   {/* Restaurants */}
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                     <div className="flex items-center mb-3">
@@ -245,8 +245,8 @@ export default function Timeline({ locations }: TimelineProps) {
                   </div>
                 </div>
 
-                {/* Accommodation - boxed in subtle gray */}
-                <div className="px-6 pb-4">
+                {/* Accommodation - hidden on mobile */}
+                <div className="hidden md:block px-6 pb-4">
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                     <p className="text-sm text-gray-700">
                       <span className="font-medium">Unterkunft:</span> {(location as any).accommodationWebsite ? (
@@ -260,8 +260,8 @@ export default function Timeline({ locations }: TimelineProps) {
                   </div>
                 </div>
 
-                {/* Fun Facts Preview */}
-                <div className="px-6 pb-4">
+                {/* Fun Facts Preview - hidden on mobile */}
+                <div className="hidden md:block px-6 pb-4">
                   <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
                     <div className="flex items-center mb-2">
                       <span className="text-lg mr-2">🎯</span>
