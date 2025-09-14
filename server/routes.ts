@@ -507,6 +507,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // IMPORTANT: Specific routes must come BEFORE parameterized routes
+  app.put("/api/hero-images/reorder", async (req, res) => {
+    try {
+      const { imageIds } = req.body;
+      if (!Array.isArray(imageIds)) {
+        return res.status(400).json({ error: "imageIds must be an array" });
+      }
+
+      await storage.reorderHeroImages(imageIds);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error reordering hero images:", error);
+      res.status(500).json({ error: "Failed to reorder hero images" });
+    }
+  });
+
   app.put("/api/hero-images/:id", async (req, res) => {
     try {
       const validation = insertHeroImageSchema.partial().safeParse(req.body);
@@ -542,21 +558,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting hero image:", error);
       res.status(500).json({ error: "Failed to delete hero image" });
-    }
-  });
-
-  app.put("/api/hero-images/reorder", async (req, res) => {
-    try {
-      const { imageIds } = req.body;
-      if (!Array.isArray(imageIds)) {
-        return res.status(400).json({ error: "imageIds must be an array" });
-      }
-
-      await storage.reorderHeroImages(imageIds);
-      res.status(204).send();
-    } catch (error) {
-      console.error("Error reordering hero images:", error);
-      res.status(500).json({ error: "Failed to reorder hero images" });
     }
   });
 
