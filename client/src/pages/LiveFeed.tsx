@@ -1,12 +1,13 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { ArrowLeft, MapPin, Clock, User, Camera, Upload } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, User, Camera, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
@@ -18,6 +19,7 @@ export default function LiveFeedPage() {
   const [selectedLocationId, setSelectedLocationId] = useState<string>("general");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -58,6 +60,7 @@ export default function LiveFeedPage() {
       setName("");
       setSelectedLocationId("general");
       setSelectedFile(null);
+      setShowUploadModal(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
       toast({
         title: "Erfolgreich geteilt",
@@ -97,7 +100,18 @@ export default function LiveFeedPage() {
       }
       
       setSelectedFile(file);
+      setShowUploadModal(true);
     }
+  };
+
+  // Handle modal close
+  const handleCloseModal = () => {
+    setShowUploadModal(false);
+    setSelectedFile(null);
+    setCaption("");
+    setName("");
+    setSelectedLocationId("general");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   // Upload handler
@@ -213,101 +227,6 @@ export default function LiveFeedPage() {
 
       {/* Content */}
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Upload section - Instagram style */}
-        <div className="bg-white dark:bg-gray-900 rounded-lg mb-6 p-4 shadow-sm" data-testid="centralized-upload-area">
-          {!selectedFile ? (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full py-12 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors"
-              data-testid="button-select-file"
-            >
-              <div className="flex flex-col items-center space-y-2">
-                <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-full">
-                  <Camera className="w-6 h-6 text-gray-500" />
-                </div>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Foto hochladen</p>
-                <p className="text-xs text-gray-500">JPG, PNG, WebP oder GIF • Max. 10MB</p>
-              </div>
-            </button>
-          ) : (
-            <div className="space-y-4">
-              {/* Selected file preview */}
-              <div className="relative">
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 flex items-center justify-between">
-                  <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{selectedFile.name}</span>
-                  <button
-                    onClick={() => {
-                      setSelectedFile(null);
-                      if (fileInputRef.current) fileInputRef.current.value = "";
-                    }}
-                    className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                    data-testid="button-remove-file"
-                  >
-                    <span className="text-sm">Entfernen</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Form fields */}
-              <div className="space-y-3">
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Name (optional)"
-                  className="border-gray-300 dark:border-gray-700"
-                  maxLength={100}
-                  data-testid="input-name"
-                />
-
-                <Textarea
-                  value={caption}
-                  onChange={(e) => setCaption(e.target.value)}
-                  placeholder="Beschreibung hinzufügen..."
-                  className="border-gray-300 dark:border-gray-700 resize-none"
-                  maxLength={500}
-                  rows={3}
-                  data-testid="input-caption"
-                />
-
-                <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
-                  <SelectTrigger className="border-gray-300 dark:border-gray-700" data-testid="select-location">
-                    <SelectValue placeholder="Ort auswählen (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general" data-testid="location-option-general">Kein Ort</SelectItem>
-                    {locations?.filter(location => location.id && location.id.trim() !== '').map((location) => (
-                      <SelectItem key={location.id} value={location.id} data-testid={`location-option-${location.slug}`}>
-                        {location.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Upload button */}
-              <Button
-                onClick={handleUpload}
-                disabled={uploading}
-                className="w-full"
-                data-testid="button-upload"
-              >
-                {uploading ? (
-                  <span>Wird hochgeladen...</span>
-                ) : (
-                  <span>Teilen</span>
-                )}
-              </Button>
-            </div>
-          )}
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-        </div>
 
         {/* Photo feed - Instagram style */}
         <div className="space-y-4">
@@ -400,6 +319,101 @@ export default function LiveFeedPage() {
           )}
         </div>
       </div>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+
+      {/* Upload Modal */}
+      <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Foto teilen</DialogTitle>
+            <DialogClose asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-4 top-4"
+                onClick={handleCloseModal}
+                data-testid="button-close-modal"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </DialogClose>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Selected file preview */}
+            {selectedFile && (
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 flex items-center justify-between">
+                <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{selectedFile.name}</span>
+                <button
+                  onClick={handleCloseModal}
+                  className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  data-testid="button-remove-file"
+                >
+                  <span className="text-sm">Entfernen</span>
+                </button>
+              </div>
+            )}
+
+            {/* Form fields */}
+            <div className="space-y-3">
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Name (optional)"
+                className="border-gray-300 dark:border-gray-700"
+                maxLength={100}
+                data-testid="input-name"
+              />
+
+              <Textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder="Beschreibung hinzufügen..."
+                className="border-gray-300 dark:border-gray-700 resize-none"
+                maxLength={500}
+                rows={3}
+                data-testid="input-caption"
+              />
+
+              <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+                <SelectTrigger className="border-gray-300 dark:border-gray-700" data-testid="select-location">
+                  <SelectValue placeholder="Ort auswählen (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general" data-testid="location-option-general">Kein Ort</SelectItem>
+                  {locations?.filter(location => location.id && location.id.trim() !== '').map((location) => (
+                    <SelectItem key={location.id} value={location.id} data-testid={`location-option-${location.slug}`}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Upload button */}
+            <Button
+              onClick={handleUpload}
+              disabled={uploading}
+              className="w-full"
+              data-testid="button-upload"
+            >
+              {uploading ? (
+                <span>Wird hochgeladen...</span>
+              ) : (
+                <span>Teilen</span>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Simple floating upload button */}
       <button
