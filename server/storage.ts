@@ -38,6 +38,7 @@ export interface IStorage {
   getTripPhotos(locationId: string): Promise<TripPhoto[]>;
   getAllTripPhotos(): Promise<TripPhoto[]>;
   addTripPhoto(tripPhoto: InsertTripPhoto): Promise<TripPhoto>;
+  cleanupBrokenTripPhotos(): Promise<number>; // Returns number of photos removed
 
   // Tour settings
   getTourSettings(): Promise<TourSettings | undefined>;
@@ -655,6 +656,23 @@ export class MemStorage implements IStorage {
     };
     this.tripPhotos.set(id, newTripPhoto);
     return newTripPhoto;
+  }
+
+  async cleanupBrokenTripPhotos(): Promise<number> {
+    // Remove photos without objectPath (old broken uploads)
+    const photosToRemove: string[] = [];
+    
+    for (const [id, photo] of this.tripPhotos.entries()) {
+      if (!photo.objectPath) {
+        photosToRemove.push(id);
+      }
+    }
+    
+    // Remove the broken photos
+    photosToRemove.forEach(id => this.tripPhotos.delete(id));
+    
+    console.log(`Cleaned up ${photosToRemove.length} broken trip photos without objectPath`);
+    return photosToRemove.length;
   }
 
   async getTourSettings(): Promise<TourSettings | undefined> {

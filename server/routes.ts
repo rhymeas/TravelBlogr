@@ -219,24 +219,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const tripPhotos = await storage.getTripPhotos(req.params.locationId);
       
+      // Filter out photos without objectPath (old broken uploads)
+      const validPhotos = tripPhotos.filter(photo => photo.objectPath);
+      
       // Generate fresh display URLs from stored objectPath for each photo
       const objectStorageService = new ObjectStorageService();
       const photosWithUrls = await Promise.all(
-        tripPhotos.map(async (photo) => {
-          if (photo.objectPath) {
-            try {
-              const freshImageUrl = await objectStorageService.getObjectEntityDisplayURL(photo.objectPath);
-              return { ...photo, imageUrl: freshImageUrl };
-            } catch (error) {
-              console.error('Error generating display URL for photo:', photo.id, error);
-              return photo; // Return original if URL generation fails
-            }
+        validPhotos.map(async (photo) => {
+          try {
+            const freshImageUrl = await objectStorageService.getObjectEntityDisplayURL(photo.objectPath!);
+            return { ...photo, imageUrl: freshImageUrl };
+          } catch (error) {
+            console.error('Error generating display URL for photo:', photo.id, error);
+            return null; // Return null if URL generation fails
           }
-          return photo;
         })
       );
       
-      res.json(photosWithUrls);
+      // Filter out any null results
+      const finalPhotos = photosWithUrls.filter(photo => photo !== null);
+      
+      res.json(finalPhotos);
     } catch (error) {
       console.error("Error fetching trip photos:", error);
       res.status(500).json({ error: "Failed to fetch trip photos" });
@@ -333,24 +336,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const tripPhotos = await storage.getAllTripPhotos();
       
+      // Filter out photos without objectPath (old broken uploads)
+      const validPhotos = tripPhotos.filter(photo => photo.objectPath);
+      
       // Generate fresh display URLs from stored objectPath for each photo
       const objectStorageService = new ObjectStorageService();
       const photosWithUrls = await Promise.all(
-        tripPhotos.map(async (photo) => {
-          if (photo.objectPath) {
-            try {
-              const freshImageUrl = await objectStorageService.getObjectEntityDisplayURL(photo.objectPath);
-              return { ...photo, imageUrl: freshImageUrl };
-            } catch (error) {
-              console.error('Error generating display URL for photo:', photo.id, error);
-              return photo; // Return original if URL generation fails
-            }
+        validPhotos.map(async (photo) => {
+          try {
+            const freshImageUrl = await objectStorageService.getObjectEntityDisplayURL(photo.objectPath!);
+            return { ...photo, imageUrl: freshImageUrl };
+          } catch (error) {
+            console.error('Error generating display URL for photo:', photo.id, error);
+            return null; // Return null if URL generation fails
           }
-          return photo;
         })
       );
       
-      res.json(photosWithUrls);
+      // Filter out any null results
+      const finalPhotos = photosWithUrls.filter(photo => photo !== null);
+      
+      res.json(finalPhotos);
     } catch (error) {
       console.error("Error fetching all trip photos:", error);
       res.status(500).json({ error: "Failed to fetch trip photos" });

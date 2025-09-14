@@ -1,9 +1,9 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { ArrowLeft, Calendar, MapPin, Plus, Clock, User, Camera, Send, Image, Upload } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, User, Camera, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -59,8 +59,8 @@ export default function LiveFeedPage() {
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       toast({
-        title: "Gepostet!",
-        description: "Ihr Foto wurde erfolgreich im Live-Feed geteilt.",
+        title: "Erfolgreich geteilt",
+        description: "Dein Foto wurde im Feed gepostet.",
       });
     },
     onError: (error: Error) => {
@@ -96,10 +96,6 @@ export default function LiveFeedPage() {
       }
       
       setSelectedFile(file);
-      toast({
-        title: "Foto ausgewählt",
-        description: `${file.name} bereit zum Hochladen.`,
-      });
     }
   };
 
@@ -107,8 +103,8 @@ export default function LiveFeedPage() {
   const handleUpload = async () => {
     if (!selectedFile) {
       toast({
-        title: "Bitte Foto wählen",
-        description: "Wählen Sie ein Foto zum Hochladen aus.",
+        title: "Kein Foto ausgewählt",
+        description: "Bitte wählen Sie ein Foto aus.",
         variant: "destructive",
       });
       return;
@@ -129,15 +125,26 @@ export default function LiveFeedPage() {
     }
   };
 
-  // Format timestamp
+  // Format timestamp with relative time
   const formatTime = (date: Date | string | null) => {
     if (!date) return '';
     const timestamp = typeof date === 'string' ? new Date(date) : date;
-    return timestamp.toLocaleString('de-DE', {
+    const now = new Date();
+    const diff = now.getTime() - timestamp.getTime();
+    
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 1) return 'Gerade eben';
+    if (minutes < 60) return `vor ${minutes} ${minutes === 1 ? 'Minute' : 'Minuten'}`;
+    if (hours < 24) return `vor ${hours} ${hours === 1 ? 'Stunde' : 'Stunden'}`;
+    if (days < 7) return `vor ${days} ${days === 1 ? 'Tag' : 'Tagen'}`;
+    
+    return timestamp.toLocaleDateString('de-DE', {
       day: '2-digit',
       month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
+      year: 'numeric',
     });
   };
 
@@ -148,281 +155,263 @@ export default function LiveFeedPage() {
     return location?.name;
   };
 
+  // Loading skeleton component
+  const PhotoSkeleton = () => (
+    <div className="bg-white dark:bg-gray-900 rounded-lg p-4 animate-pulse">
+      <div className="flex items-center space-x-3 mb-3">
+        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+        <div className="space-y-2">
+          <div className="h-3 w-24 bg-gray-200 dark:bg-gray-700 rounded"></div>
+          <div className="h-2 w-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
+        </div>
+      </div>
+      <div className="h-96 bg-gray-200 dark:bg-gray-700 rounded-lg mb-3"></div>
+      <div className="space-y-2">
+        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+      </div>
+    </div>
+  );
+
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" data-testid="loading-spinner">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+        {/* Simple header */}
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+          <div className="max-w-2xl mx-auto px-4 py-4">
+            <Link href="/">
+              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 -ml-2">
+                <ArrowLeft className="w-5 h-5 mr-2" />
+                Zurück
+              </Button>
+            </Link>
+            <h1 className="text-xl font-semibold mt-2">Live Feed</h1>
+          </div>
+        </div>
+
+        {/* Loading skeletons */}
+        <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+          <PhotoSkeleton />
+          <PhotoSkeleton />
+          <PhotoSkeleton />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background" data-testid="live-feed-page">
-      {/* Header */}
-      <div className="bg-primary text-primary-foreground py-8" data-testid="live-feed-header">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center space-x-4 mb-4">
-            <Link href="/">
-              <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10" data-testid="back-button">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Zurück zur Tour
-              </Button>
-            </Link>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4" data-testid="live-feed-title">
-            🚗 Live Reise-Feed
-          </h1>
-          <p className="text-primary-foreground/90 text-lg">
-            Teile deine besten Momente von der Weinberg Tour 2025
-          </p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950" data-testid="live-feed-page">
+      {/* Clean minimal header */}
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <Link href="/">
+            <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 -ml-2" data-testid="back-button">
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Zurück
+            </Button>
+          </Link>
+          <h1 className="text-xl font-semibold mt-2" data-testid="live-feed-title">Live Feed</h1>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
-        {/* Centralized Upload Area */}
-        <Card className="p-6" data-testid="centralized-upload-area">
-          <div className="space-y-6">
-            {!selectedFile ? (
-              /* Large Upload Button */
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full h-32 border-2 border-dashed hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                data-testid="button-select-file"
-              >
-                <div className="flex flex-col items-center space-y-3">
-                  <div className="p-4 rounded-full bg-primary/10">
-                    <Camera className="w-8 h-8 text-primary" />
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-semibold">📸 Foto aus der Reise teilen</div>
-                    <div className="text-sm text-muted-foreground">
-                      Klicken um ein Foto von der Weinberg Tour hochzuladen
-                    </div>
-                  </div>
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        {/* Upload section - Instagram style */}
+        <div className="bg-white dark:bg-gray-900 rounded-lg mb-6 p-4 shadow-sm" data-testid="centralized-upload-area">
+          {!selectedFile ? (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full py-12 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors"
+              data-testid="button-select-file"
+            >
+              <div className="flex flex-col items-center space-y-2">
+                <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-full">
+                  <Camera className="w-6 h-6 text-gray-500" />
                 </div>
-              </Button>
-            ) : (
-              /* Upload Form */
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                  <div className="flex items-center space-x-3">
-                    <Image className="w-6 h-6 text-green-600" />
-                    <span className="font-medium text-green-800 dark:text-green-200">
-                      {selectedFile.name} ausgewählt
-                    </span>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Foto hochladen</p>
+                <p className="text-xs text-gray-500">JPG, PNG, WebP oder GIF • Max. 10MB</p>
+              </div>
+            </button>
+          ) : (
+            <div className="space-y-4">
+              {/* Selected file preview */}
+              <div className="relative">
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 flex items-center justify-between">
+                  <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{selectedFile.name}</span>
+                  <button
                     onClick={() => {
                       setSelectedFile(null);
                       if (fileInputRef.current) fileInputRef.current.value = "";
                     }}
+                    className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                     data-testid="button-remove-file"
                   >
-                    Entfernen
-                  </Button>
-                </div>
-
-                <div className="grid gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Dein Name (optional)</label>
-                    <Input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="z.B. Max Mustermann"
-                      maxLength={100}
-                      data-testid="input-name"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Bildunterschrift (optional)</label>
-                    <Textarea
-                      value={caption}
-                      onChange={(e) => setCaption(e.target.value)}
-                      placeholder="Erzähle von diesem besonderen Moment..."
-                      maxLength={500}
-                      rows={3}
-                      data-testid="input-caption"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium">Ort (optional)</label>
-                    <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
-                      <SelectTrigger data-testid="select-location">
-                        <SelectValue placeholder="Wähle einen Ort aus (oder lasse es leer)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="general" data-testid="location-option-general">Allgemein (kein Ort)</SelectItem>
-                        {locations?.filter(location => location.id && location.id.trim() !== '').map((location) => (
-                          <SelectItem key={location.id} value={location.id} data-testid={`location-option-${location.slug}`}>
-                            {location.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={handleUpload}
-                  disabled={uploading}
-                  className="w-full"
-                  data-testid="button-upload"
-                >
-                  {uploading ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin mr-2">🔄</div>
-                      Foto wird hochgeladen...
-                    </div>
-                  ) : (
-                    <div className="flex items-center">
-                      <Send className="w-4 h-4 mr-2" />
-                      Im Live-Feed teilen
-                    </div>
-                  )}
-                </Button>
-              </div>
-            )}
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-          </div>
-        </Card>
-
-        {/* Trip Photos Feed */}
-        <Card data-testid="trip-photos-feed">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <span className="mr-2">📸</span>
-              Reise-Fotos ({tripPhotos.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {tripPhotos.length === 0 ? (
-              <div className="space-y-8">
-                {/* Main CTA */}
-                <div className="text-center py-8">
-                  <div className="mb-6">
-                    <div className="relative mb-6">
-                      <div className="w-20 h-20 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                        <Camera className="w-10 h-10 text-primary/60" />
-                      </div>
-                      <div className="absolute inset-0 w-20 h-20 mx-auto rounded-full border-2 border-primary/20 animate-pulse"></div>
-                    </div>
-                    <h3 className="text-2xl font-semibold text-foreground mb-3">
-                      Noch keine Reise-Fotos
-                    </h3>
-                    <p className="text-muted-foreground text-lg">
-                      Teile deine ersten Eindrücke von der Weinberg Tour 2025
-                    </p>
-                  </div>
-                </div>
-                
-                {/* 3 Sleek Gray Placeholder Cards */}
-                <div className="grid gap-4">
-                  {[1, 2, 3].map((index) => (
-                    <div key={index} className="bg-muted/30 rounded-xl p-6 border border-dashed border-muted-foreground/20 hover:bg-muted/40 transition-colors">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-14 h-14 bg-muted-foreground/10 rounded-xl flex items-center justify-center">
-                          <Camera className="w-7 h-7 text-muted-foreground/40" />
-                        </div>
-                        <div className="flex-1 space-y-3">
-                          <div className="h-4 bg-muted-foreground/10 rounded-md animate-pulse"></div>
-                          <div className="h-3 bg-muted-foreground/10 rounded-md w-2/3 animate-pulse"></div>
-                          <div className="flex items-center space-x-4 text-xs text-muted-foreground/60">
-                            <div className="flex items-center">
-                              <User className="w-3 h-3 mr-1" />
-                              <div className="h-3 w-16 bg-muted-foreground/10 rounded animate-pulse"></div>
-                            </div>
-                            <div className="flex items-center">
-                              <Clock className="w-3 h-3 mr-1" />
-                              <div className="h-3 w-12 bg-muted-foreground/10 rounded animate-pulse"></div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground">
-                    Nutze den <span className="inline-flex items-center mx-1"><Plus className="w-4 h-4" /></span> Button um dein erstes Foto zu teilen
-                  </p>
+                    <span className="text-sm">Entfernen</span>
+                  </button>
                 </div>
               </div>
-            ) : (
-              <div className="space-y-6">
-                {tripPhotos.map((photo) => (
-                  <div key={photo.id} className="bg-white dark:bg-gray-900/50 rounded-xl p-6 border border-border shadow-sm hover:shadow-md transition-all duration-200" data-testid={`trip-photo-${photo.id}`}>
-                    {/* Photo Header */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        {photo.uploadedBy && (
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <User className="w-4 h-4 mr-1" />
-                            <span data-testid="photo-author">{photo.uploadedBy}</span>
-                          </div>
-                        )}
-                        {getLocationName(photo.locationId) && (
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <MapPin className="w-4 h-4 mr-1" />
-                            <span data-testid="photo-location">{getLocationName(photo.locationId)}</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Clock className="w-4 h-4 mr-1" />
-                        <span data-testid="photo-timestamp">{formatTime(photo.uploadedAt)}</span>
+
+              {/* Form fields */}
+              <div className="space-y-3">
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Name (optional)"
+                  className="border-gray-300 dark:border-gray-700"
+                  maxLength={100}
+                  data-testid="input-name"
+                />
+
+                <Textarea
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                  placeholder="Beschreibung hinzufügen..."
+                  className="border-gray-300 dark:border-gray-700 resize-none"
+                  maxLength={500}
+                  rows={3}
+                  data-testid="input-caption"
+                />
+
+                <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+                  <SelectTrigger className="border-gray-300 dark:border-gray-700" data-testid="select-location">
+                    <SelectValue placeholder="Ort auswählen (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general" data-testid="location-option-general">Kein Ort</SelectItem>
+                    {locations?.filter(location => location.id && location.id.trim() !== '').map((location) => (
+                      <SelectItem key={location.id} value={location.id} data-testid={`location-option-${location.slug}`}>
+                        {location.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Upload button */}
+              <Button
+                onClick={handleUpload}
+                disabled={uploading}
+                className="w-full"
+                data-testid="button-upload"
+              >
+                {uploading ? (
+                  <span>Wird hochgeladen...</span>
+                ) : (
+                  <span>Teilen</span>
+                )}
+              </Button>
+            </div>
+          )}
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+        </div>
+
+        {/* Photo feed - Instagram style */}
+        <div className="space-y-4">
+          {tripPhotos.length === 0 ? (
+            <div className="py-12">
+              {/* Empty state with gray placeholders */}
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 mx-auto bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                  <Camera className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-gray-900 dark:text-gray-100 font-medium mb-2">Noch keine Fotos</h3>
+                <p className="text-gray-500 text-sm">Sei der Erste, der ein Foto teilt</p>
+              </div>
+
+              {/* Gray placeholder cards */}
+              <div className="space-y-4">
+                {[1, 2, 3].map((index) => (
+                  <div key={index} className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-800">
+                    <div className="flex items-center space-x-3 mb-3">
+                      <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-full animate-pulse"></div>
+                      <div className="space-y-2 flex-1">
+                        <div className="h-3 w-24 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"></div>
+                        <div className="h-2 w-16 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"></div>
                       </div>
                     </div>
-
-                    {/* Photo */}
-                    <div className="mb-4">
-                      <img 
-                        src={photo.imageUrl} 
-                        alt={photo.caption || "Reise-Foto"}
-                        className="w-full max-w-2xl h-auto rounded-xl object-cover shadow-sm"
-                        data-testid="photo-image"
-                      />
-                    </div>
-
-                    {/* Caption */}
-                    {photo.caption && (
-                      <div className="text-gray-700 dark:text-gray-200" data-testid="photo-caption">
-                        {photo.caption}
-                      </div>
-                    )}
+                    <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
                   </div>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          ) : (
+            <>
+              {tripPhotos.map((photo) => (
+                <div key={photo.id} className="bg-white dark:bg-gray-900 rounded-lg shadow-sm overflow-hidden" data-testid={`trip-photo-${photo.id}`}>
+                  {/* Photo header - Instagram style */}
+                  <div className="p-3 flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                        <User className="w-5 h-5 text-gray-500" />
+                      </div>
+                      <div>
+                        {photo.uploadedBy && (
+                          <p className="font-medium text-sm text-gray-900 dark:text-gray-100" data-testid="photo-author">
+                            {photo.uploadedBy}
+                          </p>
+                        )}
+                        <div className="flex items-center space-x-2 text-xs text-gray-500">
+                          {getLocationName(photo.locationId) && (
+                            <>
+                              <span data-testid="photo-location">{getLocationName(photo.locationId)}</span>
+                              <span>•</span>
+                            </>
+                          )}
+                          <span data-testid="photo-timestamp">{formatTime(photo.uploadedAt)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Photo image */}
+                  <div className="relative bg-gray-100 dark:bg-gray-800">
+                    <img 
+                      src={photo.imageUrl} 
+                      alt={photo.caption || "Foto"}
+                      className="w-full h-auto"
+                      data-testid="photo-image"
+                      onError={(e) => {
+                        // Show placeholder on error
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const parent = target.parentElement;
+                        if (parent) {
+                          parent.innerHTML = '<div class="h-64 flex items-center justify-center text-gray-400"><svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>';
+                        }
+                      }}
+                    />
+                  </div>
+
+                  {/* Caption */}
+                  {photo.caption && (
+                    <div className="p-3">
+                      <p className="text-sm text-gray-900 dark:text-gray-100" data-testid="photo-caption">
+                        {photo.caption}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Floating Plus Button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <Button
-          onClick={() => fileInputRef.current?.click()}
-          size="lg"
-          className="h-16 w-16 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 bg-primary hover:bg-primary/90 hover:scale-105 active:scale-95"
-          data-testid="floating-upload-button"
-        >
-          <Plus className="w-8 h-8" />
-          <span className="sr-only">Foto hochladen</span>
-        </Button>
-      </div>
+      {/* Simple floating upload button */}
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center"
+        data-testid="floating-upload-button"
+      >
+        <Upload className="w-6 h-6" />
+      </button>
     </div>
   );
 }
