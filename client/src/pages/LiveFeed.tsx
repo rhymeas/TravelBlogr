@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import Header from "@/components/Header";
 import type { Location, TripPhoto } from "@shared/schema";
 
 export default function LiveFeedPage() {
@@ -201,16 +202,12 @@ export default function LiveFeedPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950" data-testid="live-feed-page">
-      {/* Clean minimal header */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
-        <div className="max-w-2xl mx-auto px-4 py-4">
-          <Link href="/">
-            <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 -ml-2" data-testid="back-button">
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              Zurück
-            </Button>
-          </Link>
-          <h1 className="text-xl font-semibold mt-2" data-testid="live-feed-title">Live Feed</h1>
+      <Header />
+      {/* Page Title */}
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+        <div className="max-w-2xl mx-auto px-4 py-6">
+          <h1 className="text-2xl font-bold text-foreground" data-testid="live-feed-title">Live Feed</h1>
+          <p className="text-muted-foreground mt-1">Teile deine Reisemomente</p>
         </div>
       </div>
 

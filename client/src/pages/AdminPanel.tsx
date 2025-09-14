@@ -14,6 +14,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { ImageGallery } from "@/components/ImageGallery";
 import { ImageInput } from "@/components/ImageInput";
 import AdminLocationForm from "@/components/AdminLocationForm";
+import Header from "@/components/Header";
 import type { Location, TourSettings, HeroImage, ScenicContent, ScenicGalleryItem } from "@shared/schema";
 
 export default function AdminPanel() {
@@ -268,17 +269,10 @@ export default function AdminPanel() {
 
   return (
     <div className="min-h-screen bg-background" data-testid="admin-panel">
-      {/* Header */}
+      <Header />
+      {/* Admin Header */}
       <div className="bg-primary text-primary-foreground py-8" data-testid="admin-header">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center space-x-4 mb-4">
-            <Link href="/">
-              <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10" data-testid="admin-back-button">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Zurück zur Tour
-              </Button>
-            </Link>
-          </div>
           <h1 className="text-4xl md:text-5xl font-bold">Admin Panel</h1>
           <p className="text-primary-foreground/90 mt-2">Verwalte deine Tour-Inhalte</p>
         </div>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ImageGallery } from "@/components/ImageGallery";
+import Header from "@/components/Header";
 import type { Location } from "@shared/schema";
 
 export default function LocationDetail() {
@@ -40,7 +41,8 @@ export default function LocationDetail() {
 
   return (
     <div className="min-h-screen bg-background" data-testid="location-detail">
-      {/* Header */}
+      <Header />
+      {/* Location Header */}
       <div className="bg-primary text-primary-foreground py-8" data-testid="location-header">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center space-x-4 mb-4">

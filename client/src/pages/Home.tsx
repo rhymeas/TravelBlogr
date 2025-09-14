@@ -3,6 +3,7 @@ import { useState } from "react";
 import Hero from "@/components/Hero";
 import Timeline from "@/components/Timeline";
 import LocationCard from "@/components/LocationCard";
+import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Menu, X } from "lucide-react";
@@ -42,8 +43,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background" data-testid="home-page">
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 glass-effect border-b border-border" data-testid="main-navigation">
+      <Header />
+      {/* Page-specific Navigation for scrolling */}
+      <nav className="sticky top-16 w-full z-40 glass-effect border-b border-border" data-testid="main-navigation">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
@@ -77,12 +79,6 @@ export default function Home() {
               >
                 Orte
               </button>
-              <Link href="/live-feed">
-                <Button variant="outline" data-testid="nav-live-feed">Live Reise-Feed</Button>
-              </Link>
-              <Link href="/admin">
-                <Button data-testid="nav-admin">Editieren</Button>
-              </Link>
             </div>
 
             <button 
@@ -129,12 +125,6 @@ export default function Home() {
               >
                 Orte
               </button>
-              <Link href="/live-feed" className="block">
-                <Button className="w-full" variant="outline" data-testid="mobile-nav-live-feed">Live Reise-Feed</Button>
-              </Link>
-              <Link href="/admin" className="block">
-                <Button className="w-full" data-testid="mobile-nav-admin">Editieren</Button>
-              </Link>
             </nav>
           </div>
         </div>
