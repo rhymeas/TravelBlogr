@@ -90,6 +90,25 @@ export default function LocationDetail() {
               isAdmin={false}
             />
 
+            {/* Map Snippet */}
+            {(location as any).mapImageUrl && (
+              <Card data-testid="location-map">
+                <CardContent className="pt-6">
+                  <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center">
+                    🗺️ <span className="ml-2">Lage & Karte</span>
+                  </h2>
+                  <div className="rounded-xl overflow-hidden border border-border">
+                    <img 
+                      src={(location as any).mapImageUrl} 
+                      alt={`Karte von ${location.name}`}
+                      className="w-full h-64 object-cover"
+                      data-testid="location-map-image"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Description */}
             <Card data-testid="location-description">
               <CardContent className="pt-6">
