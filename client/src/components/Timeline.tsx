@@ -130,12 +130,12 @@ export default function Timeline({ locations }: TimelineProps) {
         </div>
       )}
       
-      <div className="space-y-6 md:space-y-0">
+      <div>
         {locations.map((location, index) => (
           <div 
             key={location.id} 
             className={`relative ${
-              index > 0 ? 'md:-mt-[438px] lg:-mt-[470px] xl:-mt-[534px]' : ''
+              index === 0 ? 'mt-0' : 'mt-6 md:-mt-[150px]'
             }`}
             data-testid={`timeline-item-${location.slug}`}>
             {/* Timeline marker */}
