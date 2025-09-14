@@ -140,14 +140,14 @@ export default function Timeline({ locations }: TimelineProps) {
             data-testid={`timeline-item-${location.slug}`}>
             {/* Connector line between cards - small gray line */}
             {index > 0 && (
-              <div className="absolute left-8 md:left-1/2 -top-3 md:-top-20 w-px h-12 md:h-24 bg-gray-300 transform md:-translate-x-1/2 z-0"></div>
+              <div className="absolute left-2 md:left-1/2 -top-3 md:-top-20 w-px h-12 md:h-24 bg-gray-300 transform md:-translate-x-1/2 -z-10"></div>
             )}
             
             {/* Timeline marker */}
             <div className="hidden md:block absolute left-1/2 top-8 w-8 h-8 bg-primary rounded-full transform -translate-x-1/2 z-10 border-4 border-white shadow-lg"></div>
             
             {/* Mobile timeline dot */}
-            <div className="md:hidden absolute left-8 top-8 w-3 h-3 bg-primary rounded-full z-10"></div>
+            <div className="md:hidden absolute left-2 top-8 w-2 h-2 bg-primary rounded-full z-10"></div>
             
             {/* Card positioned alternating left/right with proper spacing from center */}
             <div className={`flex ${index % 2 === 0 ? 'md:justify-start md:pr-6 lg:pr-8 xl:pr-10' : 'md:justify-end md:pl-6 lg:pl-8 xl:pl-10'}`}>
