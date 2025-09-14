@@ -95,6 +95,17 @@ export const heroImages = pgTable("hero_images", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Scenic content for "Spektakuläre Landschaften erwarten uns" section
+export const scenicContent = pgTable("scenic_content", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  subtitle: text("subtitle").notNull(),
+  galleries: jsonb("galleries").$type<ScenicGalleryItem[]>().notNull().default([]),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Restaurant data type
 export interface RestaurantData {
   name: string;
@@ -103,6 +114,57 @@ export interface RestaurantData {
   websiteUrl?: string;
   imageUrl?: string;
 }
+
+// Scenic gallery item type
+export interface ScenicGalleryItem {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  linkUrl?: string;
+  isLarge: boolean; // For the 2x2 main card
+  order: number;
+}
+
+// Scenic Gallery Item Validation Schema
+export const scenicGalleryItemSchema = z.object({
+  id: z.string().min(1, "Gallery-ID ist erforderlich"),
+  title: z.string().min(1, "Titel ist erforderlich").max(100, "Titel ist zu lang (maximal 100 Zeichen)"),
+  description: z.string().min(1, "Beschreibung ist erforderlich").max(500, "Beschreibung ist zu lang (maximal 500 Zeichen)"),
+  imageUrl: z.string().url("Ungültige Bild-URL"),
+  linkUrl: z.string().url("Ungültige Link-URL").optional().or(z.literal("")).or(z.null()),
+  isLarge: z.boolean(),
+  order: z.number().int().min(0, "Reihenfolge muss eine positive Zahl sein").max(10, "Reihenfolge zu hoch"),
+});
+
+// Scenic Content Update Schema with strict validation
+export const scenicContentUpdateSchema = z.object({
+  title: z.string().min(1, "Titel ist erforderlich").max(200, "Titel ist zu lang (maximal 200 Zeichen)"),
+  subtitle: z.string().min(1, "Untertitel ist erforderlich").max(300, "Untertitel ist zu lang (maximal 300 Zeichen)"),
+  galleries: z.array(scenicGalleryItemSchema)
+    .length(6, "Genau 6 Galerie-Elemente sind erforderlich")
+    .refine(
+      (galleries) => galleries.filter(g => g.isLarge).length === 1,
+      "Genau ein großes Galerie-Element ist erforderlich"
+    )
+    .refine(
+      (galleries) => {
+        const orders = galleries.map(g => g.order);
+        return new Set(orders).size === orders.length;
+      },
+      "Alle Galerie-Elemente müssen eindeutige Reihenfolge-Nummern haben"
+    ),
+  isActive: z.boolean().optional(),
+});
+
+// Restaurant data validation schema
+export const restaurantDataSchema = z.object({
+  name: z.string().min(1, "Restaurant-Name ist erforderlich").max(100, "Name ist zu lang"),
+  description: z.string().min(1, "Beschreibung ist erforderlich").max(500, "Beschreibung ist zu lang"),
+  cuisine: z.string().max(50, "Küchen-Typ ist zu lang").optional(),
+  websiteUrl: z.string().url("Ungültige Website-URL").optional().or(z.literal("")).or(z.null()),
+  imageUrl: z.string().url("Ungültige Bild-URL").optional().or(z.literal("")).or(z.null()),
+});
 
 // Schema exports
 export const insertLocationSchema = createInsertSchema(locations).omit({
@@ -137,6 +199,12 @@ export const insertHeroImageSchema = createInsertSchema(heroImages).omit({
   updatedAt: true,
 });
 
+export const insertScenicContentSchema = createInsertSchema(scenicContent).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type Location = typeof locations.$inferSelect;
 export type InsertLocation = z.infer<typeof insertLocationSchema>;
 export type LocationImage = typeof locationImages.$inferSelect;
@@ -149,3 +217,5 @@ export type LocationPing = typeof locationPings.$inferSelect;
 export type InsertLocationPing = z.infer<typeof insertLocationPingSchema>;
 export type HeroImage = typeof heroImages.$inferSelect;
 export type InsertHeroImage = z.infer<typeof insertHeroImageSchema>;
+export type ScenicContent = typeof scenicContent.$inferSelect;
+export type InsertScenicContent = z.infer<typeof insertScenicContentSchema>;

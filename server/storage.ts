@@ -11,6 +11,9 @@ import {
   InsertLocationPing,
   HeroImage,
   InsertHeroImage,
+  ScenicContent,
+  InsertScenicContent,
+  ScenicGalleryItem,
   RestaurantData 
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -51,6 +54,10 @@ export interface IStorage {
   updateHeroImage(id: string, heroImage: Partial<InsertHeroImage>): Promise<HeroImage>;
   deleteHeroImage(id: string): Promise<void>;
   reorderHeroImages(imageIds: string[]): Promise<void>;
+
+  // Scenic content for "Spektakuläre Landschaften erwarten uns" section
+  getScenicContent(): Promise<ScenicContent | undefined>;
+  updateScenicContent(data: Partial<InsertScenicContent>): Promise<ScenicContent>;
 }
 
 export class MemStorage implements IStorage {
@@ -60,6 +67,7 @@ export class MemStorage implements IStorage {
   private locationPings: Map<string, LocationPing>;
   private heroImages: Map<string, HeroImage>;
   private tourSettings: TourSettings | undefined;
+  private scenicContent: ScenicContent | undefined;
 
   constructor() {
     this.locations = new Map();
@@ -428,6 +436,72 @@ export class MemStorage implements IStorage {
       };
       this.heroImages.set(id, heroImage);
     });
+
+    // Initialize scenic content with default data from hardcoded values
+    this.scenicContent = {
+      id: randomUUID(),
+      title: "Spektakuläre Landschaften erwarten uns",
+      subtitle: "Von den türkisfarbenen Seen des Okanagan-Tals bis zu den majestätischen Gipfeln der Rocky Mountains - jeder Ort ist ein Fotomotiv",
+      galleries: [
+        {
+          id: randomUUID(),
+          title: "Penticton Wine Country",
+          description: "Okanagan Valley mit über 170 Weingütern",
+          imageUrl: "https://images.unsplash.com/photo-1528190336454-13cd56b45b5a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=800",
+          linkUrl: "/location/penticton",
+          isLarge: true,
+          order: 1
+        },
+        {
+          id: randomUUID(),
+          title: "Maligne Lake",
+          description: "Spirit Island",
+          imageUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400",
+          linkUrl: "",
+          isLarge: false,
+          order: 2
+        },
+        {
+          id: randomUUID(),
+          title: "Golden Rockies",
+          description: "Kicking Horse River",
+          imageUrl: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400",
+          linkUrl: "/location/golden",
+          isLarge: false,
+          order: 3
+        },
+        {
+          id: randomUUID(),
+          title: "Kalamalka Lake",
+          description: "Türkisfarbenes Juwel",
+          imageUrl: "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400",
+          linkUrl: "/location/vernon",
+          isLarge: false,
+          order: 4
+        },
+        {
+          id: randomUUID(),
+          title: "Sunshine Coast",
+          description: "Desolation Sound",
+          imageUrl: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400",
+          linkUrl: "",
+          isLarge: false,
+          order: 5
+        },
+        {
+          id: randomUUID(),
+          title: "Wells Gray Falls",
+          description: "Helmcken Falls",
+          imageUrl: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400",
+          linkUrl: "",
+          isLarge: false,
+          order: 6
+        }
+      ] as ScenicGalleryItem[],
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
   }
 
   async getLocations(): Promise<Location[]> {
@@ -691,6 +765,31 @@ export class MemStorage implements IStorage {
         });
       }
     });
+  }
+
+  // Scenic content methods
+  async getScenicContent(): Promise<ScenicContent | undefined> {
+    return this.scenicContent;
+  }
+
+  async updateScenicContent(data: Partial<InsertScenicContent>): Promise<ScenicContent> {
+    if (this.scenicContent) {
+      this.scenicContent = {
+        ...this.scenicContent,
+        ...data,
+        updatedAt: new Date(),
+      };
+    } else {
+      const id = randomUUID();
+      this.scenicContent = {
+        ...data,
+        id,
+        isActive: data.isActive ?? true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as ScenicContent;
+    }
+    return this.scenicContent;
   }
 }
 

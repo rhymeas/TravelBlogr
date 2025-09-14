@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { ArrowLeft, Plus, Edit, Trash2, Upload, Lock, Eye, EyeOff, Hotel, UtensilsCrossed, AlertCircle, Star, ChevronDown, ChevronUp } from "lucide-react";
@@ -14,7 +14,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { ImageGallery } from "@/components/ImageGallery";
 import { ImageInput } from "@/components/ImageInput";
 import AdminLocationForm from "@/components/AdminLocationForm";
-import type { Location, TourSettings, HeroImage } from "@shared/schema";
+import type { Location, TourSettings, HeroImage, ScenicContent, ScenicGalleryItem } from "@shared/schema";
 
 export default function AdminPanel() {
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
@@ -23,6 +23,11 @@ export default function AdminPanel() {
   const [privacyPassword, setPrivacyPassword] = useState("");
   const [editingHeroImage, setEditingHeroImage] = useState<HeroImage | null>(null);
   const [heroImageForm, setHeroImageForm] = useState({ title: "", description: "", imageUrl: "" });
+  
+  // Scenic content state
+  const [scenicTitle, setScenicTitle] = useState("");
+  const [scenicSubtitle, setScenicSubtitle] = useState("");
+  const [galleries, setGalleries] = useState<ScenicGalleryItem[]>([]);
   
   // Collapsible sections state
   const [collapsedSections, setCollapsedSections] = useState({
@@ -33,6 +38,7 @@ export default function AdminPanel() {
     restaurantAccommodation: false,
     locationsManagement: false,
     imageManagement: false,
+    scenicLandscapes: false, // new section for scenic content
     quickActions: true, // start collapsed for cleaner look
   });
 
@@ -54,6 +60,19 @@ export default function AdminPanel() {
   const { data: heroImages, isLoading: heroImagesLoading } = useQuery<HeroImage[]>({
     queryKey: ["/api/hero-images"],
   });
+
+  const { data: scenicContent, isLoading: scenicContentLoading } = useQuery<ScenicContent>({
+    queryKey: ["/api/scenic-content"],
+  });
+
+  // Initialize scenic content form when data is loaded
+  useEffect(() => {
+    if (scenicContent) {
+      setScenicTitle(scenicContent.title || "");
+      setScenicSubtitle(scenicContent.subtitle || "");
+      setGalleries(scenicContent.galleries || []);
+    }
+  }, [scenicContent]);
 
   const updateTourSettingsMutation = useMutation({
     mutationFn: async (data: Partial<TourSettings>) => {
@@ -149,6 +168,27 @@ export default function AdminPanel() {
       toast({
         title: "Fehler",
         description: `Fehler beim Hinzufügen des Hero-Bilds: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Scenic content mutation
+  const updateScenicContentMutation = useMutation({
+    mutationFn: async (data: { title?: string; subtitle?: string; galleries?: ScenicGalleryItem[] }) => {
+      await apiRequest("PUT", "/api/scenic-content", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/scenic-content"] });
+      toast({
+        title: "Erfolg",
+        description: "Spektakuläre Landschaften wurden aktualisiert",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Fehler",
+        description: `Fehler beim Aktualisieren der Landschaften: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -493,6 +533,224 @@ export default function AdminPanel() {
                     </div>
                   )}
                 </div>
+                </CardContent>
+              )}
+            </Card>
+
+            {/* Scenic Landscapes Management */}
+            <Card data-testid="scenic-landscapes-card">
+              <CardHeader 
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => toggleSection('scenicLandscapes')}
+                data-testid="scenic-landscapes-header"
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    🏞️ Spektakuläre Landschaften verwalten
+                  </CardTitle>
+                  {collapsedSections.scenicLandscapes ? 
+                    <ChevronDown className="w-4 h-4" /> : 
+                    <ChevronUp className="w-4 h-4" />
+                  }
+                </div>
+              </CardHeader>
+              {!collapsedSections.scenicLandscapes && (
+                <CardContent className="space-y-6">
+                  {scenicContentLoading ? (
+                    <div className="text-center py-4 text-muted-foreground">
+                      Landschaften werden geladen...
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Title & Subtitle editing */}
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="scenic-title" className="flex justify-between">
+                            <span>Titel</span>
+                            <span className={`text-sm ${scenicTitle.length > 200 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                              {scenicTitle.length}/200
+                            </span>
+                          </Label>
+                          <Input
+                            id="scenic-title"
+                            value={scenicTitle}
+                            onChange={(e) => {
+                              if (e.target.value.length <= 200) {
+                                setScenicTitle(e.target.value);
+                              } else {
+                                toast({
+                                  title: "Fehler",
+                                  description: "Titel ist zu lang (maximal 200 Zeichen)",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                            placeholder="Spektakuläre Landschaften erwarten uns"
+                            data-testid="input-scenic-title"
+                            className={scenicTitle.length > 200 ? 'border-destructive' : ''}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="scenic-subtitle" className="flex justify-between">
+                            <span>Untertitel</span>
+                            <span className={`text-sm ${scenicSubtitle.length > 300 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                              {scenicSubtitle.length}/300
+                            </span>
+                          </Label>
+                          <Textarea
+                            id="scenic-subtitle"
+                            value={scenicSubtitle}
+                            onChange={(e) => {
+                              if (e.target.value.length <= 300) {
+                                setScenicSubtitle(e.target.value);
+                              } else {
+                                toast({
+                                  title: "Fehler",
+                                  description: "Untertitel ist zu lang (maximal 300 Zeichen)",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                            placeholder="Von den türkisfarbenen Seen des Okanagan-Tals bis zu den majestätischen Gipfeln der Rocky Mountains - jeder Ort ist ein Fotomotiv"
+                            rows={3}
+                            data-testid="textarea-scenic-subtitle"
+                            className={scenicSubtitle.length > 300 ? 'border-destructive' : ''}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Gallery Items */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold flex items-center gap-2">
+                          <span>📸</span>
+                          Galerie-Bilder (6 Stück)
+                        </h4>
+                        {galleries?.map((gallery, index) => (
+                          <Card key={gallery.id} className="border-l-4 border-l-primary/20">
+                            <CardContent className="p-4">
+                              <div className="grid gap-4">
+                                <div className="flex items-center justify-between">
+                                  <Label className="font-semibold">
+                                    Bild {index + 1} {gallery.isLarge && "(Groß - 2x2)"}
+                                  </Label>
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="checkbox"
+                                      checked={gallery.isLarge}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          // Ensure only one large image
+                                          const updatedGalleries = galleries.map(g => 
+                                            g.id === gallery.id ? { ...g, isLarge: true } : { ...g, isLarge: false }
+                                          );
+                                          setGalleries(updatedGalleries);
+                                        } else {
+                                          // Don't allow unchecking if it's the only large image
+                                          const largeCount = galleries.filter(g => g.isLarge).length;
+                                          if (largeCount <= 1) {
+                                            toast({
+                                              title: "Fehler",
+                                              description: "Mindestens ein großes Bild ist erforderlich",
+                                              variant: "destructive",
+                                            });
+                                            return;
+                                          }
+                                          const updatedGalleries = galleries.map(g => 
+                                            g.id === gallery.id ? { ...g, isLarge: false } : g
+                                          );
+                                          setGalleries(updatedGalleries);
+                                        }
+                                      }}
+                                      data-testid={`checkbox-large-${index}`}
+                                    />
+                                    <Label className="text-sm">Großes Bild</Label>
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <Label htmlFor={`gallery-title-${index}`}>Titel</Label>
+                                    <Input
+                                      id={`gallery-title-${index}`}
+                                      placeholder="z.B. Penticton Wine Country"
+                                      value={gallery.title}
+                                      onChange={(e) => {
+                                        const updatedGalleries = galleries.map(g => 
+                                          g.id === gallery.id ? { ...g, title: e.target.value } : g
+                                        );
+                                        setGalleries(updatedGalleries);
+                                      }}
+                                      data-testid={`input-gallery-title-${index}`}
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor={`gallery-description-${index}`}>Beschreibung</Label>
+                                    <Input
+                                      id={`gallery-description-${index}`}
+                                      placeholder="z.B. Okanagan Valley mit über 170 Weingütern"
+                                      value={gallery.description}
+                                      onChange={(e) => {
+                                        const updatedGalleries = galleries.map(g => 
+                                          g.id === gallery.id ? { ...g, description: e.target.value } : g
+                                        );
+                                        setGalleries(updatedGalleries);
+                                      }}
+                                      data-testid={`input-gallery-description-${index}`}
+                                    />
+                                  </div>
+                                </div>
+                                <div>
+                                  <Label htmlFor={`gallery-imageurl-${index}`}>Bild URL</Label>
+                                  <Input
+                                    id={`gallery-imageurl-${index}`}
+                                    placeholder="https://images.unsplash.com/..."
+                                    value={gallery.imageUrl}
+                                    onChange={(e) => {
+                                      const updatedGalleries = galleries.map(g => 
+                                        g.id === gallery.id ? { ...g, imageUrl: e.target.value } : g
+                                      );
+                                      setGalleries(updatedGalleries);
+                                    }}
+                                    data-testid={`input-gallery-imageurl-${index}`}
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor={`gallery-linkurl-${index}`}>Link URL (optional)</Label>
+                                  <Input
+                                    id={`gallery-linkurl-${index}`}
+                                    placeholder="/location/penticton oder externe URL"
+                                    value={gallery.linkUrl || ""}
+                                    onChange={(e) => {
+                                      const updatedGalleries = galleries.map(g => 
+                                        g.id === gallery.id ? { ...g, linkUrl: e.target.value } : g
+                                      );
+                                      setGalleries(updatedGalleries);
+                                    }}
+                                    data-testid={`input-gallery-linkurl-${index}`}
+                                  />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+
+                      {/* Save Button */}
+                      <Button
+                        onClick={() => {
+                          updateScenicContentMutation.mutate({
+                            title: scenicTitle,
+                            subtitle: scenicSubtitle,
+                            galleries: galleries,
+                          });
+                        }}
+                        disabled={updateScenicContentMutation.isPending}
+                        className="w-full"
+                        data-testid="button-update-scenic-content"
+                      >
+                        {updateScenicContentMutation.isPending ? "Aktualisiere..." : "🏞️ Landschaften aktualisieren"}
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               )}
             </Card>

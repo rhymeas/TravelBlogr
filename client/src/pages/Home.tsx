@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Menu, X } from "lucide-react";
 import { Link } from "wouter";
-import type { Location, TourSettings } from "@shared/schema";
+import type { Location, TourSettings, ScenicContent } from "@shared/schema";
 
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -18,6 +18,10 @@ export default function Home() {
 
   const { data: tourSettings } = useQuery<TourSettings>({
     queryKey: ["/api/tour-settings"],
+  });
+
+  const { data: scenicContent } = useQuery<ScenicContent>({
+    queryKey: ["/api/scenic-content"],
   });
 
   if (locationsLoading) {
@@ -184,93 +188,51 @@ export default function Home() {
       <section id="locations" className="py-20 bg-secondary" data-testid="locations-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Spektakuläre Landschaften erwarten uns</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              {scenicContent?.title || "Spektakuläre Landschaften erwarten uns"}
+            </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Von den türkisfarbenen Seen des Okanagan-Tals bis zu den majestätischen Gipfeln der Rocky Mountains - jeder Ort ist ein Fotomotiv
+              {scenicContent?.subtitle || "Von den türkisfarbenen Seen des Okanagan-Tals bis zu den majestätischen Gipfeln der Rocky Mountains - jeder Ort ist ein Fotomotiv"}
             </p>
           </div>
 
           {/* Scenic Gallery Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            <div className="lg:col-span-2 lg:row-span-2">
-              <div className="relative h-80 lg:h-full rounded-xl overflow-hidden group">
-                <img 
-                  src="https://images.unsplash.com/photo-1528190336454-13cd56b45b5a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=800"
-                  alt="Penticton Weinberge"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                <div className="absolute bottom-6 left-6 text-white">
-                  <h3 className="text-2xl font-bold mb-2">Penticton Wine Country</h3>
-                  <p className="text-white/90">Okanagan Valley mit über 170 Weingütern</p>
-                </div>
-              </div>
-            </div>
+            {scenicContent?.galleries
+              ?.sort((a, b) => a.order - b.order)
+              ?.map((gallery) => {
+                const GalleryContent = (
+                  <div className={`relative ${gallery.isLarge ? 'h-80 lg:h-full' : 'h-40 lg:h-48'} rounded-xl overflow-hidden group`}>
+                    <img 
+                      src={gallery.imageUrl}
+                      alt={gallery.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                    <div className={`absolute ${gallery.isLarge ? 'bottom-6 left-6' : 'bottom-4 left-4'} text-white`}>
+                      <h3 className={`${gallery.isLarge ? 'text-2xl font-bold mb-2' : 'text-lg font-semibold'}`}>{gallery.title}</h3>
+                      <p className={`text-white/90 ${gallery.isLarge ? 'text-base' : 'text-sm'}`}>{gallery.description}</p>
+                    </div>
+                  </div>
+                );
 
-            <div className="relative h-40 lg:h-48 rounded-xl overflow-hidden group">
-              <img 
-                src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400"
-                alt="Maligne Lake Jasper"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-              <div className="absolute bottom-4 left-4 text-white">
-                <h4 className="text-lg font-semibold">Maligne Lake</h4>
-                <p className="text-sm text-white/90">Spirit Island</p>
-              </div>
-            </div>
-
-            <div className="relative h-40 lg:h-48 rounded-xl overflow-hidden group">
-              <img 
-                src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400"
-                alt="Golden Rocky Mountains"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-              <div className="absolute bottom-4 left-4 text-white">
-                <h4 className="text-lg font-semibold">Golden Rockies</h4>
-                <p className="text-sm text-white/90">Kicking Horse River</p>
-              </div>
-            </div>
-
-            <div className="relative h-40 lg:h-48 rounded-xl overflow-hidden group">
-              <img 
-                src="https://images.unsplash.com/photo-1501594907352-04cda38ebc29?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400"
-                alt="Kalamalka Lake Vernon"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-              <div className="absolute bottom-4 left-4 text-white">
-                <h4 className="text-lg font-semibold">Kalamalka Lake</h4>
-                <p className="text-sm text-white/90">Türkisfarbenes Juwel</p>
-              </div>
-            </div>
-
-            <div className="relative h-40 lg:h-48 rounded-xl overflow-hidden group">
-              <img 
-                src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400"
-                alt="Sunshine Coast"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-              <div className="absolute bottom-4 left-4 text-white">
-                <h4 className="text-lg font-semibold">Sunshine Coast</h4>
-                <p className="text-sm text-white/90">Desolation Sound</p>
-              </div>
-            </div>
-
-            <div className="relative h-40 lg:h-48 rounded-xl overflow-hidden group">
-              <img 
-                src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400"
-                alt="Wells Gray Wasserfälle"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-              <div className="absolute bottom-4 left-4 text-white">
-                <h4 className="text-lg font-semibold">Wells Gray Falls</h4>
-                <p className="text-sm text-white/90">Helmcken Falls</p>
-              </div>
-            </div>
+                return (
+                  <div 
+                    key={gallery.id} 
+                    className={gallery.isLarge ? "lg:col-span-2 lg:row-span-2" : ""}
+                  >
+                    {gallery.linkUrl ? (
+                      <Link href={gallery.linkUrl}>
+                        <div className="cursor-pointer">
+                          {GalleryContent}
+                        </div>
+                      </Link>
+                    ) : (
+                      GalleryContent
+                    )}
+                  </div>
+                );
+              })}
           </div>
 
           {/* Location Cards */}

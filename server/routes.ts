@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
-import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema, insertLocationPingSchema, insertHeroImageSchema } from "@shared/schema";
+import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema, insertLocationPingSchema, insertHeroImageSchema, insertScenicContentSchema, scenicContentUpdateSchema } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import multer from "multer";
@@ -485,6 +485,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error reordering hero images:", error);
       res.status(500).json({ error: "Failed to reorder hero images" });
+    }
+  });
+
+  // Scenic content routes
+  app.get("/api/scenic-content", async (req, res) => {
+    try {
+      const scenicContent = await storage.getScenicContent();
+      res.json(scenicContent);
+    } catch (error) {
+      console.error("Error fetching scenic content:", error);
+      res.status(500).json({ error: "Failed to fetch scenic content" });
+    }
+  });
+
+  app.put("/api/scenic-content", simpleAuthMiddleware, async (req, res) => {
+    try {
+      const validation = scenicContentUpdateSchema.partial().safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid scenic content data", details: validation.error });
+      }
+
+      // Validate image URLs if provided in galleries
+      if (validation.data.galleries && validation.data.galleries.length > 0) {
+        for (const gallery of validation.data.galleries) {
+          if (gallery.imageUrl) {
+            const urlValidation = validateImageUrl(gallery.imageUrl);
+            if (!urlValidation.valid) {
+              return res.status(400).json({ 
+                error: `Invalid image URL for gallery item "${gallery.title}": ${urlValidation.error}` 
+              });
+            }
+          }
+        }
+      }
+
+      const scenicContent = await storage.updateScenicContent(validation.data);
+      res.json(scenicContent);
+    } catch (error) {
+      console.error("Error updating scenic content:", error);
+      res.status(500).json({ error: "Failed to update scenic content" });
     }
   });
 
