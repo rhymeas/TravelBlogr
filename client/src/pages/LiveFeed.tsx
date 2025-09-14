@@ -11,12 +11,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
-import type { Location, TripPhoto } from "@shared/schema";
+import type { Location, TripPhoto, Creator } from "@shared/schema";
 
 export default function LiveFeedPage() {
   const [caption, setCaption] = useState("");
   const [name, setName] = useState("");
   const [selectedLocationId, setSelectedLocationId] = useState<string>("general");
+  const [selectedCreatorId, setSelectedCreatorId] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -28,6 +29,11 @@ export default function LiveFeedPage() {
     queryKey: ["/api/locations"],
   });
 
+  // Fetch creators for the creator selector
+  const { data: creators = [] } = useQuery<Creator[]>({
+    queryKey: ["/api/creators"],
+  });
+
   // Fetch centralized trip photos
   const { data: tripPhotos = [], isLoading } = useQuery<TripPhoto[]>({
     queryKey: ["/api/trip-photos"],
@@ -36,12 +42,13 @@ export default function LiveFeedPage() {
 
   // Upload mutation for centralized trip photos
   const uploadMutation = useMutation({
-    mutationFn: async ({ file, caption, uploadedBy, locationId }: { file: File; caption: string; uploadedBy: string; locationId?: string }) => {
+    mutationFn: async ({ file, caption, uploadedBy, locationId, creatorId }: { file: File; caption: string; uploadedBy: string; locationId?: string; creatorId?: string }) => {
       const formData = new FormData();
       formData.append('image', file);
       if (caption) formData.append('caption', caption);
       if (uploadedBy) formData.append('uploadedBy', uploadedBy);
       if (locationId) formData.append('locationId', locationId);
+      if (creatorId) formData.append('creatorId', creatorId);
 
       const response = await fetch('/api/trip-photos', {
         method: 'POST',
@@ -59,6 +66,7 @@ export default function LiveFeedPage() {
       setCaption("");
       setName("");
       setSelectedLocationId("general");
+      setSelectedCreatorId("");
       setSelectedFile(null);
       setShowUploadModal(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -111,6 +119,7 @@ export default function LiveFeedPage() {
     setCaption("");
     setName("");
     setSelectedLocationId("general");
+    setSelectedCreatorId("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -125,6 +134,16 @@ export default function LiveFeedPage() {
       return;
     }
 
+    // Check if creator is selected
+    if (!selectedCreatorId) {
+      toast({
+        title: "Person auswählen",
+        description: "Bitte wählen Sie aus, wer das Foto hochlädt.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setUploading(true);
     try {
       await uploadMutation.mutateAsync({
@@ -132,6 +151,7 @@ export default function LiveFeedPage() {
         caption: caption.trim(),
         uploadedBy: name.trim(),
         locationId: selectedLocationId === "general" ? undefined : selectedLocationId,
+        creatorId: selectedCreatorId,
       });
     } catch (error) {
       console.error("Upload error:", error);
@@ -268,9 +288,12 @@ export default function LiveFeedPage() {
                         <User className="w-5 h-5 text-gray-500" />
                       </div>
                       <div>
-                        {photo.uploadedBy && (
+                        {(photo.creatorId || photo.uploadedBy) && (
                           <p className="font-medium text-sm text-gray-900 dark:text-gray-100" data-testid="photo-author">
-                            {photo.uploadedBy}
+                            {photo.creatorId ? 
+                              creators.find(c => c.id === photo.creatorId)?.name || photo.uploadedBy || 'Unbekannt' : 
+                              photo.uploadedBy
+                            }
                           </p>
                         )}
                         <div className="flex items-center space-x-2 text-xs text-gray-500">
@@ -364,10 +387,27 @@ export default function LiveFeedPage() {
 
             {/* Form fields */}
             <div className="space-y-3">
+              {/* Creator Selection - Required */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">Wer lädt das Foto hoch? *</label>
+                <Select value={selectedCreatorId} onValueChange={setSelectedCreatorId}>
+                  <SelectTrigger className="border-gray-300 dark:border-gray-700" data-testid="select-creator">
+                    <SelectValue placeholder="Bitte wählen Sie eine Person aus" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {creators.map((creator) => (
+                      <SelectItem key={creator.id} value={creator.id} data-testid={`creator-option-${creator.id}`}>
+                        {creator.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Name (optional)"
+                placeholder="Zusätzliche Notiz (optional)"
                 className="border-gray-300 dark:border-gray-700"
                 maxLength={100}
                 data-testid="input-name"

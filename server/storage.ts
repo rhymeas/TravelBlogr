@@ -3,6 +3,8 @@ import {
   InsertLocation, 
   LocationImage, 
   InsertLocationImage, 
+  Creator,
+  InsertCreator,
   TripPhoto,
   InsertTripPhoto,
   TourSettings, 
@@ -59,6 +61,12 @@ export interface IStorage {
   // Scenic content for "Spektakuläre Landschaften erwarten uns" section
   getScenicContent(): Promise<ScenicContent | undefined>;
   updateScenicContent(data: Partial<InsertScenicContent>): Promise<ScenicContent>;
+
+  // Creator operations
+  getAllCreators(): Promise<Creator[]>;
+  createCreator(creator: InsertCreator): Promise<Creator>;
+  updateCreator(id: string, creator: Partial<InsertCreator>): Promise<Creator>;
+  deleteCreator(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -69,6 +77,7 @@ export class MemStorage implements IStorage {
   private heroImages: Map<string, HeroImage>;
   private tourSettings: TourSettings | undefined;
   private scenicContent: ScenicContent | undefined;
+  private creators: Map<string, Creator>;
 
   constructor() {
     this.locations = new Map();
@@ -76,10 +85,23 @@ export class MemStorage implements IStorage {
     this.tripPhotos = new Map();
     this.locationPings = new Map();
     this.heroImages = new Map();
+    this.creators = new Map();
     this.initializeData();
   }
 
   private initializeData() {
+    // Initialize default creators
+    const defaultCreators = ["Rimas", "Susanne", "Ursula", "Helmut"];
+    defaultCreators.forEach(name => {
+      const id = randomUUID();
+      const creator: Creator = {
+        id,
+        name,
+        createdAt: new Date(),
+      };
+      this.creators.set(id, creator);
+    });
+
     // Initialize with actual tour data from PDF
     const initialLocations: InsertLocation[] = [
       {
@@ -808,6 +830,42 @@ export class MemStorage implements IStorage {
       } as ScenicContent;
     }
     return this.scenicContent;
+  }
+
+  // Creator methods
+  async getAllCreators(): Promise<Creator[]> {
+    return Array.from(this.creators.values()).sort((a, b) => 
+      a.name.localeCompare(b.name)
+    );
+  }
+
+  async createCreator(creator: InsertCreator): Promise<Creator> {
+    const id = randomUUID();
+    const newCreator: Creator = {
+      ...creator,
+      id,
+      createdAt: new Date(),
+    };
+    this.creators.set(id, newCreator);
+    return newCreator;
+  }
+
+  async updateCreator(id: string, creator: Partial<InsertCreator>): Promise<Creator> {
+    const existing = this.creators.get(id);
+    if (!existing) {
+      throw new Error("Creator not found");
+    }
+    
+    const updated: Creator = {
+      ...existing,
+      ...creator,
+    };
+    this.creators.set(id, updated);
+    return updated;
+  }
+
+  async deleteCreator(id: string): Promise<void> {
+    this.creators.delete(id);
   }
 }
 

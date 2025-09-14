@@ -41,15 +41,23 @@ export const locationImages = pgTable("location_images", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Creators for tracking who uploads content
+export const creators = pgTable("creators", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Trip photos for centralized live feed during tour
 export const tripPhotos = pgTable("trip_photos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   locationId: varchar("location_id").references(() => locations.id), // optional location tag
+  creatorId: varchar("creator_id").references(() => creators.id, { onDelete: "set null" }), // who uploaded this photo
   imageUrl: text("image_url").notNull(),
   caption: text("caption"),
   objectPath: text("object_path"), // for object storage
   uploadedAt: timestamp("uploaded_at").defaultNow(),
-  uploadedBy: text("uploaded_by"), // optional field for user identification
+  uploadedBy: text("uploaded_by"), // deprecated - kept for backward compatibility
 });
 
 // Tour settings for general configuration
@@ -178,6 +186,11 @@ export const insertLocationImageSchema = createInsertSchema(locationImages).omit
   createdAt: true,
 });
 
+export const insertCreatorSchema = createInsertSchema(creators).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertTripPhotoSchema = createInsertSchema(tripPhotos).omit({
   id: true,
   uploadedAt: true,
@@ -209,6 +222,8 @@ export type Location = typeof locations.$inferSelect;
 export type InsertLocation = z.infer<typeof insertLocationSchema>;
 export type LocationImage = typeof locationImages.$inferSelect;
 export type InsertLocationImage = z.infer<typeof insertLocationImageSchema>;
+export type Creator = typeof creators.$inferSelect;
+export type InsertCreator = z.infer<typeof insertCreatorSchema>;
 export type TripPhoto = typeof tripPhotos.$inferSelect;
 export type InsertTripPhoto = z.infer<typeof insertTripPhotoSchema>;
 export type TourSettings = typeof tourSettings.$inferSelect;

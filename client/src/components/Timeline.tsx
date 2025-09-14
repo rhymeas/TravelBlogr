@@ -135,15 +135,15 @@ export default function Timeline({ locations }: TimelineProps) {
           <div 
             key={location.id} 
             className={`relative ${
-              index > 0 ? 'md:-mt-80' : ''
+              index > 0 ? 'md:-mt-72 lg:-mt-80 xl:-mt-96' : ''
             }`}
             data-testid={`timeline-item-${location.slug}`}>
             {/* Timeline marker */}
             <div className="hidden md:block absolute left-1/2 top-8 w-8 h-8 bg-primary rounded-full transform -translate-x-1/2 z-10 border-4 border-white shadow-lg"></div>
             
             {/* Card positioned alternating left/right with proper spacing from center */}
-            <div className={`flex ${index % 2 === 0 ? 'md:justify-start md:pr-16' : 'md:justify-end md:pl-16'}`}>
-              <Link href={`/location/${location.slug}`} className="w-full md:w-5/12 lg:w-2/5">
+            <div className={`flex ${index % 2 === 0 ? 'md:justify-start md:pr-6 lg:pr-8 xl:pr-10' : 'md:justify-end md:pl-6 lg:pl-8 xl:pl-10'}`}>
+              <Link href={`/location/${location.slug}`} className="w-full md:w-[calc(50%-1.5rem)] lg:w-[calc(50%-2rem)] xl:w-[calc(50%-2.5rem)]">
                 <Card className={`w-full bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-[1.02] ${index % 2 === 0 ? 'md:mr-auto' : 'md:ml-auto'}`}>
                 {/* Header with location name and date */}
                 <div className="flex items-center justify-between p-6 pb-4">

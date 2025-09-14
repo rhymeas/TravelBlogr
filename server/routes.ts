@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
-import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema, insertLocationPingSchema, insertHeroImageSchema, insertScenicContentSchema, scenicContentUpdateSchema } from "@shared/schema";
+import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema, insertLocationPingSchema, insertHeroImageSchema, insertScenicContentSchema, scenicContentUpdateSchema, insertCreatorSchema } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import multer from "multer";
@@ -575,6 +575,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating scenic content:", error);
       res.status(500).json({ error: "Failed to update scenic content" });
+    }
+  });
+
+  // Creator routes
+  app.get("/api/creators", async (req, res) => {
+    try {
+      const creators = await storage.getAllCreators();
+      res.json(creators);
+    } catch (error) {
+      console.error("Error fetching creators:", error);
+      res.status(500).json({ error: "Failed to fetch creators" });
+    }
+  });
+
+  app.post("/api/creators", simpleAuthMiddleware, async (req, res) => {
+    try {
+      const validation = insertCreatorSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid creator data", details: validation.error });
+      }
+
+      const creator = await storage.createCreator(validation.data);
+      res.json(creator);
+    } catch (error) {
+      console.error("Error creating creator:", error);
+      res.status(500).json({ error: "Failed to create creator" });
+    }
+  });
+
+  app.put("/api/creators/:id", simpleAuthMiddleware, async (req, res) => {
+    try {
+      const validation = insertCreatorSchema.partial().safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid creator data", details: validation.error });
+      }
+
+      const creator = await storage.updateCreator(req.params.id, validation.data);
+      res.json(creator);
+    } catch (error) {
+      console.error("Error updating creator:", error);
+      res.status(500).json({ error: "Failed to update creator" });
+    }
+  });
+
+  app.delete("/api/creators/:id", simpleAuthMiddleware, async (req, res) => {
+    try {
+      await storage.deleteCreator(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting creator:", error);
+      res.status(500).json({ error: "Failed to delete creator" });
     }
   });
 

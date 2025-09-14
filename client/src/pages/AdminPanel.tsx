@@ -15,7 +15,7 @@ import { ImageGallery } from "@/components/ImageGallery";
 import { ImageInput } from "@/components/ImageInput";
 import AdminLocationForm from "@/components/AdminLocationForm";
 import Header from "@/components/Header";
-import type { Location, TourSettings, HeroImage, ScenicContent, ScenicGalleryItem } from "@shared/schema";
+import type { Location, TourSettings, HeroImage, ScenicContent, ScenicGalleryItem, Creator } from "@shared/schema";
 
 export default function AdminPanel() {
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
@@ -30,6 +30,11 @@ export default function AdminPanel() {
   const [scenicSubtitle, setScenicSubtitle] = useState("");
   const [galleries, setGalleries] = useState<ScenicGalleryItem[]>([]);
   
+  // Creator management state
+  const [creatorName, setCreatorName] = useState("");
+  const [editingCreator, setEditingCreator] = useState<Creator | null>(null);
+  const [editingCreatorName, setEditingCreatorName] = useState("");
+  
   // Collapsible sections state - all collapsed by default for cleaner admin interface
   const [collapsedSections, setCollapsedSections] = useState({
     tourSettings: true,
@@ -41,6 +46,7 @@ export default function AdminPanel() {
     imageManagement: true,
     scenicLandscapes: true,
     quickActions: true,
+    creatorManagement: true,
   });
 
   const toggleSection = (section: keyof typeof collapsedSections) => {
@@ -85,6 +91,10 @@ export default function AdminPanel() {
 
   const { data: scenicContent, isLoading: scenicContentLoading } = useQuery<ScenicContent>({
     queryKey: ["/api/scenic-content"],
+  });
+
+  const { data: creators, isLoading: creatorsLoading } = useQuery<Creator[]>({
+    queryKey: ["/api/creators"],
   });
 
   // Initialize scenic content form when data is loaded
@@ -258,6 +268,70 @@ export default function AdminPanel() {
     },
   });
 
+  // Creator mutations
+  const createCreatorMutation = useMutation({
+    mutationFn: async (name: string) => {
+      await apiRequest("POST", "/api/creators", { name });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/creators"] });
+      setCreatorName("");
+      toast({
+        title: "Erfolg",
+        description: "Person wurde hinzugefügt",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Fehler",
+        description: `Fehler beim Hinzufügen der Person: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateCreatorMutation = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      await apiRequest("PUT", `/api/creators/${id}`, { name });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/creators"] });
+      setEditingCreator(null);
+      setEditingCreatorName("");
+      toast({
+        title: "Erfolg",
+        description: "Person wurde aktualisiert",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Fehler",
+        description: `Fehler beim Aktualisieren der Person: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteCreatorMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/creators/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/creators"] });
+      toast({
+        title: "Erfolg",
+        description: "Person wurde gelöscht",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Fehler",
+        description: `Fehler beim Löschen der Person: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
 
   if (locationsLoading || settingsLoading) {
     return (
@@ -326,6 +400,13 @@ export default function AdminPanel() {
                 data-testid="nav-restaurant-accommodation"
               >
                 🏨🍽️ Restaurant & Unterkunft
+              </button>
+              <button 
+                onClick={() => navigateToSection('creatorManagement', 'creator-management-card')}
+                className={`w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 text-sm transition-colors ${!collapsedSections.creatorManagement ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
+                data-testid="nav-creator-management"
+              >
+                👥 Personen verwalten
               </button>
               <button 
                 onClick={() => navigateToSection('locationsManagement', 'locations-management-card')}
@@ -1120,6 +1201,147 @@ export default function AdminPanel() {
                     }
                   </p>
                 </div>
+                </CardContent>
+              )}
+            </Card>
+
+            {/* Creator Management */}
+            <Card data-testid="creator-management-card">
+              <CardHeader 
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => toggleSection('creatorManagement')}
+                data-testid="creator-management-header"
+              >
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="text-2xl">👥</span>
+                    Personen verwalten
+                  </CardTitle>
+                  {collapsedSections.creatorManagement ? 
+                    <ChevronDown className="w-4 h-4" /> : 
+                    <ChevronUp className="w-4 h-4" />
+                  }
+                </div>
+              </CardHeader>
+              {!collapsedSections.creatorManagement && (
+                <CardContent className="space-y-6">
+                  {/* Add New Creator */}
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Neue Person hinzufügen</h3>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Name der Person"
+                        value={creatorName}
+                        onChange={(e) => setCreatorName(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && creatorName.trim()) {
+                            createCreatorMutation.mutate(creatorName.trim());
+                          }
+                        }}
+                        data-testid="input-creator-name"
+                      />
+                      <Button
+                        onClick={() => {
+                          if (creatorName.trim()) {
+                            createCreatorMutation.mutate(creatorName.trim());
+                          }
+                        }}
+                        disabled={!creatorName.trim() || createCreatorMutation.isPending}
+                        data-testid="button-add-creator"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Hinzufügen
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* List of Creators */}
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Vorhandene Personen</h3>
+                    {creatorsLoading ? (
+                      <div className="text-center py-4 text-muted-foreground">
+                        Personen werden geladen...
+                      </div>
+                    ) : creators && creators.length > 0 ? (
+                      <div className="space-y-2">
+                        {creators.map((creator) => (
+                          <div key={creator.id} className="flex items-center justify-between bg-muted/30 p-3 rounded-lg" data-testid={`creator-item-${creator.id}`}>
+                            {editingCreator?.id === creator.id ? (
+                              <div className="flex gap-2 flex-1">
+                                <Input
+                                  value={editingCreatorName}
+                                  onChange={(e) => setEditingCreatorName(e.target.value)}
+                                  onKeyPress={(e) => {
+                                    if (e.key === 'Enter' && editingCreatorName.trim()) {
+                                      updateCreatorMutation.mutate({ id: creator.id, name: editingCreatorName.trim() });
+                                    }
+                                  }}
+                                  data-testid={`input-edit-creator-${creator.id}`}
+                                />
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    if (editingCreatorName.trim()) {
+                                      updateCreatorMutation.mutate({ id: creator.id, name: editingCreatorName.trim() });
+                                    }
+                                  }}
+                                  disabled={!editingCreatorName.trim() || updateCreatorMutation.isPending}
+                                  data-testid={`button-save-creator-${creator.id}`}
+                                >
+                                  Speichern
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setEditingCreator(null);
+                                    setEditingCreatorName("");
+                                  }}
+                                  data-testid={`button-cancel-edit-${creator.id}`}
+                                >
+                                  Abbrechen
+                                </Button>
+                              </div>
+                            ) : (
+                              <>
+                                <span className="font-medium">{creator.name}</span>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setEditingCreator(creator);
+                                      setEditingCreatorName(creator.name);
+                                    }}
+                                    data-testid={`button-edit-creator-${creator.id}`}
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => {
+                                      if (confirm(`Möchten Sie "${creator.name}" wirklich löschen?`)) {
+                                        deleteCreatorMutation.mutate(creator.id);
+                                      }
+                                    }}
+                                    disabled={deleteCreatorMutation.isPending}
+                                    data-testid={`button-delete-creator-${creator.id}`}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-muted-foreground">
+                        Keine Personen vorhanden. Fügen Sie oben eine neue Person hinzu.
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               )}
             </Card>
