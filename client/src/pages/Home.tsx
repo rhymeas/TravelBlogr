@@ -73,6 +73,9 @@ export default function Home() {
               >
                 Orte
               </button>
+              <Link href="/live-feed">
+                <Button variant="outline" data-testid="nav-live-feed">Live Reise-Feed</Button>
+              </Link>
               <Link href="/admin">
                 <Button data-testid="nav-admin">Editieren</Button>
               </Link>
@@ -122,6 +125,9 @@ export default function Home() {
               >
                 Orte
               </button>
+              <Link href="/live-feed" className="block">
+                <Button className="w-full" variant="outline" data-testid="mobile-nav-live-feed">Live Reise-Feed</Button>
+              </Link>
               <Link href="/admin" className="block">
                 <Button className="w-full" data-testid="mobile-nav-admin">Editieren</Button>
               </Link>

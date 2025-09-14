@@ -7,12 +7,14 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import LocationDetail from "@/pages/LocationDetail";
 import AdminPanel from "@/pages/AdminPanel";
+import LiveFeedPage from "@/pages/LiveFeed";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/location/:slug" component={LocationDetail} />
+      <Route path="/live-feed" component={LiveFeedPage} />
       <Route path="/admin" component={AdminPanel} />
       <Route component={NotFound} />
     </Switch>

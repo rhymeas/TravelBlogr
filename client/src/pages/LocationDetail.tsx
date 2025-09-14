@@ -133,6 +133,20 @@ export default function LocationDetail() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Live Trip Feed - Main Content */}
+            <Card className="bg-gradient-to-br from-teal-50 to-cyan-50 border-teal-200" data-testid="location-live-feed">
+              <CardContent className="pt-6">
+                <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center">
+                  🚗 <span className="ml-2">Live Reise Updates</span>
+                </h2>
+                <LiveTripFeed 
+                  locationId={location.id} 
+                  locationName={location.name}
+                  showUpload={true}
+                />
+              </CardContent>
+            </Card>
           </div>
 
           {/* Sidebar */}
@@ -390,12 +404,6 @@ export default function LocationDetail() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Live Trip Feed */}
-            <LiveTripFeed 
-              locationId={location.id} 
-              locationName={location.name}
-            />
 
             {/* Edit Button */}
             <Link href="/admin">

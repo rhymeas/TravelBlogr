@@ -16,9 +16,10 @@ import type { TripPhoto } from "@shared/schema";
 interface LiveTripFeedProps {
   locationId: string;
   locationName: string;
+  showUpload?: boolean;
 }
 
-export function LiveTripFeed({ locationId, locationName }: LiveTripFeedProps) {
+export function LiveTripFeed({ locationId, locationName, showUpload = true }: LiveTripFeedProps) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadCaption, setUploadCaption] = useState("");
   const [uploadedBy, setUploadedBy] = useState("");
