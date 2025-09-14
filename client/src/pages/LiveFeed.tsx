@@ -258,7 +258,7 @@ export default function LiveFeedPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="general" data-testid="location-option-general">Allgemein (kein Ort)</SelectItem>
-                        {locations?.map((location) => (
+                        {locations?.filter(location => location.id && location.id.trim() !== '').map((location) => (
                           <SelectItem key={location.id} value={location.id} data-testid={`location-option-${location.slug}`}>
                             {location.name}
                           </SelectItem>
@@ -309,15 +309,62 @@ export default function LiveFeedPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             {tripPhotos.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Camera className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Noch keine Fotos geteilt.</p>
-                <p className="text-sm">Sei der erste und teile ein tolles Foto von der Reise!</p>
+              <div className="space-y-8">
+                {/* Main CTA */}
+                <div className="text-center py-8">
+                  <div className="mb-6">
+                    <div className="relative mb-6">
+                      <div className="w-20 h-20 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                        <Camera className="w-10 h-10 text-primary/60" />
+                      </div>
+                      <div className="absolute inset-0 w-20 h-20 mx-auto rounded-full border-2 border-primary/20 animate-pulse"></div>
+                    </div>
+                    <h3 className="text-2xl font-semibold text-foreground mb-3">
+                      Noch keine Reise-Fotos
+                    </h3>
+                    <p className="text-muted-foreground text-lg">
+                      Teile deine ersten Eindrücke von der Weinberg Tour 2025
+                    </p>
+                  </div>
+                </div>
+                
+                {/* 3 Sleek Gray Placeholder Cards */}
+                <div className="grid gap-4">
+                  {[1, 2, 3].map((index) => (
+                    <div key={index} className="bg-muted/30 rounded-xl p-6 border border-dashed border-muted-foreground/20 hover:bg-muted/40 transition-colors">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-14 h-14 bg-muted-foreground/10 rounded-xl flex items-center justify-center">
+                          <Camera className="w-7 h-7 text-muted-foreground/40" />
+                        </div>
+                        <div className="flex-1 space-y-3">
+                          <div className="h-4 bg-muted-foreground/10 rounded-md animate-pulse"></div>
+                          <div className="h-3 bg-muted-foreground/10 rounded-md w-2/3 animate-pulse"></div>
+                          <div className="flex items-center space-x-4 text-xs text-muted-foreground/60">
+                            <div className="flex items-center">
+                              <User className="w-3 h-3 mr-1" />
+                              <div className="h-3 w-16 bg-muted-foreground/10 rounded animate-pulse"></div>
+                            </div>
+                            <div className="flex items-center">
+                              <Clock className="w-3 h-3 mr-1" />
+                              <div className="h-3 w-12 bg-muted-foreground/10 rounded animate-pulse"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground">
+                    Nutze den <span className="inline-flex items-center mx-1"><Plus className="w-4 h-4" /></span> Button um dein erstes Foto zu teilen
+                  </p>
+                </div>
               </div>
             ) : (
               <div className="space-y-6">
                 {tripPhotos.map((photo) => (
-                  <div key={photo.id} className="border rounded-lg p-4 bg-white dark:bg-gray-900/50" data-testid={`trip-photo-${photo.id}`}>
+                  <div key={photo.id} className="bg-white dark:bg-gray-900/50 rounded-xl p-6 border border-border shadow-sm hover:shadow-md transition-all duration-200" data-testid={`trip-photo-${photo.id}`}>
                     {/* Photo Header */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-3">
@@ -341,11 +388,11 @@ export default function LiveFeedPage() {
                     </div>
 
                     {/* Photo */}
-                    <div className="mb-3">
+                    <div className="mb-4">
                       <img 
                         src={photo.imageUrl} 
                         alt={photo.caption || "Reise-Foto"}
-                        className="w-full max-w-2xl h-auto rounded-lg object-cover"
+                        className="w-full max-w-2xl h-auto rounded-xl object-cover shadow-sm"
                         data-testid="photo-image"
                       />
                     </div>
@@ -362,6 +409,19 @@ export default function LiveFeedPage() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Floating Plus Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button
+          onClick={() => fileInputRef.current?.click()}
+          size="lg"
+          className="h-16 w-16 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 bg-primary hover:bg-primary/90 hover:scale-105 active:scale-95"
+          data-testid="floating-upload-button"
+        >
+          <Plus className="w-8 h-8" />
+          <span className="sr-only">Foto hochladen</span>
+        </Button>
       </div>
     </div>
   );
