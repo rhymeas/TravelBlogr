@@ -1,13 +1,19 @@
-import { useQuery } from "@tanstack/react-query";
-import { User, Camera, Edit2 } from "lucide-react";
-import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { User, Camera, Edit2, Save, X } from "lucide-react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Location, TripPhoto, Creator } from "@shared/schema";
 
 export default function LiveFeedPage() {
   const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const [editingPhotoId, setEditingPhotoId] = useState<string | null>(null);
+  const [editingCaption, setEditingCaption] = useState<string>("");
 
   // Fetch locations for location name lookup
   const { data: locations } = useQuery<Location[]>({
@@ -19,11 +25,91 @@ export default function LiveFeedPage() {
     queryKey: ["/api/creators"],
   });
 
-  // Fetch centralized trip photos
+  // Fetch centralized trip photos (pause refetch during editing to prevent interference)
   const { data: tripPhotos = [], isLoading } = useQuery<TripPhoto[]>({
     queryKey: ["/api/trip-photos"],
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    refetchInterval: editingPhotoId ? false : 30000, // Pause refetch while editing
   });
+
+  // Mutation for updating photo captions
+  const updateCaptionMutation = useMutation({
+    mutationFn: async ({ photoId, caption }: { photoId: string; caption: string }) => {
+      return apiRequest('PATCH', `/api/trip-photos/${photoId}`, { caption });
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trip-photos'] });
+      // Only clear editing state if this was for the currently editing photo (prevents race conditions)
+      if (variables.photoId === editingPhotoId) {
+        setEditingPhotoId(null);
+        setEditingCaption("");
+      }
+      toast({
+        title: "Erfolg",
+        description: "Bildunterschrift wurde aktualisiert",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating caption:', error);
+      toast({
+        variant: "destructive",
+        title: "Fehler",
+        description: "Bildunterschrift konnte nicht aktualisiert werden",
+      });
+    },
+  });
+
+  // Initialize editing caption when entering edit mode (only when editingPhotoId changes)
+  useEffect(() => {
+    if (editingPhotoId) {
+      const photo = tripPhotos.find(p => p.id === editingPhotoId);
+      setEditingCaption(photo?.caption || "");
+    }
+  }, [editingPhotoId]); // Removed tripPhotos dependency to prevent input loss during refetch
+
+  // Handle save caption
+  const handleSaveCaption = async () => {
+    if (!editingPhotoId) return;
+    const trimmedCaption = editingCaption.trim();
+    
+    // Get the original caption to avoid no-op requests
+    const photo = tripPhotos.find(p => p.id === editingPhotoId);
+    const originalCaption = photo?.caption || "";
+    
+    // Only make request if caption actually changed
+    if (trimmedCaption === originalCaption) {
+      setEditingPhotoId(null);
+      setEditingCaption("");
+      return;
+    }
+    
+    updateCaptionMutation.mutate({
+      photoId: editingPhotoId,
+      caption: trimmedCaption,
+    });
+  };
+  
+  // Check if caption has been modified
+  const getCaptionChanged = (photoId: string) => {
+    const photo = tripPhotos.find(p => p.id === photoId);
+    const originalCaption = photo?.caption || "";
+    return editingCaption.trim() !== originalCaption;
+  };
+
+  // Handle cancel editing
+  const handleCancelEdit = () => {
+    setEditingPhotoId(null);
+    setEditingCaption("");
+  };
+
+  // Handle keyboard shortcuts
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      handleCancelEdit();
+    } else if (e.key === 'Enter' && e.ctrlKey) {
+      e.preventDefault();
+      handleSaveCaption();
+    }
+  };
 
   // Format timestamp with relative time
   const formatTime = (date: Date | string | null) => {
@@ -169,13 +255,16 @@ export default function LiveFeedPage() {
                     {isAuthenticated && (
                       <button
                         onClick={() => setEditingPhotoId(editingPhotoId === photo.id ? null : photo.id)}
+                        disabled={updateCaptionMutation.isPending}
                         className={`p-2 rounded-full transition-all duration-200 ${
-                          editingPhotoId === photo.id
+                          updateCaptionMutation.isPending
+                            ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                            : editingPhotoId === photo.id
                             ? 'bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400'
                             : 'text-gray-400 dark:text-gray-500 hover:text-teal-500 dark:hover:text-teal-400 hover:bg-gray-50 dark:hover:bg-gray-800'
                         }`}
                         data-testid={`button-edit-photo-${photo.id}`}
-                        title={editingPhotoId === photo.id ? 'Bearbeitung beenden' : 'Foto bearbeiten'}
+                        title={updateCaptionMutation.isPending ? 'Speichert...' : editingPhotoId === photo.id ? 'Bearbeitung beenden' : 'Foto bearbeiten'}
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
@@ -202,13 +291,71 @@ export default function LiveFeedPage() {
                   </div>
 
                   {/* Caption */}
-                  {photo.caption && (
-                    <div className="p-3">
-                      <p className="text-sm text-gray-900 dark:text-gray-100" data-testid="photo-caption">
-                        {photo.caption}
-                      </p>
-                    </div>
-                  )}
+                  <div className="p-3">
+                    {editingPhotoId === photo.id ? (
+                      /* Edit mode - show textarea and buttons */
+                      <div className="space-y-3">
+                        <div>
+                          <Textarea
+                            value={editingCaption}
+                            onChange={(e) => setEditingCaption(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder="Bildunterschrift hinzufügen..."
+                            className="w-full text-sm resize-none min-h-[80px] border-gray-200 dark:border-gray-700 focus:border-teal-500 dark:focus:border-teal-400"
+                            maxLength={500}
+                            autoFocus
+                            data-testid={`textarea-caption-${photo.id}`}
+                          />
+                          <div className="flex justify-between items-center mt-1">
+                            <span className="text-xs text-gray-500">
+                              {editingCaption.length}/500 Zeichen
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              Strg+Enter zum Speichern, Esc zum Abbrechen
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            onClick={handleSaveCaption}
+                            disabled={updateCaptionMutation.isPending || editingCaption.length > 500 || !getCaptionChanged(photo.id)}
+                            size="sm"
+                            className="bg-teal-600 hover:bg-teal-700 dark:bg-teal-600 dark:hover:bg-teal-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                            data-testid={`button-save-caption-${photo.id}`}
+                          >
+                            {updateCaptionMutation.isPending ? (
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Save className="w-4 h-4" />
+                            )}
+                            <span className="ml-1">Speichern</span>
+                          </Button>
+                          <Button
+                            onClick={handleCancelEdit}
+                            disabled={updateCaptionMutation.isPending}
+                            variant="outline"
+                            size="sm"
+                            className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                            data-testid={`button-cancel-caption-${photo.id}`}
+                          >
+                            <X className="w-4 h-4" />
+                            <span className="ml-1">Abbrechen</span>
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Display mode - show caption or placeholder */
+                      photo.caption ? (
+                        <p className="text-sm text-gray-900 dark:text-gray-100" data-testid="photo-caption">
+                          {photo.caption}
+                        </p>
+                      ) : isAuthenticated ? (
+                        <p className="text-sm text-gray-500 italic" data-testid="photo-caption-placeholder">
+                          Bildunterschrift hinzufügen...
+                        </p>
+                      ) : null
+                    )}
+                  </div>
                 </div>
               ))}
             </>
