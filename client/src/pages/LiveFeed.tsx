@@ -14,7 +14,7 @@ import type { Location, TripPhoto } from "@shared/schema";
 export default function LiveFeedPage() {
   const [caption, setCaption] = useState("");
   const [name, setName] = useState("");
-  const [selectedLocationId, setSelectedLocationId] = useState<string>("");
+  const [selectedLocationId, setSelectedLocationId] = useState<string>("general");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -55,7 +55,7 @@ export default function LiveFeedPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/trip-photos"] });
       setCaption("");
       setName("");
-      setSelectedLocationId("");
+      setSelectedLocationId("general");
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       toast({
@@ -120,7 +120,7 @@ export default function LiveFeedPage() {
         file: selectedFile,
         caption: caption.trim(),
         uploadedBy: name.trim(),
-        locationId: selectedLocationId || undefined,
+        locationId: selectedLocationId === "general" ? undefined : selectedLocationId,
       });
     } catch (error) {
       console.error("Upload error:", error);
@@ -257,7 +257,7 @@ export default function LiveFeedPage() {
                         <SelectValue placeholder="Wähle einen Ort aus (oder lasse es leer)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="" data-testid="location-option-general">Allgemein (kein Ort)</SelectItem>
+                        <SelectItem value="general" data-testid="location-option-general">Allgemein (kein Ort)</SelectItem>
                         {locations?.map((location) => (
                           <SelectItem key={location.id} value={location.id} data-testid={`location-option-${location.slug}`}>
                             {location.name}

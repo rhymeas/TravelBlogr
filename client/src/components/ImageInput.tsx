@@ -3,10 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import { Upload, Link, AlertCircle, CheckCircle, Loader2, X } from "lucide-react";
+import { Upload, Link, AlertCircle, CheckCircle, Loader2, X, Camera } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 interface ImageInputProps {
@@ -34,7 +33,8 @@ export function ImageInput({
   testId = "image-input",
   required = false
 }: ImageInputProps) {
-  const [activeTab, setActiveTab] = useState<"url" | "upload">("url");
+  const [inputMode, setInputMode] = useState<"url" | "upload">("url");
+  const [showUpload, setShowUpload] = useState(false);
   const [imageValidation, setImageValidation] = useState<ImageValidationState>({
     isValidating: false,
     isValid: null,
@@ -76,14 +76,14 @@ export function ImageInput({
 
   // Debounced validation effect
   useEffect(() => {
-    if (!value || activeTab !== "url") return;
+    if (!value) return;
     
     const timeoutId = setTimeout(() => {
       validateImageUrl(value);
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [value, activeTab]);
+  }, [value]);
 
   // Handle upload completion
   const handleUploadComplete = async (result: any) => {
@@ -98,11 +98,13 @@ export function ImageInput({
         });
         const data = await response.json();
         onChange(data.publicURL || uploadUrl);
-        setActiveTab("url"); // Switch to URL tab to show the result
+        setShowUpload(false); // Close upload mode
+        setInputMode("url"); // Switch to URL mode to show the result
       } catch (error) {
         console.error("Error processing uploaded image:", error);
         onChange(uploadUrl); // Fallback to direct URL
-        setActiveTab("url");
+        setShowUpload(false);
+        setInputMode("url");
       }
     }
   };
@@ -134,48 +136,67 @@ export function ImageInput({
   };
 
   return (
-    <div className={`space-y-3 ${className}`} data-testid={testId}>
+    <div className={`space-y-4 ${className}`} data-testid={testId}>
       <Label className="text-sm font-medium">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </Label>
-      
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "url" | "upload")} className="w-full">
-        <TabsList className="grid w-full grid-cols-2" data-testid={`${testId}-tabs`}>
-          <TabsTrigger value="url" className="flex items-center gap-2" data-testid={`${testId}-tab-url`}>
-            <Link className="w-4 h-4" />
-            URL
-          </TabsTrigger>
-          <TabsTrigger value="upload" className="flex items-center gap-2" data-testid={`${testId}-tab-upload`}>
-            <Upload className="w-4 h-4" />
-            Upload
-          </TabsTrigger>
-        </TabsList>
 
-        <TabsContent value="url" className="space-y-3" data-testid={`${testId}-url-content`}>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <Input
-                type="url"
-                value={value}
-                onChange={(e) => handleUrlChange(e.target.value)}
-                placeholder={placeholder}
-                data-testid={`${testId}-url-input`}
-              />
-            </div>
-            {value && (
+      {/* Main Input Area */}
+      {!showUpload ? (
+        <div className="space-y-3">
+          {/* URL Input with Upload Option */}
+          <div className="relative">
+            <Input
+              type="url"
+              value={value}
+              onChange={(e) => handleUrlChange(e.target.value)}
+              placeholder={placeholder}
+              className="pr-24"
+              data-testid={`${testId}-url-input`}
+            />
+            <div className="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
+              {value && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={clearImage}
+                  data-testid={`${testId}-clear-button`}
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              )}
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                onClick={clearImage}
-                data-testid={`${testId}-clear-button`}
+                className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+                onClick={() => setShowUpload(true)}
+                data-testid={`${testId}-toggle-upload`}
+                title="Stattdessen Datei hochladen"
               >
-                <X className="w-4 h-4" />
+                <Upload className="w-3 h-3" />
               </Button>
-            )}
+            </div>
           </div>
-          
+
+          {/* Alternative Upload Button for better discoverability */}
+          <div className="flex items-center justify-center">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowUpload(true)}
+              className="text-muted-foreground border-dashed"
+              data-testid={`${testId}-show-upload`}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              oder Datei hochladen
+            </Button>
+          </div>
+
           {/* Validation indicators */}
           {imageValidation.isValidating && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground" data-testid={`${testId}-validating`}>
@@ -197,30 +218,57 @@ export function ImageInput({
               {imageValidation.error}
             </div>
           )}
-        </TabsContent>
-
-        <TabsContent value="upload" data-testid={`${testId}-upload-content`}>
-          <ObjectUploader
-            maxNumberOfFiles={1}
-            maxFileSize={10485760} // 10MB
-            onGetUploadParameters={getUploadParameters}
-            onComplete={handleUploadComplete}
-            buttonClassName="w-full"
-          >
-            <div className="flex items-center gap-2" data-testid={`${testId}-upload-button`}>
-              <Upload className="w-4 h-4" />
-              Bild hochladen
+        </div>
+      ) : (
+        /* Upload Mode */
+        <Card className="border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors">
+          <CardContent className="p-6">
+            <div className="text-center space-y-4">
+              <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <Camera className="w-8 h-8 text-primary" />
+              </div>
+              <div>
+                <h4 className="font-medium mb-2">Bild hochladen</h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Wählen Sie ein Bild von Ihrem Gerät aus (max. 10MB)
+                </p>
+              </div>
+              
+              <div className="flex flex-col items-center gap-3">
+                <ObjectUploader
+                  maxNumberOfFiles={1}
+                  maxFileSize={10485760} // 10MB
+                  onGetUploadParameters={getUploadParameters}
+                  onComplete={handleUploadComplete}
+                  buttonClassName="w-full max-w-xs"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Datei auswählen
+                </ObjectUploader>
+                
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowUpload(false)}
+                  data-testid={`${testId}-back-to-url`}
+                  className="text-muted-foreground"
+                >
+                  <Link className="w-4 h-4 mr-2" />
+                  oder URL eingeben
+                </Button>
+              </div>
             </div>
-          </ObjectUploader>
-        </TabsContent>
-      </Tabs>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Image Preview */}
+      {/* Enhanced Image Preview */}
       {value && !imageValidation.isValidating && (
-        <Card className="overflow-hidden" data-testid={`${testId}-preview-card`}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-3">
-              <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+        <Card className="overflow-hidden border-primary/20" data-testid={`${testId}-preview-card`}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                 {!previewError ? (
                   <img
                     src={value}
@@ -231,15 +279,18 @@ export function ImageInput({
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                    <AlertCircle className="w-6 h-6" />
+                    <AlertCircle className="w-8 h-8" />
                   </div>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate" data-testid={`${testId}-preview-filename`}>
+                <p className="font-medium mb-1" data-testid={`${testId}-preview-filename`}>
+                  Bild-Vorschau
+                </p>
+                <p className="text-sm text-muted-foreground truncate mb-2">
                   {value.split('/').pop() || 'Unbenannt'}
                 </p>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2">
                   {imageValidation.isValid === true && (
                     <Badge variant="secondary" className="text-xs" data-testid={`${testId}-preview-status-valid`}>
                       <CheckCircle className="w-3 h-3 mr-1" />
@@ -254,6 +305,16 @@ export function ImageInput({
                   )}
                 </div>
               </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={clearImage}
+                data-testid={`${testId}-remove-preview`}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <X className="w-4 h-4" />
+              </Button>
             </div>
           </CardContent>
         </Card>

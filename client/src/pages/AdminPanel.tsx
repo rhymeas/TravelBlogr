@@ -1244,34 +1244,54 @@ export default function AdminPanel() {
               {!collapsedSections.imageManagement && (
                 <CardContent className="space-y-6">
                   {!selectedLocation ? (
-                    <div className="space-y-4">
-                      <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
-                        <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200 mb-2">
-                          <Upload className="w-5 h-5" />
-                          <span className="font-medium">Ort für Bilderverwaltung auswählen:</span>
+                    <div className="space-y-6">
+                      {/* Modern Header Section */}
+                      <div className="text-center max-w-md mx-auto">
+                        <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-600/5 flex items-center justify-center mb-4">
+                          <Camera className="w-8 h-8 text-blue-600" />
                         </div>
-                        <p className="text-blue-700 dark:text-blue-300 text-sm">
-                          Wähle einen Ort aus, um dessen Bilder zu verwalten. Du kannst Bilder hochladen, bearbeiten und als Hauptbild festlegen.
+                        <h3 className="text-xl font-semibold text-foreground mb-2">
+                          Ort für Bilderverwaltung auswählen
+                        </h3>
+                        <p className="text-muted-foreground text-sm">
+                          Wählen Sie einen Ort aus, um dessen Bilder zu verwalten. Sie können Bilder hochladen, bearbeiten und als Hauptbild festlegen.
                         </p>
                       </div>
                       
+                      {/* Location Grid */}
                       {locations && locations.length > 0 ? (
-                        <div className="grid gap-3">
+                        <div className="grid gap-4">
                           {locations.map((location) => (
                             <Card 
                               key={location.id} 
-                              className="cursor-pointer hover:bg-muted/50 transition-colors border-2 hover:border-blue-300" 
+                              className="cursor-pointer group hover:shadow-md transition-all duration-200 border hover:border-blue-300 dark:hover:border-blue-600" 
                               onClick={() => setSelectedLocation(location)}
                               data-testid={`select-location-${location.slug}`}
                             >
-                              <CardContent className="p-4">
+                              <CardContent className="p-6">
                                 <div className="flex items-center justify-between">
-                                  <div>
-                                    <h4 className="font-medium text-gray-900 dark:text-gray-100">{location.name}</h4>
-                                    <p className="text-sm text-muted-foreground">{location.startDate} - {location.endDate}</p>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-2">
+                                      <div className="w-3 h-3 rounded-full bg-green-500 flex-shrink-0"></div>
+                                      <h4 className="font-semibold text-lg text-foreground group-hover:text-blue-600 transition-colors">
+                                        {location.name}
+                                      </h4>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground ml-6">
+                                      📅 {location.startDate} - {location.endDate}
+                                    </p>
+                                    {location.description && (
+                                      <p className="text-sm text-muted-foreground mt-1 ml-6 line-clamp-2">
+                                        {location.description}
+                                      </p>
+                                    )}
                                   </div>
-                                  <div className="text-blue-600 dark:text-blue-400">
-                                    <Upload className="w-5 h-5" />
+                                  <div className="flex items-center gap-3 text-muted-foreground group-hover:text-blue-600 transition-colors">
+                                    <div className="text-center">
+                                      <Camera className="w-6 h-6 mx-auto mb-1" />
+                                      <span className="text-xs">Bilder verwalten</span>
+                                    </div>
+                                    <ArrowLeft className="w-5 h-5 rotate-180" />
                                   </div>
                                 </div>
                               </CardContent>
@@ -1279,35 +1299,63 @@ export default function AdminPanel() {
                           ))}
                         </div>
                       ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <Star className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                          <p>Noch keine Orte vorhanden</p>
-                          <p className="text-sm">Erstelle zuerst einen Ort, um Bilder hochladen zu können</p>
+                        <div className="text-center py-12">
+                          <div className="mx-auto w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                            <Star className="w-10 h-10 text-muted-foreground/50" />
+                          </div>
+                          <h4 className="font-medium text-foreground mb-2">Noch keine Orte vorhanden</h4>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            Erstellen Sie zuerst einen Ort, um Bilder hochladen zu können
+                          </p>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => navigateToSection('locationsManagement', 'locations-management-card')}
+                            data-testid="button-create-location"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Ort erstellen
+                          </Button>
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-lg font-semibold text-blue-800 dark:text-blue-200">Bilder verwalten für: {selectedLocation.name}</h4>
-                          <p className="text-sm text-blue-600 dark:text-blue-400">{selectedLocation.startDate} - {selectedLocation.endDate}</p>
-                        </div>
-                        <Button
-                          variant="outline"
-                          onClick={() => setSelectedLocation(null)}
-                          size="sm"
-                          data-testid="button-back-to-location-list"
-                        >
-                          <ArrowLeft className="w-4 h-4 mr-2" />
-                          Anderen Ort wählen
-                        </Button>
-                      </div>
+                    <div className="space-y-6">
+                      {/* Clean Location Header */}
+                      <Card className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/30 border-blue-200 dark:border-blue-700">
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center">
+                                <Camera className="w-6 h-6 text-white" />
+                              </div>
+                              <div>
+                                <h2 className="text-xl font-bold text-blue-900 dark:text-blue-100 mb-1">
+                                  {selectedLocation.name}
+                                </h2>
+                                <p className="text-blue-700 dark:text-blue-300 text-sm flex items-center gap-2">
+                                  📅 {selectedLocation.startDate} - {selectedLocation.endDate}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              variant="outline"
+                              onClick={() => setSelectedLocation(null)}
+                              size="default"
+                              className="bg-white/80 hover:bg-white dark:bg-blue-900/50 dark:hover:bg-blue-900"
+                              data-testid="button-back-to-location-list"
+                            >
+                              <ArrowLeft className="w-4 h-4 mr-2" />
+                              Anderen Ort wählen
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
                       
+                      {/* Image Gallery */}
                       <ImageGallery 
                         locationId={selectedLocation.id} 
                         isAdmin={true}
-                        className="border border-blue-200 dark:border-blue-700 rounded-lg"
+                        className="shadow-sm"
                       />
                     </div>
                   )}
