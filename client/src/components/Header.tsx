@@ -1,10 +1,17 @@
 import { Link, useLocation } from "wouter";
 import { Home, Camera, Settings, Menu, X, Map } from "lucide-react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import type { TourSettings } from "@shared/schema";
 
 export default function Header() {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Fetch tour settings to get the current tour name
+  const { data: tourSettings } = useQuery<TourSettings>({
+    queryKey: ["/api/tour-settings"],
+  });
 
   const isActive = (path: string) => {
     if (path === "/" && location === "/") return true;
@@ -45,7 +52,9 @@ export default function Header() {
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-sm">WT</span>
             </div>
-            <span className="font-semibold text-lg hidden sm:block">Weinberg Tour 2025</span>
+            <span className="font-semibold text-lg hidden sm:block" data-testid="header-tour-name">
+              {tourSettings?.tourName || 'Weinberg Tour 2025'}
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
