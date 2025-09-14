@@ -23,6 +23,7 @@ export const locations = pgTable("locations", {
   experiences: jsonb("experiences").$type<string[]>().default([]),
   highlights: jsonb("highlights").$type<string[]>().default([]),
   funFacts: jsonb("fun_facts").$type<string[]>().default([]),
+  routeHighlights: jsonb("route_highlights").$type<string[]>().default([]), // Along the way stops and attractions
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

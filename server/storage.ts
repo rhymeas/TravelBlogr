@@ -72,7 +72,14 @@ export class MemStorage implements IStorage {
           "110 km lange wunderbare Strände am Okanagan Lake",
           "Geführte Weintouren mit professionellem Guide"
         ],
-        highlights: ["Weingüter", "Okanagan Lake", "Weinproben"]
+        highlights: ["Weingüter", "Okanagan Lake", "Weinproben"],
+        routeHighlights: [
+          "Cedar and Moss Coffee, Cultus Lake, Bridal Falls",
+          "Abbotsford Selbstfahrer-Circle-Farm-Tour: Käse, Honig, Kürbisstand",
+          "Abbotsford Mennonite Heritage Village",
+          "Historische Montrose Street mit Weingütern und Brauereien",
+          "Fahrt durch Manning Park durch Wein- und Obstanbaugebiete"
+        ]
       },
       {
         name: "Vernon", 
@@ -107,7 +114,11 @@ export class MemStorage implements IStorage {
           "Weinverkostungen in der einzigartigen Pyramiden-Weinkellerei",
           "Entspannung an 110 km langen Okanagan-Stränden"
         ],
-        highlights: ["Swan Lake", "The Castle"]
+        highlights: ["Swan Lake", "The Castle"],
+        routeHighlights: [
+          "Fahrt durch Wein- und Obstanbaugebiete nach Penticton",
+          "Zwischenstopp in Kelowna mit Lavendelfarm und Weingütern"
+        ]
       },
       {
         name: "Golden",
@@ -142,7 +153,12 @@ export class MemStorage implements IStorage {
           "Gletschertour am Columbia Icefield",
           "Morgenlicht-Fotografie am Lake Louise"
         ],
-        highlights: ["Lake Louise", "Banff", "Columbia Icefield", "Gondel"]
+        highlights: ["Lake Louise", "Banff", "Columbia Icefield", "Gondel"],
+        routeHighlights: [
+          "Mittags Wildlife-Bootsafari im Blue River-Tal",
+          "Sehr bequeme Sitzboote für Wildtier-Beobachtung (riversafari.com)",
+          "Weiterfahrt durch spektakuläre Berglandschaft nach Jasper"
+        ]
       },
       {
         name: "Jasper",
@@ -173,7 +189,12 @@ export class MemStorage implements IStorage {
           "Rogers-Pass-Centre und Meadow-in-the-Sky Drive",
           "Wildlife Viewing - Bären, Elche und Bergziegen"
         ],
-        highlights: ["Maligne Lake", "SkyTram", "Spirit Island", "Wildlife"]
+        highlights: ["Maligne Lake", "SkyTram", "Spirit Island", "Wildlife"],
+        routeHighlights: [
+          "Rogers-Pass-Centre Besucherzentrum",
+          "Eventuell Meadow-in-the-Sky Drive für Panoramablicke",
+          "Icefields Parkway - eine der schönsten Panoramastraßen der Welt"
+        ]
       },
       {
         name: "Clearwater",
@@ -204,7 +225,13 @@ export class MemStorage implements IStorage {
           "Wasserfälle-Fotografie in Wells Gray Park",
           "Begegnung mit der unberührten Wildnis"
         ],
-        highlights: ["Helmcken Falls", "Wells Gray Park", "Wildlife Safari", "Wasserfälle"]
+        highlights: ["Helmcken Falls", "Wells Gray Park", "Wildlife Safari", "Wasserfälle"],
+        routeHighlights: [
+          "Helmcken Falls - spektakuläre Wasserfälle entlang der Route",
+          "Triple Decker Falls, Third Canyon Falls",
+          "Moul Falls, Sylvia und Godwin Falls",
+          "Zwischenstopp zum Aufbrechen der langen Fahrt nach Kamloops"
+        ]
       },
       {
         name: "Lillooet",
@@ -232,7 +259,12 @@ export class MemStorage implements IStorage {
           "Malerische Berglandschaft am Duffey Lake",
           "Einblick in die First Nations Kultur"
         ],
-        highlights: ["Duffey Lake", "Geschichte", "Fraser River"]
+        highlights: ["Duffey Lake", "Geschichte", "Fraser River"],
+        routeHighlights: [
+          "Duffey Lake Lookout - spektakulärer Aussichtspunkt",
+          "Lillooet Kaffeepause im historischen Stadtzentrum",
+          "Malerische Bergstraße durch das Fraser River Tal"
+        ]
       },
       {
         name: "Sunshine Coast", 
@@ -261,7 +293,12 @@ export class MemStorage implements IStorage {
           "Entspannung nach der intensiven Reise",
           "Abschied von der kanadischen Wildnis"
         ],
-        highlights: ["Pazifik", "Strand", "Entspannung", "Cottage"]
+        highlights: ["Pazifik", "Strand", "Entspannung", "Cottage"],
+        routeHighlights: [
+          "Scenic Sea-to-Sky Highway entlang der Küste",
+          "Übergang von den Bergen zur Pazifikküste",
+          "Letzte spektakuläre Landschaftsabschnitte der Reise"
+        ]
       }
     ];
 
@@ -283,6 +320,7 @@ export class MemStorage implements IStorage {
         experiences: location.experiences ? [...location.experiences] : null,
         highlights: location.highlights ? [...location.highlights] : null,
         funFacts: location.funFacts ? [...location.funFacts] : null,
+        routeHighlights: location.routeHighlights ? [...location.routeHighlights] : null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -336,6 +374,7 @@ export class MemStorage implements IStorage {
       experiences: location.experiences ? [...location.experiences] : null,
       highlights: location.highlights ? [...location.highlights] : null,
       funFacts: location.funFacts ? [...location.funFacts] : null,
+      routeHighlights: location.routeHighlights ? [...location.routeHighlights] : null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -356,6 +395,7 @@ export class MemStorage implements IStorage {
     delete updatedData.experiences;
     delete updatedData.highlights;
     delete updatedData.funFacts;
+    delete updatedData.routeHighlights;
     
     const updated: Location = {
       ...existing,
@@ -366,6 +406,7 @@ export class MemStorage implements IStorage {
       experiences: location.experiences ? [...location.experiences] : existing.experiences,
       highlights: location.highlights ? [...location.highlights] : existing.highlights,
       funFacts: location.funFacts ? [...location.funFacts] : existing.funFacts,
+      routeHighlights: location.routeHighlights ? [...location.routeHighlights] : existing.routeHighlights,
       updatedAt: new Date(),
     };
     this.locations.set(id, updated);
