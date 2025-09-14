@@ -5,7 +5,31 @@ import { ObjectStorageService } from "./objectStorage";
 import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema, insertLocationPingSchema, insertHeroImageSchema } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
+import multer from "multer";
+import { randomUUID } from "crypto";
 
+// Configure multer for file uploads
+const upload = multer({
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB max file size
+  },
+  fileFilter: (req, file, cb) => {
+    // Check file type
+    const allowedMimeTypes = [
+      'image/jpeg',
+      'image/jpg', 
+      'image/png',
+      'image/webp',
+      'image/gif'
+    ];
+    
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Nur Bilddateien sind erlaubt (JPG, PNG, WebP, GIF)'));
+    }
+  }
+});
 
 // Validate image URL security
 function validateImageUrl(imageUrl: string): { valid: boolean; error?: string } {
@@ -201,11 +225,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Simplified direct file upload for trip photos
   app.post("/api/locations/:locationId/trip-photos", 
-    simpleAuthMiddleware, 
+    upload.single('image'),
     async (req, res) => {
     try {
-      // First check if location exists
+      // Check if location exists
       const location = await storage.getLocation(req.params.locationId);
       if (!location) {
         return res.status(404).json({ 
@@ -213,49 +238,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Validate the basic schema first
-      const tripPhotoData = { ...req.body, locationId: req.params.locationId };
-      const validation = insertTripPhotoSchema.safeParse(tripPhotoData);
-      if (!validation.success) {
+      // Check if file was uploaded
+      if (!req.file) {
         return res.status(400).json({ 
-          error: "Ungültige Foto-Daten", 
-          details: validation.error.errors.map(e => e.message).join(", ")
+          error: "Bitte wählen Sie ein Bild zum Hochladen." 
         });
       }
 
-      // Validate the image URL security
-      if (validation.data.imageUrl) {
-        const urlValidation = validateImageUrl(validation.data.imageUrl);
-        if (!urlValidation.valid) {
-          return res.status(400).json({ 
-            error: urlValidation.error || "Ungültige Bild-URL" 
-          });
-        }
-      }
-
-      // Additional validation for required fields
-      if (!validation.data.imageUrl) {
-        return res.status(400).json({ 
-          error: "Bild-URL ist erforderlich" 
-        });
-      }
-
-      // Validate caption length (prevent very long captions)
-      if (validation.data.caption && validation.data.caption.length > 500) {
+      // Validate form data
+      const { caption, uploadedBy } = req.body;
+      
+      // Validate caption length
+      if (caption && caption.length > 500) {
         return res.status(400).json({ 
           error: "Bildunterschrift ist zu lang (maximal 500 Zeichen)" 
         });
       }
 
-      // Validate uploadedBy length if provided
-      if (validation.data.uploadedBy && validation.data.uploadedBy.length > 100) {
+      // Validate uploadedBy length  
+      if (uploadedBy && uploadedBy.length > 100) {
         return res.status(400).json({ 
           error: "Name ist zu lang (maximal 100 Zeichen)" 
         });
       }
 
-      const tripPhoto = await storage.addTripPhoto(validation.data);
-      res.status(201).json(tripPhoto);
+      // Handle file upload to object storage
+      try {
+        const objectStorageService = new ObjectStorageService();
+        const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+        
+        // Upload file to object storage
+        const uploadResponse = await fetch(uploadURL, {
+          method: 'PUT',
+          body: req.file.buffer,
+          headers: {
+            'Content-Type': req.file.mimetype,
+          },
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Upload zu Object Storage fehlgeschlagen');
+        }
+
+        // Create trip photo record
+        const tripPhotoData = {
+          locationId: req.params.locationId,
+          imageUrl: uploadURL, 
+          caption: caption || null,
+          uploadedBy: uploadedBy || null,
+        };
+
+        const tripPhoto = await storage.addTripPhoto(tripPhotoData);
+        res.status(201).json(tripPhoto);
+
+      } catch (uploadError) {
+        console.error("File upload error:", uploadError);
+        return res.status(500).json({ 
+          error: "Datei-Upload fehlgeschlagen. Bitte versuchen Sie es erneut." 
+        });
+      }
+
     } catch (error) {
       console.error("Error adding trip photo:", error);
       res.status(500).json({ 
@@ -321,7 +363,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(heroImage);
     } catch (error) {
       console.error("Error updating hero image:", error);
-      if (error.message === "Hero image not found") {
+      if (error instanceof Error && error.message === "Hero image not found") {
         return res.status(404).json({ error: "Hero image not found" });
       }
       res.status(500).json({ error: "Failed to update hero image" });

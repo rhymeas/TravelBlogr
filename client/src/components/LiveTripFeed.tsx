@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Clock, User, Camera, Send, Image } from "lucide-react";
+import { Plus, Clock, User, Camera, Send, Image, Upload } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { TripPhoto } from "@shared/schema";
@@ -29,14 +29,19 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
     refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 
-  // Simple upload mutation
+  // Simplified direct file upload mutation
   const uploadMutation = useMutation({
-    mutationFn: async ({ imageUrl, caption, uploadedBy }: any) => {
-      const response = await apiRequest("POST", `/api/locations/${locationId}/trip-photos`, {
-        imageUrl,
-        caption: caption || null,
-        uploadedBy: uploadedBy || null,
+    mutationFn: async ({ file, caption, uploadedBy }: { file: File; caption: string; uploadedBy: string }) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      if (caption) formData.append('caption', caption);
+      if (uploadedBy) formData.append('uploadedBy', uploadedBy);
+
+      const response = await fetch(`/api/locations/${locationId}/trip-photos`, {
+        method: 'POST',
+        body: formData,
       });
+      
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Upload fehlgeschlagen");
@@ -63,11 +68,11 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
     },
   });
 
-  // Handle file selection
+  // Enhanced file selection with better validation
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Basic validation
+      // File size validation
       if (file.size > 10485760) { // 10MB
         toast({
           title: "Datei zu groß",
@@ -76,16 +81,32 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
         });
         return;
       }
+      
+      // File type validation
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Ungültiger Dateityp",
+          description: "Nur JPG, PNG, WebP und GIF Dateien sind erlaubt.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       setSelectedFile(file);
+      toast({
+        title: "Foto ausgewählt",
+        description: `${file.name} bereit zum Hochladen.`,
+      });
     }
   };
 
-  // Handle upload
+  // Simplified direct upload handler
   const handleUpload = async () => {
-    if (!selectedFile && !caption.trim()) {
+    if (!selectedFile) {
       toast({
-        title: "Nichts zu posten",
-        description: "Bitte wählen Sie ein Foto oder geben Sie Text ein.",
+        title: "Bitte Foto wählen",
+        description: "Wählen Sie ein Foto zum Hochladen aus.",
         variant: "destructive",
       });
       return;
@@ -93,38 +114,14 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
 
     setUploading(true);
     try {
-      let imageUrl = "";
-      
-      if (selectedFile) {
-        // Get upload URL
-        const uploadResponse = await apiRequest("POST", "/api/objects/upload");
-        const { uploadURL } = await uploadResponse.json();
-        
-        // Upload file directly
-        const uploadFileResponse = await fetch(uploadURL, {
-          method: "PUT",
-          body: selectedFile,
-        });
-        
-        if (!uploadFileResponse.ok) {
-          throw new Error("Datei-Upload fehlgeschlagen");
-        }
-        
-        imageUrl = uploadURL;
-      }
-
-      // Create post
       await uploadMutation.mutateAsync({
-        imageUrl,
+        file: selectedFile,
         caption: caption.trim(),
         uploadedBy: name.trim(),
       });
     } catch (error) {
-      toast({
-        title: "Upload fehlgeschlagen",
-        description: error instanceof Error ? error.message : "Bitte versuchen Sie es erneut.",
-        variant: "destructive",
-      });
+      // Error handling is already in the mutation
+      console.error("Upload error:", error);
     } finally {
       setUploading(false);
     }
@@ -144,98 +141,109 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
 
   return (
     <div className="space-y-4" data-testid="live-trip-feed">
-      {/* Simple Upload Area - Facebook Style */}
+      {/* Large, Prominent Upload Area - Facebook Style */}
       {showUpload && (
-        <Card className="p-4" data-testid="upload-area">
-          <div className="space-y-3">
-            {/* Text Input */}
-            <Textarea
-              placeholder={`Was möchten Sie aus ${locationName} teilen?`}
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              className="border-0 shadow-none resize-none text-base focus-visible:ring-0 p-0"
-              rows={2}
-              maxLength={500}
-              data-testid="post-text-input"
-            />
-            
-            {/* File Preview */}
-            {selectedFile && (
-              <div className="flex items-center space-x-2 p-2 bg-blue-50 rounded-lg" data-testid="file-preview">
-                <Image className="w-4 h-4 text-blue-600" />
-                <span className="text-sm text-blue-800">{selectedFile.name}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedFile(null);
-                    if (fileInputRef.current) fileInputRef.current.value = "";
-                  }}
-                  className="ml-auto h-6 w-6 p-0"
-                  data-testid="remove-file"
-                >
-                  ×
-                </Button>
-              </div>
-            )}
+        <Card className="p-6" data-testid="upload-area">
+          <div className="space-y-4">
+            {!selectedFile ? (
+              /* Large Upload Button */
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full h-20 border-2 border-dashed border-blue-300 hover:border-blue-400 hover:bg-blue-50 flex flex-col items-center justify-center space-y-2 text-blue-600"
+                data-testid="large-upload-button"
+              >
+                <Upload className="w-8 h-8" />
+                <span className="text-lg font-medium">Foto aus {locationName} hochladen</span>
+                <span className="text-sm text-muted-foreground">JPG, PNG, WebP oder GIF (max. 10MB)</span>
+              </Button>
+            ) : (
+              /* File Selected - Show Preview and Details */
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3 p-4 bg-green-50 rounded-lg border border-green-200" data-testid="file-preview">
+                  <Image className="w-6 h-6 text-green-600" />
+                  <div className="flex-1">
+                    <p className="font-medium text-green-800">{selectedFile.name}</p>
+                    <p className="text-sm text-green-600">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedFile(null);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                    className="text-green-700 hover:text-green-800"
+                    data-testid="remove-file"
+                  >
+                    ×
+                  </Button>
+                </div>
 
-            {/* Actions */}
-            <div className="flex items-center justify-between pt-2 border-t">
-              <div className="flex items-center space-x-3">
-                {/* Photo Upload Button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center space-x-1 text-blue-600 hover:bg-blue-50"
-                  data-testid="photo-upload-button"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Foto</span>
-                </Button>
-                
-                {/* Hidden File Input */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  data-testid="file-input"
+                {/* Caption Input */}
+                <Textarea
+                  placeholder={`Beschreibung für Ihr Foto aus ${locationName}...`}
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                  className="text-base"
+                  rows={3}
+                  maxLength={500}
+                  data-testid="post-text-input"
                 />
 
                 {/* Name Input */}
                 <Input
-                  placeholder="Name (optional)"
+                  placeholder="Ihr Name (optional)"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-32 h-8 text-xs"
                   maxLength={100}
                   data-testid="name-input"
                 />
-              </div>
 
-              {/* Post Button */}
-              <Button
-                onClick={handleUpload}
-                disabled={uploading || (!selectedFile && !caption.trim())}
-                size="sm"
-                className="flex items-center space-x-1"
-                data-testid="post-button"
-              >
-                {uploading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                    <span>Posten...</span>
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-3 h-3" />
-                    <span>Posten</span>
-                  </>
-                )}
-              </Button>
-            </div>
+                {/* Action Buttons */}
+                <div className="flex items-center justify-between pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedFile(null);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                    data-testid="change-photo"
+                  >
+                    Anderes Foto wählen
+                  </Button>
+                  
+                  <Button
+                    onClick={handleUpload}
+                    disabled={uploading || !selectedFile}
+                    className="flex items-center space-x-2 px-6"
+                    data-testid="post-button"
+                  >
+                    {uploading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Hochladen...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4" />
+                        <span>Foto posten</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {/* Hidden File Input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+              onChange={handleFileSelect}
+              className="hidden"
+              data-testid="file-input"
+            />
           </div>
         </Card>
       )}
