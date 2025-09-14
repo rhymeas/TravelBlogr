@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ImageGallery } from "@/components/ImageGallery";
-import { LiveTripFeed } from "@/components/LiveTripFeed";
 import type { Location } from "@shared/schema";
 
 export default function LocationDetail() {
@@ -153,17 +152,23 @@ export default function LocationDetail() {
               </Card>
             )}
 
-            {/* Live Trip Feed - Main Content */}
-            <Card className="bg-gradient-to-br from-teal-50 to-cyan-50 border-teal-200" data-testid="location-live-feed">
+            {/* Live Trip Feed - Link to Centralized Feed */}
+            <Card className="bg-gradient-to-br from-teal-50 to-cyan-50 border-teal-200" data-testid="location-live-feed-link">
               <CardContent className="pt-6">
-                <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center">
-                  🚗 <span className="ml-2">Live Reise Updates</span>
-                </h2>
-                <LiveTripFeed 
-                  locationId={location.id} 
-                  locationName={location.name}
-                  showUpload={true}
-                />
+                <div className="text-center space-y-4">
+                  <div className="text-4xl mb-2">📸</div>
+                  <h2 className="text-2xl font-bold text-foreground">
+                    Reise-Fotos teilen
+                  </h2>
+                  <p className="text-muted-foreground">
+                    Teile deine besten Momente von {location.name} im zentralen Live-Feed
+                  </p>
+                  <Link href="/live-feed">
+                    <Button className="bg-teal-600 hover:bg-teal-700 text-white" data-testid="button-go-to-live-feed">
+                      🚗 Zum Live-Feed gehen
+                    </Button>
+                  </Link>
+                </div>
               </CardContent>
             </Card>
           </div>

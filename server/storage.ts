@@ -33,6 +33,7 @@ export interface IStorage {
 
   // Trip photos
   getTripPhotos(locationId: string): Promise<TripPhoto[]>;
+  getAllTripPhotos(): Promise<TripPhoto[]>;
   addTripPhoto(tripPhoto: InsertTripPhoto): Promise<TripPhoto>;
 
   // Tour settings
@@ -371,6 +372,7 @@ export class MemStorage implements IStorage {
       privacyEnabled: false,
       privacyPassword: null,
       sessionTimeout: 10080, // 7 days in minutes
+      gpsActivatedByAdmin: false,
       updatedAt: new Date(),
     };
 
@@ -555,6 +557,15 @@ export class MemStorage implements IStorage {
         const dateA = a.uploadedAt ? new Date(a.uploadedAt).getTime() : 0;
         const dateB = b.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
         return dateB - dateA;
+      });
+  }
+
+  async getAllTripPhotos(): Promise<TripPhoto[]> {
+    return Array.from(this.tripPhotos.values())
+      .sort((a, b) => {
+        const dateA = a.uploadedAt ? new Date(a.uploadedAt).getTime() : 0;
+        const dateB = b.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
+        return dateB - dateA; // Most recent first
       });
   }
 

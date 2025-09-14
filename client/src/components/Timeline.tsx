@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import CarIcon from "@/components/CarIcon";
 import geolocationService from "@/lib/geolocationService";
 import { getCurrentCarPosition, getPositionMessage, calculateTimelinePosition } from "@/lib/positionCalculator";
-import type { Location, LocationPing } from "@shared/schema";
+import type { Location, LocationPing, TourSettings } from "@shared/schema";
 
 interface TimelineProps {
   locations: Location[];
@@ -36,10 +36,15 @@ export default function Timeline({ locations }: TimelineProps) {
   const [isTrackingEnabled, setIsTrackingEnabled] = useState(false);
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
 
+  // Fetch tour settings to check if GPS is activated by admin
+  const { data: tourSettings } = useQuery<TourSettings>({
+    queryKey: ["/api/tour-settings"],
+  });
+
   // Fetch latest location ping for car positioning
   const { data: latestPing, refetch: refetchPing } = useQuery<LocationPing>({
     queryKey: ["/api/location-ping/latest"],
-    enabled: isTrackingEnabled,
+    enabled: isTrackingEnabled || tourSettings?.gpsActivatedByAdmin,
     refetchInterval: 2 * 60 * 1000, // Check every 2 minutes for updates
   });
 
@@ -104,8 +109,8 @@ export default function Timeline({ locations }: TimelineProps) {
         </div>
       )}
 
-      {/* Live Tracking Enable Button - shown when not tracking */}
-      {!isTrackingEnabled && (
+      {/* Live Tracking Enable Button - shown when not tracking and admin hasn't activated GPS */}
+      {!isTrackingEnabled && !tourSettings?.gpsActivatedByAdmin && (
         <div className="mb-8 text-center">
           <Card className="inline-block p-6 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
             <div className="flex flex-col items-center space-y-4">

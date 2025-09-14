@@ -306,6 +306,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Centralized trip photos routes
+  app.get("/api/trip-photos", async (req, res) => {
+    try {
+      const tripPhotos = await storage.getAllTripPhotos();
+      res.json(tripPhotos);
+    } catch (error) {
+      console.error("Error fetching all trip photos:", error);
+      res.status(500).json({ error: "Failed to fetch trip photos" });
+    }
+  });
+
+  app.post("/api/trip-photos", 
+    upload.single('image'),
+    async (req, res) => {
+    try {
+      // Check if file was uploaded
+      if (!req.file) {
+        return res.status(400).json({ 
+          error: "Bitte wählen Sie ein Bild zum Hochladen." 
+        });
+      }
+
+      // Validate form data
+      const { caption, uploadedBy, locationId } = req.body;
+      
+      // Validate caption length
+      if (caption && caption.length > 500) {
+        return res.status(400).json({ 
+          error: "Bildunterschrift ist zu lang (maximal 500 Zeichen)" 
+        });
+      }
+
+      // Validate uploadedBy length  
+      if (uploadedBy && uploadedBy.length > 100) {
+        return res.status(400).json({ 
+          error: "Name ist zu lang (maximal 100 Zeichen)" 
+        });
+      }
+
+      // Validate locationId if provided (optional location tagging)
+      if (locationId) {
+        const location = await storage.getLocation(locationId);
+        if (!location) {
+          return res.status(400).json({ 
+            error: "Ungültige Location-ID angegeben." 
+          });
+        }
+      }
+
+      // Handle file upload to object storage
+      try {
+        const objectStorageService = new ObjectStorageService();
+        const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+        
+        // Upload file to object storage
+        const uploadResponse = await fetch(uploadURL, {
+          method: 'PUT',
+          body: req.file.buffer,
+          headers: {
+            'Content-Type': req.file.mimetype,
+          },
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Upload zu Object Storage fehlgeschlagen');
+        }
+
+        // Create trip photo record
+        const tripPhotoData = {
+          locationId: locationId || null, // Optional location tag
+          imageUrl: uploadURL, 
+          caption: caption || null,
+          uploadedBy: uploadedBy || null,
+        };
+
+        const tripPhoto = await storage.addTripPhoto(tripPhotoData);
+        res.status(201).json(tripPhoto);
+
+      } catch (uploadError) {
+        console.error("File upload error:", uploadError);
+        return res.status(500).json({ 
+          error: "Datei-Upload fehlgeschlagen. Bitte versuchen Sie es erneut." 
+        });
+      }
+
+    } catch (error) {
+      console.error("Error adding centralized trip photo:", error);
+      res.status(500).json({ 
+        error: "Foto konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut." 
+      });
+    }
+  });
+
   // Hero images routes
   app.get("/api/hero-images", async (req, res) => {
     try {

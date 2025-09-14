@@ -41,10 +41,10 @@ export const locationImages = pgTable("location_images", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Trip photos for live feed during tour
+// Trip photos for centralized live feed during tour
 export const tripPhotos = pgTable("trip_photos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  locationId: varchar("location_id").references(() => locations.id).notNull(),
+  locationId: varchar("location_id").references(() => locations.id), // optional location tag
   imageUrl: text("image_url").notNull(),
   caption: text("caption"),
   objectPath: text("object_path"), // for object storage
@@ -67,6 +67,8 @@ export const tourSettings = pgTable("tour_settings", {
   privacyEnabled: boolean("privacy_enabled").default(false),
   privacyPassword: text("privacy_password"), // hashed password
   sessionTimeout: integer("session_timeout").default(10080), // default 7 days in minutes
+  // GPS settings
+  gpsActivatedByAdmin: boolean("gps_activated_by_admin").default(false),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

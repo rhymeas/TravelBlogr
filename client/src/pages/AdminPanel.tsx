@@ -579,6 +579,48 @@ export default function AdminPanel() {
               </CardContent>
             </Card>
 
+            {/* GPS Settings */}
+            <Card data-testid="gps-settings-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="text-2xl">🚗</span>
+                  GPS Live-Tracking Einstellungen
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* GPS Toggle */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label htmlFor="gps-activated">GPS Live-Tracking für alle aktivieren</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Wenn aktiviert, läuft GPS automatisch für alle Besucher - keine GPS-Berechtigung erforderlich
+                    </p>
+                  </div>
+                  <Switch
+                    id="gps-activated"
+                    checked={tourSettings?.gpsActivatedByAdmin || false}
+                    onCheckedChange={(checked) => {
+                      updateTourSettingsMutation.mutate({ gpsActivatedByAdmin: checked });
+                    }}
+                    data-testid="switch-gps-activated"
+                  />
+                </div>
+
+                {/* GPS Status */}
+                <div className="bg-muted p-3 rounded-lg">
+                  <p className="text-sm font-medium">
+                    Status: {tourSettings?.gpsActivatedByAdmin ? "🚗 GPS Live-Tracking aktiv" : "⏸️ GPS manuell aktivierbar"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {tourSettings?.gpsActivatedByAdmin 
+                      ? "Das Live-Auto wird automatisch auf der Timeline angezeigt" 
+                      : "Besucher können GPS-Tracking manuell aktivieren"
+                    }
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Locations Management */}
             <Card data-testid="locations-management-card">
               <CardHeader className="flex flex-row items-center justify-between">
