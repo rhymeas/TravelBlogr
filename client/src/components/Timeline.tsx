@@ -44,15 +44,18 @@ export default function Timeline({ locations }: TimelineProps) {
   // Fetch latest location ping for car positioning
   const { data: latestPing, refetch: refetchPing } = useQuery<LocationPing>({
     queryKey: ["/api/location-ping/latest"],
-    enabled: isTrackingEnabled || tourSettings?.gpsActivatedByAdmin,
+    enabled: Boolean(isTrackingEnabled || tourSettings?.gpsActivatedByAdmin), // Ensure strict boolean type
     refetchInterval: 2 * 60 * 1000, // Check every 2 minutes for updates
   });
 
   // Calculate car position when latest ping changes
   useEffect(() => {
     if (latestPing && locations.length > 0) {
-      const newCarPosition = getCurrentCarPosition(latestPing, locations);
-      setCarPosition(newCarPosition);
+      // Ensure latestPing has all required properties before processing
+      if (latestPing.id && latestPing.latitude && latestPing.longitude) {
+        const newCarPosition = getCurrentCarPosition(latestPing, locations);
+        setCarPosition(newCarPosition);
+      }
     }
   }, [latestPing, locations]);
 

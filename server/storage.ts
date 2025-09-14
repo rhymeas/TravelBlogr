@@ -451,8 +451,11 @@ export class MemStorage implements IStorage {
     defaultHeroImages.forEach(heroImageData => {
       const id = randomUUID();
       const heroImage: HeroImage = {
-        ...heroImageData,
         id,
+        title: heroImageData.title,
+        description: heroImageData.description,
+        imageUrl: heroImageData.imageUrl,
+        sortOrder: heroImageData.sortOrder ?? 0, // Use default if undefined
         objectPath: null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -471,7 +474,7 @@ export class MemStorage implements IStorage {
           title: "Penticton Wine Country",
           description: "Okanagan Valley mit über 170 Weingütern",
           imageUrl: "https://images.unsplash.com/photo-1528190336454-13cd56b45b5a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=800",
-          linkUrl: "/location/penticton",
+          linkUrl: "/location/penticton" as string,
           isLarge: true,
           order: 1
         },
@@ -480,7 +483,7 @@ export class MemStorage implements IStorage {
           title: "Maligne Lake",
           description: "Spirit Island",
           imageUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400",
-          linkUrl: "",
+          linkUrl: "" as string,
           isLarge: false,
           order: 2
         },
@@ -489,7 +492,7 @@ export class MemStorage implements IStorage {
           title: "Golden Rockies",
           description: "Kicking Horse River",
           imageUrl: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400",
-          linkUrl: "/location/golden",
+          linkUrl: "/location/golden" as string,
           isLarge: false,
           order: 3
         },
@@ -498,7 +501,7 @@ export class MemStorage implements IStorage {
           title: "Kalamalka Lake",
           description: "Türkisfarbenes Juwel",
           imageUrl: "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400",
-          linkUrl: "/location/vernon",
+          linkUrl: "/location/vernon" as string,
           isLarge: false,
           order: 4
         },
@@ -507,7 +510,7 @@ export class MemStorage implements IStorage {
           title: "Sunshine Coast",
           description: "Desolation Sound",
           imageUrl: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400",
-          linkUrl: "",
+          linkUrl: "" as string,
           isLarge: false,
           order: 5
         },
@@ -516,7 +519,7 @@ export class MemStorage implements IStorage {
           title: "Wells Gray Falls",
           description: "Helmcken Falls",
           imageUrl: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=400",
-          linkUrl: "",
+          linkUrl: "" as string,
           isLarge: false,
           order: 6
         }
@@ -669,8 +672,10 @@ export class MemStorage implements IStorage {
   async addTripPhoto(tripPhoto: InsertTripPhoto): Promise<TripPhoto> {
     const id = randomUUID();
     const newTripPhoto: TripPhoto = {
-      ...tripPhoto,
       id,
+      imageUrl: tripPhoto.imageUrl,
+      locationId: tripPhoto.locationId || null, // Explicit null handling
+      creatorId: tripPhoto.creatorId || null, // Explicit null handling
       caption: tripPhoto.caption || null,
       objectPath: tripPhoto.objectPath || null,
       uploadedBy: tripPhoto.uploadedBy || null,
@@ -684,7 +689,9 @@ export class MemStorage implements IStorage {
     // Remove photos without objectPath (old broken uploads)
     const photosToRemove: string[] = [];
     
-    for (const [id, photo] of this.tripPhotos.entries()) {
+    // Use Array.from to avoid MapIterator issues
+    const photoEntries = Array.from(this.tripPhotos.entries());
+    for (const [id, photo] of photoEntries) {
       if (!photo.objectPath) {
         photosToRemove.push(id);
       }
@@ -765,8 +772,11 @@ export class MemStorage implements IStorage {
   async createHeroImage(heroImage: InsertHeroImage): Promise<HeroImage> {
     const id = randomUUID();
     const newHeroImage: HeroImage = {
-      ...heroImage,
       id,
+      title: heroImage.title,
+      description: heroImage.description,
+      imageUrl: heroImage.imageUrl,
+      sortOrder: heroImage.sortOrder ?? 0, // Use default if undefined
       objectPath: heroImage.objectPath || null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -817,19 +827,23 @@ export class MemStorage implements IStorage {
       this.scenicContent = {
         ...this.scenicContent,
         ...data,
+        galleries: data.galleries ? (data.galleries as ScenicGalleryItem[]) : this.scenicContent.galleries, // Ensure proper array type
         updatedAt: new Date(),
       };
     } else {
       const id = randomUUID();
       this.scenicContent = {
-        ...data,
         id,
+        title: data.title || 'Default Title',
+        subtitle: data.subtitle || 'Default Subtitle',
+        galleries: data.galleries ? (data.galleries as ScenicGalleryItem[]) : [],
         isActive: data.isActive ?? true,
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as ScenicContent;
+      };
     }
-    return this.scenicContent;
+    // This will never be undefined because we set it above
+    return this.scenicContent!;
   }
 
   // Creator methods
