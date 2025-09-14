@@ -135,7 +135,7 @@ export default function Timeline({ locations }: TimelineProps) {
           <div 
             key={location.id} 
             className={`relative ${
-              index === 0 ? 'mt-0' : 'mt-6 md:-mt-[180px]'
+              index === 0 ? 'mt-0' : 'mt-6 md:-mt-[234px]'
             }`}
             data-testid={`timeline-item-${location.slug}`}>
             {/* Connector line between cards - small gray line */}
