@@ -631,33 +631,72 @@ export default function AdminPanel() {
                     <div className="space-y-3">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="hero-title">Titel</Label>
+                          <Label htmlFor="hero-title" className="flex items-center gap-1">
+                            Titel
+                            <span className="text-red-500">*</span>
+                          </Label>
                           <Input
                             id="hero-title"
                             value={heroImageForm.title}
                             onChange={(e) => setHeroImageForm(prev => ({ ...prev, title: e.target.value }))}
                             placeholder="z.B. Penticton Wine Country"
+                            className={!heroImageForm.title ? "border-red-200 focus:border-red-500" : ""}
                             data-testid="input-hero-title"
                           />
+                          {!heroImageForm.title && (
+                            <p className="text-xs text-red-500 mt-1">Titel ist erforderlich</p>
+                          )}
                         </div>
                         <div>
-                          <Label htmlFor="hero-description">Beschreibung</Label>
+                          <Label htmlFor="hero-description" className="flex items-center gap-1">
+                            Beschreibung
+                            <span className="text-red-500">*</span>
+                          </Label>
                           <Input
                             id="hero-description"
                             value={heroImageForm.description}
                             onChange={(e) => setHeroImageForm(prev => ({ ...prev, description: e.target.value }))}
                             placeholder="z.B. Naramata Bench Weinberge über dem Okanagan Lake"
+                            className={!heroImageForm.description ? "border-red-200 focus:border-red-500" : ""}
                             data-testid="input-hero-description"
                           />
+                          {!heroImageForm.description && (
+                            <p className="text-xs text-red-500 mt-1">Beschreibung ist erforderlich</p>
+                          )}
                         </div>
                       </div>
-                      <ImageInput
-                        label="Bild-URL"
-                        value={heroImageForm.imageUrl}
-                        onChange={(value) => setHeroImageForm(prev => ({ ...prev, imageUrl: value }))}
-                        placeholder="https://example.com/image.jpg"
-                        testId="hero-image-url"
-                      />
+                      <div>
+                        <Label className="flex items-center gap-1">
+                          Bild-URL
+                          <span className="text-red-500">*</span>
+                        </Label>
+                        <ImageInput
+                          label=""
+                          value={heroImageForm.imageUrl}
+                          onChange={(value) => setHeroImageForm(prev => ({ ...prev, imageUrl: value }))}
+                          placeholder="https://example.com/image.jpg"
+                          testId="hero-image-url"
+                        />
+                        {!heroImageForm.imageUrl && (
+                          <p className="text-xs text-red-500 mt-1">Bild-URL ist erforderlich</p>
+                        )}
+                      </div>
+                      
+                      {/* Status message showing what's missing */}
+                      {(!heroImageForm.title || !heroImageForm.description || !heroImageForm.imageUrl) && (
+                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
+                            <div>
+                              <p className="text-sm text-amber-800 font-medium">Fehlende Angaben</p>
+                              <p className="text-xs text-amber-700 mt-1">
+                                Bitte fülle alle Pflichtfelder (*) aus, um das Hero-Bild hinzuzufügen.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
                       <div className="flex gap-2">
                         <Button
                           onClick={() => {

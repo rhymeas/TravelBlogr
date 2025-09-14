@@ -414,6 +414,7 @@ export class MemStorage implements IStorage {
       privacyPassword: null,
       sessionTimeout: 10080, // 7 days in minutes
       gpsActivatedByAdmin: false,
+      gpsUpdateInterval: 30, // GPS update interval in seconds
       updatedAt: new Date(),
     };
 
