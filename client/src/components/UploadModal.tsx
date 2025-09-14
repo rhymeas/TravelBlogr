@@ -40,7 +40,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     mutationFn: async ({ file, caption, uploadedBy, locationId, creatorId }: { file: File; caption: string; uploadedBy: string; locationId?: string; creatorId?: string }) => {
       const formData = new FormData();
       formData.append('image', file);
-      if (caption) formData.append('caption', caption);
+      formData.append('caption', caption || ''); // Always append caption, even if empty
       if (uploadedBy) formData.append('uploadedBy', uploadedBy);
       if (locationId) formData.append('locationId', locationId);
       if (creatorId) formData.append('creatorId', creatorId);
