@@ -13,12 +13,13 @@ export default function Hero({ tourSettings }: HeroProps) {
   const [currentImage, setCurrentImage] = useState(0);
 
   // Fetch hero images from database
-  const { data: dbHeroImages, isLoading: heroImagesLoading } = useQuery<HeroImage[]>({
+  const { data: dbHeroImages, isLoading: heroImagesLoading, error } = useQuery<HeroImage[]>({
     queryKey: ["/api/hero-images"],
   });
 
   // Use ONLY database images - no fallbacks
   const heroImages = dbHeroImages || [];
+  
 
   useEffect(() => {
     // Only run interval if there are hero images
