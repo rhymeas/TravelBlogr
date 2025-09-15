@@ -76,7 +76,10 @@ function validateImageUrl(imageUrl: string): { valid: boolean; error?: string } 
     // For some services like Unsplash, check query parameters
     const hasImageFormat = url.searchParams.get('fm') || url.pathname.includes('photo');
     
-    if (!hasImageExtension && !hasImageFormat) {
+    // Skip file extension check for trusted Google Cloud Storage URLs (signed URLs often don't have extensions)
+    const isGoogleCloudStorageUrl = url.hostname === 'storage.googleapis.com';
+    
+    if (!hasImageExtension && !hasImageFormat && !isGoogleCloudStorageUrl) {
       return { valid: false, error: "Nur Bilddateien sind erlaubt (jpg, png, webp, gif)" };
     }
     
