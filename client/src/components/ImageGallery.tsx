@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Trash2, Star, Plus, Upload, Link, Camera, X, CheckCircle, Loader2 } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import { Lightbox } from "@/components/Lightbox";
 import { useToast } from "@/hooks/use-toast";
 import type { LocationImage } from "@shared/schema";
 
@@ -30,6 +31,9 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
     imageUrl: "",
     caption: ""
   });
+  // Lightbox state
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   const { toast } = useToast();
 
   // Fetch images for the location
@@ -162,6 +166,36 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
   const mainImage = images.find(img => img.isMain);
   const otherImages = images.filter(img => !img.isMain);
 
+  // Prepare images for lightbox (main image first, then others)
+  const lightboxImages = mainImage 
+    ? [mainImage, ...otherImages]
+    : otherImages;
+
+  // Lightbox handlers
+  const openLightbox = (imageId: string) => {
+    const index = lightboxImages.findIndex(img => img.id === imageId);
+    if (index !== -1) {
+      setLightboxIndex(index);
+      setLightboxOpen(true);
+    }
+  };
+
+  const closeLightbox = () => {
+    setLightboxOpen(false);
+  };
+
+  const goToNextImage = () => {
+    if (lightboxIndex < lightboxImages.length - 1) {
+      setLightboxIndex(lightboxIndex + 1);
+    }
+  };
+
+  const goToPreviousImage = () => {
+    if (lightboxIndex > 0) {
+      setLightboxIndex(lightboxIndex - 1);
+    }
+  };
+
   return (
     <Card className={className} data-testid="image-gallery">
       <CardHeader>
@@ -245,7 +279,11 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
                   )}
                 </div>
                 <div className="relative group">
-                  <div className="aspect-video rounded-xl overflow-hidden bg-muted">
+                  <div 
+                    className="aspect-video rounded-xl overflow-hidden bg-muted cursor-pointer"
+                    onClick={() => openLightbox(mainImage.id)}
+                    data-testid="main-image-container"
+                  >
                     <img
                       src={mainImage.imageUrl}
                       alt={mainImage.caption || "Hauptbild"}
@@ -289,7 +327,11 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {otherImages.map((image) => (
                   <div key={image.id} className="relative group">
-                    <div className="aspect-square rounded-lg overflow-hidden bg-muted">
+                    <div 
+                      className="aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer"
+                      onClick={() => openLightbox(image.id)}
+                      data-testid={`gallery-image-container-${image.id}`}
+                    >
                       <img
                         src={image.imageUrl}
                         alt={image.caption || "Galerie Bild"}
@@ -506,6 +548,20 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
             </Card>
           </div>
         )}
+
+        {/* Lightbox */}
+        <Lightbox
+          images={lightboxImages.map(img => ({
+            id: img.id,
+            imageUrl: img.imageUrl,
+            caption: img.caption || undefined
+          }))}
+          currentIndex={lightboxIndex}
+          isOpen={lightboxOpen}
+          onClose={closeLightbox}
+          onNext={goToNextImage}
+          onPrevious={goToPreviousImage}
+        />
       </CardContent>
     </Card>
   );
