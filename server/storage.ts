@@ -391,6 +391,10 @@ export class MemStorage implements IStorage {
         accommodationImageUrl: (location as any).accommodationImageUrl || null,
         accommodationPrice: location.accommodationPrice || null,
         accommodationCurrency: location.accommodationCurrency || null,
+        accommodationInclusiveServices: (location as any).accommodationInclusiveServices || null,
+        accommodationAmenities: (location as any).accommodationAmenities || null,
+        accommodationCheckinTime: (location as any).accommodationCheckinTime || null,
+        accommodationCheckoutTime: (location as any).accommodationCheckoutTime || null,
         distance: location.distance || null,
         imageUrl: location.imageUrl || null,
         mapImageUrl: (location as any).mapImageUrl || null,
@@ -574,6 +578,10 @@ export class MemStorage implements IStorage {
       accommodationImageUrl: (location as any).accommodationImageUrl || null,
       accommodationPrice: location.accommodationPrice || null,
       accommodationCurrency: location.accommodationCurrency || null,
+      accommodationInclusiveServices: location.accommodationInclusiveServices ? [...location.accommodationInclusiveServices] : null,
+      accommodationAmenities: location.accommodationAmenities ? [...location.accommodationAmenities] : null,
+      accommodationCheckinTime: location.accommodationCheckinTime || null,
+      accommodationCheckoutTime: location.accommodationCheckoutTime || null,
       distance: location.distance || null,
       imageUrl: location.imageUrl || null,
       mapImageUrl: (location as any).mapImageUrl || null,
@@ -616,6 +624,11 @@ export class MemStorage implements IStorage {
       highlights: location.highlights ? [...location.highlights] : existing.highlights,
       funFacts: location.funFacts ? [...location.funFacts] : existing.funFacts,
       routeHighlights: location.routeHighlights ? [...location.routeHighlights] : existing.routeHighlights,
+      // Handle new accommodation fields
+      accommodationInclusiveServices: location.accommodationInclusiveServices !== undefined ? (location.accommodationInclusiveServices ? [...location.accommodationInclusiveServices] : null) : existing.accommodationInclusiveServices,
+      accommodationAmenities: location.accommodationAmenities !== undefined ? (location.accommodationAmenities ? [...location.accommodationAmenities] : null) : existing.accommodationAmenities,
+      accommodationCheckinTime: location.accommodationCheckinTime !== undefined ? location.accommodationCheckinTime : existing.accommodationCheckinTime,
+      accommodationCheckoutTime: location.accommodationCheckoutTime !== undefined ? location.accommodationCheckoutTime : existing.accommodationCheckoutTime,
       updatedAt: new Date(),
     };
     this.locations.set(id, updated);
