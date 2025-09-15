@@ -288,18 +288,32 @@ export default function LocationDetail() {
                       ✨ <span className="ml-2">Inklusiv-Leistungen</span>
                     </h5>
                     <div className="space-y-2 text-sm text-muted-foreground">
+                      {/* Always show the nights calculation first */}
                       <div className="flex items-center">
                         <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
                         {formatNights(calculateNights(location.startDate, location.endDate))} Aufenthalt
                       </div>
-                      <div className="flex items-center">
-                        <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
-                        Inkl. Frühstück
-                      </div>
-                      <div className="flex items-center">
-                        <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
-                        Kostenfreies WLAN
-                      </div>
+                      {/* Dynamic inclusive services */}
+                      {location.accommodationInclusiveServices && location.accommodationInclusiveServices.length > 0 ? (
+                        location.accommodationInclusiveServices.map((service, index) => (
+                          <div key={index} className="flex items-center" data-testid={`inclusive-service-${index}`}>
+                            <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+                            {service}
+                          </div>
+                        ))
+                      ) : (
+                        // Fallback services if no data exists
+                        <>
+                          <div className="flex items-center">
+                            <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+                            Inkl. Frühstück
+                          </div>
+                          <div className="flex items-center">
+                            <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+                            Kostenfreies WLAN
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -308,36 +322,52 @@ export default function LocationDetail() {
                     <h5 className="text-sm font-bold text-foreground mb-3 flex items-center">
                       🛏️ <span className="ml-2">Ausstattung</span>
                     </h5>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                      <div className="flex items-center">
-                        <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></span>
-                        Klimaanlage
+                    {location.accommodationAmenities && location.accommodationAmenities.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                        {location.accommodationAmenities.map((amenity, index) => (
+                          <div key={index} className="flex items-center" data-testid={`amenity-${index}`}>
+                            <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></span>
+                            {amenity}
+                          </div>
+                        ))}
                       </div>
-                      <div className="flex items-center">
-                        <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></span>
-                        Privates Bad
+                    ) : (
+                      // Fallback amenities if no data exists
+                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                        <div className="flex items-center">
+                          <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></span>
+                          Klimaanlage
+                        </div>
+                        <div className="flex items-center">
+                          <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></span>
+                          Privates Bad
+                        </div>
+                        <div className="flex items-center">
+                          <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></span>
+                          TV & Minibar
+                        </div>
+                        <div className="flex items-center">
+                          <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></span>
+                          Concierge
+                        </div>
                       </div>
-                      <div className="flex items-center">
-                        <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></span>
-                        TV & Minibar
-                      </div>
-                      <div className="flex items-center">
-                        <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></span>
-                        Concierge
-                      </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Check-in Information */}
                   <div className="border-t border-primary/20 pt-4">
                     <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="text-center p-2 bg-white rounded border border-primary/10">
+                      <div className="text-center p-2 bg-white rounded border border-primary/10" data-testid="check-in-info">
                         <span className="font-bold text-foreground block">Check-in</span>
-                        <div className="text-primary font-medium">15:00 Uhr</div>
+                        <div className="text-primary font-medium">
+                          {location.accommodationCheckinTime || "15:00 Uhr"}
+                        </div>
                       </div>
-                      <div className="text-center p-2 bg-white rounded border border-primary/10">
+                      <div className="text-center p-2 bg-white rounded border border-primary/10" data-testid="check-out-info">
                         <span className="font-bold text-foreground block">Check-out</span>
-                        <div className="text-primary font-medium">11:00 Uhr</div>
+                        <div className="text-primary font-medium">
+                          {location.accommodationCheckoutTime || "11:00 Uhr"}
+                        </div>
                       </div>
                     </div>
                   </div>
