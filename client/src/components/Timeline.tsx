@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Calendar, ChevronRight, MapPin, Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -31,6 +31,7 @@ function formatDateRange(startDate: string, endDate: string): string {
 
 export default function Timeline({ locations }: TimelineProps) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const timelineRef = useRef<HTMLDivElement>(null);
   const [carPosition, setCarPosition] = useState<any>(null);
   const [isTrackingEnabled, setIsTrackingEnabled] = useState(false);
@@ -153,8 +154,11 @@ export default function Timeline({ locations }: TimelineProps) {
             
             {/* Card positioned alternating left/right with proper spacing from center */}
             <div className={`flex ${index % 2 === 0 ? 'md:justify-start md:pr-6 lg:pr-8 xl:pr-10' : 'md:justify-end md:pl-6 lg:pl-8 xl:pl-10'}`}>
-              <Link href={`/location/${location.slug}`} className="w-full md:w-[calc(50%-1.5rem)] lg:w-[calc(50%-2rem)] xl:w-[calc(50%-2.5rem)]">
-                <Card className={`w-full bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-[1.02] ${index % 2 === 0 ? 'md:mr-auto' : 'md:ml-auto'}`}>
+              <div className="w-full md:w-[calc(50%-1.5rem)] lg:w-[calc(50%-2rem)] xl:w-[calc(50%-2.5rem)]">
+                <Card 
+                  className={`w-full bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-[1.02] ${index % 2 === 0 ? 'md:mr-auto' : 'md:ml-auto'}`}
+                  onClick={() => setLocation(`/location/${location.slug}`)}
+                >
                 {/* Header with location name and date */}
                 <div className="flex items-center justify-between p-6 pb-4">
                   <h3 className="text-2xl font-bold text-gray-900" data-testid={`location-name-${location.slug}`}>
@@ -332,7 +336,7 @@ export default function Timeline({ locations }: TimelineProps) {
                   </div>
                 </div>
                 </Card>
-              </Link>
+              </div>
             </div>
           </div>
         ))}
