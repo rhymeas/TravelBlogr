@@ -60,6 +60,10 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
     accommodation: "",
     accommodationWebsite: "",
     accommodationImageUrl: "",
+    accommodationInclusiveServices: [""],
+    accommodationAmenities: [""],
+    accommodationCheckinTime: "",
+    accommodationCheckoutTime: "",
     distance: 0,
     imageUrl: "",
     mapImageUrl: "",
@@ -84,6 +88,10 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
         accommodation: location.accommodation || "",
         accommodationWebsite: (location as any).accommodationWebsite || "",
         accommodationImageUrl: (location as any).accommodationImageUrl || "",
+        accommodationInclusiveServices: (location as any).accommodationInclusiveServices?.length ? (location as any).accommodationInclusiveServices : [""],
+        accommodationAmenities: (location as any).accommodationAmenities?.length ? (location as any).accommodationAmenities : [""],
+        accommodationCheckinTime: (location as any).accommodationCheckinTime || "",
+        accommodationCheckoutTime: (location as any).accommodationCheckoutTime || "",
         distance: location.distance || 0,
         imageUrl: location.imageUrl || "",
         mapImageUrl: (location as any).mapImageUrl || "",
@@ -113,6 +121,8 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
         experiences: data.experiences.filter(e => e.trim()),
         highlights: data.highlights.filter(h => h.trim()),
         funFacts: data.funFacts.filter(f => f.trim()),
+        accommodationInclusiveServices: data.accommodationInclusiveServices.filter(s => s.trim()),
+        accommodationAmenities: data.accommodationAmenities.filter(a => a.trim()),
         coordinates: location?.coordinates || { lat: 0, lng: 0 },
       };
 
@@ -371,6 +381,100 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
                           />
                         </div>
                       )}
+                    </div>
+                    
+                    {/* Check-in/Check-out Times */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="checkin-time" className="text-sm">Check-in Zeit</Label>
+                        <Input
+                          id="checkin-time"
+                          value={formData.accommodationCheckinTime}
+                          onChange={(e) => setFormData(prev => ({ ...prev, accommodationCheckinTime: e.target.value }))}
+                          placeholder="z.B. 15:00 Uhr"
+                          data-testid="input-checkin-time"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="checkout-time" className="text-sm">Check-out Zeit</Label>
+                        <Input
+                          id="checkout-time"
+                          value={formData.accommodationCheckoutTime}
+                          onChange={(e) => setFormData(prev => ({ ...prev, accommodationCheckoutTime: e.target.value }))}
+                          placeholder="z.B. 11:00 Uhr"
+                          data-testid="input-checkout-time"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Inclusive Services */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <Label className="text-sm">Inklusive Leistungen</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => addArrayItem('accommodationInclusiveServices', '')}
+                          data-testid="add-inclusive-service"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      {formData.accommodationInclusiveServices.map((service, index) => (
+                        <div key={index} className="flex gap-2 mb-2">
+                          <Input
+                            value={service}
+                            onChange={(e) => updateArrayItem('accommodationInclusiveServices', index, e.target.value)}
+                            placeholder="z.B. Inkl. Frühstück, 2 Nächte Aufenthalt..."
+                            data-testid={`inclusive-service-${index}`}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeArrayItem('accommodationInclusiveServices', index)}
+                            data-testid={`remove-inclusive-service-${index}`}
+                          >
+                            <Minus className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Amenities */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <Label className="text-sm">Ausstattung & Annehmlichkeiten</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => addArrayItem('accommodationAmenities', '')}
+                          data-testid="add-amenity"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      {formData.accommodationAmenities.map((amenity, index) => (
+                        <div key={index} className="flex gap-2 mb-2">
+                          <Input
+                            value={amenity}
+                            onChange={(e) => updateArrayItem('accommodationAmenities', index, e.target.value)}
+                            placeholder="z.B. Klimaanlage, Privates Bad, TV & Minibar..."
+                            data-testid={`amenity-${index}`}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeArrayItem('accommodationAmenities', index)}
+                            data-testid={`remove-amenity-${index}`}
+                          >
+                            <Minus className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
