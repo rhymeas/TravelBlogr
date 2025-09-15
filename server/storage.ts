@@ -30,6 +30,271 @@ import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, and, isNull } from "drizzle-orm";
 
+// Shared location data for both MemStorage and DatabaseStorage 
+const INITIAL_LOCATIONS: InsertLocation[] = [
+  {
+    name: "Penticton",
+    slug: "penticton",
+    startDate: "20.09.2025",
+    endDate: "22.09.2025",
+    description: "Okanagan-Tal Weinreise mit geführten Weintouren, Weingut Burrowing Owl Estate Winery mit Restaurant und Picknick am See.",
+    accommodation: "Penticton Beach House",
+    accommodationPrice: 860,
+    distance: 395,
+    imageUrl: "https://plus.unsplash.com/premium_photo-1754211686859-913f71e422e1?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    coordinates: { lat: 49.4949, lng: -119.5937 },
+    activities: [
+      "Kunst- und Kulturzentrum Penticton Art Gallery – Kleine Galerie mit regionaler Kunst",
+      "Kettle Valley Railway Trail (kurzer Abschnitt) – Ruhiger Spaziergang mit Seeblick, leicht begehbar",
+      "Okanagan Falls langer pier",
+      "Picknick im Kentucky-Alleyne Provincial Park – Malerische Seenlandschaft, gut erreichbar mit dem Auto",
+      "Abbotsford Farm-Tour – Käse, Honig und Obststände, gemütlich mit dem Auto erreichbar",
+      "We-Drive Kelowna Wine Tours (https://www.sagebrushtours.ca/wine-tours/naramata-wine-tour)",
+      "Besuch von Sunrise Lavendelfarmen – Entspanntes Spazieren, herrlicher Duft",
+      "Bootsfahrt auf dem Okanagan Lake – Ruhige Ausflugsmöglichkeiten, auch mit Sitzgelegenheit",
+      "Summerhill Pyramid Winery – Weinkellerei mit Restaurant und toller Aussicht",
+      "Historic O'Keefe Ranch – Historische Ranch mit gemütlicher Führung",
+      "Planet Bee Honey Farm – Spannende Honigverkostung und Bienenführung"
+    ],
+    restaurants: [
+      { name: "Elm", description: "Für Abends", websiteUrl: "https://eatatelma.com" } as RestaurantData,
+      { name: "The Bench Market", description: "Beliebter All-Day Breakfast/Brunch" } as RestaurantData,
+      { name: "Kin & Folk", description: "Frühstück & Abends" } as RestaurantData,
+      { name: "Naramata Restaurants", description: "All great restaurants in Naramata area" } as RestaurantData,
+      { name: "EATology", description: "Local dining" } as RestaurantData,
+      { name: "Diner On Six", description: "Local diner" } as RestaurantData,
+      { name: "Intermezzo Restaurant", description: "Fine dining option" } as RestaurantData,
+      { name: "Bean To Cup Coffee House", description: "Breakfast coffee spot" } as RestaurantData
+    ],
+    experiences: [
+      "Leichte Riesling-Flights und Weinproben",
+      "110 km lange wunderbare Strände am Okanagan Lake",
+      "Geführte Weintouren mit professionellem Guide"
+    ],
+    highlights: ["Weingüter", "Okanagan Lake", "Weinproben"],
+    routeHighlights: [
+      "Cedar and Moss Coffee, Cultus Lake, Bridal Falls",
+      "Abbotsford Selbstfahrer-Circle-Farm-Tour: Käse, Honig, Kürbisstand",
+      "Abbotsford Mennonite Heritage Village",
+      "Historische Montrose Street mit Weingütern und Brauereien",
+      "Fahrt durch Manning Park durch Wein- und Obstanbaugebiete"
+    ]
+  },
+  {
+    name: "Vernon", 
+    slug: "vernon",
+    startDate: "22.09.2025",
+    endDate: "23.09.2025",
+    description: "Zwischenstopp am Swan Lake mit dem märchenhaften Castle at Swan Lake.",
+    accommodation: "The Castle at Swan Lake",
+    accommodationPrice: 371,
+    distance: 120,
+    imageUrl: "https://images.unsplash.com/photo-1755331039789-7e5680e26e8f?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    coordinates: { lat: 50.2676, lng: -119.2721 },
+    activities: [
+      "Polson Park – Ruhige Parkanlage für einen entspannten Spaziergang"
+    ],
+    restaurants: [
+      { name: "Castle Restaurant", description: "Restaurant im Castle at Swan Lake" } as RestaurantData,
+      { name: "Summerhill Pyramid Winery Restaurant", description: "Weinkellerei mit Pyramide und Restaurant - einzigartige architektonische Erfahrung" } as RestaurantData,
+      { name: "Vernon Downtown Bistro", description: "Lokale Küche im Stadtzentrum" } as RestaurantData
+    ],
+    experiences: [
+      "Romantischer Aufenthalt im Castle",
+      "Malerische Seenlandschaft am Swan Lake",
+      "Duftende Lavendelfelder mit geführten Farm-Touren",
+      "Hausboot-Erlebnis auf dem Okanagan Lake",
+      "Weinverkostungen in der einzigartigen Pyramiden-Weinkellerei",
+      "Entspannung an 110 km langen Okanagan-Stränden"
+    ],
+    highlights: ["Swan Lake", "The Castle"],
+    routeHighlights: [
+      "Fahrt durch Wein- und Obstanbaugebiete nach Penticton",
+      "Zwischenstopp in Kelowna mit Lavendelfarm und Weingütern"
+    ]
+  },
+  {
+    name: "Golden",
+    slug: "golden", 
+    startDate: "23.09.2025",
+    endDate: "27.09.2025",
+    description: "Rocky Mountains mit den berühmten Seen Lake Moraine und Lake Louise, Banff Gondel auf den Sulphur Mountain.",
+    accommodation: "Chalet Ernest Feuz & Cedar House Restaurant",
+    accommodationPrice: 1975,
+    distance: 295,
+    imageUrl: "https://images.unsplash.com/photo-1590100958871-a8d13c35ac33?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    coordinates: { lat: 51.3003, lng: -116.9637 },
+    activities: [
+      "Golden Skybridge (nur Plattform-Besuch) – Beeindruckender Ausblick ohne Abenteuer-Teil",
+      "Kicking Horse Pedestrian Bridge – Kurzer Spaziergang zur längsten freitragenden Holzbrücke Kanadas",
+      "Yoho National Park Stopps – Emerald Lake und Natural Bridge, beide nah am Parkplatz",
+      "Blue River Wildlife Bootssafari – Bequeme Sitzboote, um Tiere vom Wasser aus zu beobachten",
+      "Besuch des Cedar House Restaurants & Chalets – Bekannt für ruhige Atmosphäre und Gourmetküche",
+      "Revelstoke Railway Museum – Gemütlicher Museumsbesuch ohne große Wege"
+    ],
+    restaurants: [
+      { name: "Big Bend Cafe", description: "Local cafe in Golden area" } as RestaurantData,
+      { name: "Whitetooth Bistro", description: "Local bistro" } as RestaurantData,
+      { name: "Bluebird Cafe", description: "Charming local cafe option" } as RestaurantData,
+      { name: "Wandering Fern Cafe", description: "Alternative cafe option" } as RestaurantData,
+      { name: "The Wolf's Den", description: "Local restaurant" } as RestaurantData
+    ],
+    experiences: [
+      "Der Icefields Parkway - eine der schönsten Panoramastraßen der Welt",
+      "Gletschertour am Columbia Icefield",
+      "Morgenlicht-Fotografie am Lake Louise"
+    ],
+    highlights: ["Lake Louise", "Banff", "Columbia Icefield", "Gondel"],
+    routeHighlights: [
+      "Mittags Wildlife-Bootsafari im Blue River-Tal",
+      "Sehr bequeme Sitzboote für Wildtier-Beobachtung (riversafari.com)",
+      "Weiterfahrt durch spektakuläre Berglandschaft nach Jasper"
+    ]
+  },
+  {
+    name: "Jasper",
+    slug: "jasper",
+    startDate: "27.09.2025", 
+    endDate: "29.09.2025",
+    description: "Jasper Nationalpark mit Bootsfahrt auf dem Maligne Lake zur Spirit Island und Jasper SkyTram.",
+    accommodation: "Deluxe Blockhütte",
+    accommodationPrice: 2349,
+    distance: 330,
+    imageUrl: "https://images.unsplash.com/photo-1587381419916-78fc843a36f8?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    coordinates: { lat: 52.8737, lng: -118.0814 },
+    activities: [
+      "Pyramid Lake und Pyramid Island – Ruhige See-Insel mit Bank zum Ausruhen",
+      "Jasper Yellowhead Museum – Regionale Geschichte, kleines Museum",
+      "Abendliche Sternenbeobachtung – Jasper ist offizielles Dark Sky Preserve, perfekt zum Sterneschauen",
+      "Icefields Parkway Fahrt – Eine der schönsten Panoramastraßen der Welt",
+      "Bootsfahrt auf dem Maligne Lake zur Spirit Island – Ruhig, mit fantastischer Aussicht",
+      "Columbia Icefield Besucherzentrum – Gletscherblick ohne anstrengende Wanderung",
+      "Maligne Lake – größter natürlicher See",
+      "Johnson Lake – Instagram-würdiger Ort"
+    ],
+    restaurants: [
+      { name: "Bear's Paw Bakery", description: "Local bakery with fresh baked goods" } as RestaurantData,
+      { name: "The Raven Bistro", description: "Gourmet-Küche mit lokalen Zutaten" } as RestaurantData,
+      { name: "Harvest Food & Drink", description: "Local dining establishment" } as RestaurantData,
+      { name: "Terra Restaurant", description: "Fine dining option" } as RestaurantData
+    ],
+    experiences: [
+      "Spirit Island - eines der meistfotografierten Motive Kanadas",
+      "Rogers-Pass-Centre und Meadow-in-the-Sky Drive",
+      "Wildlife Viewing - Bären, Elche und Bergziegen"
+    ],
+    highlights: ["Maligne Lake", "SkyTram", "Spirit Island", "Wildlife"],
+    routeHighlights: [
+      "Rogers-Pass-Centre Besucherzentrum",
+      "Eventuell Meadow-in-the-Sky Drive für Panoramablicke",
+      "Icefields Parkway - eine der schönsten Panoramastraßen der Welt"
+    ]
+  },
+  {
+    name: "Clearwater",
+    slug: "clearwater",
+    startDate: "29.09.2025",
+    endDate: "01.10.2025", 
+    description: "Wells Gray Park mit spektakulären Wasserfällen - große Anzahl an Wasserfällen zum Entdecken.",
+    accommodation: "Alpine Meadows",
+    accommodationPrice: 731,
+    distance: 360,
+    imageUrl: "https://images.unsplash.com/photo-1625458647696-75b52c2e7483?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    coordinates: { lat: 51.6428, lng: -120.0275 },
+    activities: [
+      "Helmcken Falls Aussichtspunkt – Spektakulärer Wasserfall, leicht erreichbar",
+      "Moul Falls & Sylvia Falls – Kürzere Spaziergänge mit schöner Natur"
+    ],
+    restaurants: [
+      { name: "Alpine Meadows Restaurant", description: "Hausgemachte Gerichte in rustikaler Atmosphäre" } as RestaurantData,
+      { name: "Wells Gray Inn", description: "Traditionelle kanadische Küche" } as RestaurantData,
+      { name: "Clearwater Country Inn", description: "Gemütliches Restaurant mit regionalen Spezialitäten" } as RestaurantData
+    ],
+    experiences: [
+      "Rivers Safari - sehr bequeme Sitzboote für Wildlife-Beobachtung",
+      "Wasserfälle-Fotografie in Wells Gray Park",
+      "Begegnung mit der unberührten Wildnis"
+    ],
+    highlights: ["Helmcken Falls", "Wells Gray Park", "Wildlife Safari", "Wasserfälle"],
+    routeHighlights: [
+      "Helmcken Falls - spektakuläre Wasserfälle entlang der Route",
+      "Triple Decker Falls, Third Canyon Falls",
+      "Moul Falls, Sylvia und Godwin Falls",
+      "Zwischenstopp zum Aufbrechen der langen Fahrt nach Kamloops"
+    ]
+  },
+  {
+    name: "Lillooet",
+    slug: "lillooet", 
+    startDate: "01.10.2025",
+    endDate: "02.10.2025",
+    description: "Historische Goldgräberstadt mit Stopps am Duffey Lake Lookout und Kaffeepause.",
+    accommodation: "Reynolds Hotel", 
+    accommodationPrice: 346,
+    distance: 400,
+    imageUrl: "https://images.unsplash.com/photo-1636569878287-48d4d61c0cb2?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    coordinates: { lat: 50.6866, lng: -121.9346 },
+    activities: [
+      "Seton Lake Viewpoint – Eindrucksvoller Bergsee mit Parkmöglichkeiten direkt am Aussichtspunkt",
+      "Besuch des Lillooet Museum & Archive – Kleines Heimatmuseum mit lokaler Geschichte",
+      "Weinprobe bei Fort Berens Estate Winery – Ruhige Weindegustation mit Bergpanorama",
+      "Duffey Lake Lookout – Atemberaubender Aussichtspunkt direkt an der Straße",
+      "Spaziergang durch den Ort – Kleine Kaffepause und Erkundung lokaler Geschichte"
+    ],
+    restaurants: [
+      { name: "Painted Turtle Restaurant", description: "Local restaurant in Lillooet" } as RestaurantData,
+      { name: "Hop 'N' Hog Tap & Smokehouse", description: "Tap house and smokehouse" } as RestaurantData,
+      { name: "Lillooet's Cookhouse Restaurant", description: "Local cookhouse style restaurant" } as RestaurantData,
+      { name: "The Kitchen at Fort Berens", description: "Restaurant at Fort Berens Estate Winery" } as RestaurantData
+    ],
+    experiences: [
+      "Goldgräber-Geschichte erleben",
+      "Malerische Berglandschaft am Duffey Lake",
+      "Einblick in die First Nations Kultur"
+    ],
+    highlights: ["Duffey Lake", "Geschichte", "Fraser River"],
+    routeHighlights: [
+      "Duffey Lake Lookout - spektakulärer Aussichtspunkt",
+      "Lillooet Kaffeepause im historischen Stadtzentrum",
+      "Malerische Bergstraße durch das Fraser River Tal"
+    ]
+  },
+  {
+    name: "Sunshine Coast", 
+    slug: "sunshine-coast",
+    startDate: "02.10.2025",
+    endDate: "06.10.2025",
+    description: "Entspannter Abschluss an der Pazifikküste mit Beachfront Cottage ohne Hund.",
+    accommodation: "Beachfront Cottage",
+    accommodationPrice: 2147,
+    distance: 230,
+    imageUrl: "https://images.unsplash.com/photo-1602175439588-55b44e8a6719?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    coordinates: { lat: 49.6247, lng: -123.9707 },
+    activities: [
+      "Gibsons Public Market – Gemütlicher Markt mit kleinen Cafés und Kunstständen",
+      "Porpoise Bay Provincial Park – Ruhiger Strandpark mit Sitzgelegenheiten",
+      "Besuch eines Künstlerstudios – Sunshine Coast ist bekannt für kreative Handwerkskunst",
+      "Fährfahrt zur Sunshine Coast – Entspannende Überfahrt mit Aussicht",
+      "Künstlerdörfer und kleine Cafés – Gemütliche Besuche ohne große Strecken"
+    ],
+    restaurants: [
+      { name: "The Pink House Bistro", description: "Charming bistro on Sunshine Coast" } as RestaurantData,
+      { name: "Laughing Oyster Restaurant", description: "Restaurant with ocean views" } as RestaurantData
+    ],
+    experiences: [
+      "Sonnenuntergang über dem Pazifik",
+      "Entspannung nach der intensiven Reise",
+      "Abschied von der kanadischen Wildnis"
+    ],
+    highlights: ["Pazifik", "Strand", "Entspannung", "Cottage"],
+    routeHighlights: [
+      "Scenic Sea-to-Sky Highway entlang der Küste",
+      "Übergang von den Bergen zur Pazifikküste",
+      "Letzte spektakuläre Landschaftsabschnitte der Reise"
+    ]
+  }
+];
+
 // Interface for storage operations
 export interface IStorage {
   // Location operations
@@ -112,265 +377,8 @@ export class MemStorage implements IStorage {
       this.creators.set(id, creator);
     });
 
-    // Initialize with actual tour data from PDF
-    const initialLocations: InsertLocation[] = [
-      {
-        name: "Penticton",
-        slug: "penticton",
-        startDate: "20.09.2025",
-        endDate: "22.09.2025",
-        description: "Okanagan-Tal Weinreise mit geführten Weintouren, Weingut Burrowing Owl Estate Winery mit Restaurant und Picknick am See.",
-        accommodation: "Penticton Beach House",
-        accommodationPrice: 860,
-        distance: 395,
-        imageUrl: "https://plus.unsplash.com/premium_photo-1754211686859-913f71e422e1?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-        coordinates: { lat: 49.4949, lng: -119.5937 },
-        activities: [
-          "Weinverkostung im Burrowing Owl Estate Winery",
-          "Geführte Weintour durch mehrere Weingüter", 
-          "Picknick am Okanagan Lake in einem Provinzialpark",
-          "Besuch Kentucky-Alleyne Provincial Park",
-          "Promenade am Okanagan Lake"
-        ],
-        restaurants: [
-          { name: "Summerhill Pyramid Winery Restaurant", description: "Weinkellerei mit Pyramide und Restaurant" } as RestaurantData,
-          { name: "Burrowing Owl Estate Winery", description: "Weingut mit Restaurant und Weinproben" } as RestaurantData,
-          { name: "Naramata Bench Weinstraße", description: "Verschiedene Weingüter entlang der Route" } as RestaurantData
-        ],
-        experiences: [
-          "Leichte Riesling-Flights und Weinproben",
-          "110 km lange wunderbare Strände am Okanagan Lake",
-          "Geführte Weintouren mit professionellem Guide"
-        ],
-        highlights: ["Weingüter", "Okanagan Lake", "Weinproben"],
-        routeHighlights: [
-          "Cedar and Moss Coffee, Cultus Lake, Bridal Falls",
-          "Abbotsford Selbstfahrer-Circle-Farm-Tour: Käse, Honig, Kürbisstand",
-          "Abbotsford Mennonite Heritage Village",
-          "Historische Montrose Street mit Weingütern und Brauereien",
-          "Fahrt durch Manning Park durch Wein- und Obstanbaugebiete"
-        ]
-      },
-      {
-        name: "Vernon", 
-        slug: "vernon",
-        startDate: "22.09.2025",
-        endDate: "23.09.2025",
-        description: "Zwischenstopp am Swan Lake mit dem märchenhaften Castle at Swan Lake.",
-        accommodation: "The Castle at Swan Lake",
-        accommodationPrice: 371,
-        distance: 120,
-        imageUrl: "https://images.unsplash.com/photo-1755331039789-7e5680e26e8f?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-        coordinates: { lat: 50.2676, lng: -119.2721 },
-        activities: [
-          "Erkundung des Castle at Swan Lake",
-          "Wanderung um den Swan Lake",
-          "Besuch der Lavendelfarm mit Führung",
-          "Weingutbesichtigungen mit geführten Touren",
-          "Bootsverleih am Okanagan Lake (auch Hausboote verfügbar)",
-          "Zugang zu 110 km langen wunderbaren Stränden am Okanagan Lake",
-          "Geführte Weintouren mit professionellem Guide"
-        ],
-        restaurants: [
-          { name: "Castle Restaurant", description: "Restaurant im Castle at Swan Lake" } as RestaurantData,
-          { name: "Summerhill Pyramid Winery Restaurant", description: "Weinkellerei mit Pyramide und Restaurant - einzigartige architektonische Erfahrung" } as RestaurantData,
-          { name: "Vernon Downtown Bistro", description: "Lokale Küche im Stadtzentrum" } as RestaurantData
-        ],
-        experiences: [
-          "Romantischer Aufenthalt im Castle",
-          "Malerische Seenlandschaft am Swan Lake",
-          "Duftende Lavendelfelder mit geführten Farm-Touren",
-          "Hausboot-Erlebnis auf dem Okanagan Lake",
-          "Weinverkostungen in der einzigartigen Pyramiden-Weinkellerei",
-          "Entspannung an 110 km langen Okanagan-Stränden"
-        ],
-        highlights: ["Swan Lake", "The Castle"],
-        routeHighlights: [
-          "Fahrt durch Wein- und Obstanbaugebiete nach Penticton",
-          "Zwischenstopp in Kelowna mit Lavendelfarm und Weingütern"
-        ]
-      },
-      {
-        name: "Golden",
-        slug: "golden", 
-        startDate: "23.09.2025",
-        endDate: "27.09.2025",
-        description: "Rocky Mountains mit den berühmten Seen Lake Moraine und Lake Louise, Banff Gondel auf den Sulphur Mountain.",
-        accommodation: "Chalet Ernest Feuz & Cedar House Restaurant",
-        accommodationPrice: 1975,
-        distance: 295,
-        imageUrl: "https://images.unsplash.com/photo-1590100958871-a8d13c35ac33?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-        coordinates: { lat: 51.3003, lng: -116.9637 },
-        activities: [
-          "Morgenlicht am Lake Louise (früh besuchen um Menschenmassen zu entgehen)",
-          "Johnston Canyon Catwalk",
-          "Athabasca Falls",
-          "Columbia Icefield Centre",
-          "Peyto Lake Panoramadeck",
-          "Gondelfahrt auf Sulphur Mountain",
-          "Kaffee im Fairmont Chateau Lake Louise",
-          "Banff Gondel auf den Sulphur Mountain",
-          "Revelstoke Railway Museum",
-          "Stopp am Columbia Icefield für eine Gletschertour"
-        ],
-        restaurants: [
-          { name: "Fairmont Chateau Lake Louise", description: "Afternoon Tea mit spektakulärem Bergblick" } as RestaurantData,
-          { name: "Cedar House Restaurant & Chalets", description: "Alpine Küche am Fluss mit Bergkulisse" } as RestaurantData,
-          { name: "Banff Avenue Brewhouse", description: "Lokale Brauerei mit kanadischer Küche" } as RestaurantData
-        ],
-        experiences: [
-          "Der Icefields Parkway - eine der schönsten Panoramastraßen der Welt",
-          "Gletschertour am Columbia Icefield",
-          "Morgenlicht-Fotografie am Lake Louise"
-        ],
-        highlights: ["Lake Louise", "Banff", "Columbia Icefield", "Gondel"],
-        routeHighlights: [
-          "Mittags Wildlife-Bootsafari im Blue River-Tal",
-          "Sehr bequeme Sitzboote für Wildtier-Beobachtung (riversafari.com)",
-          "Weiterfahrt durch spektakuläre Berglandschaft nach Jasper"
-        ]
-      },
-      {
-        name: "Jasper",
-        slug: "jasper",
-        startDate: "27.09.2025", 
-        endDate: "29.09.2025",
-        description: "Jasper Nationalpark mit Bootsfahrt auf dem Maligne Lake zur Spirit Island und Jasper SkyTram.",
-        accommodation: "Deluxe Blockhütte",
-        accommodationPrice: 2349,
-        distance: 330,
-        imageUrl: "https://images.unsplash.com/photo-1587381419916-78fc843a36f8?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-        coordinates: { lat: 52.8737, lng: -118.0814 },
-        activities: [
-          "Bootsfahrt auf dem Maligne Lake zur Spirit Island",
-          "Fahrt mit dem Jasper SkyTram für Bergblicke",
-          "Besuch der Athabasca Falls",
-          "Maligne Canyon Wanderung",
-          "Lake Agnes Tea House Trail",
-          "Jasper Yellowhead Museum"
-        ],
-        restaurants: [
-          { name: "Jasper Park Lodge", description: "Fine Dining mit Blick auf den Beauvert Lake" } as RestaurantData,
-          { name: "The Raven Bistro", description: "Gourmet-Küche mit lokalen Zutaten" } as RestaurantData,
-          { name: "Earls Jasper", description: "Moderne kanadische Küche in entspannter Atmosphäre" } as RestaurantData
-        ],
-        experiences: [
-          "Spirit Island - eines der meistfotografierten Motive Kanadas",
-          "Rogers-Pass-Centre und Meadow-in-the-Sky Drive",
-          "Wildlife Viewing - Bären, Elche und Bergziegen"
-        ],
-        highlights: ["Maligne Lake", "SkyTram", "Spirit Island", "Wildlife"],
-        routeHighlights: [
-          "Rogers-Pass-Centre Besucherzentrum",
-          "Eventuell Meadow-in-the-Sky Drive für Panoramablicke",
-          "Icefields Parkway - eine der schönsten Panoramastraßen der Welt"
-        ]
-      },
-      {
-        name: "Clearwater",
-        slug: "clearwater",
-        startDate: "29.09.2025",
-        endDate: "01.10.2025", 
-        description: "Wells Gray Park mit spektakulären Wasserfällen - große Anzahl an Wasserfällen zum Entdecken.",
-        accommodation: "Alpine Meadows",
-        accommodationPrice: 731,
-        distance: 360,
-        imageUrl: "https://images.unsplash.com/photo-1625458647696-75b52c2e7483?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-        coordinates: { lat: 51.6428, lng: -120.0275 },
-        activities: [
-          "Helmcken Falls - spektakulärer Wasserfall",
-          "Triple Decker Falls",
-          "Third Canyon Falls", 
-          "Moul Falls",
-          "Sylvia and Godwin Falls",
-          "Mittags Wildlife-Bootsafari im Blue River-Tal"
-        ],
-        restaurants: [
-          { name: "Alpine Meadows Restaurant", description: "Hausgemachte Gerichte in rustikaler Atmosphäre" } as RestaurantData,
-          { name: "Wells Gray Inn", description: "Traditionelle kanadische Küche" } as RestaurantData,
-          { name: "Clearwater Country Inn", description: "Gemütliches Restaurant mit regionalen Spezialitäten" } as RestaurantData
-        ],
-        experiences: [
-          "Rivers Safari - sehr bequeme Sitzboote für Wildlife-Beobachtung",
-          "Wasserfälle-Fotografie in Wells Gray Park",
-          "Begegnung mit der unberührten Wildnis"
-        ],
-        highlights: ["Helmcken Falls", "Wells Gray Park", "Wildlife Safari", "Wasserfälle"],
-        routeHighlights: [
-          "Helmcken Falls - spektakuläre Wasserfälle entlang der Route",
-          "Triple Decker Falls, Third Canyon Falls",
-          "Moul Falls, Sylvia und Godwin Falls",
-          "Zwischenstopp zum Aufbrechen der langen Fahrt nach Kamloops"
-        ]
-      },
-      {
-        name: "Lillooet",
-        slug: "lillooet", 
-        startDate: "01.10.2025",
-        endDate: "02.10.2025",
-        description: "Historische Goldgräberstadt mit Stopps am Duffey Lake Lookout und Kaffeepause.",
-        accommodation: "Reynolds Hotel", 
-        accommodationPrice: 346,
-        distance: 400,
-        imageUrl: "https://images.unsplash.com/photo-1636569878287-48d4d61c0cb2?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-        coordinates: { lat: 50.6866, lng: -121.9346 },
-        activities: [
-          "Duffey Lake Lookout - spektakulärer Aussichtspunkt",
-          "Lillooet Kaffeepause im Stadtzentrum", 
-          "Historische Stadtführung"
-        ],
-        restaurants: [
-          { name: "Reynolds Hotel Restaurant", description: "Historisches Hotel-Restaurant" } as RestaurantData,
-          { name: "Duffey Lake Café", description: "Gemütliches Café mit lokalen Spezialitäten" } as RestaurantData,
-          { name: "Lillooet Bakery", description: "Frisches Gebäck und Kaffee" } as RestaurantData
-        ],
-        experiences: [
-          "Goldgräber-Geschichte erleben",
-          "Malerische Berglandschaft am Duffey Lake",
-          "Einblick in die First Nations Kultur"
-        ],
-        highlights: ["Duffey Lake", "Geschichte", "Fraser River"],
-        routeHighlights: [
-          "Duffey Lake Lookout - spektakulärer Aussichtspunkt",
-          "Lillooet Kaffeepause im historischen Stadtzentrum",
-          "Malerische Bergstraße durch das Fraser River Tal"
-        ]
-      },
-      {
-        name: "Sunshine Coast", 
-        slug: "sunshine-coast",
-        startDate: "02.10.2025",
-        endDate: "06.10.2025",
-        description: "Entspannter Abschluss an der Pazifikküste mit Beachfront Cottage ohne Hund.",
-        accommodation: "Beachfront Cottage",
-        accommodationPrice: 2147,
-        distance: 230,
-        imageUrl: "https://images.unsplash.com/photo-1602175439588-55b44e8a6719?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-        coordinates: { lat: 49.6247, lng: -123.9707 },
-        activities: [
-          "Entspannung am Strand",
-          "Spaziergänge entlang der Küste",
-          "Meeresblick vom Cottage genießen",
-          "Gibsons Landing erkunden"
-        ],
-        restaurants: [
-          { name: "The Wharf Restaurant", description: "Meeresfrüchte-Restaurant direkt am Wasser" } as RestaurantData,
-          { name: "Molly's Lane Café", description: "Gemütliches Café mit Aussicht auf den Pazifik" } as RestaurantData,
-          { name: "Coast Restaurant", description: "Fine Dining mit Fokus auf lokale Meeresfrüchte" } as RestaurantData
-        ],
-        experiences: [
-          "Sonnenuntergang über dem Pazifik",
-          "Entspannung nach der intensiven Reise",
-          "Abschied von der kanadischen Wildnis"
-        ],
-        highlights: ["Pazifik", "Strand", "Entspannung", "Cottage"],
-        routeHighlights: [
-          "Scenic Sea-to-Sky Highway entlang der Küste",
-          "Übergang von den Bergen zur Pazifikküste",
-          "Letzte spektakuläre Landschaftsabschnitte der Reise"
-        ]
-      }
-    ];
+    // Use shared location data
+    const initialLocations = INITIAL_LOCATIONS;
 
     // Create locations
     initialLocations.forEach(location => {
@@ -924,265 +932,8 @@ export class DatabaseStorage implements IStorage {
           await db.insert(creators).values({ name });
         }
 
-        // Initialize with actual tour data
-        const initialLocations: InsertLocation[] = [
-          {
-            name: "Penticton",
-            slug: "penticton",
-            startDate: "20.09.2025",
-            endDate: "22.09.2025",
-            description: "Okanagan-Tal Weinreise mit geführten Weintouren, Weingut Burrowing Owl Estate Winery mit Restaurant und Picknick am See.",
-            accommodation: "Penticton Beach House",
-            accommodationPrice: 860,
-            distance: 395,
-            imageUrl: "https://plus.unsplash.com/premium_photo-1754211686859-913f71e422e1?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            coordinates: { lat: 49.4949, lng: -119.5937 },
-            activities: [
-              "Weinverkostung im Burrowing Owl Estate Winery",
-              "Geführte Weintour durch mehrere Weingüter", 
-              "Picknick am Okanagan Lake in einem Provinzialpark",
-              "Besuch Kentucky-Alleyne Provincial Park",
-              "Promenade am Okanagan Lake"
-            ],
-            restaurants: [
-              { name: "Summerhill Pyramid Winery Restaurant", description: "Weinkellerei mit Pyramide und Restaurant" } as RestaurantData,
-              { name: "Burrowing Owl Estate Winery", description: "Weingut mit Restaurant und Weinproben" } as RestaurantData,
-              { name: "Naramata Bench Weinstraße", description: "Verschiedene Weingüter entlang der Route" } as RestaurantData
-            ],
-            experiences: [
-              "Leichte Riesling-Flights und Weinproben",
-              "110 km lange wunderbare Strände am Okanagan Lake",
-              "Geführte Weintouren mit professionellem Guide"
-            ],
-            highlights: ["Weingüter", "Okanagan Lake", "Weinproben"],
-            routeHighlights: [
-              "Cedar and Moss Coffee, Cultus Lake, Bridal Falls",
-              "Abbotsford Selbstfahrer-Circle-Farm-Tour: Käse, Honig, Kürbisstand",
-              "Abbotsford Mennonite Heritage Village",
-              "Historische Montrose Street mit Weingütern und Brauereien",
-              "Fahrt durch Manning Park durch Wein- und Obstanbaugebiete"
-            ]
-          },
-          {
-            name: "Vernon", 
-            slug: "vernon",
-            startDate: "22.09.2025",
-            endDate: "23.09.2025",
-            description: "Zwischenstopp am Swan Lake mit dem märchenhaften Castle at Swan Lake.",
-            accommodation: "The Castle at Swan Lake",
-            accommodationPrice: 371,
-            distance: 120,
-            imageUrl: "https://images.unsplash.com/photo-1755331039789-7e5680e26e8f?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            coordinates: { lat: 50.2676, lng: -119.2721 },
-            activities: [
-              "Erkundung des Castle at Swan Lake",
-              "Wanderung um den Swan Lake",
-              "Besuch der Lavendelfarm mit Führung",
-              "Weingutbesichtigungen mit geführten Touren",
-              "Bootsverleih am Okanagan Lake (auch Hausboote verfügbar)",
-              "Zugang zu 110 km langen wunderbaren Stränden am Okanagan Lake",
-              "Geführte Weintouren mit professionellem Guide"
-            ],
-            restaurants: [
-              { name: "Castle Restaurant", description: "Restaurant im Castle at Swan Lake" } as RestaurantData,
-              { name: "Summerhill Pyramid Winery Restaurant", description: "Weinkellerei mit Pyramide und Restaurant - einzigartige architektonische Erfahrung" } as RestaurantData,
-              { name: "Vernon Downtown Bistro", description: "Lokale Küche im Stadtzentrum" } as RestaurantData
-            ],
-            experiences: [
-              "Romantischer Aufenthalt im Castle",
-              "Malerische Seenlandschaft am Swan Lake",
-              "Duftende Lavendelfelder mit geführten Farm-Touren",
-              "Hausboot-Erlebnis auf dem Okanagan Lake",
-              "Weinverkostungen in der einzigartigen Pyramiden-Weinkellerei",
-              "Entspannung an 110 km langen Okanagan-Stränden"
-            ],
-            highlights: ["Swan Lake", "The Castle"],
-            routeHighlights: [
-              "Fahrt durch Wein- und Obstanbaugebiete nach Penticton",
-              "Zwischenstopp in Kelowna mit Lavendelfarm und Weingütern"
-            ]
-          },
-          {
-            name: "Golden",
-            slug: "golden", 
-            startDate: "23.09.2025",
-            endDate: "27.09.2025",
-            description: "Rocky Mountains mit den berühmten Seen Lake Moraine und Lake Louise, Banff Gondel auf den Sulphur Mountain.",
-            accommodation: "Chalet Ernest Feuz & Cedar House Restaurant",
-            accommodationPrice: 1975,
-            distance: 295,
-            imageUrl: "https://images.unsplash.com/photo-1590100958871-a8d13c35ac33?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            coordinates: { lat: 51.3003, lng: -116.9637 },
-            activities: [
-              "Morgenlicht am Lake Louise (früh besuchen um Menschenmassen zu entgehen)",
-              "Johnston Canyon Catwalk",
-              "Athabasca Falls",
-              "Columbia Icefield Centre",
-              "Peyto Lake Panoramadeck",
-              "Gondelfahrt auf Sulphur Mountain",
-              "Kaffee im Fairmont Chateau Lake Louise",
-              "Banff Gondel auf den Sulphur Mountain",
-              "Revelstoke Railway Museum",
-              "Stopp am Columbia Icefield für eine Gletschertour"
-            ],
-            restaurants: [
-              { name: "Fairmont Chateau Lake Louise", description: "Afternoon Tea mit spektakulärem Bergblick" } as RestaurantData,
-              { name: "Cedar House Restaurant & Chalets", description: "Alpine Küche am Fluss mit Bergkulisse" } as RestaurantData,
-              { name: "Banff Avenue Brewhouse", description: "Lokale Brauerei mit kanadischer Küche" } as RestaurantData
-            ],
-            experiences: [
-              "Der Icefields Parkway - eine der schönsten Panoramastraßen der Welt",
-              "Gletschertour am Columbia Icefield",
-              "Morgenlicht-Fotografie am Lake Louise"
-            ],
-            highlights: ["Lake Louise", "Banff", "Columbia Icefield", "Gondel"],
-            routeHighlights: [
-              "Mittags Wildlife-Bootsafari im Blue River-Tal",
-              "Sehr bequeme Sitzboote für Wildtier-Beobachtung (riversafari.com)",
-              "Weiterfahrt durch spektakuläre Berglandschaft nach Jasper"
-            ]
-          },
-          {
-            name: "Jasper",
-            slug: "jasper",
-            startDate: "27.09.2025", 
-            endDate: "29.09.2025",
-            description: "Jasper Nationalpark mit Bootsfahrt auf dem Maligne Lake zur Spirit Island und Jasper SkyTram.",
-            accommodation: "Deluxe Blockhütte",
-            accommodationPrice: 2349,
-            distance: 330,
-            imageUrl: "https://images.unsplash.com/photo-1587381419916-78fc843a36f8?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            coordinates: { lat: 52.8737, lng: -118.0814 },
-            activities: [
-              "Bootsfahrt auf dem Maligne Lake zur Spirit Island",
-              "Fahrt mit dem Jasper SkyTram für Bergblicke",
-              "Besuch der Athabasca Falls",
-              "Maligne Canyon Wanderung",
-              "Lake Agnes Tea House Trail",
-              "Jasper Yellowhead Museum"
-            ],
-            restaurants: [
-              { name: "Jasper Park Lodge", description: "Fine Dining mit Blick auf den Beauvert Lake" } as RestaurantData,
-              { name: "The Raven Bistro", description: "Gourmet-Küche mit lokalen Zutaten" } as RestaurantData,
-              { name: "Earls Jasper", description: "Moderne kanadische Küche in entspannter Atmosphäre" } as RestaurantData
-            ],
-            experiences: [
-              "Spirit Island - eines der meistfotografierten Motive Kanadas",
-              "Rogers-Pass-Centre und Meadow-in-the-Sky Drive",
-              "Wildlife Viewing - Bären, Elche und Bergziegen"
-            ],
-            highlights: ["Maligne Lake", "SkyTram", "Spirit Island", "Wildlife"],
-            routeHighlights: [
-              "Rogers-Pass-Centre Besucherzentrum",
-              "Eventuell Meadow-in-the-Sky Drive für Panoramablicke",
-              "Icefields Parkway - eine der schönsten Panoramastraßen der Welt"
-            ]
-          },
-          {
-            name: "Clearwater",
-            slug: "clearwater",
-            startDate: "29.09.2025",
-            endDate: "01.10.2025", 
-            description: "Wells Gray Park mit spektakulären Wasserfällen - große Anzahl an Wasserfällen zum Entdecken.",
-            accommodation: "Alpine Meadows",
-            accommodationPrice: 731,
-            distance: 360,
-            imageUrl: "https://images.unsplash.com/photo-1625458647696-75b52c2e7483?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            coordinates: { lat: 51.6428, lng: -120.0275 },
-            activities: [
-              "Helmcken Falls - spektakulärer Wasserfall",
-              "Triple Decker Falls",
-              "Third Canyon Falls", 
-              "Moul Falls",
-              "Sylvia and Godwin Falls",
-              "Mittags Wildlife-Bootsafari im Blue River-Tal"
-            ],
-            restaurants: [
-              { name: "Alpine Meadows Restaurant", description: "Hausgemachte Gerichte in rustikaler Atmosphäre" } as RestaurantData,
-              { name: "Wells Gray Inn", description: "Traditionelle kanadische Küche" } as RestaurantData,
-              { name: "Clearwater Country Inn", description: "Gemütliches Restaurant mit regionalen Spezialitäten" } as RestaurantData
-            ],
-            experiences: [
-              "Rivers Safari - sehr bequeme Sitzboote für Wildlife-Beobachtung",
-              "Wasserfälle-Fotografie in Wells Gray Park",
-              "Begegnung mit der unberührten Wildnis"
-            ],
-            highlights: ["Helmcken Falls", "Wells Gray Park", "Wildlife Safari", "Wasserfälle"],
-            routeHighlights: [
-              "Helmcken Falls - spektakuläre Wasserfälle entlang der Route",
-              "Triple Decker Falls, Third Canyon Falls",
-              "Moul Falls, Sylvia und Godwin Falls",
-              "Zwischenstopp zum Aufbrechen der langen Fahrt nach Kamloops"
-            ]
-          },
-          {
-            name: "Lillooet",
-            slug: "lillooet", 
-            startDate: "01.10.2025",
-            endDate: "02.10.2025",
-            description: "Historische Goldgräberstadt mit Stopps am Duffey Lake Lookout und Kaffeepause.",
-            accommodation: "Reynolds Hotel", 
-            accommodationPrice: 346,
-            distance: 400,
-            imageUrl: "https://images.unsplash.com/photo-1636569878287-48d4d61c0cb2?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            coordinates: { lat: 50.6866, lng: -121.9346 },
-            activities: [
-              "Duffey Lake Lookout - spektakulärer Aussichtspunkt",
-              "Lillooet Kaffeepause im Stadtzentrum", 
-              "Historische Stadtführung"
-            ],
-            restaurants: [
-              { name: "Reynolds Hotel Restaurant", description: "Historisches Hotel-Restaurant" } as RestaurantData,
-              { name: "Duffey Lake Café", description: "Gemütliches Café mit lokalen Spezialitäten" } as RestaurantData,
-              { name: "Lillooet Bakery", description: "Frisches Gebäck und Kaffee" } as RestaurantData
-            ],
-            experiences: [
-              "Goldgräber-Geschichte erleben",
-              "Malerische Berglandschaft am Duffey Lake",
-              "Einblick in die First Nations Kultur"
-            ],
-            highlights: ["Duffey Lake", "Geschichte", "Fraser River"],
-            routeHighlights: [
-              "Duffey Lake Lookout - spektakulärer Aussichtspunkt",
-              "Lillooet Kaffeepause im historischen Stadtzentrum",
-              "Malerische Bergstraße durch das Fraser River Tal"
-            ]
-          },
-          {
-            name: "Sunshine Coast", 
-            slug: "sunshine-coast",
-            startDate: "02.10.2025",
-            endDate: "06.10.2025",
-            description: "Entspannter Abschluss an der Pazifikküste mit Beachfront Cottage ohne Hund.",
-            accommodation: "Beachfront Cottage",
-            accommodationPrice: 2147,
-            distance: 230,
-            imageUrl: "https://images.unsplash.com/photo-1602175439588-55b44e8a6719?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            coordinates: { lat: 49.6247, lng: -123.9707 },
-            activities: [
-              "Entspannung am Strand",
-              "Spaziergänge entlang der Küste",
-              "Meeresblick vom Cottage genießen",
-              "Gibsons Landing erkunden"
-            ],
-            restaurants: [
-              { name: "The Wharf Restaurant", description: "Meeresfrüchte-Restaurant direkt am Wasser" } as RestaurantData,
-              { name: "Molly's Lane Café", description: "Gemütliches Café mit Aussicht auf den Pazifik" } as RestaurantData,
-              { name: "Coast Restaurant", description: "Fine Dining mit Fokus auf lokale Meeresfrüchte" } as RestaurantData
-            ],
-            experiences: [
-              "Sonnenuntergang über dem Pazifik",
-              "Entspannung nach der intensiven Reise",
-              "Abschied von der kanadischen Wildnis"
-            ],
-            highlights: ["Pazifik", "Strand", "Entspannung", "Cottage"],
-            routeHighlights: [
-              "Scenic Sea-to-Sky Highway entlang der Küste",
-              "Übergang von den Bergen zur Pazifikküste",
-              "Letzte spektakuläre Landschaftsabschnitte der Reise"
-            ]
-          }
-        ];
+        // Use shared location data
+        const initialLocations = INITIAL_LOCATIONS;
 
         // Insert all locations
         await db.insert(locations).values(initialLocations as any);
