@@ -18,6 +18,7 @@ interface ImageInputProps {
   required?: boolean;
   allowMultiple?: boolean;
   onMultipleChange?: (urls: string[]) => void;
+  usePublicUpload?: boolean; // New prop to use public uploads for publicly accessible images
 }
 
 interface ImageValidationState {
@@ -35,7 +36,8 @@ export function ImageInput({
   testId = "image-input",
   required = false,
   allowMultiple = false,
-  onMultipleChange
+  onMultipleChange,
+  usePublicUpload = false
 }: ImageInputProps) {
   const [inputMode, setInputMode] = useState<"url" | "upload">("url");
   const [showUpload, setShowUpload] = useState(false);
@@ -146,7 +148,8 @@ export function ImageInput({
 
   // Get upload parameters for ObjectUploader
   const getUploadParameters = async () => {
-    const response = await apiRequest("POST", "/api/objects/upload");
+    const endpoint = usePublicUpload ? "/api/objects/upload-public" : "/api/objects/upload";
+    const response = await apiRequest("POST", endpoint);
     const data = await response.json();
     return {
       method: "PUT" as const,

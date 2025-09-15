@@ -265,6 +265,7 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
               onChange={(value) => setFormData(prev => ({ ...prev, mapImageUrl: value }))}
               placeholder="https://example.com/map-screenshot.jpg"
               testId="location-map-image"
+              usePublicUpload={true}
             />
 
             {/* Activities */}

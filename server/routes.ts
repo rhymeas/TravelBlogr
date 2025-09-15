@@ -795,6 +795,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/objects/upload-public", async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getPublicObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error getting public upload URL:", error);
+      res.status(500).json({ error: "Failed to get public upload URL" });
+    }
+  });
+
   app.post("/api/objects/normalize", async (req, res) => {
     if (!req.body.imageURL) {
       return res.status(400).json({ error: "imageURL is required" });
