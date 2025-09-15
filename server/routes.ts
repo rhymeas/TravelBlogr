@@ -231,18 +231,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validPhotos = tripPhotos.filter(photo => photo.objectPath);
       
       // Generate fresh display URLs from stored objectPath for each photo
+      // Process sequentially to avoid overwhelming the sidecar endpoint
       const objectStorageService = new ObjectStorageService();
-      const photosWithUrls = await Promise.all(
-        validPhotos.map(async (photo) => {
-          try {
-            const freshImageUrl = await objectStorageService.getObjectEntityDisplayURL(photo.objectPath!);
-            return { ...photo, imageUrl: freshImageUrl };
-          } catch (error) {
-            console.error('Error generating display URL for photo:', photo.id, error);
-            return null; // Return null if URL generation fails
-          }
-        })
-      );
+      const photosWithUrls = [];
+      
+      for (const photo of validPhotos) {
+        try {
+          const freshImageUrl = await objectStorageService.getObjectEntityDisplayURL(photo.objectPath!);
+          photosWithUrls.push({ ...photo, imageUrl: freshImageUrl });
+        } catch (error) {
+          console.error('Error generating display URL for photo:', photo.id, error);
+          // Return photo with placeholder URL instead of null to maintain data integrity
+          photosWithUrls.push({ ...photo, imageUrl: '/placeholder-image.jpg' });
+        }
+      }
       
       // Filter out any null results
       const finalPhotos = photosWithUrls.filter(photo => photo !== null);
@@ -352,18 +354,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validPhotos = tripPhotos.filter(photo => photo.objectPath);
       
       // Generate fresh display URLs from stored objectPath for each photo
+      // Process sequentially to avoid overwhelming the sidecar endpoint
       const objectStorageService = new ObjectStorageService();
-      const photosWithUrls = await Promise.all(
-        validPhotos.map(async (photo) => {
-          try {
-            const freshImageUrl = await objectStorageService.getObjectEntityDisplayURL(photo.objectPath!);
-            return { ...photo, imageUrl: freshImageUrl };
-          } catch (error) {
-            console.error('Error generating display URL for photo:', photo.id, error);
-            return null; // Return null if URL generation fails
-          }
-        })
-      );
+      const photosWithUrls = [];
+      
+      for (const photo of validPhotos) {
+        try {
+          const freshImageUrl = await objectStorageService.getObjectEntityDisplayURL(photo.objectPath!);
+          photosWithUrls.push({ ...photo, imageUrl: freshImageUrl });
+        } catch (error) {
+          console.error('Error generating display URL for photo:', photo.id, error);
+          // Return photo with placeholder URL instead of null to maintain data integrity
+          photosWithUrls.push({ ...photo, imageUrl: '/placeholder-image.jpg' });
+        }
+      }
       
       // Filter out any null results
       const finalPhotos = photosWithUrls.filter(photo => photo !== null);

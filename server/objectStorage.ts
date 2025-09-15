@@ -328,6 +328,33 @@ function parseObjectPath(path: string): {
   };
 }
 
+// Semaphore-based rate limiter for concurrent requests to avoid overwhelming the sidecar
+let currentRequests = 0;
+const MAX_CONCURRENT_REQUESTS = 3;
+const requestQueue: Array<{ resolve: () => void; reject: (error: Error) => void }> = [];
+
+async function acquireSlot(): Promise<void> {
+  if (currentRequests < MAX_CONCURRENT_REQUESTS) {
+    currentRequests++;
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    requestQueue.push({ resolve, reject });
+  });
+}
+
+function releaseSlot(): void {
+  currentRequests--;
+  if (requestQueue.length > 0) {
+    const next = requestQueue.shift();
+    if (next) {
+      currentRequests++;
+      next.resolve();
+    }
+  }
+}
+
 async function signObjectURL({
   bucketName,
   objectName,
@@ -345,23 +372,75 @@ async function signObjectURL({
     method,
     expires_at: new Date(Date.now() + ttlSec * 1000).toISOString(),
   };
-  const response = await fetch(
-    `${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(request),
+
+  // Retry logic for failed requests
+  const maxRetries = 3;
+  let lastError: Error | undefined;
+
+  // Acquire semaphore slot before starting requests
+  await acquireSlot();
+
+  try {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(
+          `${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(request),
+            // Add timeout to prevent hanging requests
+            signal: AbortSignal.timeout(10000), // 10 second timeout
+          }
+        );
+        
+        if (response.ok) {
+          const { signed_url: signedURL } = await response.json();
+          return signedURL;
+        } else {
+          // Get error details for better debugging
+          const errorText = await response.text();
+          console.error(`Sidecar error details:`, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries()),
+            body: errorText,
+            requestData: request
+          });
+          
+          lastError = new Error(
+            `Failed to sign object URL, errorcode: ${response.status}, ` +
+            `error: ${errorText}, make sure you're running on Replit`
+          );
+          
+          // Don't retry immediately on auth errors (400-499)
+          if (response.status >= 400 && response.status < 500) {
+            throw lastError;
+          }
+        }
+      } catch (error: any) {
+        lastError = error;
+        
+        // Don't retry on timeout or auth errors
+        if (error.name === 'TimeoutError' || error.name === 'AbortError' ||
+            (error.message && error.message.includes('errorcode: 4'))) {
+          throw error;
+        }
+        
+        // Wait before retrying (exponential backoff)
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
+        }
+      }
     }
-  );
-  if (!response.ok) {
-    throw new Error(
-      `Failed to sign object URL, errorcode: ${response.status}, ` +
-        `make sure you're running on Replit`
-    );
+
+    throw lastError || new Error('Failed to sign object URL after retries');
+  } finally {
+    // Always release the semaphore slot
+    releaseSlot();
   }
 
-  const { signed_url: signedURL } = await response.json();
-  return signedURL;
+  throw lastError || new Error('Failed to sign object URL after retries');
 }
