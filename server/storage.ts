@@ -916,6 +916,49 @@ export class DatabaseStorage implements IStorage {
     this.initialized = true;
   }
 
+  private async migrateRestaurantData() {
+    try {
+      console.log("Starting restaurant data migration...");
+      
+      // Get all existing locations from database
+      const allLocations = await db.select().from(locations);
+      
+      let migratedCount = 0;
+      
+      // Create a map of slug -> restaurant data from INITIAL_LOCATIONS for quick lookup
+      const restaurantDataBySlug = new Map<string, RestaurantData[]>();
+      INITIAL_LOCATIONS.forEach(initialLocation => {
+        if (initialLocation.restaurants && initialLocation.restaurants.length > 0) {
+          restaurantDataBySlug.set(initialLocation.slug, initialLocation.restaurants as RestaurantData[]);
+        }
+      });
+      
+      // Update each location's restaurant data if it exists in INITIAL_LOCATIONS
+      for (const location of allLocations) {
+        const correctRestaurantData = restaurantDataBySlug.get(location.slug);
+        
+        if (correctRestaurantData) {
+          console.log(`Migrating restaurant data for location: ${location.name} (${location.slug})`);
+          
+          await db.update(locations)
+            .set({ 
+              restaurants: correctRestaurantData,
+              updatedAt: new Date() // Force cache invalidation
+            })
+            .where(eq(locations.id, location.id));
+          
+          migratedCount++;
+          console.log(`  ✓ Updated ${correctRestaurantData.length} restaurants for ${location.name}`);
+        }
+      }
+      
+      console.log(`Restaurant data migration completed. Updated ${migratedCount} locations.`);
+    } catch (error) {
+      console.error("Error during restaurant data migration:", error);
+      throw error;
+    }
+  }
+
   private async initializeDatabase() {
     try {
       // Check if we have any data in the database
@@ -1065,6 +1108,10 @@ export class DatabaseStorage implements IStorage {
       } else {
         console.log("Database already has data, skipping initialization");
       }
+
+      // Run restaurant data migration (idempotent - safe to run multiple times)
+      await this.migrateRestaurantData();
+      
     } catch (error) {
       console.error("Error initializing database:", error);
       throw error;
