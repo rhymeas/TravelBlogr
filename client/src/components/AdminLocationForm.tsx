@@ -16,6 +16,40 @@ interface AdminLocationFormProps {
   onClose: () => void;
 }
 
+// Helper function to convert DD.MM.YYYY to YYYY-MM-DDTHH:MM for datetime-local input
+const convertToDateTimeLocal = (germanDate: string): string => {
+  if (!germanDate) return "";
+  
+  // Handle DD.MM.YYYY format
+  const parts = germanDate.split('.');
+  if (parts.length === 3) {
+    const [day, month, year] = parts;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T12:00`;
+  }
+  
+  // If already in a different format, try to parse as Date
+  const date = new Date(germanDate);
+  if (!isNaN(date.getTime())) {
+    return date.toISOString().slice(0, 16);
+  }
+  
+  return "";
+};
+
+// Helper function to convert YYYY-MM-DDTHH:MM back to DD.MM.YYYY for storage
+const convertToGermanDate = (dateTimeLocal: string): string => {
+  if (!dateTimeLocal) return "";
+  
+  const date = new Date(dateTimeLocal);
+  if (isNaN(date.getTime())) return "";
+  
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}.${month}.${year}`;
+};
+
 export default function AdminLocationForm({ location, onClose }: AdminLocationFormProps) {
   const [formData, setFormData] = useState({
     name: "",
@@ -44,8 +78,8 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
       setFormData({
         name: location.name || "",
         slug: location.slug || "",
-        startDate: location.startDate || "",
-        endDate: location.endDate || "",
+        startDate: convertToDateTimeLocal(location.startDate || ""),
+        endDate: convertToDateTimeLocal(location.endDate || ""),
         description: location.description || "",
         accommodation: location.accommodation || "",
         accommodationWebsite: (location as any).accommodationWebsite || "",
@@ -72,6 +106,8 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
     mutationFn: async (data: typeof formData) => {
       const payload = {
         ...data,
+        startDate: convertToGermanDate(data.startDate),
+        endDate: convertToGermanDate(data.endDate),
         activities: data.activities.filter(a => a.trim()),
         restaurants: data.restaurants.filter(r => r.name.trim()),
         experiences: data.experiences.filter(e => e.trim()),
@@ -131,8 +167,8 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" data-testid="location-form-modal">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-auto">
-        <CardHeader className="flex flex-row items-center justify-between">
+      <Card className="w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <CardHeader className="flex flex-row items-center justify-between flex-shrink-0">
           <CardTitle data-testid="form-title">
             {location ? `${location.name} bearbeiten` : "Neuen Ort hinzufügen"}
           </CardTitle>
@@ -140,8 +176,8 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
             <X className="w-4 h-4" />
           </Button>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <CardContent className="flex-1 overflow-auto">
+          <form onSubmit={handleSubmit} className="space-y-6 pb-20">
             {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -569,21 +605,24 @@ export default function AdminLocationForm({ location, onClose }: AdminLocationFo
               ))}
             </div>
 
-            {/* Form Actions */}
-            <div className="flex justify-end space-x-4 pt-4 border-t border-border">
-              <Button type="button" variant="outline" onClick={onClose} data-testid="form-cancel">
-                Abbrechen
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={saveLocationMutation.isPending}
-                data-testid="form-submit"
-              >
-                {saveLocationMutation.isPending ? "Speichere..." : location ? "Aktualisieren" : "Erstellen"}
-              </Button>
-            </div>
           </form>
         </CardContent>
+        
+        {/* Sticky Form Actions */}
+        <div className="flex-shrink-0 border-t border-border bg-background p-4">
+          <div className="flex justify-end space-x-4">
+            <Button type="button" variant="outline" onClick={onClose} data-testid="form-cancel">
+              Abbrechen
+            </Button>
+            <Button 
+              onClick={handleSubmit}
+              disabled={saveLocationMutation.isPending}
+              data-testid="form-submit"
+            >
+              {saveLocationMutation.isPending ? "Speichere..." : location ? "Aktualisieren" : "Erstellen"}
+            </Button>
+          </div>
+        </div>
       </Card>
     </div>
   );

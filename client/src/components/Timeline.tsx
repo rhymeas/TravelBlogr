@@ -205,7 +205,14 @@ export default function Timeline({ locations }: TimelineProps) {
                           <div className="flex-1 min-w-0">
                             <div className="text-sm text-gray-700">
                               • {(restaurant as any).websiteUrl ? (
-                                <a href={(restaurant as any).websiteUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 underline" data-testid={`restaurant-link-${idx}`}>
+                                <a 
+                                  href={(restaurant as any).websiteUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-primary hover:text-primary/80 underline" 
+                                  data-testid={`restaurant-link-${idx}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
                                   {typeof restaurant === 'string' ? restaurant : restaurant.name}
                                 </a>
                               ) : (
@@ -250,7 +257,13 @@ export default function Timeline({ locations }: TimelineProps) {
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                     <p className="text-sm text-gray-700">
                       <span className="font-medium">Unterkunft:</span> {(location as any).accommodationWebsite ? (
-                        <a href={(location as any).accommodationWebsite} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 underline ml-1">
+                        <a 
+                          href={(location as any).accommodationWebsite} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-primary hover:text-primary/80 underline ml-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           {location.accommodation || 'Komfortable Unterkunft'}
                         </a>
                       ) : (
