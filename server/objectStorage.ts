@@ -158,12 +158,12 @@ export class ObjectStorageService {
   async getObjectEntityDisplayURL(objectPath: string): Promise<string> {
     const { bucketName, objectName } = parseObjectPath(objectPath);
 
-    // Sign URL for GET method with longer TTL for display (24 hours)
+    // Sign URL for GET method with extended TTL for display (30 days)
     return signObjectURL({
       bucketName,
       objectName,
       method: "GET",
-      ttlSec: 86400, // 24 hours
+      ttlSec: 2592000, // 30 days (30 * 24 * 60 * 60)
     });
   }
 
