@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Wine, Mountain, Network } from "lucide-react";
+import { Wine, Mountain, Network, MapPin } from "lucide-react";
 import type { Location } from "@shared/schema";
 
 interface LocationCardProps {
@@ -54,11 +54,20 @@ export default function LocationCard({ location }: LocationCardProps) {
   return (
     <Card className="group cursor-pointer hover:shadow-lg transition-shadow" data-testid={`location-card-${location.slug}`}>
       <div className="relative overflow-hidden">
-        <img 
-          src={location.imageUrl || "https://images.unsplash.com/photo-1506905925346-21bda4d32df4"}
-          alt={location.name}
-          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-        />
+        {location.imageUrl ? (
+          <img 
+            src={location.imageUrl}
+            alt={location.name}
+            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
+            <div className="text-center text-gray-400">
+              <MapPin className="w-8 h-8 mx-auto mb-2" />
+              <p className="text-sm">Bild wird hinzugefügt</p>
+            </div>
+          </div>
+        )}
       </div>
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-2">

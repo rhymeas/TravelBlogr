@@ -167,14 +167,25 @@ export default function Timeline({ locations }: TimelineProps) {
                 </div>
 
                 {/* Image */}
-                <div className="px-6 pb-4">
-                  <img 
-                    src={location.imageUrl || "https://images.unsplash.com/photo-1506905925346-21bda4d32df4"}
-                    alt={location.name}
-                    className="w-full h-64 object-cover rounded-lg"
-                    data-testid={`location-image-${location.slug}`}
-                  />
-                </div>
+                {location.imageUrl ? (
+                  <div className="px-6 pb-4">
+                    <img 
+                      src={location.imageUrl}
+                      alt={location.name}
+                      className="w-full h-64 object-cover rounded-lg"
+                      data-testid={`location-image-${location.slug}`}
+                    />
+                  </div>
+                ) : (
+                  <div className="px-6 pb-4">
+                    <div className="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center" data-testid={`location-image-placeholder-${location.slug}`}>
+                      <div className="text-center text-gray-400">
+                        <MapPin className="w-8 h-8 mx-auto mb-2" />
+                        <p className="text-sm">Bild wird bald hinzugefügt</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Description */}
                 <div className="px-6 pb-4">

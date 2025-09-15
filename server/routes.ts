@@ -47,16 +47,21 @@ function validateImageUrl(imageUrl: string): { valid: boolean; error?: string } 
       'images.unsplash.com',
       'plus.unsplash.com',
       'cdn.pixabay.com',
-      'images.pexels.com',
-      // Add Google Cloud Storage bucket hostname pattern
-      'repl-default-bucket'
+      'images.pexels.com'
     ];
+    
+    // Check for Google Cloud Storage bucket patterns (e.g., storage.googleapis.com)
+    const isGoogleStorageBucket = url.hostname === 'storage.googleapis.com' || 
+                                 url.hostname.includes('storage.googleapis.com');
+    
+    // Check for object storage bucket patterns used by Replit (replit-objstore-)
+    const isReplitObjectStore = url.hostname.includes('storage.googleapis.com') && 
+                               url.pathname.includes('replit-objstore-');
     
     const isAllowedHost = allowedHosts.some(host => 
       url.hostname === host || 
-      url.hostname.endsWith('.' + host) ||
-      url.hostname.includes(host) // For bucket names in GCS
-    );
+      url.hostname.endsWith('.' + host)
+    ) || isGoogleStorageBucket || isReplitObjectStore;
     
     if (!isAllowedHost) {
       return { valid: false, error: "Bild-Host ist nicht erlaubt" };
