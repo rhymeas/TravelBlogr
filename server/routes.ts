@@ -239,8 +239,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       for (const photo of validPhotos) {
         try {
-          const freshImageUrl = await objectStorageService.getObjectEntityDisplayURL(photo.objectPath!);
-          photosWithUrls.push({ ...photo, imageUrl: freshImageUrl });
+          // If photo already has a public URL, use it directly
+          if (photo.imageUrl && photo.imageUrl.startsWith('/public-objects/')) {
+            photosWithUrls.push({ ...photo, imageUrl: photo.imageUrl });
+          } else {
+            // Try to generate signed URL for private photos
+            const freshImageUrl = await objectStorageService.getObjectEntityDisplayURL(photo.objectPath!);
+            photosWithUrls.push({ ...photo, imageUrl: freshImageUrl });
+          }
         } catch (error) {
           console.error('Error generating display URL for photo:', photo.id, error);
           // Return photo with placeholder URL instead of null to maintain data integrity
@@ -785,10 +791,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const filePath = req.params.filePath;
     const objectStorageService = new ObjectStorageService();
     try {
-      const file = await objectStorageService.searchPublicObject(filePath);
+      // First try to find file in public directory
+      let file = await objectStorageService.searchPublicObject(filePath);
+      
+      // If not found in public, try to serve from private directory (migration workaround)
+      if (!file && filePath.startsWith('uploads/')) {
+        const privateFilePath = `.private/${filePath}`;
+        try {
+          // Use the private object path directly by constructing the full path
+          const filename = filePath.split('/').pop();
+          if (filename) {
+            // Try to find in database to get the actual object path
+            const photos = await storage.getAllTripPhotos();
+            const photo = photos.find(p => p.objectPath && p.objectPath.includes(filename));
+            if (photo && photo.objectPath) {
+              // Generate signed URL for the private file and redirect
+              const signedUrl = await objectStorageService.getObjectEntityDisplayURL(photo.objectPath);
+              return res.redirect(signedUrl);
+            }
+          }
+        } catch (privateError) {
+          console.log(`Could not serve from private directory: ${privateError}`);
+        }
+      }
+      
       if (!file) {
         return res.status(404).json({ error: "File not found" });
       }
+      
       objectStorageService.downloadObject(file, res);
     } catch (error) {
       console.error("Error searching for public object:", error);
