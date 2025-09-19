@@ -362,8 +362,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       for (const photo of validPhotos) {
         try {
-          const freshImageUrl = await objectStorageService.getObjectEntityDisplayURL(photo.objectPath!);
-          photosWithUrls.push({ ...photo, imageUrl: freshImageUrl });
+          // If photo already has a public URL, use it directly
+          if (photo.imageUrl && photo.imageUrl.startsWith('/public-objects/')) {
+            photosWithUrls.push({ ...photo, imageUrl: photo.imageUrl });
+          } else {
+            // Try to generate signed URL for private photos
+            const freshImageUrl = await objectStorageService.getObjectEntityDisplayURL(photo.objectPath!);
+            photosWithUrls.push({ ...photo, imageUrl: freshImageUrl });
+          }
         } catch (error) {
           console.error('Error generating display URL for photo:', photo.id, error);
           // Return photo with placeholder URL instead of null to maintain data integrity
