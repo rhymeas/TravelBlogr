@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, jsonb, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, jsonb, timestamp, boolean, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -57,12 +57,27 @@ export const tripPhotos = pgTable("trip_photos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   locationId: varchar("location_id").references(() => locations.id), // optional location tag
   creatorId: varchar("creator_id").references(() => creators.id, { onDelete: "set null" }), // who uploaded this photo
-  imageUrl: text("image_url").notNull(),
+  imageUrl: text("image_url"), // nullable for video posts
+  videoUrl: text("video_url"), // for video content
+  mediaType: text("media_type").notNull().default("image"), // 'image' or 'video'
   caption: text("caption"),
   objectPath: text("object_path"), // for object storage
   uploadedAt: timestamp("uploaded_at").defaultNow(),
   uploadedBy: text("uploaded_by"), // deprecated - kept for backward compatibility
+  likesCount: integer("likes_count").default(0), // denormalized likes count for performance
 });
+
+// Likes for trip photos
+export const tripPhotoLikes = pgTable("trip_photo_likes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tripPhotoId: varchar("trip_photo_id").references(() => tripPhotos.id, { onDelete: "cascade" }).notNull(),
+  creatorId: varchar("creator_id").references(() => creators.id, { onDelete: "cascade" }), // optional: track who liked
+  userIdentifier: text("user_identifier"), // fallback for anonymous likes (IP, session, etc.)
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  // Prevent duplicate likes from same user on same photo
+  uniqueLike: uniqueIndex("unique_trip_photo_like").on(table.tripPhotoId, table.creatorId, table.userIdentifier),
+}));
 
 // Tour settings for general configuration
 export const tourSettings = pgTable("tour_settings", {
@@ -199,6 +214,7 @@ export const insertCreatorSchema = createInsertSchema(creators).omit({
 export const insertTripPhotoSchema = createInsertSchema(tripPhotos).omit({
   id: true,
   uploadedAt: true,
+  likesCount: true, // Let server handle likes count
 });
 
 export const insertTourSettingsSchema = createInsertSchema(tourSettings).omit({
@@ -223,6 +239,11 @@ export const insertScenicContentSchema = createInsertSchema(scenicContent).omit(
   updatedAt: true,
 });
 
+export const insertTripPhotoLikeSchema = createInsertSchema(tripPhotoLikes).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type Location = typeof locations.$inferSelect;
 export type InsertLocation = z.infer<typeof insertLocationSchema>;
 export type LocationImage = typeof locationImages.$inferSelect;
@@ -231,6 +252,8 @@ export type Creator = typeof creators.$inferSelect;
 export type InsertCreator = z.infer<typeof insertCreatorSchema>;
 export type TripPhoto = typeof tripPhotos.$inferSelect;
 export type InsertTripPhoto = z.infer<typeof insertTripPhotoSchema>;
+export type TripPhotoLike = typeof tripPhotoLikes.$inferSelect;
+export type InsertTripPhotoLike = z.infer<typeof insertTripPhotoLikeSchema>;
 export type TourSettings = typeof tourSettings.$inferSelect;
 export type InsertTourSettings = z.infer<typeof insertTourSettingsSchema>;
 export type LocationPing = typeof locationPings.$inferSelect;
