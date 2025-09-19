@@ -2,8 +2,10 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
-import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema, insertLocationPingSchema, insertHeroImageSchema, insertScenicContentSchema, scenicContentUpdateSchema, insertCreatorSchema } from "@shared/schema";
+import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema, insertLocationPingSchema, insertHeroImageSchema, insertScenicContentSchema, scenicContentUpdateSchema, insertCreatorSchema, tripPhotos } from "@shared/schema";
 import { z } from "zod";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import multer from "multer";
 import { randomUUID } from "crypto";
@@ -856,6 +858,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error setting location image:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Temporary admin endpoint to migrate images from private to public directory
+  app.post("/api/admin/migrate-images", async (req, res) => {
+    try {
+      console.log("Starting image migration from private to public directory...");
+      
+      // Get all trip photos with private object paths
+      const photosToMigrate = await storage.getAllTripPhotos();
+      const privatePhotos = photosToMigrate.filter(photo => 
+        photo.objectPath && photo.objectPath.includes('/.private/uploads/')
+      );
+      
+      console.log(`Found ${privatePhotos.length} photos in private directory to migrate`);
+      
+      const objectStorageService = new ObjectStorageService();
+      const migratedPhotos = [];
+      
+      for (const photo of privatePhotos) {
+        try {
+          // Check if objectPath exists
+          if (!photo.objectPath) {
+            console.log(`Skipping photo ${photo.id}: No object path`);
+            continue;
+          }
+          
+          // Extract filename from private path
+          const filename = photo.objectPath.split('/').pop();
+          if (!filename) {
+            console.log(`Skipping photo ${photo.id}: Cannot extract filename`);
+            continue;
+          }
+          
+          const newPublicPath = `public/uploads/${filename}`;
+          
+          console.log(`Migrating photo ${photo.id}: ${filename}`);
+          
+          // For now, we'll update the database with the correct public path
+          // The actual file copy would need to be done manually or via another process
+          const newObjectPath = photo.objectPath.replace('/.private/uploads/', '/public/uploads/');
+          const publicImageUrl = `/public-objects/uploads/${filename}`;
+          
+          // Update database with public path (using direct SQL)
+          await db.execute(sql`UPDATE ${tripPhotos} SET object_path = ${newObjectPath}, image_url = ${publicImageUrl} WHERE id = ${photo.id}`);
+          
+          migratedPhotos.push({
+            id: photo.id,
+            oldPath: photo.objectPath,
+            newPath: newObjectPath,
+            newUrl: publicImageUrl
+          });
+          
+        } catch (error) {
+          console.error(`Error migrating photo ${photo.id}:`, error instanceof Error ? error.message : String(error));
+        }
+      }
+      
+      console.log(`Migration completed. ${migratedPhotos.length} photos migrated.`);
+      res.json({
+        success: true,
+        migratedCount: migratedPhotos.length,
+        migratedPhotos
+      });
+      
+    } catch (error) {
+      console.error("Error during image migration:", error);
+      res.status(500).json({ error: "Migration failed", details: error.message });
     }
   });
 
