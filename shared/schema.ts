@@ -57,9 +57,7 @@ export const tripPhotos = pgTable("trip_photos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   locationId: varchar("location_id").references(() => locations.id), // optional location tag
   creatorId: varchar("creator_id").references(() => creators.id, { onDelete: "set null" }), // who uploaded this photo
-  imageUrl: text("image_url"), // nullable for video posts
-  videoUrl: text("video_url"), // for video content
-  mediaType: text("media_type").notNull().default("image"), // 'image' or 'video'
+  imageUrl: text("image_url").notNull(), // Required - restore to NOT NULL for existing functionality
   caption: text("caption"),
   objectPath: text("object_path"), // for object storage
   uploadedAt: timestamp("uploaded_at").defaultNow(),
