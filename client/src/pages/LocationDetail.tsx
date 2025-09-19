@@ -1,6 +1,6 @@
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, MapPin, Calendar, DollarSign } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, DollarSign, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -77,12 +77,26 @@ export default function LocationDetail() {
           <div className="lg:col-span-2 space-y-8">
             {/* Hero Image */}
             {location.imageUrl && (
-              <div className="aspect-video rounded-xl overflow-hidden" data-testid="location-hero-image">
+              <div className="aspect-video rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-800" data-testid="location-hero-image">
                 <img 
                   src={location.imageUrl} 
                   alt={location.name}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const fallback = target.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
                 />
+                <div className="w-full h-full bg-gradient-to-br from-blue-400 to-green-400 hidden items-center justify-center">
+                  <div className="text-center text-white">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center">
+                      <Camera className="w-8 h-8" />
+                    </div>
+                    <p className="text-lg font-medium">{location.name}</p>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -99,13 +113,27 @@ export default function LocationDetail() {
                   <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center">
                     🗺️ <span className="ml-2">Lage & Karte</span>
                   </h2>
-                  <div className="rounded-xl overflow-hidden border border-border">
+                  <div className="rounded-xl overflow-hidden border border-border bg-gray-100 dark:bg-gray-800">
                     <img 
                       src={(location as any).mapImageUrl} 
                       alt={`Karte von ${location.name}`}
                       className="w-full h-64 object-cover"
                       data-testid="location-map-image"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
                     />
+                    <div className="w-full h-64 bg-gradient-to-br from-gray-400 to-gray-600 hidden items-center justify-center">
+                      <div className="text-center text-white">
+                        <div className="w-12 h-12 mx-auto mb-3 bg-white/20 rounded-full flex items-center justify-center">
+                          <MapPin className="w-6 h-6" />
+                        </div>
+                        <p className="text-sm font-medium">Karte wird geladen...</p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
