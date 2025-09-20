@@ -42,11 +42,12 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       const formData = new FormData();
       formData.append('media', file); // Use 'media' key to support both images and videos
       formData.append('caption', caption || ''); // Always append caption, even if empty
+      formData.append('mediaType', mediaType); // Specify whether it's image or video
       if (uploadedBy) formData.append('uploadedBy', uploadedBy);
       if (locationId) formData.append('locationId', locationId);
       if (creatorId) formData.append('creatorId', creatorId);
 
-      const response = await fetch('/api/trip-photos', {
+      const response = await fetch('/api/trip-photos/media', {
         method: 'POST',
         body: formData,
       });
