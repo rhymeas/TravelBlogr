@@ -465,10 +465,9 @@ export default function GlobalTripFeed() {
 
 
       {/* Feed Title */}
-      <div className="flex items-center space-x-2 px-1" data-testid="feed-title">
+      <div className="flex items-center space-x-2 px-1" data-testid="feed-stats">
         <Camera className="w-5 h-5 text-primary" />
-        <h3 className="font-semibold text-lg">Live Feed</h3>
-        <div className="ml-auto text-xs text-muted-foreground">
+        <div className="text-xs text-muted-foreground">
           {tripPhotos.length} {tripPhotos.length === 1 ? 'Beitrag' : 'Beiträge'}
         </div>
       </div>
@@ -556,16 +555,17 @@ export default function GlobalTripFeed() {
 
               {/* Post Media - Image or Video */}
               {photo.mediaType === 'video' && photo.videoUrl ? (
-                <div className="relative group cursor-pointer" onClick={() => openFullView(photo)}>
+                <div className="relative group">
                   <video
                     src={photo.videoUrl}
                     poster={photo.thumbnailUrl || undefined}
-                    controls={false}
-                    className="w-full max-h-96 object-cover"
+                    controls
+                    preload="metadata"
+                    className="w-full max-h-96 object-cover rounded"
                     data-testid={`post-video-${photo.id}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openFullView(photo);
+                    onError={(e) => {
+                      console.error('Video error:', e);
+                      console.log('Video URL:', photo.videoUrl);
                     }}
                   >
                     <source src={photo.videoUrl} type="video/mp4" />
@@ -575,11 +575,13 @@ export default function GlobalTripFeed() {
                     <Video className="w-3 h-3" />
                     <span>Video</span>
                   </div>
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="bg-white/90 dark:bg-black/90 rounded-full p-3">
-                      <Maximize2 className="w-6 h-6 text-black dark:text-white" />
-                    </div>
-                  </div>
+                  <button 
+                    onClick={() => openFullView(photo)}
+                    className="absolute top-2 right-2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+                    title="Vollbild anzeigen"
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                  </button>
                 </div>
               ) : photo.imageUrl && (
                 <div className="relative group cursor-pointer" onClick={() => openFullView(photo)}>
