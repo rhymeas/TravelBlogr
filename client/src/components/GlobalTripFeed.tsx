@@ -522,9 +522,8 @@ export default function GlobalTripFeed() {
                       <Clock className="w-3 h-3" />
                       <span>{formatTime(photo.uploadedAt)}</span>
                     </div>
-                    {/* Three-dot delete menu */}
-                    {deleteTokens[photo.id] && (
-                      <DropdownMenu>
+                    {/* Three-dot delete menu - Always show for testing */}
+                    <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="ghost"
@@ -537,16 +536,15 @@ export default function GlobalTripFeed() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="z-50">
                           <DropdownMenuItem
-                            onClick={() => handleDelete(photo.id)}
+                            onClick={() => deleteTokens[photo.id] ? handleDelete(photo.id) : alert('No delete permission')}
                             className="text-red-600 hover:text-red-700 cursor-pointer"
                             data-testid={`delete-menu-item-${photo.id}`}
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
-                            Löschen
+                            {deleteTokens[photo.id] ? 'Löschen' : 'No Permission'}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    )}
                   </div>
                 </div>
               </div>
