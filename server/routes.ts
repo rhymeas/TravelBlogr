@@ -238,7 +238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         imageUrl: `/api/trip-photos/${photo.id}/image`
       }));
       
-      res.json(finalPhotos);
+      res.json(photosWithUrls);
     } catch (error) {
       console.error("Error fetching trip photos:", error);
       res.status(500).json({ error: "Failed to fetch trip photos" });
