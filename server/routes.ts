@@ -695,6 +695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           imageUrl: `/api/trip-photos/${tripPhoto.id}/image`,
           videoUrl: tripPhoto.videoUrl ? `/api/trip-photos/${tripPhoto.id}/video` : null,
           thumbnailUrl: tripPhoto.thumbnailUrl ? `/api/trip-photos/${tripPhoto.id}/thumbnail` : null,
+          deleteToken: deleteToken, // Explicitly include the delete token
         });
 
       } catch (uploadError) {
