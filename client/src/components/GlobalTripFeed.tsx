@@ -271,11 +271,9 @@ export default function GlobalTripFeed() {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async ({ photoId }: { photoId: string }) => {
-      const deleteToken = deleteTokens[photoId];
       const response = await fetch(`/api/trip-photos/${photoId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deleteToken }),
       });
       
       if (!response.ok) {
@@ -536,12 +534,12 @@ export default function GlobalTripFeed() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="z-50">
                           <DropdownMenuItem
-                            onClick={() => deleteTokens[photo.id] ? handleDelete(photo.id) : alert('No delete permission')}
+                            onClick={() => handleDelete(photo.id)}
                             className="text-red-600 hover:text-red-700 cursor-pointer"
                             data-testid={`delete-menu-item-${photo.id}`}
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
-                            {deleteTokens[photo.id] ? 'Löschen' : 'No Permission'}
+                            Löschen
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

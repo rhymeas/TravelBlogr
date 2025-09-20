@@ -739,16 +739,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/trip-photos/:photoId", async (req, res) => {
     try {
       const { photoId } = req.params;
-      const { deleteToken } = req.body;
       
-      await storage.deleteTripPhoto(photoId, deleteToken);
+      await storage.deleteTripPhoto(photoId);
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting photo:", error);
       if (error instanceof Error && error.message === 'Photo not found') {
         res.status(404).json({ error: "Photo not found" });
-      } else if (error instanceof Error && error.message === 'Invalid delete token') {
-        res.status(403).json({ error: "Invalid delete token" });
       } else {
         res.status(500).json({ error: "Failed to delete photo" });
       }
