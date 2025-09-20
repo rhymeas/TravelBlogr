@@ -20,7 +20,6 @@ export default function GlobalTripFeed() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
-  const [uploading, setUploading] = useState(false);
   
   // User and interaction state
   const [userKey] = useState(() => localStorage.getItem('userKey') || `user_${Date.now()}_${Math.random()}`);
@@ -37,6 +36,7 @@ export default function GlobalTripFeed() {
   
   // Modal state
   const [fullViewMedia, setFullViewMedia] = useState<TripPhoto | null>(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -137,9 +137,8 @@ export default function GlobalTripFeed() {
       
       // Invalidate queries to refresh feed
       queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated", "global"] });
-      refetch();
       
-      // Reset form
+      // Reset form and close modal
       setCaption("");
       setName("");
       setSelectedCreatorId("");
@@ -147,6 +146,7 @@ export default function GlobalTripFeed() {
       setSelectedFile(null);
       setMediaType('image');
       if (fileInputRef.current) fileInputRef.current.value = "";
+      setShowUploadModal(false);
       
       toast({
         title: "Gepostet!",
@@ -407,21 +407,14 @@ export default function GlobalTripFeed() {
       return;
     }
 
-    setUploading(true);
-    try {
-      await uploadMutation.mutateAsync({
-        file: selectedFile,
-        caption: caption.trim(),
-        uploadedBy: name.trim(),
-        creatorId: selectedCreatorId,
-        mediaType,
-        locationId: selectedLocationId,
-      });
-    } catch (error) {
-      console.error("Upload error:", error);
-    } finally {
-      setUploading(false);
-    }
+    uploadMutation.mutate({
+      file: selectedFile,
+      caption: caption.trim(),
+      uploadedBy: name.trim(),
+      creatorId: selectedCreatorId,
+      mediaType,
+      locationId: selectedLocationId,
+    });
   };
 
   // Full view handlers
@@ -431,6 +424,23 @@ export default function GlobalTripFeed() {
 
   const closeFullView = () => {
     setFullViewMedia(null);
+  };
+
+  // Upload modal handlers
+  const openUploadModal = () => {
+    setShowUploadModal(true);
+  };
+
+  const closeUploadModal = () => {
+    setShowUploadModal(false);
+    // Reset form
+    setCaption("");
+    setName("");
+    setSelectedCreatorId("");
+    setSelectedLocationId("");
+    setSelectedFile(null);
+    setMediaType('image');
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   // Get location name by ID
@@ -455,114 +465,6 @@ export default function GlobalTripFeed() {
   return (
     <div className="space-y-4" data-testid="global-trip-feed">
 
-      {/* Upload Section */}
-      <Card className="p-4" data-testid="upload-section">
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Plus className="w-5 h-5 text-primary" />
-            <h3 className="font-semibold">Neuen Beitrag teilen</h3>
-          </div>
-          
-          {/* File Upload */}
-          <div className="space-y-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,video/*"
-              onChange={handleFileSelect}
-              className="hidden"
-              data-testid="file-input"
-            />
-            <Button
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full h-24 border-dashed border-2 hover:bg-gray-50 dark:hover:bg-gray-800"
-              data-testid="file-upload-button"
-            >
-              <div className="flex flex-col items-center space-y-2">
-                {mediaType === 'video' ? <Video className="w-8 h-8" /> : <Image className="w-8 h-8" />}
-                <span className="text-sm">
-                  {selectedFile ? selectedFile.name : `${mediaType === 'video' ? 'Video' : 'Foto'} auswählen`}
-                </span>
-              </div>
-            </Button>
-          </div>
-          
-          {selectedFile && (
-            <div className="space-y-3">
-              {/* Location Selection */}
-              <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
-                <SelectTrigger data-testid="location-select">
-                  <SelectValue placeholder="Location auswählen..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {locations.map((location) => (
-                    <SelectItem key={location.id} value={location.id}>
-                      {location.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              {/* Creator Selection */}
-              <Select value={selectedCreatorId} onValueChange={setSelectedCreatorId}>
-                <SelectTrigger data-testid="creator-select">
-                  <SelectValue placeholder="Autor auswählen (optional)..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {creators.map((creator) => (
-                    <SelectItem key={creator.id} value={creator.id}>
-                      {creator.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              {/* Name Input (if no creator selected) */}
-              {!selectedCreatorId && (
-                <Input
-                  type="text"
-                  placeholder="Ihr Name..."
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  maxLength={100}
-                  data-testid="name-input"
-                />
-              )}
-              
-              {/* Caption Input */}
-              <Textarea
-                placeholder="Beschreibung hinzufügen..."
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                maxLength={500}
-                rows={3}
-                data-testid="caption-input"
-              />
-              
-              {/* Upload Button */}
-              <Button
-                onClick={handleUpload}
-                disabled={uploading || !selectedLocationId}
-                className="w-full"
-                data-testid="upload-button"
-              >
-                {uploading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
-                    <span>Wird hochgeladen...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <Send className="w-4 h-4" />
-                    <span>Teilen</span>
-                  </div>
-                )}
-              </Button>
-            </div>
-          )}
-        </div>
-      </Card>
 
       {/* Feed Title */}
       <div className="flex items-center space-x-2 px-1" data-testid="feed-title">
@@ -742,6 +644,136 @@ export default function GlobalTripFeed() {
             ) : null}
           </div>
         </div>
+      )}
+      
+      {/* Floating Upload Button */}
+      <Button
+        onClick={openUploadModal}
+        className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-shadow"
+        data-testid="floating-upload-button"
+      >
+        <Plus className="w-6 h-6" />
+      </Button>
+      
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <Dialog open={showUploadModal} onOpenChange={uploadMutation.isPending ? undefined : closeUploadModal}>
+          <DialogContent className="max-w-md" data-testid="upload-modal">
+            <DialogHeader>
+              <DialogTitle>Neuen Beitrag teilen</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {/* File Upload */}
+              <div className="space-y-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  data-testid="file-input"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full h-24 border-dashed border-2 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  data-testid="file-upload-button"
+                >
+                  <div className="flex flex-col items-center space-y-2">
+                    {mediaType === 'video' ? <Video className="w-8 h-8" /> : <Image className="w-8 h-8" />}
+                    <span className="text-sm">
+                      {selectedFile ? selectedFile.name : `${mediaType === 'video' ? 'Video' : 'Foto'} auswählen`}
+                    </span>
+                  </div>
+                </Button>
+              </div>
+              
+              {selectedFile && (
+                <div className="space-y-3">
+                  {/* Location Selection */}
+                  <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+                    <SelectTrigger data-testid="location-select">
+                      <SelectValue placeholder="Location auswählen..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locations.map((location) => (
+                        <SelectItem key={location.id} value={location.id}>
+                          {location.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Creator Selection */}
+                  <Select value={selectedCreatorId} onValueChange={setSelectedCreatorId}>
+                    <SelectTrigger data-testid="creator-select">
+                      <SelectValue placeholder="Autor auswählen (optional)..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {creators.map((creator) => (
+                        <SelectItem key={creator.id} value={creator.id}>
+                          {creator.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Name Input (if no creator selected) */}
+                  {!selectedCreatorId && (
+                    <Input
+                      type="text"
+                      placeholder="Ihr Name..."
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      maxLength={100}
+                      data-testid="name-input"
+                    />
+                  )}
+                  
+                  {/* Caption Input */}
+                  <Textarea
+                    placeholder="Beschreibung hinzufügen..."
+                    value={caption}
+                    onChange={(e) => setCaption(e.target.value)}
+                    maxLength={500}
+                    rows={3}
+                    data-testid="caption-input"
+                  />
+                  
+                  {/* Upload Button */}
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      onClick={closeUploadModal}
+                      className="flex-1"
+                      data-testid="cancel-upload-button"
+                    >
+                      Abbrechen
+                    </Button>
+                    <Button
+                      onClick={handleUpload}
+                      disabled={uploadMutation.isPending || !selectedLocationId}
+                      className="flex-1"
+                      data-testid="upload-button"
+                    >
+                      {uploadMutation.isPending ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
+                          <span>Uploading...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-2">
+                          <Send className="w-4 h-4" />
+                          <span>Teilen</span>
+                        </div>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
       
       {/* Full View Modal */}
