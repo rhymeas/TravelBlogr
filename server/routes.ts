@@ -232,30 +232,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Filter out photos without objectPath (old broken uploads)
       const validPhotos = tripPhotos.filter(photo => photo.objectPath);
       
-      // Generate fresh display URLs from stored objectPath for each photo
-      // Process sequentially to avoid overwhelming the sidecar endpoint
-      const objectStorageService = new ObjectStorageService();
-      const photosWithUrls = [];
-      
-      for (const photo of validPhotos) {
-        try {
-          // If photo already has a public URL, use it directly
-          if (photo.imageUrl && photo.imageUrl.startsWith('/public-objects/')) {
-            photosWithUrls.push({ ...photo, imageUrl: photo.imageUrl });
-          } else {
-            // Try to generate signed URL for private photos
-            const freshImageUrl = await objectStorageService.getObjectEntityDisplayURL(photo.objectPath!);
-            photosWithUrls.push({ ...photo, imageUrl: freshImageUrl });
-          }
-        } catch (error) {
-          console.error('Error generating display URL for photo:', photo.id, error);
-          // Return photo with placeholder URL instead of null to maintain data integrity
-          photosWithUrls.push({ ...photo, imageUrl: '/placeholder-image.jpg' });
-        }
-      }
-      
-      // Filter out any null results
-      const finalPhotos = photosWithUrls.filter(photo => photo !== null);
+      // Generate direct serving URLs for each photo (no signed URLs needed)
+      const photosWithUrls = validPhotos.map(photo => ({
+        ...photo,
+        imageUrl: `/api/trip-photos/${photo.id}/image`
+      }));
       
       res.json(finalPhotos);
     } catch (error) {
@@ -357,21 +338,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/trip-photos/:photoId/image", async (req, res) => {
     try {
       const photoId = req.params.photoId;
-      console.log(`[DEBUG] Serving image for photo ID: ${photoId}`);
-      
       const tripPhotos = await storage.getAllTripPhotos();
-      console.log(`[DEBUG] Found ${tripPhotos.length} total trip photos`);
-      console.log(`[DEBUG] Available photo IDs:`, tripPhotos.map(p => p.id).slice(0, 5));
-      
       const photo = tripPhotos.find(p => p.id === photoId);
-      console.log(`[DEBUG] Photo found:`, !!photo);
       
       if (!photo || !photo.objectPath) {
-        console.log(`[DEBUG] Photo not found or missing objectPath. Photo exists: ${!!photo}, Has objectPath: ${photo?.objectPath ? 'yes' : 'no'}`);
         return res.status(404).json({ error: "Photo not found" });
       }
-
-      console.log(`[DEBUG] Photo objectPath: ${photo.objectPath}`);
 
       // Parse the object path to get bucket and object name
       let { bucketName, objectName } = parseObjectPath(photo.objectPath);
@@ -383,19 +355,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if file exists at the stored path
       let [exists] = await file.exists();
-      console.log(`[DEBUG] File exists at stored path: ${exists}`);
       
       // If not found and path contains 'public/uploads', try private directory
       if (!exists && objectName.includes('public/uploads')) {
         const privateObjectName = objectName.replace('public/uploads', '.private/uploads');
-        console.log(`[DEBUG] Trying private path: ${privateObjectName}`);
         file = bucket.file(privateObjectName);
         [exists] = await file.exists();
-        console.log(`[DEBUG] File exists at private path: ${exists}`);
       }
       
       if (!exists) {
-        console.log(`[DEBUG] File not found in any location`);
         return res.status(404).json({ error: "Image file not found" });
       }
       
