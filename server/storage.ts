@@ -21,14 +21,15 @@ import {
   locationImages,
   creators,
   tripPhotos,
+  tripPhotoLikes,
   tourSettings,
   locationPings,
   heroImages,
   scenicContent
 } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { randomUUID, createHash } from "crypto";
 import { db } from "./db";
-import { eq, desc, and, isNull } from "drizzle-orm";
+import { eq, desc, and, isNull, lt, sql } from "drizzle-orm";
 
 // Shared location data for both MemStorage and DatabaseStorage 
 const INITIAL_LOCATIONS: InsertLocation[] = [
@@ -314,7 +315,11 @@ export interface IStorage {
   // Trip photos
   getTripPhotos(locationId: string): Promise<TripPhoto[]>;
   getAllTripPhotos(): Promise<TripPhoto[]>;
+  listTripPhotos(params: { locationId?: string; limit?: number; cursor?: string }): Promise<{ items: TripPhoto[]; nextCursor?: string }>;
   addTripPhoto(tripPhoto: InsertTripPhoto): Promise<TripPhoto>;
+  createTripPhotoMedia(tripPhoto: InsertTripPhoto & { deleteToken: string }): Promise<TripPhoto & { deleteToken: string }>;
+  toggleTripPhotoLike(photoId: string, userKey: string): Promise<{ liked: boolean; likesCount: number }>;
+  deleteTripPhoto(photoId: string, deleteToken?: string): Promise<void>;
   cleanupBrokenTripPhotos(): Promise<number>; // Returns number of photos removed
 
   // Tour settings
@@ -348,6 +353,7 @@ export class MemStorage implements IStorage {
   private locations: Map<string, Location>;
   private locationImages: Map<string, LocationImage>;
   private tripPhotos: Map<string, TripPhoto>;
+  private tripPhotoLikes: Map<string, { photoId: string; userKey: string; liked: boolean }>;
   private locationPings: Map<string, LocationPing>;
   private heroImages: Map<string, HeroImage>;
   private tourSettings: TourSettings | undefined;
@@ -358,6 +364,7 @@ export class MemStorage implements IStorage {
     this.locations = new Map();
     this.locationImages = new Map();
     this.tripPhotos = new Map();
+    this.tripPhotoLikes = new Map();
     this.locationPings = new Map();
     this.heroImages = new Map();
     this.creators = new Map();
@@ -715,6 +722,124 @@ export class MemStorage implements IStorage {
     };
     this.tripPhotos.set(id, newTripPhoto);
     return newTripPhoto;
+  }
+
+  async listTripPhotos(params: { locationId?: string; limit?: number; cursor?: string }): Promise<{ items: TripPhoto[]; nextCursor?: string }> {
+    const { locationId, limit = 10, cursor } = params;
+    
+    let photos = Array.from(this.tripPhotos.values());
+    
+    // Filter by location if specified
+    if (locationId) {
+      photos = photos.filter(photo => photo.locationId === locationId);
+    }
+    
+    // Sort by uploadedAt desc (most recent first)
+    photos.sort((a, b) => {
+      const dateA = a.uploadedAt ? new Date(a.uploadedAt).getTime() : 0;
+      const dateB = b.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
+      return dateB - dateA;
+    });
+    
+    // Apply cursor pagination
+    if (cursor) {
+      const [cursorDate, cursorId] = cursor.split('_');
+      const cursorTimestamp = parseInt(cursorDate);
+      photos = photos.filter(photo => {
+        const photoTimestamp = photo.uploadedAt ? new Date(photo.uploadedAt).getTime() : 0;
+        return photoTimestamp < cursorTimestamp || (photoTimestamp === cursorTimestamp && photo.id < cursorId);
+      });
+    }
+    
+    // Apply limit and get next cursor
+    const items = photos.slice(0, limit);
+    const nextCursor = items.length === limit && photos.length > limit 
+      ? `${items[items.length - 1].uploadedAt ? new Date(items[items.length - 1].uploadedAt!).getTime() : 0}_${items[items.length - 1].id}`
+      : undefined;
+    
+    return { items, nextCursor };
+  }
+
+  async createTripPhotoMedia(tripPhoto: InsertTripPhoto & { deleteToken: string }): Promise<TripPhoto & { deleteToken: string }> {
+    const id = randomUUID();
+    const deleteTokenHash = createHash('sha256').update(tripPhoto.deleteToken).digest('hex');
+    
+    const newTripPhoto: TripPhoto = {
+      id,
+      imageUrl: tripPhoto.imageUrl,
+      locationId: tripPhoto.locationId || null,
+      creatorId: tripPhoto.creatorId || null,
+      caption: tripPhoto.caption || null,
+      objectPath: tripPhoto.objectPath || null,
+      mediaType: tripPhoto.mediaType || 'image',
+      videoUrl: tripPhoto.videoUrl || null,
+      thumbnailUrl: tripPhoto.thumbnailUrl || null,
+      deleteTokenHash,
+      uploadedBy: tripPhoto.uploadedBy || null,
+      uploadedAt: new Date(),
+      likesCount: 0,
+    };
+    
+    this.tripPhotos.set(id, newTripPhoto);
+    return { ...newTripPhoto, deleteToken: tripPhoto.deleteToken };
+  }
+
+  async toggleTripPhotoLike(photoId: string, userKey: string): Promise<{ liked: boolean; likesCount: number }> {
+    const photo = this.tripPhotos.get(photoId);
+    if (!photo) {
+      throw new Error('Photo not found');
+    }
+    
+    const likeKey = `${photoId}_${userKey}`;
+    const existingLike = this.tripPhotoLikes.get(likeKey);
+    
+    let liked: boolean;
+    let likesCount = photo.likesCount || 0;
+    
+    if (existingLike?.liked) {
+      // Unlike
+      this.tripPhotoLikes.set(likeKey, { photoId, userKey, liked: false });
+      likesCount = Math.max(0, likesCount - 1);
+      liked = false;
+    } else {
+      // Like
+      this.tripPhotoLikes.set(likeKey, { photoId, userKey, liked: true });
+      likesCount += 1;
+      liked = true;
+    }
+    
+    // Update photo likes count
+    const updatedPhoto = { ...photo, likesCount };
+    this.tripPhotos.set(photoId, updatedPhoto);
+    
+    return { liked, likesCount };
+  }
+
+  async deleteTripPhoto(photoId: string, deleteToken?: string): Promise<void> {
+    const photo = this.tripPhotos.get(photoId);
+    if (!photo) {
+      throw new Error('Photo not found');
+    }
+    
+    // Verify delete token if provided
+    if (deleteToken && photo.deleteTokenHash) {
+      const providedHash = createHash('sha256').update(deleteToken).digest('hex');
+      if (providedHash !== photo.deleteTokenHash) {
+        throw new Error('Invalid delete token');
+      }
+    }
+    
+    // Delete the photo
+    this.tripPhotos.delete(photoId);
+    
+    // Clean up likes for this photo
+    const likesToRemove: string[] = [];
+    for (const [key, like] of this.tripPhotoLikes.entries()) {
+      if (like.photoId === photoId) {
+        likesToRemove.push(key);
+      }
+    }
+    likesToRemove.forEach(key => this.tripPhotoLikes.delete(key));
   }
 
   async cleanupBrokenTripPhotos(): Promise<number> {
@@ -1233,6 +1358,142 @@ export class DatabaseStorage implements IStorage {
     await this.ensureInitialized();
     const result = await db.insert(tripPhotos).values(tripPhoto).returning();
     return result[0];
+  }
+
+  async listTripPhotos(params: { locationId?: string; limit?: number; cursor?: string }): Promise<{ items: TripPhoto[]; nextCursor?: string }> {
+    await this.ensureInitialized();
+    
+    const { locationId, limit = 10, cursor } = params;
+    
+    let query = db.select().from(tripPhotos);
+    
+    // Filter by location if specified
+    if (locationId) {
+      query = query.where(eq(tripPhotos.locationId, locationId));
+    }
+    
+    // Apply cursor pagination
+    if (cursor) {
+      const [cursorDate, cursorId] = cursor.split('_');
+      const cursorTimestamp = new Date(parseInt(cursorDate));
+      query = query.where(
+        sql`(${tripPhotos.uploadedAt} < ${cursorTimestamp} OR (${tripPhotos.uploadedAt} = ${cursorTimestamp} AND ${tripPhotos.id} < ${cursorId}))`
+      );
+    }
+    
+    // Order and limit
+    const result = await query
+      .orderBy(desc(tripPhotos.uploadedAt), desc(tripPhotos.id))
+      .limit(limit + 1); // Get one extra to determine if there's a next page
+    
+    // Check if there are more items
+    const hasMore = result.length > limit;
+    const items = hasMore ? result.slice(0, limit) : result;
+    
+    const nextCursor = hasMore && items.length > 0
+      ? `${items[items.length - 1].uploadedAt!.getTime()}_${items[items.length - 1].id}`
+      : undefined;
+    
+    return { items, nextCursor };
+  }
+
+  async createTripPhotoMedia(tripPhoto: InsertTripPhoto & { deleteToken: string }): Promise<TripPhoto & { deleteToken: string }> {
+    await this.ensureInitialized();
+    
+    const deleteTokenHash = createHash('sha256').update(tripPhoto.deleteToken).digest('hex');
+    
+    const photoToInsert = {
+      ...tripPhoto,
+      deleteTokenHash,
+      mediaType: tripPhoto.mediaType || 'image',
+      likesCount: 0,
+    };
+    
+    const result = await db.insert(tripPhotos).values(photoToInsert).returning();
+    return { ...result[0], deleteToken: tripPhoto.deleteToken };
+  }
+
+  async toggleTripPhotoLike(photoId: string, userKey: string): Promise<{ liked: boolean; likesCount: number }> {
+    await this.ensureInitialized();
+    
+    // Check if like already exists
+    const existingLike = await db.select().from(tripPhotoLikes)
+      .where(and(
+        eq(tripPhotoLikes.tripPhotoId, photoId),
+        eq(tripPhotoLikes.userIdentifier, userKey)
+      ))
+      .limit(1);
+    
+    let liked: boolean;
+    
+    if (existingLike.length > 0) {
+      // Remove like
+      await db.delete(tripPhotoLikes)
+        .where(and(
+          eq(tripPhotoLikes.tripPhotoId, photoId),
+          eq(tripPhotoLikes.userIdentifier, userKey)
+        ));
+      
+      // Decrement likes count
+      await db.update(tripPhotos)
+        .set({ likesCount: sql`GREATEST(0, ${tripPhotos.likesCount} - 1)` })
+        .where(eq(tripPhotos.id, photoId));
+      
+      liked = false;
+    } else {
+      // Add like
+      await db.insert(tripPhotoLikes).values({
+        tripPhotoId: photoId,
+        userIdentifier: userKey,
+        creatorId: null, // For anonymous likes
+      });
+      
+      // Increment likes count
+      await db.update(tripPhotos)
+        .set({ likesCount: sql`${tripPhotos.likesCount} + 1` })
+        .where(eq(tripPhotos.id, photoId));
+      
+      liked = true;
+    }
+    
+    // Get updated likes count
+    const updatedPhoto = await db.select({ likesCount: tripPhotos.likesCount })
+      .from(tripPhotos)
+      .where(eq(tripPhotos.id, photoId))
+      .limit(1);
+    
+    return { liked, likesCount: updatedPhoto[0]?.likesCount || 0 };
+  }
+
+  async deleteTripPhoto(photoId: string, deleteToken?: string): Promise<void> {
+    await this.ensureInitialized();
+    
+    // Get photo to verify delete token if provided
+    if (deleteToken) {
+      const photo = await db.select({ deleteTokenHash: tripPhotos.deleteTokenHash })
+        .from(tripPhotos)
+        .where(eq(tripPhotos.id, photoId))
+        .limit(1);
+      
+      if (photo.length === 0) {
+        throw new Error('Photo not found');
+      }
+      
+      if (photo[0].deleteTokenHash) {
+        const providedHash = createHash('sha256').update(deleteToken).digest('hex');
+        if (providedHash !== photo[0].deleteTokenHash) {
+          throw new Error('Invalid delete token');
+        }
+      }
+    }
+    
+    // Delete associated likes first
+    await db.delete(tripPhotoLikes)
+      .where(eq(tripPhotoLikes.tripPhotoId, photoId));
+    
+    // Delete the photo
+    await db.delete(tripPhotos)
+      .where(eq(tripPhotos.id, photoId));
   }
 
   async cleanupBrokenTripPhotos(): Promise<number> {

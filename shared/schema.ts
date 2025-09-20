@@ -57,9 +57,13 @@ export const tripPhotos = pgTable("trip_photos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   locationId: varchar("location_id").references(() => locations.id), // optional location tag
   creatorId: varchar("creator_id").references(() => creators.id, { onDelete: "set null" }), // who uploaded this photo
-  imageUrl: text("image_url").notNull(), // Required - restore to NOT NULL for existing functionality
+  imageUrl: text("image_url").notNull(), // Required - for images and video thumbnails
   caption: text("caption"),
   objectPath: text("object_path"), // for object storage
+  mediaType: text("media_type").notNull().default("image"), // 'image' or 'video'
+  videoUrl: text("video_url"), // for video posts
+  thumbnailUrl: text("thumbnail_url"), // video thumbnail (also stored in imageUrl for compatibility)
+  deleteTokenHash: text("delete_token_hash"), // hashed delete token for secure deletion
   uploadedAt: timestamp("uploaded_at").defaultNow(),
   uploadedBy: text("uploaded_by"), // deprecated - kept for backward compatibility
   likesCount: integer("likes_count").default(0), // denormalized likes count for performance
@@ -213,6 +217,7 @@ export const insertTripPhotoSchema = createInsertSchema(tripPhotos).omit({
   id: true,
   uploadedAt: true,
   likesCount: true, // Let server handle likes count
+  deleteTokenHash: true, // Let server handle delete token
 });
 
 export const insertTourSettingsSchema = createInsertSchema(tourSettings).omit({
