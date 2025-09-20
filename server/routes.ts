@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService, objectStorageClient, parseObjectPath } from "./objectStorage";
 import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema, insertLocationPingSchema, insertHeroImageSchema, insertScenicContentSchema, scenicContentUpdateSchema, insertCreatorSchema, tripPhotos } from "@shared/schema";
+import { syncExternalData } from "./sync-external-data";
 import { z } from "zod";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
@@ -1317,6 +1318,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching location pings:", error);
       res.status(500).json({ error: "Fehler beim Abrufen der GPS-Positionen" });
+    }
+  });
+
+  // External data sync endpoint
+  app.post("/api/admin/sync-external", async (req, res) => {
+    try {
+      console.log('Starting external data sync...');
+      await syncExternalData(storage);
+      res.json({ 
+        success: true, 
+        message: "External data sync completed successfully",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error during external data sync:", error);
+      res.status(500).json({ 
+        success: false,
+        error: "External data sync failed",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
