@@ -717,8 +717,13 @@ export class MemStorage implements IStorage {
       creatorId: tripPhoto.creatorId || null, // Explicit null handling
       caption: tripPhoto.caption || null,
       objectPath: tripPhoto.objectPath || null,
+      mediaType: tripPhoto.mediaType || 'image',
+      videoUrl: tripPhoto.videoUrl || null,
+      thumbnailUrl: tripPhoto.thumbnailUrl || null,
+      deleteTokenHash: null,
       uploadedBy: tripPhoto.uploadedBy || null,
       uploadedAt: new Date(),
+      likesCount: 0,
     };
     this.tripPhotos.set(id, newTripPhoto);
     return newTripPhoto;
@@ -834,7 +839,8 @@ export class MemStorage implements IStorage {
     
     // Clean up likes for this photo
     const likesToRemove: string[] = [];
-    for (const [key, like] of this.tripPhotoLikes.entries()) {
+    const likeEntries = Array.from(this.tripPhotoLikes.entries());
+    for (const [key, like] of likeEntries) {
       if (like.photoId === photoId) {
         likesToRemove.push(key);
       }
@@ -1369,7 +1375,7 @@ export class DatabaseStorage implements IStorage {
     
     // Filter by location if specified
     if (locationId) {
-      query = query.where(eq(tripPhotos.locationId, locationId));
+      query = query.where(eq(tripPhotos.locationId, locationId)) as any;
     }
     
     // Apply cursor pagination
@@ -1378,7 +1384,7 @@ export class DatabaseStorage implements IStorage {
       const cursorTimestamp = new Date(parseInt(cursorDate));
       query = query.where(
         sql`(${tripPhotos.uploadedAt} < ${cursorTimestamp} OR (${tripPhotos.uploadedAt} = ${cursorTimestamp} AND ${tripPhotos.id} < ${cursorId}))`
-      );
+      ) as any;
     }
     
     // Order and limit

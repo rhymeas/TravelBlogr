@@ -730,7 +730,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(result);
     } catch (error) {
       console.error("Error toggling like:", error);
-      if (error.message === 'Photo not found') {
+      if (error instanceof Error && error.message === 'Photo not found') {
         res.status(404).json({ error: "Photo not found" });
       } else {
         res.status(500).json({ error: "Failed to toggle like" });
@@ -748,9 +748,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting photo:", error);
-      if (error.message === 'Photo not found') {
+      if (error instanceof Error && error.message === 'Photo not found') {
         res.status(404).json({ error: "Photo not found" });
-      } else if (error.message === 'Invalid delete token') {
+      } else if (error instanceof Error && error.message === 'Invalid delete token') {
         res.status(403).json({ error: "Invalid delete token" });
       } else {
         res.status(500).json({ error: "Failed to delete photo" });
@@ -772,7 +772,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Serve video file directly from object storage
       const objectStorageService = new ObjectStorageService();
-      const fileBuffer = await objectStorageService.getObjectEntityContent(tripPhoto.videoUrl);
+      const file = await objectStorageService.getObjectEntityFile(tripPhoto.videoUrl);
+      const [fileBuffer] = await file.download();
       
       res.setHeader('Content-Type', 'video/mp4');
       res.setHeader('Cache-Control', 'public, max-age=86400');
@@ -799,7 +800,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Serve thumbnail file directly from object storage
       const objectStorageService = new ObjectStorageService();
-      const fileBuffer = await objectStorageService.getObjectEntityContent(tripPhoto.thumbnailUrl);
+      const file = await objectStorageService.getObjectEntityFile(tripPhoto.thumbnailUrl);
+      const [fileBuffer] = await file.download();
       
       res.setHeader('Content-Type', 'image/jpeg');
       res.setHeader('Cache-Control', 'public, max-age=86400');
@@ -1286,7 +1288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
     } catch (error) {
       console.error("Error during image migration:", error);
-      res.status(500).json({ error: "Migration failed", details: error.message });
+      res.status(500).json({ error: "Migration failed", details: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -1397,14 +1399,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Rebuild hero images endpoint (for after location syncs)
   app.post("/api/admin/rebuild-hero", simpleAuthMiddleware, async (req, res) => {
     try {
-      const { syncHeroImages } = await import('./sync-external-data');
+      const { syncExternalData } = await import('./sync-external-data');
       console.log('Rebuilding hero images from location galleries...');
       
-      await syncHeroImages(storage);
+      await syncExternalData(storage);
       
       res.json({ 
         success: true, 
-        message: "Hero images rebuilt successfully from location main images",
+        message: "Hero images rebuilt successfully from external data sync",
         timestamp: new Date().toISOString()
       });
     } catch (error) {
