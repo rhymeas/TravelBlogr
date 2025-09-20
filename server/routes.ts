@@ -1322,7 +1322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // External data sync endpoint
-  app.post("/api/admin/sync-external", async (req, res) => {
+  app.post("/api/admin/sync-external", simpleAuthMiddleware, async (req, res) => {
     try {
       console.log('Starting external data sync...');
       await syncExternalData(storage);

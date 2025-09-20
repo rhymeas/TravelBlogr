@@ -6,22 +6,39 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Calculate the number of nights between two German date strings (DD.MM.YYYY)
- * @param startDate - Start date in DD.MM.YYYY format
- * @param endDate - End date in DD.MM.YYYY format
+ * Calculate the number of nights between two date strings
+ * Supports both DD.MM.YYYY format and ISO datetime strings
+ * @param startDate - Start date in DD.MM.YYYY or ISO format
+ * @param endDate - End date in DD.MM.YYYY or ISO format
  * @returns Number of nights between the dates
  */
 export function calculateNights(startDate: string, endDate: string): number {
   if (!startDate || !endDate) return 0;
   
-  // Convert DD.MM.YYYY to YYYY-MM-DD
-  const parseGermanDate = (dateStr: string): Date => {
+  // Parse date string - handles both DD.MM.YYYY and ISO datetime formats
+  const parseDate = (dateStr: string): Date => {
+    // Check if it's ISO datetime format (contains T or looks like YYYY-MM-DD)
+    if (dateStr.includes('T') || dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+      return new Date(dateStr);
+    }
+    
+    // Otherwise, assume DD.MM.YYYY format
     const [day, month, year] = dateStr.split('.');
+    if (!day || !month || !year) {
+      console.warn(`Invalid date format: ${dateStr}. Expected DD.MM.YYYY or ISO format.`);
+      return new Date(dateStr); // Fallback to native Date parsing
+    }
     return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
   };
 
-  const start = parseGermanDate(startDate);
-  const end = parseGermanDate(endDate);
+  const start = parseDate(startDate);
+  const end = parseDate(endDate);
+  
+  // Validate parsed dates
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    console.warn(`Invalid dates: start=${startDate}, end=${endDate}`);
+    return 0;
+  }
   
   // Calculate difference in milliseconds and convert to days
   const diffTime = end.getTime() - start.getTime();
