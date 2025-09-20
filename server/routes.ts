@@ -127,20 +127,18 @@ function validateImageUrl(imageUrl: string): { valid: boolean; error?: string } 
 // Simple auth validation for sensitive operations
 function simpleAuthMiddleware(req: any, res: any, next: any) {
   const adminToken = req.headers['admin-token'];
-  const authHeader = req.headers.authorization;
   
-  // Allow requests with admin token
+  // Only allow requests with valid admin token
   if (adminToken === process.env.ADMIN_TOKEN && process.env.ADMIN_TOKEN) {
     return next();
   }
   
-  // Allow requests with basic auth (for admin panel)
-  if (authHeader && authHeader.startsWith('Basic ')) {
-    // For now, allow any basic auth - in production, validate credentials
-    return next();
+  // For admin endpoints, require proper authentication
+  if (req.path.startsWith('/api/admin/')) {
+    return res.status(401).json({ error: 'Authentication required for admin operations' });
   }
   
-  // For trip photo uploads, allow public access
+  // For other operations, allow public access (trip photo uploads, etc.)
   next();
 }
 
@@ -150,6 +148,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/locations", async (req, res) => {
     try {
       const locations = await storage.getLocations();
+      // Cache-busting headers for immediate sync updates
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
       res.json(locations);
     } catch (error) {
       console.error("Error fetching locations:", error);
@@ -163,6 +167,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!location) {
         return res.status(404).json({ error: "Location not found" });
       }
+      // Cache-busting headers for immediate sync updates
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
       res.json(location);
     } catch (error) {
       console.error("Error fetching location:", error);
@@ -214,6 +224,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/locations/:locationId/images", async (req, res) => {
     try {
       const images = await storage.getLocationImages(req.params.locationId);
+      // Cache-busting headers for immediate sync updates
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
       res.json(images);
     } catch (error) {
       console.error("Error fetching location images:", error);
@@ -800,6 +816,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/hero-images", async (req, res) => {
     try {
       const heroImages = await storage.getHeroImages();
+      // Cache-busting headers for immediate sync updates
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
       res.json(heroImages);
     } catch (error) {
       console.error("Error fetching hero images:", error);
@@ -890,6 +912,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/scenic-content", async (req, res) => {
     try {
       const scenicContent = await storage.getScenicContent();
+      // Cache-busting headers for immediate sync updates
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
       res.json(scenicContent);
     } catch (error) {
       console.error("Error fetching scenic content:", error);
@@ -1336,6 +1364,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         success: false,
         error: "External data sync failed",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Location-by-location sync endpoint for precise control
+  app.post("/api/admin/sync-location/:slug", simpleAuthMiddleware, async (req, res) => {
+    try {
+      const { syncLocationBySlug } = await import('./sync-external-data');
+      console.log(`Starting sync for location: ${req.params.slug}`);
+      
+      await syncLocationBySlug(storage, req.params.slug);
+      
+      res.json({ 
+        success: true, 
+        message: `Location '${req.params.slug}' synced successfully`,
+        slug: req.params.slug,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error(`Error syncing location ${req.params.slug}:`, error);
+      res.status(500).json({ 
+        success: false,
+        error: "Location sync failed", 
+        details: error instanceof Error ? error.message : "Unknown error",
+        slug: req.params.slug
+      });
+    }
+  });
+
+  // Rebuild hero images endpoint (for after location syncs)
+  app.post("/api/admin/rebuild-hero", simpleAuthMiddleware, async (req, res) => {
+    try {
+      const { syncHeroImages } = await import('./sync-external-data');
+      console.log('Rebuilding hero images from location galleries...');
+      
+      await syncHeroImages(storage);
+      
+      res.json({ 
+        success: true, 
+        message: "Hero images rebuilt successfully from location main images",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error rebuilding hero images:", error);
+      res.status(500).json({ 
+        success: false,
+        error: "Hero rebuild failed", 
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }

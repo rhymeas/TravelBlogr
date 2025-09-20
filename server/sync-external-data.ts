@@ -153,41 +153,21 @@ async function syncLocations(storage: IStorage): Promise<void> {
         }
       }
 
-      // EXACT MATCHING: Always clear and sync images (treat missing as empty)
+      // Location imageUrl is already set in locationData - no gallery sync needed
+      // since external locations only have single imageUrl, not image galleries
+      console.log(`    ✅ Location imageUrl synced: ${extLocation.imageUrl || 'No image'}`);
+      
+      // Clear any existing location gallery images since external has none
       try {
-        // Clear existing location images for exact matching (using resolved location ID)
         const existingImages = await storage.getLocationImages(resolvedLocationId);
         for (const existingImage of existingImages) {
           await storage.deleteLocationImage(existingImage.id);
         }
         if (existingImages.length > 0) {
-          console.log(`    🗑️ Cleared ${existingImages.length} existing images for exact sync`);
-        }
-
-        // Add all external images (or none if missing - exact matching)
-        const externalImages = extLocation.images || [];
-        for (const extImage of externalImages) {
-          try {
-            const imageData: Omit<LocationImage, 'id' | 'createdAt'> = {
-              locationId: resolvedLocationId,
-              imageUrl: ensureAbsoluteUrl(extImage.imageUrl),
-              caption: extImage.caption || '',
-              isMain: extImage.isMain || false,
-              objectPath: extImage.objectPath || null,
-            };
-
-            await storage.addLocationImage(imageData);
-            console.log(`    📸 Synced image: ${extImage.caption || 'Untitled'}`);
-          } catch (error) {
-            console.error(`    ❌ Error syncing image for ${extLocation.name}:`, error);
-          }
-        }
-        
-        if (externalImages.length === 0) {
-          console.log(`    ✅ No images to sync for ${extLocation.name} (exact match with external)`);
+          console.log(`    🗑️ Cleared ${existingImages.length} existing gallery images (external has none)`);
         }
       } catch (error) {
-        console.error(`    ❌ Error clearing/syncing images for ${extLocation.name}:`, error);
+        console.error(`    ❌ Error clearing gallery images for ${extLocation.name}:`, error);
       }
     } catch (error) {
       console.error(`  ❌ Error syncing location ${extLocation.name}:`, error);
@@ -195,9 +175,9 @@ async function syncLocations(storage: IStorage): Promise<void> {
   }
 }
 
-// Sync hero images with absolute URLs
+// Sync hero images with absolute URLs from external source
 async function syncHeroImages(storage: IStorage): Promise<void> {
-  console.log('🔄 Syncing hero images...');
+  console.log('🔄 Syncing hero images from external source...');
   
   const externalHeroImages = await fetchExternalData<any[]>('/hero-images');
   
@@ -224,6 +204,8 @@ async function syncHeroImages(storage: IStorage): Promise<void> {
       console.error(`  ❌ Error syncing hero image ${extHeroImage.title}:`, error);
     }
   }
+  
+  console.log(`  📸 Synced ${externalHeroImages.length} hero images from external source`);
 }
 
 // Sync scenic content with gallery images
@@ -282,6 +264,158 @@ export async function syncExternalData(storage: IStorage): Promise<void> {
     
   } catch (error) {
     console.error('❌ Data sync failed:', error);
+    throw error;
+  }
+}
+
+// Sync individual location by slug for precise control
+export async function syncLocationBySlug(storage: IStorage, slug: string): Promise<void> {
+  console.log(`🔄 Syncing individual location: ${slug}`);
+  
+  const externalLocations = await fetchExternalData<any[]>('/locations');
+  const extLocation = externalLocations.find(loc => loc.slug === slug);
+  
+  if (!extLocation) {
+    throw new Error(`Location with slug "${slug}" not found in external data`);
+  }
+  
+  try {
+    // Calculate nights from actual dates
+    const nights = calculateNightsUTC(extLocation.startDate, extLocation.endDate);
+    
+    // Normalize dates to YYYY-MM-DD format for storage
+    const startDate = toDateOnlyString(parseDateFlexible(extLocation.startDate));
+    const endDate = toDateOnlyString(parseDateFlexible(extLocation.endDate));
+    
+    const locationData: Omit<Location, 'createdAt' | 'updatedAt'> = {
+      id: extLocation.id,
+      name: extLocation.name,
+      slug: extLocation.slug,
+      startDate,
+      endDate,
+      description: extLocation.description,
+      accommodation: extLocation.accommodation || '',
+      accommodationWebsite: extLocation.accommodationWebsite || '',
+      accommodationImageUrl: ensureAbsoluteUrl(extLocation.accommodationImageUrl),
+      accommodationPrice: extLocation.accommodationPrice || null,
+      accommodationCurrency: extLocation.accommodationCurrency || 'CAD',
+      accommodationInclusiveServices: extLocation.accommodationInclusiveServices || [],
+      accommodationAmenities: extLocation.accommodationAmenities || [],
+      accommodationCheckinTime: extLocation.accommodationCheckinTime || null,
+      accommodationCheckoutTime: extLocation.accommodationCheckoutTime || null,
+      distance: extLocation.distance || 0,
+      imageUrl: ensureAbsoluteUrl(extLocation.imageUrl),
+      mapImageUrl: ensureAbsoluteUrl(extLocation.mapImageUrl),
+      coordinates: extLocation.coordinates || null,
+      activities: extLocation.activities || [],
+      restaurants: extLocation.restaurants || [],
+      experiences: extLocation.experiences || [],
+      highlights: extLocation.highlights || [],
+      funFacts: extLocation.funFacts || [],
+      routeHighlights: extLocation.routeHighlights || [],
+    };
+
+    // Resolve location by slug (handle ID mismatches)
+    let resolvedLocationId: string;
+    try {
+      // Try to find existing location by slug first
+      const existingBySlug = await storage.getLocationBySlug(extLocation.slug);
+      if (existingBySlug) {
+        resolvedLocationId = existingBySlug.id;
+        // Exclude id from update payload to avoid primary key mutation
+        const { id, ...updateData } = locationData;
+        await storage.updateLocation(resolvedLocationId, updateData);
+        console.log(`  ✅ Updated location by slug: ${extLocation.name} (${nights} nights)`);
+      } else {
+        const createdLocation = await storage.createLocation(locationData);
+        resolvedLocationId = createdLocation.id; // Use actual created ID
+        console.log(`  🆕 Created location: ${extLocation.name} (${nights} nights)`);
+      }
+    } catch (createError: any) {
+      // If creation fails due to duplicate slug, find by slug and update
+      if (createError.code === '23505') {
+        try {
+          const existingBySlug = await storage.getLocationBySlug(extLocation.slug);
+          if (existingBySlug) {
+            resolvedLocationId = existingBySlug.id;
+            // Exclude id from update payload to avoid primary key mutation
+            const { id, ...updateData } = locationData;
+            await storage.updateLocation(resolvedLocationId, updateData);
+            console.log(`  ✅ Updated existing location by slug: ${extLocation.name} (${nights} nights)`);
+          } else {
+            console.error(`  ❌ Duplicate error but no location found by slug ${extLocation.slug}`);
+            throw new Error(`Location sync failed for slug ${slug}`);
+          }
+        } catch (updateError) {
+          console.error(`  ❌ Failed to update location ${extLocation.name}:`, updateError);
+          throw updateError;
+        }
+      } else {
+        throw createError;
+      }
+    }
+
+    // EXACT MATCHING: Always clear and sync images (treat missing as empty)
+    try {
+      // Clear existing location images for exact matching (using resolved location ID)
+      const existingImages = await storage.getLocationImages(resolvedLocationId);
+      for (const existingImage of existingImages) {
+        await storage.deleteLocationImage(existingImage.id);
+      }
+      if (existingImages.length > 0) {
+        console.log(`    🗑️ Cleared ${existingImages.length} existing images for exact sync`);
+      }
+
+      // Add all external images (or none if missing - exact matching)
+      const externalImages = extLocation.images || [];
+      let mainImageUrl = '';
+      
+      for (const extImage of externalImages) {
+        try {
+          const imageData: Omit<LocationImage, 'id' | 'createdAt'> = {
+            locationId: resolvedLocationId,
+            imageUrl: ensureAbsoluteUrl(extImage.imageUrl),
+            caption: extImage.caption || '',
+            isMain: extImage.isMain || false,
+            objectPath: extImage.objectPath || null,
+          };
+
+          await storage.addLocationImage(imageData);
+          
+          // Track main image for location.imageUrl update
+          if (extImage.isMain) {
+            mainImageUrl = ensureAbsoluteUrl(extImage.imageUrl);
+          }
+          
+          console.log(`    📸 Synced image: ${extImage.caption || 'Untitled'} ${extImage.isMain ? '(MAIN)' : ''}`);
+        } catch (error) {
+          console.error(`    ❌ Error syncing image for ${extLocation.name}:`, error);
+        }
+      }
+      
+      // If no main image was specified, use the first image
+      if (!mainImageUrl && externalImages.length > 0) {
+        mainImageUrl = ensureAbsoluteUrl(externalImages[0].imageUrl);
+        console.log(`    📌 Using first image as main for ${extLocation.name}`);
+      }
+      
+      // Update location.imageUrl to match the main gallery image
+      if (mainImageUrl) {
+        await storage.updateLocation(resolvedLocationId, { imageUrl: mainImageUrl });
+        console.log(`    ✅ Updated location.imageUrl to main gallery image`);
+      }
+      
+      if (externalImages.length === 0) {
+        console.log(`    ✅ No images to sync for ${extLocation.name} (exact match with external)`);
+      }
+    } catch (error) {
+      console.error(`    ❌ Error clearing/syncing images for ${extLocation.name}:`, error);
+      throw error;
+    }
+    
+    console.log(`✅ Successfully synced location: ${slug}`);
+  } catch (error) {
+    console.error(`❌ Error syncing location ${slug}:`, error);
     throw error;
   }
 }
