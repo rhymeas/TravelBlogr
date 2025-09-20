@@ -113,22 +113,63 @@ async function syncLocations(storage: IStorage): Promise<void> {
         routeHighlights: extLocation.routeHighlights || [],
       };
 
-      // Upsert location (update if exists, create if not)
-      const existing = await storage.getLocation(extLocation.id);
-      if (existing) {
-        await storage.updateLocation(extLocation.id, locationData);
-        console.log(`  ✅ Updated location: ${extLocation.name} (${nights} nights)`);
-      } else {
-        await storage.createLocation(locationData);
-        console.log(`  🆕 Created location: ${extLocation.name} (${nights} nights)`);
+      // Resolve location by slug (handle ID mismatches)
+      let resolvedLocationId: string;
+      try {
+        // Try to find existing location by slug first
+        const existingBySlug = await storage.getLocationBySlug(extLocation.slug);
+        if (existingBySlug) {
+          resolvedLocationId = existingBySlug.id;
+          // Exclude id from update payload to avoid primary key mutation
+          const { id, ...updateData } = locationData;
+          await storage.updateLocation(resolvedLocationId, updateData);
+          console.log(`  ✅ Updated location by slug: ${extLocation.name} (${nights} nights)`);
+        } else {
+          const createdLocation = await storage.createLocation(locationData);
+          resolvedLocationId = createdLocation.id; // Use actual created ID
+          console.log(`  🆕 Created location: ${extLocation.name} (${nights} nights)`);
+        }
+      } catch (createError: any) {
+        // If creation fails due to duplicate slug, find by slug and update
+        if (createError.code === '23505') {
+          try {
+            const existingBySlug = await storage.getLocationBySlug(extLocation.slug);
+            if (existingBySlug) {
+              resolvedLocationId = existingBySlug.id;
+              // Exclude id from update payload to avoid primary key mutation
+              const { id, ...updateData } = locationData;
+              await storage.updateLocation(resolvedLocationId, updateData);
+              console.log(`  ✅ Updated existing location by slug: ${extLocation.name} (${nights} nights)`);
+            } else {
+              console.error(`  ❌ Duplicate error but no location found by slug ${extLocation.slug}`);
+              continue;
+            }
+          } catch (updateError) {
+            console.error(`  ❌ Failed to update location ${extLocation.name}:`, updateError);
+            continue;
+          }
+        } else {
+          throw createError;
+        }
       }
 
-      // Sync location images if available
-      if (extLocation.images && Array.isArray(extLocation.images)) {
-        for (const extImage of extLocation.images) {
+      // EXACT MATCHING: Always clear and sync images (treat missing as empty)
+      try {
+        // Clear existing location images for exact matching (using resolved location ID)
+        const existingImages = await storage.getLocationImages(resolvedLocationId);
+        for (const existingImage of existingImages) {
+          await storage.deleteLocationImage(existingImage.id);
+        }
+        if (existingImages.length > 0) {
+          console.log(`    🗑️ Cleared ${existingImages.length} existing images for exact sync`);
+        }
+
+        // Add all external images (or none if missing - exact matching)
+        const externalImages = extLocation.images || [];
+        for (const extImage of externalImages) {
           try {
             const imageData: Omit<LocationImage, 'id' | 'createdAt'> = {
-              locationId: extLocation.id,
+              locationId: resolvedLocationId,
               imageUrl: ensureAbsoluteUrl(extImage.imageUrl),
               caption: extImage.caption || '',
               isMain: extImage.isMain || false,
@@ -141,6 +182,12 @@ async function syncLocations(storage: IStorage): Promise<void> {
             console.error(`    ❌ Error syncing image for ${extLocation.name}:`, error);
           }
         }
+        
+        if (externalImages.length === 0) {
+          console.log(`    ✅ No images to sync for ${extLocation.name} (exact match with external)`);
+        }
+      } catch (error) {
+        console.error(`    ❌ Error clearing/syncing images for ${extLocation.name}:`, error);
       }
     } catch (error) {
       console.error(`  ❌ Error syncing location ${extLocation.name}:`, error);
