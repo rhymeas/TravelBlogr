@@ -1,6 +1,7 @@
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, MapPin, Calendar, DollarSign, Camera } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,10 +12,23 @@ import type { Location } from "@shared/schema";
 
 export default function LocationDetail() {
   const { slug } = useParams<{ slug: string }>();
+  const [checkedActivities, setCheckedActivities] = useState<Set<number>>(new Set());
 
   const { data: location, isLoading } = useQuery<Location>({
     queryKey: ["/api/locations", slug],
   });
+
+  const toggleActivity = (index: number) => {
+    setCheckedActivities(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
 
   if (isLoading) {
     return (
@@ -157,8 +171,18 @@ export default function LocationDetail() {
                   <ul className="space-y-3">
                     {location.activities.map((activity, index) => (
                       <li key={index} className="flex items-start" data-testid={`activity-${index}`}>
-                        <span className="w-2 h-2 bg-primary rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                        <span className="text-muted-foreground">{activity}</span>
+                        <label className="flex items-start cursor-pointer w-full">
+                          <input
+                            type="checkbox"
+                            checked={checkedActivities.has(index)}
+                            onChange={() => toggleActivity(index)}
+                            className="mt-2 mr-3 flex-shrink-0 text-primary focus:ring-primary"
+                            data-testid={`activity-checkbox-${index}`}
+                          />
+                          <span className={`text-muted-foreground transition-all duration-200 ${checkedActivities.has(index) ? 'line-through opacity-60' : ''}`}>
+                            {activity}
+                          </span>
+                        </label>
                       </li>
                     ))}
                   </ul>
