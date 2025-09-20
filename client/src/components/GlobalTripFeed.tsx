@@ -5,12 +5,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Clock, User, Camera, Send, Image, Upload, Heart, Trash2, Video, Play } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Plus, Clock, User, Camera, Send, Image, Upload, Heart, Trash2, Video, Play, MoreVertical, X, Maximize2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { TripPhoto, Creator, Location } from "@shared/schema";
 
 export default function GlobalTripFeed() {
+  // Upload state
+  const [caption, setCaption] = useState("");
+  const [name, setName] = useState("");
+  const [selectedCreatorId, setSelectedCreatorId] = useState<string>("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = useState<string>("");
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
+  const [uploading, setUploading] = useState(false);
+  
+  // User and interaction state
   const [userKey] = useState(() => localStorage.getItem('userKey') || `user_${Date.now()}_${Math.random()}`);
   const [likedPhotos, setLikedPhotos] = useState(new Set<string>());
   const [deleteTokens, setDeleteTokens] = useState<Record<string, string>>(() => {
@@ -22,6 +34,12 @@ export default function GlobalTripFeed() {
       return {};
     }
   });
+  
+  // Modal state
+  const [fullViewMedia, setFullViewMedia] = useState<TripPhoto | null>(null);
+  
+  // Refs
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -78,6 +96,71 @@ export default function GlobalTripFeed() {
 
   // Flatten the paginated data
   const tripPhotos = data?.pages.flatMap(page => page.items) || [];
+
+  // Upload mutation
+  const uploadMutation = useMutation({
+    mutationFn: async ({ file, caption, uploadedBy, creatorId, mediaType, locationId }: { 
+      file: File; 
+      caption: string; 
+      uploadedBy: string; 
+      creatorId: string;
+      mediaType: 'image' | 'video';
+      locationId: string;
+    }) => {
+      const formData = new FormData();
+      formData.append('media', file);
+      if (caption) formData.append('caption', caption);
+      if (uploadedBy) formData.append('uploadedBy', uploadedBy);
+      if (creatorId) formData.append('creatorId', creatorId);
+      formData.append('mediaType', mediaType);
+      if (locationId) formData.append('locationId', locationId);
+
+      const response = await fetch('/api/trip-photos/media', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Upload fehlgeschlagen");
+      }
+      return response.json();
+    },
+    onSuccess: (newPhoto) => {
+      // Store delete token locally
+      if (newPhoto.deleteToken) {
+        setDeleteTokens(prev => ({
+          ...prev,
+          [newPhoto.id]: newPhoto.deleteToken
+        }));
+      }
+      
+      // Invalidate queries to refresh feed
+      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated", "global"] });
+      refetch();
+      
+      // Reset form
+      setCaption("");
+      setName("");
+      setSelectedCreatorId("");
+      setSelectedLocationId("");
+      setSelectedFile(null);
+      setMediaType('image');
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      
+      toast({
+        title: "Gepostet!",
+        description: "Ihr Beitrag wurde erfolgreich geteilt.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Upload fehlgeschlagen",
+        description: error.message || "Bitte versuchen Sie es erneut.",
+        variant: "destructive",
+      });
+    },
+  });
 
 
   // Like mutation
@@ -264,6 +347,92 @@ export default function GlobalTripFeed() {
     deleteMutation.mutate({ photoId });
   };
 
+  // File handling functions
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // File size validation (videos have no limit, images 10MB)
+      const maxSize = file.type.startsWith('video/') ? Number.MAX_SAFE_INTEGER : 10485760; // 10MB for images
+      if (file.size > maxSize) {
+        toast({
+          title: "Datei zu groß",
+          description: `Bitte wählen Sie ein ${file.type.startsWith('video/') ? 'kleineres Video' : 'Bild unter 10MB'}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // File type validation
+      const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+      const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
+      const allAllowedTypes = [...allowedImageTypes, ...allowedVideoTypes];
+      
+      if (!allAllowedTypes.includes(file.type)) {
+        toast({
+          title: "Ungültiger Dateityp",
+          description: "Nur Bilder (JPG, PNG, WebP, GIF) und Videos (MP4, WebM, MOV) sind erlaubt.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Set media type based on file
+      const detectedMediaType = file.type.startsWith('video/') ? 'video' : 'image';
+      setMediaType(detectedMediaType);
+      setSelectedFile(file);
+      
+      toast({
+        title: `${detectedMediaType === 'video' ? 'Video' : 'Foto'} ausgewählt`,
+        description: `${file.name} bereit zum Hochladen.`,
+      });
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      toast({
+        title: `Bitte ${mediaType === 'video' ? 'Video' : 'Foto'} wählen`,
+        description: `Wählen Sie ein ${mediaType === 'video' ? 'Video' : 'Foto'} zum Hochladen aus.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedLocationId) {
+      toast({
+        title: "Location wählen",
+        description: "Bitte wählen Sie eine Location für Ihren Beitrag aus.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      await uploadMutation.mutateAsync({
+        file: selectedFile,
+        caption: caption.trim(),
+        uploadedBy: name.trim(),
+        creatorId: selectedCreatorId,
+        mediaType,
+        locationId: selectedLocationId,
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Full view handlers
+  const openFullView = (photo: TripPhoto) => {
+    setFullViewMedia(photo);
+  };
+
+  const closeFullView = () => {
+    setFullViewMedia(null);
+  };
+
   // Get location name by ID
   const getLocationName = (locationId: string | null) => {
     if (!locationId || !locations) return null;
@@ -285,6 +454,115 @@ export default function GlobalTripFeed() {
 
   return (
     <div className="space-y-4" data-testid="global-trip-feed">
+
+      {/* Upload Section */}
+      <Card className="p-4" data-testid="upload-section">
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Plus className="w-5 h-5 text-primary" />
+            <h3 className="font-semibold">Neuen Beitrag teilen</h3>
+          </div>
+          
+          {/* File Upload */}
+          <div className="space-y-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              onChange={handleFileSelect}
+              className="hidden"
+              data-testid="file-input"
+            />
+            <Button
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full h-24 border-dashed border-2 hover:bg-gray-50 dark:hover:bg-gray-800"
+              data-testid="file-upload-button"
+            >
+              <div className="flex flex-col items-center space-y-2">
+                {mediaType === 'video' ? <Video className="w-8 h-8" /> : <Image className="w-8 h-8" />}
+                <span className="text-sm">
+                  {selectedFile ? selectedFile.name : `${mediaType === 'video' ? 'Video' : 'Foto'} auswählen`}
+                </span>
+              </div>
+            </Button>
+          </div>
+          
+          {selectedFile && (
+            <div className="space-y-3">
+              {/* Location Selection */}
+              <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+                <SelectTrigger data-testid="location-select">
+                  <SelectValue placeholder="Location auswählen..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map((location) => (
+                    <SelectItem key={location.id} value={location.id}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {/* Creator Selection */}
+              <Select value={selectedCreatorId} onValueChange={setSelectedCreatorId}>
+                <SelectTrigger data-testid="creator-select">
+                  <SelectValue placeholder="Autor auswählen (optional)..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {creators.map((creator) => (
+                    <SelectItem key={creator.id} value={creator.id}>
+                      {creator.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {/* Name Input (if no creator selected) */}
+              {!selectedCreatorId && (
+                <Input
+                  type="text"
+                  placeholder="Ihr Name..."
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  maxLength={100}
+                  data-testid="name-input"
+                />
+              )}
+              
+              {/* Caption Input */}
+              <Textarea
+                placeholder="Beschreibung hinzufügen..."
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                maxLength={500}
+                rows={3}
+                data-testid="caption-input"
+              />
+              
+              {/* Upload Button */}
+              <Button
+                onClick={handleUpload}
+                disabled={uploading || !selectedLocationId}
+                className="w-full"
+                data-testid="upload-button"
+              >
+                {uploading ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
+                    <span>Wird hochgeladen...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <Send className="w-4 h-4" />
+                    <span>Teilen</span>
+                  </div>
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
+      </Card>
 
       {/* Feed Title */}
       <div className="flex items-center space-x-2 px-1" data-testid="feed-title">
@@ -337,9 +615,36 @@ export default function GlobalTripFeed() {
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center space-x-1 text-xs text-muted-foreground" data-testid={`post-time-${photo.id}`}>
-                    <Clock className="w-3 h-3" />
-                    <span>{formatTime(photo.uploadedAt)}</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1 text-xs text-muted-foreground" data-testid={`post-time-${photo.id}`}>
+                      <Clock className="w-3 h-3" />
+                      <span>{formatTime(photo.uploadedAt)}</span>
+                    </div>
+                    {/* Three-dot delete menu */}
+                    {deleteTokens[photo.id] && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 z-50 relative"
+                            data-testid={`post-menu-${photo.id}`}
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="z-50">
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(photo.id)}
+                            className="text-red-600 hover:text-red-700 cursor-pointer"
+                            data-testid={`delete-menu-item-${photo.id}`}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Löschen
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                 </div>
               </div>
@@ -353,13 +658,17 @@ export default function GlobalTripFeed() {
 
               {/* Post Media - Image or Video */}
               {photo.mediaType === 'video' && photo.videoUrl ? (
-                <div className="relative">
+                <div className="relative group cursor-pointer" onClick={() => openFullView(photo)}>
                   <video
                     src={photo.videoUrl}
                     poster={photo.thumbnailUrl || undefined}
-                    controls
-                    className="w-full max-h-96"
+                    controls={false}
+                    className="w-full max-h-96 object-cover"
                     data-testid={`post-video-${photo.id}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openFullView(photo);
+                    }}
                   >
                     <source src={photo.videoUrl} type="video/mp4" />
                     Ihr Browser unterstützt das Video-Element nicht.
@@ -368,21 +677,31 @@ export default function GlobalTripFeed() {
                     <Video className="w-3 h-3" />
                     <span>Video</span>
                   </div>
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="bg-white/90 dark:bg-black/90 rounded-full p-3">
+                      <Maximize2 className="w-6 h-6 text-black dark:text-white" />
+                    </div>
+                  </div>
                 </div>
               ) : photo.imageUrl && (
-                <div className="relative">
+                <div className="relative group cursor-pointer" onClick={() => openFullView(photo)}>
                   <img
                     src={photo.imageUrl}
                     alt={photo.caption || "Reisefoto"}
                     className="w-full object-cover max-h-96"
                     data-testid={`post-image-${photo.id}`}
                   />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="bg-white/90 dark:bg-black/90 rounded-full p-3">
+                      <Maximize2 className="w-6 h-6 text-black dark:text-white" />
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* Post Actions - Like and Delete */}
+              {/* Post Actions - Like */}
               <div className="p-3 pt-2 border-t border-border/50">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -397,18 +716,6 @@ export default function GlobalTripFeed() {
                     />
                     <span>{photo.likesCount || 0}</span>
                   </Button>
-                  
-                  {deleteTokens[photo.id] && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(photo.id)}
-                      className="text-muted-foreground hover:text-red-500"
-                      data-testid={`delete-button-${photo.id}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
                 </div>
               </div>
             </Card>
@@ -435,6 +742,62 @@ export default function GlobalTripFeed() {
             ) : null}
           </div>
         </div>
+      )}
+      
+      {/* Full View Modal */}
+      {fullViewMedia && (
+        <Dialog open={!!fullViewMedia} onOpenChange={closeFullView}>
+          <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden" data-testid="full-view-modal">
+            <DialogHeader className="absolute top-0 left-0 right-0 z-10 bg-black/50 text-white p-4">
+              <div className="flex items-center justify-between">
+                <DialogTitle className="text-lg font-medium">
+                  {fullViewMedia.caption || 'Reisefoto'}
+                </DialogTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={closeFullView}
+                  className="text-white hover:bg-white/20 h-8 w-8 p-0"
+                  data-testid="close-full-view"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="text-sm opacity-80">
+                {fullViewMedia.creatorId ? 
+                  creators.find(c => c.id === fullViewMedia.creatorId)?.name || fullViewMedia.uploadedBy || 'Unbekannt' : 
+                  fullViewMedia.uploadedBy || 'Unbekannt'
+                } • {formatTime(fullViewMedia.uploadedAt)}
+                {getLocationName(fullViewMedia.locationId) && (
+                  <span> • 📍 {getLocationName(fullViewMedia.locationId)}</span>
+                )}
+              </div>
+            </DialogHeader>
+            
+            <div className="relative h-full flex items-center justify-center bg-black">
+              {fullViewMedia.mediaType === 'video' && fullViewMedia.videoUrl ? (
+                <video
+                  src={fullViewMedia.videoUrl}
+                  poster={fullViewMedia.thumbnailUrl || undefined}
+                  controls
+                  autoPlay
+                  className="max-w-full max-h-full object-contain"
+                  data-testid="full-view-video"
+                >
+                  <source src={fullViewMedia.videoUrl} type="video/mp4" />
+                  Ihr Browser unterstützt das Video-Element nicht.
+                </video>
+              ) : fullViewMedia.imageUrl && (
+                <img
+                  src={fullViewMedia.imageUrl}
+                  alt={fullViewMedia.caption || "Reisefoto"}
+                  className="max-w-full max-h-full object-contain"
+                  data-testid="full-view-image"
+                />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
