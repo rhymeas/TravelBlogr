@@ -1,12 +1,17 @@
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Hero from "@/components/Hero";
 import Timeline from "@/components/Timeline";
 import LocationCard from "@/components/LocationCard";
 import Header from "@/components/Header";
+import { Lightbox } from "@/components/Lightbox";
 import { Link } from "wouter";
 import type { Location, TourSettings, ScenicContent } from "@shared/schema";
 
 export default function Home() {
+  // Lightbox state
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const { data: locations, isLoading: locationsLoading } = useQuery<Location[]>({
     queryKey: ["/api/locations"],
@@ -19,6 +24,43 @@ export default function Home() {
   const { data: scenicContent } = useQuery<ScenicContent>({
     queryKey: ["/api/scenic-content"],
   });
+
+  // Prevent cache mutation by creating a new sorted array
+  const sortedGalleries = useMemo(() => {
+    return [...(scenicContent?.galleries ?? [])].sort((a, b) => a.order - b.order);
+  }, [scenicContent?.galleries]);
+
+  // Convert scenic gallery to lightbox format (only non-linked images for consistent UX)
+  const lightboxImages = useMemo(() => {
+    return sortedGalleries
+      .filter(gallery => !gallery.linkUrl) // Exclude linked galleries from lightbox
+      .map(gallery => ({
+        id: gallery.id,
+        imageUrl: gallery.imageUrl,
+        caption: `${gallery.title} - ${gallery.description}`
+      }));
+  }, [sortedGalleries]);
+
+  // Lightbox handlers with proper index clamping (no wrap-around to match Lightbox UI)
+  const openLightbox = (index: number) => {
+    // Map from sortedGalleries index to lightboxImages index
+    const galleryItemsUpToIndex = sortedGalleries.slice(0, index + 1);
+    const lightboxIndex = galleryItemsUpToIndex.filter(g => !g.linkUrl).length - 1;
+    setLightboxIndex(Math.max(0, lightboxIndex));
+    setLightboxOpen(true);
+  };
+
+  const closeLightbox = () => {
+    setLightboxOpen(false);
+  };
+
+  const nextImage = () => {
+    setLightboxIndex((prev) => Math.min(prev + 1, lightboxImages.length - 1));
+  };
+
+  const previousImage = () => {
+    setLightboxIndex((prev) => Math.max(prev - 1, 0));
+  };
 
   if (locationsLoading) {
     return (
@@ -90,20 +132,25 @@ export default function Home() {
 
           {/* Scenic Gallery Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            {scenicContent?.galleries
-              ?.sort((a, b) => a.order - b.order)
-              ?.map((gallery) => {
+            {sortedGalleries.map((gallery, index) => {
                 const GalleryContent = (
-                  <div className={`relative ${gallery.isLarge ? 'h-80 lg:h-full' : 'h-40 lg:h-48'} rounded-xl overflow-hidden group`}>
+                  <div className={`relative ${gallery.isLarge ? 'h-80 lg:h-full' : 'h-40 lg:h-48'} rounded-xl overflow-hidden group cursor-pointer`}>
                     <img 
                       src={gallery.imageUrl}
                       alt={gallery.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      data-testid={`gallery-image-${index}`}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                     <div className={`absolute ${gallery.isLarge ? 'bottom-6 left-6' : 'bottom-4 left-4'} text-white`}>
                       <h3 className={`${gallery.isLarge ? 'text-2xl font-bold mb-2' : 'text-lg font-semibold'}`}>{gallery.title}</h3>
                       <p className={`text-white/90 ${gallery.isLarge ? 'text-base' : 'text-sm'}`}>{gallery.description}</p>
+                    </div>
+                    {/* Click to expand indicator */}
+                    <div className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                      </svg>
                     </div>
                   </div>
                 );
@@ -120,7 +167,12 @@ export default function Home() {
                         </div>
                       </Link>
                     ) : (
-                      GalleryContent
+                      <div 
+                        onClick={() => openLightbox(index)}
+                        data-testid={`gallery-item-${index}`}
+                      >
+                        {GalleryContent}
+                      </div>
                     )}
                   </div>
                 );
@@ -157,6 +209,16 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Lightbox for scenic gallery images */}
+      <Lightbox
+        images={lightboxImages}
+        currentIndex={lightboxIndex}
+        isOpen={lightboxOpen}
+        onClose={closeLightbox}
+        onNext={nextImage}
+        onPrevious={previousImage}
+      />
     </div>
   );
 }
