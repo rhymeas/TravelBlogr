@@ -9,6 +9,7 @@ import { sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import multer from "multer";
 import { randomUUID } from "crypto";
+import crypto from "crypto";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -500,6 +501,250 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         error: "Foto konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut." 
       });
+    }
+  });
+
+  // Paginated trip photos endpoint
+  app.get("/api/trip-photos/paginated", async (req, res) => {
+    try {
+      const { locationId, limit = '10', cursor } = req.query;
+      
+      const params = {
+        locationId: locationId as string || undefined,
+        limit: parseInt(limit as string),
+        cursor: cursor as string || undefined,
+      };
+      
+      const result = await storage.listTripPhotos(params);
+      
+      // Generate direct serving URLs for each photo
+      const itemsWithUrls = result.items.map(photo => ({
+        ...photo,
+        imageUrl: `/api/trip-photos/${photo.id}/image`,
+        videoUrl: photo.videoUrl ? `/api/trip-photos/${photo.id}/video` : null,
+        thumbnailUrl: photo.thumbnailUrl ? `/api/trip-photos/${photo.id}/thumbnail` : null,
+      }));
+      
+      res.json({
+        items: itemsWithUrls,
+        nextCursor: result.nextCursor,
+      });
+    } catch (error) {
+      console.error("Error fetching paginated trip photos:", error);
+      res.status(500).json({ error: "Failed to fetch trip photos" });
+    }
+  });
+
+  // Video/Media upload endpoint
+  app.post("/api/trip-photos/media", 
+    upload.fields([
+      { name: 'media', maxCount: 1 },
+      { name: 'thumbnail', maxCount: 1 }
+    ]),
+    async (req, res) => {
+    try {
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      
+      if (!files.media || files.media.length === 0) {
+        return res.status(400).json({ 
+          error: "Bitte wählen Sie eine Datei zum Hochladen." 
+        });
+      }
+
+      const mediaFile = files.media[0];
+      const thumbnailFile = files.thumbnail?.[0];
+      
+      // Extract form data
+      const { caption, uploadedBy, locationId, creatorId, mediaType = 'image' } = req.body;
+      
+      // Generate delete token
+      const deleteToken = crypto.randomBytes(32).toString('hex');
+      
+      // Validate file types
+      const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
+      
+      if (mediaType === 'video' && !allowedVideoTypes.includes(mediaFile.mimetype)) {
+        return res.status(400).json({ 
+          error: "Ungültiger Videotyp. Erlaubte Formate: MP4, WebM, MOV" 
+        });
+      } else if (mediaType === 'image' && !allowedImageTypes.includes(mediaFile.mimetype)) {
+        return res.status(400).json({ 
+          error: "Ungültiger Bildtyp. Erlaubte Formate: JPEG, PNG, WebP, GIF" 
+        });
+      }
+
+      try {
+        const objectStorageService = new ObjectStorageService();
+        
+        // Upload main media file
+        const { uploadURL: mediaUploadURL, objectPath: mediaObjectPath } = 
+          await objectStorageService.getObjectEntityUploadInfo();
+        
+        const mediaUploadResponse = await fetch(mediaUploadURL, {
+          method: 'PUT',
+          body: mediaFile.buffer,
+          headers: {
+            'Content-Type': mediaFile.mimetype,
+          },
+        });
+
+        if (!mediaUploadResponse.ok) {
+          throw new Error('Upload zu Object Storage fehlgeschlagen');
+        }
+
+        let thumbnailObjectPath = null;
+        
+        // Upload thumbnail if provided (for videos)
+        if (thumbnailFile) {
+          const { uploadURL: thumbUploadURL, objectPath: thumbObjectPath } = 
+            await objectStorageService.getObjectEntityUploadInfo();
+          
+          const thumbUploadResponse = await fetch(thumbUploadURL, {
+            method: 'PUT',
+            body: thumbnailFile.buffer,
+            headers: {
+              'Content-Type': thumbnailFile.mimetype,
+            },
+          });
+
+          if (thumbUploadResponse.ok) {
+            thumbnailObjectPath = thumbObjectPath;
+          }
+        }
+
+        // Create trip photo record with media info
+        const tripPhotoData = {
+          locationId: locationId || null,
+          creatorId: creatorId || null,
+          objectPath: mediaObjectPath,
+          imageUrl: '/placeholder',
+          caption: caption || null,
+          uploadedBy: uploadedBy || null,
+          mediaType: mediaType,
+          videoUrl: mediaType === 'video' ? mediaObjectPath : null,
+          thumbnailUrl: thumbnailObjectPath,
+          deleteToken,
+        };
+
+        const tripPhoto = await storage.createTripPhotoMedia(tripPhotoData);
+        
+        // Return photo with delete token for client-side storage
+        res.status(201).json({
+          ...tripPhoto,
+          imageUrl: `/api/trip-photos/${tripPhoto.id}/image`,
+          videoUrl: tripPhoto.videoUrl ? `/api/trip-photos/${tripPhoto.id}/video` : null,
+          thumbnailUrl: tripPhoto.thumbnailUrl ? `/api/trip-photos/${tripPhoto.id}/thumbnail` : null,
+        });
+
+      } catch (uploadError) {
+        console.error("Media upload error:", uploadError);
+        return res.status(500).json({ 
+          error: "Datei-Upload fehlgeschlagen. Bitte versuchen Sie es erneut." 
+        });
+      }
+
+    } catch (error) {
+      console.error("Error adding media trip photo:", error);
+      res.status(500).json({ 
+        error: "Media konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut." 
+      });
+    }
+  });
+
+  // Like/Unlike endpoint
+  app.post("/api/trip-photos/:photoId/like", async (req, res) => {
+    try {
+      const { photoId } = req.params;
+      const { userKey } = req.body;
+      
+      if (!userKey) {
+        return res.status(400).json({ error: "User key is required" });
+      }
+      
+      const result = await storage.toggleTripPhotoLike(photoId, userKey);
+      res.json(result);
+    } catch (error) {
+      console.error("Error toggling like:", error);
+      if (error.message === 'Photo not found') {
+        res.status(404).json({ error: "Photo not found" });
+      } else {
+        res.status(500).json({ error: "Failed to toggle like" });
+      }
+    }
+  });
+
+  // Delete photo endpoint
+  app.delete("/api/trip-photos/:photoId", async (req, res) => {
+    try {
+      const { photoId } = req.params;
+      const { deleteToken } = req.body;
+      
+      await storage.deleteTripPhoto(photoId, deleteToken);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting photo:", error);
+      if (error.message === 'Photo not found') {
+        res.status(404).json({ error: "Photo not found" });
+      } else if (error.message === 'Invalid delete token') {
+        res.status(403).json({ error: "Invalid delete token" });
+      } else {
+        res.status(500).json({ error: "Failed to delete photo" });
+      }
+    }
+  });
+
+  // Video serving endpoint
+  app.get("/api/trip-photos/:photoId/video", async (req, res) => {
+    try {
+      const { photoId } = req.params;
+      
+      const tripPhotos = await storage.getAllTripPhotos();
+      const tripPhoto = tripPhotos.find(p => p.id === photoId);
+      
+      if (!tripPhoto || !tripPhoto.videoUrl) {
+        return res.status(404).json({ error: "Video not found" });
+      }
+
+      // Serve video file directly from object storage
+      const objectStorageService = new ObjectStorageService();
+      const fileBuffer = await objectStorageService.getObjectEntityContent(tripPhoto.videoUrl);
+      
+      res.setHeader('Content-Type', 'video/mp4');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.send(fileBuffer);
+    } catch (error) {
+      console.error("Error serving video:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to serve video" });
+      }
+    }
+  });
+
+  // Thumbnail serving endpoint
+  app.get("/api/trip-photos/:photoId/thumbnail", async (req, res) => {
+    try {
+      const { photoId } = req.params;
+      
+      const tripPhotos = await storage.getAllTripPhotos();
+      const tripPhoto = tripPhotos.find(p => p.id === photoId);
+      
+      if (!tripPhoto || !tripPhoto.thumbnailUrl) {
+        return res.status(404).json({ error: "Thumbnail not found" });
+      }
+
+      // Serve thumbnail file directly from object storage
+      const objectStorageService = new ObjectStorageService();
+      const fileBuffer = await objectStorageService.getObjectEntityContent(tripPhoto.thumbnailUrl);
+      
+      res.setHeader('Content-Type', 'image/jpeg');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.send(fileBuffer);
+    } catch (error) {
+      console.error("Error serving thumbnail:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to serve thumbnail" });
+      }
     }
   });
 
