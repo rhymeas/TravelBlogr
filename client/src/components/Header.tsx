@@ -59,7 +59,6 @@ export default function Header() {
   ] : [];
 
   const otherNavLinks = [
-    { href: "/live-feed", label: "Live Feed", icon: Camera, type: "link" },
     { href: "/admin", label: "Editieren", icon: Settings, type: "link" },
   ];
 
@@ -118,19 +117,36 @@ export default function Header() {
             })}
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            data-testid="mobile-menu-toggle"
-            aria-label="Toggle mobile menu"
-          >
-            {mobileMenuOpen ? (
-              <X className="w-6 h-6 text-foreground" />
-            ) : (
-              <Menu className="w-6 h-6 text-foreground" />
-            )}
-          </button>
+          {/* Mobile Actions */}
+          <div className="md:hidden flex items-center space-x-2">
+            {/* Mobile Live Feed Button */}
+            <Link
+              href="/live-feed"
+              className={`p-2 rounded-lg transition-colors ${
+                isActive("/live-feed")
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
+              data-testid="mobile-live-feed-button"
+              aria-label="Live Feed"
+            >
+              <Camera className="w-6 h-6" />
+            </Link>
+
+            {/* Mobile Menu Button */}
+            <button
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              data-testid="mobile-menu-toggle"
+              aria-label="Toggle mobile menu"
+            >
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6 text-foreground" />
+              ) : (
+                <Menu className="w-6 h-6 text-foreground" />
+              )}
+            </button>
+          </div>
         </div>
       </nav>
 
