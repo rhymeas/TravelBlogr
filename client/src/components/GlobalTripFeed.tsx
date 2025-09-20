@@ -52,6 +52,7 @@ export default function GlobalTripFeed() {
   useEffect(() => {
     try {
       localStorage.setItem(`deleteTokens_${userKey}`, JSON.stringify(deleteTokens));
+      console.log('Stored delete tokens:', deleteTokens);
     } catch {
       // Ignore localStorage errors
     }
@@ -128,11 +129,15 @@ export default function GlobalTripFeed() {
     },
     onSuccess: (newPhoto) => {
       // Store delete token locally
+      console.log('Upload success, new photo:', newPhoto);
       if (newPhoto.deleteToken) {
+        console.log('Storing delete token for:', newPhoto.id, newPhoto.deleteToken);
         setDeleteTokens(prev => ({
           ...prev,
           [newPhoto.id]: newPhoto.deleteToken
         }));
+      } else {
+        console.log('No delete token received from server');
       }
       
       // Invalidate queries to refresh feed
@@ -525,6 +530,7 @@ export default function GlobalTripFeed() {
                     {/* Three-dot delete menu */}
                     {deleteTokens[photo.id] && (
                       <DropdownMenu>
+                        {/* Debug: {JSON.stringify(deleteTokens)} */}
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="ghost"
