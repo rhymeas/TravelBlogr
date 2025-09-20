@@ -11,7 +11,7 @@ import multer from "multer";
 import { randomUUID } from "crypto";
 import crypto from "crypto";
 
-// Configure multer for file uploads
+// Configure multer for image uploads (legacy endpoints)
 const upload = multer({
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB max file size
@@ -30,6 +30,37 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error('Nur Bilddateien sind erlaubt (JPG, PNG, WebP, GIF)'));
+    }
+  }
+});
+
+// Configure multer for media uploads (images and videos)
+const mediaUpload = multer({
+  limits: {
+    fileSize: 52428800, // 50MB max file size for videos, 10MB for images (validated in handler)
+  },
+  fileFilter: (req, file, cb) => {
+    // Check file type for both images and videos
+    const allowedImageTypes = [
+      'image/jpeg',
+      'image/jpg', 
+      'image/png',
+      'image/webp',
+      'image/gif'
+    ];
+    
+    const allowedVideoTypes = [
+      'video/mp4',
+      'video/webm',
+      'video/quicktime'
+    ];
+    
+    const allAllowedTypes = [...allowedImageTypes, ...allowedVideoTypes];
+    
+    if (allAllowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Nur Bilder (JPG, PNG, WebP, GIF) und Videos (MP4, WebM, MOV) sind erlaubt'));
     }
   }
 });
@@ -537,7 +568,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Video/Media upload endpoint
   app.post("/api/trip-photos/media", 
-    upload.fields([
+    mediaUpload.fields([
       { name: 'media', maxCount: 1 },
       { name: 'thumbnail', maxCount: 1 }
     ]),
@@ -560,18 +591,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate delete token
       const deleteToken = crypto.randomBytes(32).toString('hex');
       
-      // Validate file types
+      // Validate file types and sizes
       const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
       const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
+      const maxImageSize = 10 * 1024 * 1024; // 10MB
+      const maxVideoSize = 50 * 1024 * 1024; // 50MB
       
-      if (mediaType === 'video' && !allowedVideoTypes.includes(mediaFile.mimetype)) {
-        return res.status(400).json({ 
-          error: "Ungültiger Videotyp. Erlaubte Formate: MP4, WebM, MOV" 
-        });
-      } else if (mediaType === 'image' && !allowedImageTypes.includes(mediaFile.mimetype)) {
-        return res.status(400).json({ 
-          error: "Ungültiger Bildtyp. Erlaubte Formate: JPEG, PNG, WebP, GIF" 
-        });
+      if (mediaType === 'video') {
+        if (!allowedVideoTypes.includes(mediaFile.mimetype)) {
+          return res.status(400).json({ 
+            error: "Ungültiger Videotyp. Erlaubte Formate: MP4, WebM, MOV" 
+          });
+        }
+        if (mediaFile.size > maxVideoSize) {
+          return res.status(413).json({ 
+            error: "Video ist zu groß. Maximale Größe: 50MB" 
+          });
+        }
+      } else if (mediaType === 'image') {
+        if (!allowedImageTypes.includes(mediaFile.mimetype)) {
+          return res.status(400).json({ 
+            error: "Ungültiger Bildtyp. Erlaubte Formate: JPEG, PNG, WebP, GIF" 
+          });
+        }
+        if (mediaFile.size > maxImageSize) {
+          return res.status(413).json({ 
+            error: "Bild ist zu groß. Maximale Größe: 10MB" 
+          });
+        }
       }
 
       try {

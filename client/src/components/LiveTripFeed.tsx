@@ -1,11 +1,11 @@
-import { useState, useRef } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Clock, User, Camera, Send, Image, Upload } from "lucide-react";
+import { Plus, Clock, User, Camera, Send, Image, Upload, Heart, Trash2, Video, Play } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { TripPhoto, Creator } from "@shared/schema";
@@ -21,31 +21,91 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
   const [name, setName] = useState("");
   const [selectedCreatorId, setSelectedCreatorId] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [uploading, setUploading] = useState(false);
+  const [userKey] = useState(() => localStorage.getItem('userKey') || `user_${Date.now()}_${Math.random()}`);
+  const [likedPhotos, setLikedPhotos] = useState(new Set<string>());
+  const [deleteTokens, setDeleteTokens] = useState<Record<string, string>>(() => {
+    // Load delete tokens from localStorage on mount
+    try {
+      const saved = localStorage.getItem(`deleteTokens_${userKey}`);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Save user key to localStorage
+  useEffect(() => {
+    localStorage.setItem('userKey', userKey);
+  }, [userKey]);
+
+  // Save delete tokens to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(`deleteTokens_${userKey}`, JSON.stringify(deleteTokens));
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [deleteTokens, userKey]);
 
   // Query to fetch creators
   const { data: creators = [] } = useQuery<Creator[]>({
     queryKey: ["/api/creators"],
   });
 
-  // Query to fetch trip photos with auto-refresh
-  const { data: tripPhotos = [], isLoading } = useQuery<TripPhoto[]>({
-    queryKey: ["/api/locations", locationId, "trip-photos"],
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
+  // Infinite query for paginated trip photos
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey: ["/api/trip-photos/paginated", locationId],
+    queryFn: async ({ pageParam }) => {
+      const params = new URLSearchParams({
+        limit: '10',
+        ...(locationId && { locationId }),
+        ...(pageParam && { cursor: pageParam }),
+      });
+      
+      const response = await fetch(`/api/trip-photos/paginated?${params}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch photos');
+      }
+      return response.json();
+    },
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialPageParam: undefined as string | undefined,
+    refetchInterval: 60000, // Auto-refresh every minute
   });
 
-  // Simplified direct file upload mutation
+  // Flatten all pages into a single array
+  const tripPhotos = data?.pages.flatMap(page => page.items) || [];
+
+  // Enhanced media upload mutation using new API
   const uploadMutation = useMutation({
-    mutationFn: async ({ file, caption, uploadedBy, creatorId }: { file: File; caption: string; uploadedBy: string; creatorId: string }) => {
+    mutationFn: async ({ file, caption, uploadedBy, creatorId, mediaType }: { 
+      file: File; 
+      caption: string; 
+      uploadedBy: string; 
+      creatorId: string;
+      mediaType: 'image' | 'video';
+    }) => {
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('media', file);
       if (caption) formData.append('caption', caption);
       if (uploadedBy) formData.append('uploadedBy', uploadedBy);
       if (creatorId) formData.append('creatorId', creatorId);
+      formData.append('mediaType', mediaType);
+      if (locationId) formData.append('locationId', locationId);
 
-      const response = await fetch(`/api/locations/${locationId}/trip-photos`, {
+      const response = await fetch('/api/trip-photos/media', {
         method: 'POST',
         body: formData,
       });
@@ -56,12 +116,24 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
       }
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/locations", locationId, "trip-photos"] });
+    onSuccess: (newPhoto) => {
+      // Store delete token locally
+      if (newPhoto.deleteToken) {
+        setDeleteTokens(prev => ({
+          ...prev,
+          [newPhoto.id]: newPhoto.deleteToken
+        }));
+      }
+      
+      // Refetch the first page to include new photo
+      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated", locationId] });
+      refetch();
+      
       setCaption("");
       setName("");
       setSelectedCreatorId("");
       setSelectedFile(null);
+      setMediaType('image');
       if (fileInputRef.current) fileInputRef.current.value = "";
       toast({
         title: "Gepostet!",
@@ -77,45 +149,233 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
     },
   });
 
-  // Enhanced file selection with better validation
+  // Like mutation with proper cache updates
+  const likeMutation = useMutation({
+    mutationFn: async ({ photoId }: { photoId: string }) => {
+      const response = await fetch(`/api/trip-photos/${photoId}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userKey }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to toggle like');
+      }
+      return response.json();
+    },
+    onMutate: async ({ photoId }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/trip-photos/paginated", locationId] });
+      
+      // Optimistic update
+      setLikedPhotos(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(photoId)) {
+          newSet.delete(photoId);
+        } else {
+          newSet.add(photoId);
+        }
+        return newSet;
+      });
+      
+      // Update cache optimistically
+      queryClient.setQueryData(
+        ["/api/trip-photos/paginated", locationId],
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page: any) => ({
+              ...page,
+              items: page.items.map((photo: any) => {
+                if (photo.id === photoId) {
+                  const isLiked = likedPhotos.has(photoId);
+                  return {
+                    ...photo,
+                    likesCount: Math.max(0, (photo.likesCount || 0) + (isLiked ? -1 : 1))
+                  };
+                }
+                return photo;
+              })
+            }))
+          };
+        }
+      );
+    },
+    onSuccess: (result, { photoId }) => {
+      // Update with server response
+      const { liked, likesCount } = result;
+      
+      setLikedPhotos(prev => {
+        const newSet = new Set(prev);
+        if (liked) {
+          newSet.add(photoId);
+        } else {
+          newSet.delete(photoId);
+        }
+        return newSet;
+      });
+      
+      // Update cache with actual server data
+      queryClient.setQueryData(
+        ["/api/trip-photos/paginated", locationId],
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page: any) => ({
+              ...page,
+              items: page.items.map((photo: any) => 
+                photo.id === photoId ? { ...photo, likesCount } : photo
+              )
+            }))
+          };
+        }
+      );
+    },
+    onError: (error, { photoId }) => {
+      // Revert optimistic update
+      setLikedPhotos(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(photoId)) {
+          newSet.delete(photoId);
+        } else {
+          newSet.add(photoId);
+        }
+        return newSet;
+      });
+      
+      // Invalidate and refetch to get correct state
+      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated", locationId] });
+      
+      toast({
+        title: "Fehler",
+        description: "Like konnte nicht gespeichert werden.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async ({ photoId }: { photoId: string }) => {
+      const deleteToken = deleteTokens[photoId];
+      const response = await fetch(`/api/trip-photos/${photoId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deleteToken }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete photo');
+      }
+    },
+    onSuccess: (_, { photoId }) => {
+      // Remove from delete tokens (this will trigger localStorage update via useEffect)
+      setDeleteTokens(prev => {
+        const newTokens = { ...prev };
+        delete newTokens[photoId];
+        return newTokens;
+      });
+      
+      // Update cache by removing the deleted photo
+      queryClient.setQueryData(
+        ["/api/trip-photos/paginated", locationId],
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page: any) => ({
+              ...page,
+              items: page.items.filter((photo: any) => photo.id !== photoId)
+            }))
+          };
+        }
+      );
+      
+      toast({
+        title: "Gelöscht",
+        description: "Ihr Beitrag wurde erfolgreich gelöscht.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Löschen fehlgeschlagen",
+        description: error.message || "Bitte versuchen Sie es erneut.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Infinite scroll hook
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Enhanced file selection with video support
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // File size validation
-      if (file.size > 10485760) { // 10MB
+      // File size validation (50MB for videos, 10MB for images)
+      const maxSize = file.type.startsWith('video/') ? 52428800 : 10485760;
+      if (file.size > maxSize) {
         toast({
           title: "Datei zu groß",
-          description: "Bitte wählen Sie eine Datei unter 10MB.",
+          description: `Bitte wählen Sie eine ${file.type.startsWith('video/') ? 'Video unter 50MB' : 'Bild unter 10MB'}.`,
           variant: "destructive",
         });
         return;
       }
       
       // File type validation
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-      if (!allowedTypes.includes(file.type)) {
+      const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+      const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
+      const allAllowedTypes = [...allowedImageTypes, ...allowedVideoTypes];
+      
+      if (!allAllowedTypes.includes(file.type)) {
         toast({
           title: "Ungültiger Dateityp",
-          description: "Nur JPG, PNG, WebP und GIF Dateien sind erlaubt.",
+          description: "Nur Bilder (JPG, PNG, WebP, GIF) und Videos (MP4, WebM, MOV) sind erlaubt.",
           variant: "destructive",
         });
         return;
       }
       
+      // Set media type based on file
+      const detectedMediaType = file.type.startsWith('video/') ? 'video' : 'image';
+      setMediaType(detectedMediaType);
       setSelectedFile(file);
+      
       toast({
-        title: "Foto ausgewählt",
+        title: `${detectedMediaType === 'video' ? 'Video' : 'Foto'} ausgewählt`,
         description: `${file.name} bereit zum Hochladen.`,
       });
     }
   };
 
-  // Simplified direct upload handler
+  // Enhanced upload handler with media type support
   const handleUpload = async () => {
     if (!selectedFile) {
       toast({
-        title: "Bitte Foto wählen",
-        description: "Wählen Sie ein Foto zum Hochladen aus.",
+        title: `Bitte ${mediaType === 'video' ? 'Video' : 'Foto'} wählen`,
+        description: `Wählen Sie ein ${mediaType === 'video' ? 'Video' : 'Foto'} zum Hochladen aus.`,
         variant: "destructive",
       });
       return;
@@ -128,12 +388,34 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
         caption: caption.trim(),
         uploadedBy: name.trim(),
         creatorId: selectedCreatorId,
+        mediaType,
       });
     } catch (error) {
       // Error handling is already in the mutation
       console.error("Upload error:", error);
     } finally {
       setUploading(false);
+    }
+  };
+
+  // Handle like click
+  const handleLike = async (photoId: string) => {
+    await likeMutation.mutateAsync({ photoId });
+  };
+
+  // Handle delete click
+  const handleDelete = async (photoId: string) => {
+    if (!deleteTokens[photoId]) {
+      toast({
+        title: "Löschen nicht möglich",
+        description: "Sie können nur eigene Beiträge löschen.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (confirm("Möchten Sie diesen Beitrag wirklich löschen?")) {
+      await deleteMutation.mutateAsync({ photoId });
     }
   };
 
@@ -164,17 +446,22 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                 data-testid="large-upload-button"
               >
                 <Upload className="w-8 h-8" />
-                <span className="text-lg font-medium">Foto aus {locationName} hochladen</span>
-                <span className="text-sm text-muted-foreground">JPG, PNG, WebP oder GIF (max. 10MB)</span>
+                <span className="text-lg font-medium">Foto oder Video aus {locationName} hochladen</span>
+                <span className="text-sm text-muted-foreground">Bilder (JPG, PNG, WebP, GIF - max. 10MB) oder Videos (MP4, WebM, MOV - max. 50MB)</span>
               </Button>
             ) : (
               /* File Selected - Show Preview and Details */
               <div className="space-y-4">
                 <div className="flex items-center space-x-3 p-4 bg-green-50 rounded-lg border border-green-200" data-testid="file-preview">
-                  <Image className="w-6 h-6 text-green-600" />
+                  {mediaType === 'video' ? (
+                    <Video className="w-6 h-6 text-green-600" />
+                  ) : (
+                    <Image className="w-6 h-6 text-green-600" />
+                  )}
                   <div className="flex-1">
                     <p className="font-medium text-green-800">{selectedFile.name}</p>
                     <p className="text-sm text-green-600">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                    <p className="text-xs text-green-600">{mediaType === 'video' ? 'Video' : 'Bild'}</p>
                   </div>
                   <Button
                     variant="ghost"
@@ -259,11 +546,11 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
               </div>
             )}
             
-            {/* Hidden File Input */}
+            {/* Hidden File Input - Now supports video */}
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+              accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
               onChange={handleFileSelect}
               className="hidden"
               data-testid="file-input"
@@ -308,6 +595,12 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                         <span className="font-medium text-sm">{photo.uploadedBy}</span>
                       </div>
                     )}
+                    {photo.mediaType === 'video' && (
+                      <div className="flex items-center space-x-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                        <Video className="w-3 h-3" />
+                        <span>Video</span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center space-x-1 text-xs text-muted-foreground" data-testid={`post-time-${photo.id}`}>
                     <Clock className="w-3 h-3" />
@@ -323,8 +616,25 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                 </div>
               )}
 
-              {/* Post Image */}
-              {photo.imageUrl && (
+              {/* Post Media - Image or Video */}
+              {photo.mediaType === 'video' && photo.videoUrl ? (
+                <div className="relative">
+                  <video
+                    src={photo.videoUrl}
+                    poster={photo.thumbnailUrl || undefined}
+                    controls
+                    className="w-full max-h-96"
+                    data-testid={`post-video-${photo.id}`}
+                  >
+                    <source src={photo.videoUrl} type="video/mp4" />
+                    Ihr Browser unterstützt das Video-Element nicht.
+                  </video>
+                  <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded-md text-xs flex items-center space-x-1">
+                    <Video className="w-3 h-3" />
+                    <span>Video</span>
+                  </div>
+                </div>
+              ) : photo.imageUrl && (
                 <div className="relative">
                   <img
                     src={photo.imageUrl}
@@ -334,8 +644,61 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                   />
                 </div>
               )}
+
+              {/* Post Actions - Like and Delete */}
+              <div className="p-3 pt-2 border-t border-border/50">
+                <div className="flex items-center justify-between">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleLike(photo.id)}
+                    className={`flex items-center space-x-2 ${
+                      likedPhotos.has(photo.id) ? 'text-red-500' : 'text-muted-foreground'
+                    }`}
+                    data-testid={`like-button-${photo.id}`}
+                  >
+                    <Heart 
+                      className={`w-4 h-4 ${likedPhotos.has(photo.id) ? 'fill-current' : ''}`} 
+                    />
+                    <span>{photo.likesCount || 0}</span>
+                  </Button>
+                  
+                  {deleteTokens[photo.id] && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(photo.id)}
+                      className="text-muted-foreground hover:text-red-500"
+                      data-testid={`delete-button-${photo.id}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
             </Card>
           ))}
+          
+          {/* Infinite Scroll Trigger */}
+          <div ref={loadMoreRef} className="flex justify-center p-4">
+            {isFetchingNextPage ? (
+              <div className="flex items-center space-x-2 text-muted-foreground">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                <span className="text-sm">Lade weitere Beiträge...</span>
+              </div>
+            ) : hasNextPage ? (
+              <Button
+                variant="outline"
+                onClick={() => fetchNextPage()}
+                className="text-sm"
+                data-testid="load-more-button"
+              >
+                Weitere Beiträge laden
+              </Button>
+            ) : tripPhotos.length > 0 ? (
+              <p className="text-sm text-muted-foreground">Alle Beiträge geladen</p>
+            ) : null}
+          </div>
         </div>
       )}
     </div>
