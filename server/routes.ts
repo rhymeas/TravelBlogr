@@ -38,7 +38,7 @@ const upload = multer({
 // Configure multer for media uploads (images and videos)
 const mediaUpload = multer({
   limits: {
-    fileSize: 52428800, // 50MB max file size for videos, 10MB for images (validated in handler)
+    // No file size limit for video uploads
   },
   fileFilter: (req, file, cb) => {
     // Check file type for both images and videos
@@ -612,7 +612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
       const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
       const maxImageSize = 10 * 1024 * 1024; // 10MB
-      const maxVideoSize = 50 * 1024 * 1024; // 50MB
+      // No size limit for videos
       
       if (mediaType === 'video') {
         if (!allowedVideoTypes.includes(mediaFile.mimetype)) {
@@ -620,11 +620,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             error: "Ungültiger Videotyp. Erlaubte Formate: MP4, WebM, MOV" 
           });
         }
-        if (mediaFile.size > maxVideoSize) {
-          return res.status(413).json({ 
-            error: "Video ist zu groß. Maximale Größe: 50MB" 
-          });
-        }
+        // No file size validation for videos - upload any size
       } else if (mediaType === 'image') {
         if (!allowedImageTypes.includes(mediaFile.mimetype)) {
           return res.status(400).json({ 
