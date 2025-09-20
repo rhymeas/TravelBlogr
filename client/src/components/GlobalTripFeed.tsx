@@ -11,14 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 import type { TripPhoto, Creator, Location } from "@shared/schema";
 
 export default function GlobalTripFeed() {
-  const [caption, setCaption] = useState("");
-  const [name, setName] = useState("");
-  const [selectedCreatorId, setSelectedCreatorId] = useState<string>("");
-  const [selectedLocationId, setSelectedLocationId] = useState<string>("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
-  const [uploading, setUploading] = useState(false);
-  const [showUploadForm, setShowUploadForm] = useState(false);
   const [userKey] = useState(() => localStorage.getItem('userKey') || `user_${Date.now()}_${Math.random()}`);
   const [likedPhotos, setLikedPhotos] = useState(new Set<string>());
   const [deleteTokens, setDeleteTokens] = useState<Record<string, string>>(() => {
@@ -30,7 +22,6 @@ export default function GlobalTripFeed() {
       return {};
     }
   });
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -88,117 +79,6 @@ export default function GlobalTripFeed() {
   // Flatten the paginated data
   const tripPhotos = data?.pages.flatMap(page => page.items) || [];
 
-  // File selection handler
-  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type and size
-    const isImage = file.type.startsWith('image/');
-    const isVideo = file.type.startsWith('video/');
-    
-    if (!isImage && !isVideo) {
-      toast({
-        title: "Ungültiger Dateityp",
-        description: "Bitte wählen Sie ein Bild oder Video aus.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024; // 50MB for video, 10MB for image
-    if (file.size > maxSize) {
-      toast({
-        title: "Datei zu groß",
-        description: `${isVideo ? 'Videos' : 'Bilder'} dürfen maximal ${isVideo ? '50' : '10'}MB groß sein.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSelectedFile(file);
-    setMediaType(isVideo ? 'video' : 'image');
-  }, [toast]);
-
-  // Upload mutation
-  const uploadMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedFile) throw new Error('Keine Datei ausgewählt');
-      
-      const formData = new FormData();
-      formData.append('media', selectedFile);
-      formData.append('caption', caption);
-      formData.append('name', name);
-      formData.append('mediaType', mediaType);
-      if (selectedCreatorId) formData.append('creatorId', selectedCreatorId);
-      if (selectedLocationId) formData.append('locationId', selectedLocationId);
-
-      const response = await fetch('/api/trip-photos', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Upload fehlgeschlagen');
-      }
-
-      return response.json();
-    },
-    onSuccess: (result) => {
-      // Store delete token
-      if (result.deleteToken && result.id) {
-        setDeleteTokens(prev => ({
-          ...prev,
-          [result.id]: result.deleteToken
-        }));
-      }
-
-      // Clear form
-      setSelectedFile(null);
-      setCaption('');
-      setName('');
-      setSelectedCreatorId('');
-      setSelectedLocationId('');
-      setShowUploadForm(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated", "global"] });
-
-      toast({
-        title: "Hochgeladen!",
-        description: "Ihr Beitrag wurde erfolgreich geteilt.",
-      });
-
-      // Auto-redirect to news feed after upload
-      window.location.href = '/live-feed';
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Upload fehlgeschlagen",
-        description: error.message || "Bitte versuchen Sie es erneut.",
-        variant: "destructive",
-      });
-    },
-    onSettled: () => {
-      setUploading(false);
-    },
-  });
-
-  const handleUpload = () => {
-    if (!selectedFile) return;
-    if (!selectedCreatorId) {
-      toast({
-        title: "Creator auswählen",
-        description: "Bitte wählen Sie aus, wer diesen Beitrag postet.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setUploading(true);
-    uploadMutation.mutate();
-  };
 
   // Like mutation
   const likeMutation = useMutation({
@@ -405,138 +285,6 @@ export default function GlobalTripFeed() {
 
   return (
     <div className="space-y-4" data-testid="global-trip-feed">
-      {/* Upload Button */}
-      <Card className="p-4" data-testid="upload-area">
-        <Button
-          variant="outline"
-          onClick={() => setShowUploadForm(!showUploadForm)}
-          className="w-full h-16 border-2 border-dashed border-blue-300 hover:border-blue-400 hover:bg-blue-50 flex items-center justify-center space-x-2 text-blue-600"
-          data-testid="toggle-upload-form"
-        >
-          <Upload className="w-6 h-6" />
-          <span className="text-lg font-medium">Foto oder Video hochladen</span>
-        </Button>
-
-        {/* Upload Form */}
-        {showUploadForm && (
-          <div className="mt-4 space-y-4 p-4 border border-border rounded-lg bg-muted/20">
-            {!selectedFile ? (
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full h-12 border-dashed"
-                data-testid="select-file-button"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Datei auswählen
-              </Button>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                  {mediaType === 'video' ? (
-                    <Video className="w-5 h-5 text-green-600" />
-                  ) : (
-                    <Image className="w-5 h-5 text-green-600" />
-                  )}
-                  <div className="flex-1">
-                    <p className="font-medium text-green-800">{selectedFile.name}</p>
-                    <p className="text-sm text-green-600">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedFile(null);
-                      if (fileInputRef.current) fileInputRef.current.value = "";
-                    }}
-                    className="text-green-700"
-                  >
-                    ×
-                  </Button>
-                </div>
-
-                {/* Creator Selection */}
-                <Select value={selectedCreatorId} onValueChange={setSelectedCreatorId}>
-                  <SelectTrigger data-testid="creator-select">
-                    <SelectValue placeholder="Wer postet dieses Foto?" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {creators.map((creator) => (
-                      <SelectItem key={creator.id} value={creator.id}>
-                        {creator.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {/* Location Selection */}
-                <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
-                  <SelectTrigger data-testid="location-select">
-                    <SelectValue placeholder="Ort (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Kein Ort</SelectItem>
-                    {locations.map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
-                        {location.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {/* Caption Input */}
-                <Textarea
-                  placeholder="Beschreibung..."
-                  value={caption}
-                  onChange={(e) => setCaption(e.target.value)}
-                  rows={3}
-                  maxLength={500}
-                  data-testid="post-caption-input"
-                />
-
-                {/* Action Buttons */}
-                <div className="flex space-x-3">
-                  <Button
-                    onClick={handleUpload}
-                    disabled={uploading || !selectedFile || !selectedCreatorId}
-                    className="flex-1"
-                    data-testid="post-upload-button"
-                  >
-                    {uploading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Hochladen...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-4 h-4 mr-2" />
-                        Posten
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowUploadForm(false)}
-                    data-testid="cancel-upload"
-                  >
-                    Abbrechen
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Hidden File Input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
-              onChange={handleFileSelect}
-              className="hidden"
-              data-testid="file-input"
-            />
-          </div>
-        )}
-      </Card>
 
       {/* Feed Title */}
       <div className="flex items-center space-x-2 px-1" data-testid="feed-title">

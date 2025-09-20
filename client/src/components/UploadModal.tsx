@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Camera, Upload, X } from "lucide-react";
+import { Camera, Upload, X, Video, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +21,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [selectedLocationId, setSelectedLocationId] = useState<string>("general");
   const [selectedCreatorId, setSelectedCreatorId] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -39,7 +40,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const uploadMutation = useMutation({
     mutationFn: async ({ file, caption, uploadedBy, locationId, creatorId }: { file: File; caption: string; uploadedBy: string; locationId?: string; creatorId?: string }) => {
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('media', file); // Use 'media' key to support both images and videos
       formData.append('caption', caption || ''); // Always append caption, even if empty
       if (uploadedBy) formData.append('uploadedBy', uploadedBy);
       if (locationId) formData.append('locationId', locationId);
@@ -58,12 +59,12 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/trip-photos"] });
-      resetForm();
-      onClose();
-      toast({
-        title: "Erfolgreich geteilt",
-        description: "Dein Foto wurde im Feed gepostet.",
-      });
+      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated", "global"] });
+      // Auto-redirect to news feed after upload
+      window.location.href = '/live-feed';
+    },
+    onSettled: () => {
+      setUploading(false);
     },
     onError: (error: Error) => {
       toast({
@@ -81,34 +82,40 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     setSelectedLocationId("general");
     setSelectedCreatorId("");
     setSelectedFile(null);
+    setMediaType('image');
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   // File selection handler
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 10485760) { // 10MB
-        toast({
-          title: "Datei zu groß",
-          description: "Bitte wählen Sie eine Datei unter 10MB.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-      if (!allowedTypes.includes(file.type)) {
-        toast({
-          title: "Ungültiger Dateityp",
-          description: "Nur JPG, PNG, WebP und GIF Dateien sind erlaubt.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      setSelectedFile(file);
+    if (!file) return;
+
+    // Validate file type and size
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    
+    if (!isImage && !isVideo) {
+      toast({
+        title: "Ungültiger Dateityp",
+        description: "Bitte wählen Sie ein Bild oder Video aus.",
+        variant: "destructive",
+      });
+      return;
     }
+
+    const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024; // 50MB for video, 10MB for image
+    if (file.size > maxSize) {
+      toast({
+        title: "Datei zu groß",
+        description: `${isVideo ? 'Videos' : 'Bilder'} dürfen maximal ${isVideo ? '50' : '10'}MB groß sein.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+    setMediaType(isVideo ? 'video' : 'image');
   };
 
   // Handle modal close
@@ -121,8 +128,8 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const handleUpload = async () => {
     if (!selectedFile) {
       toast({
-        title: "Kein Foto ausgewählt",
-        description: "Bitte wählen Sie ein Foto aus.",
+        title: "Keine Datei ausgewählt",
+        description: "Bitte wählen Sie ein Bild oder Video aus.",
         variant: "destructive",
       });
       return;
@@ -132,7 +139,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     if (!selectedCreatorId) {
       toast({
         title: "Person auswählen",
-        description: "Bitte wählen Sie aus, wer das Foto hochlädt.",
+        description: "Bitte wählen Sie aus, wer die Datei hochlädt.",
         variant: "destructive",
       });
       return;
@@ -167,7 +174,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+        accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
         onChange={handleFileSelect}
         className="hidden"
       />
@@ -176,9 +183,9 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-md" data-testid="upload-modal">
           <DialogHeader>
-            <DialogTitle>Foto teilen</DialogTitle>
+            <DialogTitle>Foto oder Video teilen</DialogTitle>
             <DialogDescription>
-              Teilen Sie Ihr Foto mit der Gruppe und fügen Sie optional eine Beschreibung hinzu.
+              Teilen Sie Ihr Foto oder Video mit der Gruppe und fügen Sie optional eine Beschreibung hinzu.
             </DialogDescription>
           </DialogHeader>
           
@@ -189,10 +196,10 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                 <div className="text-center">
                   <Camera className="w-12 h-12 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                    Foto auswählen
+                    Foto oder Video auswählen
                   </h3>
                   <p className="text-gray-500 text-sm mb-4">
-                    JPG, PNG, WebP oder GIF bis zu 10MB
+                    Bilder (JPG, PNG, WebP, GIF) bis 10MB oder Videos (MP4, WebM, MOV) bis 50MB
                   </p>
                   <Button
                     onClick={() => fileInputRef.current?.click()}
@@ -209,7 +216,14 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
               <>
                 {/* Selected file preview */}
                 <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 flex items-center justify-between">
-                  <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{selectedFile.name}</span>
+                  <div className="flex items-center space-x-2">
+                    {mediaType === 'video' ? (
+                      <Video className="w-4 h-4 text-blue-600" />
+                    ) : (
+                      <Image className="w-4 h-4 text-green-600" />
+                    )}
+                    <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{selectedFile.name}</span>
+                  </div>
                   <button
                     onClick={() => setSelectedFile(null)}
                     className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -223,7 +237,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                 <div className="space-y-3">
                   {/* Creator Selection - Required */}
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Wer lädt das Foto hoch? *</label>
+                    <label className="text-sm font-medium mb-2 block">Wer lädt die Datei hoch? *</label>
                     <Select value={selectedCreatorId} onValueChange={setSelectedCreatorId}>
                       <SelectTrigger className="border-gray-300 dark:border-gray-700" data-testid="creator-dropdown">
                         <SelectValue placeholder="Bitte wählen Sie eine Person aus" />
