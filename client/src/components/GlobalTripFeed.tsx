@@ -17,7 +17,7 @@ export default function GlobalTripFeed() {
   const [caption, setCaption] = useState("");
   const [name, setName] = useState("");
   const [selectedCreatorId, setSelectedCreatorId] = useState<string>("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   
@@ -101,25 +101,44 @@ export default function GlobalTripFeed() {
   // Flatten the paginated data
   const tripPhotos = data?.pages.flatMap(page => page.items) || [];
 
-  // Upload mutation
+  // Upload mutation with batch support and EXIF data
   const uploadMutation = useMutation({
-    mutationFn: async ({ file, caption, uploadedBy, creatorId, mediaType, locationId }: { 
-      file: File; 
+    mutationFn: async ({ files, caption, uploadedBy, creatorId, locationId }: { 
+      files: File[]; 
       caption: string; 
       uploadedBy: string; 
       creatorId: string;
-      mediaType: 'image' | 'video';
       locationId: string;
     }) => {
+      // Extract EXIF data for proper date sorting
+      let exifData: Record<number, string> = {};
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.type.startsWith('image/')) {
+          try {
+            const exifr = await import('exifr');
+            const parsed = await exifr.parse(file);
+            const dateTime = parsed?.DateTimeOriginal || parsed?.DateTime || parsed?.CreateDate;
+            if (dateTime && dateTime instanceof Date) {
+              exifData[i] = dateTime.toISOString();
+            }
+          } catch (error) {
+            console.warn('Failed to extract EXIF data from', file.name, error);
+          }
+        }
+      }
+
       const formData = new FormData();
-      formData.append('media', file);
+      files.forEach(file => formData.append('media', file));
       if (caption) formData.append('caption', caption);
       if (uploadedBy) formData.append('uploadedBy', uploadedBy);
       if (creatorId) formData.append('creatorId', creatorId);
-      formData.append('mediaType', mediaType);
       if (locationId) formData.append('locationId', locationId);
+      if (Object.keys(exifData).length > 0) {
+        formData.append('exifData', JSON.stringify(exifData));
+      }
 
-      const response = await fetch('/api/trip-photos/media', {
+      const response = await fetch('/api/trip-photos/media-batch', {
         method: 'POST',
         body: formData,
       });
@@ -130,13 +149,16 @@ export default function GlobalTripFeed() {
       }
       return response.json();
     },
-    onSuccess: (newPhoto) => {
-      // Store delete token locally
-      if (newPhoto.deleteToken) {
-        setDeleteTokens(prev => ({
-          ...prev,
-          [newPhoto.id]: newPhoto.deleteToken
-        }));
+    onSuccess: (result) => {
+      // Store delete tokens locally for batch uploads
+      if (result.files) {
+        const newTokens: Record<string, string> = {};
+        result.files.forEach((file: any) => {
+          if (file.deleteToken) {
+            newTokens[file.id] = file.deleteToken;
+          }
+        });
+        setDeleteTokens(prev => ({ ...prev, ...newTokens }));
       }
       
       // Invalidate queries to refresh feed
@@ -147,14 +169,15 @@ export default function GlobalTripFeed() {
       setName("");
       setSelectedCreatorId("");
       setSelectedLocationId("");
-      setSelectedFile(null);
+      setSelectedFiles([]);
       setMediaType('image');
       if (fileInputRef.current) fileInputRef.current.value = "";
       setShowUploadModal(false);
       
+      const fileCount = result.files?.length || 1;
       toast({
         title: "Gepostet!",
-        description: "Ihr Beitrag wurde erfolgreich geteilt.",
+        description: `${fileCount === 1 ? 'Ihr Beitrag' : `${fileCount} Dateien`} wurde(n) erfolgreich geteilt.`,
       });
     },
     onError: (error: Error) => {
@@ -402,50 +425,72 @@ export default function GlobalTripFeed() {
 
   // File handling functions
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // File size validation (videos have no limit, images 10MB)
-      const maxSize = file.type.startsWith('video/') ? Number.MAX_SAFE_INTEGER : 10485760; // 10MB for images
-      if (file.size > maxSize) {
-        toast({
-          title: "Datei zu groß",
-          description: `Bitte wählen Sie ein ${file.type.startsWith('video/') ? 'kleineres Video' : 'Bild unter 10MB'}.`,
-          variant: "destructive",
-        });
-        return;
-      }
-      
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const validFiles: File[] = [];
+    let hasVideo = false;
+    let hasImage = false;
+
+    // Validate each file
+    for (const file of files) {
       // File type validation
       const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
       const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
-      const allAllowedTypes = [...allowedImageTypes, ...allowedVideoTypes];
+      const isImage = allowedImageTypes.includes(file.type);
+      const isVideo = allowedVideoTypes.includes(file.type);
       
-      if (!allAllowedTypes.includes(file.type)) {
+      if (!isImage && !isVideo) {
         toast({
           title: "Ungültiger Dateityp",
-          description: "Nur Bilder (JPG, PNG, WebP, GIF) und Videos (MP4, WebM, MOV) sind erlaubt.",
+          description: `Datei ${file.name}: Nur Bilder (JPG, PNG, WebP, GIF) und Videos (MP4, WebM, MOV) sind erlaubt.`,
           variant: "destructive",
         });
-        return;
+        continue;
       }
-      
-      // Set media type based on file
-      const detectedMediaType = file.type.startsWith('video/') ? 'video' : 'image';
-      setMediaType(detectedMediaType);
-      setSelectedFile(file);
-      
-      toast({
-        title: `${detectedMediaType === 'video' ? 'Video' : 'Foto'} ausgewählt`,
-        description: `${file.name} bereit zum Hochladen.`,
-      });
+
+      // File size validation
+      const maxSize = isVideo ? 52428800 : 10485760; // 50MB for videos, 10MB for images
+      if (file.size > maxSize) {
+        toast({
+          title: "Datei zu groß",
+          description: `${file.name}: ${isVideo ? 'Videos unter 50MB' : 'Bilder unter 10MB'} erlaubt.`,
+          variant: "destructive",
+        });
+        continue;
+      }
+
+      if (isVideo) hasVideo = true;
+      if (isImage) hasImage = true;
+      validFiles.push(file);
     }
+
+    if (validFiles.length === 0) return;
+
+    // Don't allow mixing videos and images
+    if (hasVideo && hasImage) {
+      toast({
+        title: "Medientyp mischen nicht erlaubt",
+        description: "Bitte laden Sie entweder nur Bilder oder nur Videos gleichzeitig hoch.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFiles(validFiles);
+    setMediaType(hasVideo ? 'video' : 'image');
+    
+    toast({
+      title: `${validFiles.length} ${hasVideo ? 'Video(s)' : 'Foto(s)'} ausgewählt`,
+      description: `${validFiles.length === 1 ? 'Datei' : 'Dateien'} bereit zum Hochladen.`,
+    });
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) {
+    if (selectedFiles.length === 0) {
       toast({
-        title: `Bitte ${mediaType === 'video' ? 'Video' : 'Foto'} wählen`,
-        description: `Wählen Sie ein ${mediaType === 'video' ? 'Video' : 'Foto'} zum Hochladen aus.`,
+        title: `Bitte ${mediaType === 'video' ? 'Video(s)' : 'Foto(s)'} wählen`,
+        description: `Wählen Sie ${mediaType === 'video' ? 'Video(s)' : 'Foto(s)'} zum Hochladen aus.`,
         variant: "destructive",
       });
       return;
@@ -461,11 +506,10 @@ export default function GlobalTripFeed() {
     }
 
     uploadMutation.mutate({
-      file: selectedFile,
+      files: selectedFiles,
       caption: caption.trim(),
       uploadedBy: name.trim(),
       creatorId: selectedCreatorId,
-      mediaType,
       locationId: selectedLocationId,
     });
   };
@@ -587,19 +631,17 @@ export default function GlobalTripFeed() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="z-50">
-                          {photo.caption && (
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setEditingPost(photo.id);
-                                setEditCaption(photo.caption || "");
-                              }}
-                              className="text-blue-600 hover:text-blue-700 cursor-pointer"
-                              data-testid={`edit-menu-item-${photo.id}`}
-                            >
-                              <Edit className="w-4 h-4 mr-2" />
-                              Bearbeiten
-                            </DropdownMenuItem>
-                          )}
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setEditingPost(photo.id);
+                              setEditCaption(photo.caption || "");
+                            }}
+                            className="text-blue-600 hover:text-blue-700 cursor-pointer"
+                            data-testid={`edit-menu-item-${photo.id}`}
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Bearbeiten
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleDelete(photo.id)}
                             className="text-red-600 hover:text-red-700 cursor-pointer"
@@ -734,7 +776,8 @@ export default function GlobalTripFeed() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*,video/*"
+                  multiple
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
                   onChange={handleFileSelect}
                   className="hidden"
                   data-testid="file-input"
@@ -748,13 +791,15 @@ export default function GlobalTripFeed() {
                   <div className="flex flex-col items-center space-y-2">
                     {mediaType === 'video' ? <Video className="w-8 h-8" /> : <Image className="w-8 h-8" />}
                     <span className="text-sm">
-                      {selectedFile ? selectedFile.name : `${mediaType === 'video' ? 'Video' : 'Foto'} auswählen`}
+                      {selectedFiles.length > 0 ? 
+                        (selectedFiles.length === 1 ? selectedFiles[0].name : `${selectedFiles.length} Dateien`) : 
+                        `${mediaType === 'video' ? 'Video' : 'Foto'} auswählen`}
                     </span>
                   </div>
                 </Button>
               </div>
               
-              {selectedFile && (
+              {selectedFiles.length > 0 && (
                 <div className="space-y-3">
                   {/* Location Selection */}
                   <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
