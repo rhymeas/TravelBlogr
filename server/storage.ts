@@ -696,7 +696,7 @@ export class MemStorage implements IStorage {
     return Array.from(this.tripPhotos.values())
       .filter(photo => photo.locationId === locationId)
       .sort((a, b) => {
-        // Use takenAt (EXIF data) as primary sort, fallback to uploadedAt
+        // Within same location, sort by takenAt (EXIF) then uploadedAt
         const dateA = a.takenAt || a.uploadedAt || new Date(0);
         const dateB = b.takenAt || b.uploadedAt || new Date(0);
         return new Date(dateB).getTime() - new Date(dateA).getTime();
@@ -706,7 +706,18 @@ export class MemStorage implements IStorage {
   async getAllTripPhotos(): Promise<TripPhoto[]> {
     return Array.from(this.tripPhotos.values())
       .sort((a, b) => {
-        // Use takenAt (EXIF data) as primary sort, fallback to uploadedAt
+        // Get location start dates for tour ordering
+        const locationA = Array.from(this.locations.values()).find(loc => loc.id === a.locationId);
+        const locationB = Array.from(this.locations.values()).find(loc => loc.id === b.locationId);
+        
+        const startDateA = locationA?.startDate ? new Date(locationA.startDate) : new Date(0);
+        const startDateB = locationB?.startDate ? new Date(locationB.startDate) : new Date(0);
+        
+        // First sort by location tour order (later locations on top)
+        const locationOrder = startDateB.getTime() - startDateA.getTime();
+        if (locationOrder !== 0) return locationOrder;
+        
+        // Within same location, sort by takenAt (EXIF) then uploadedAt
         const dateA = a.takenAt || a.uploadedAt || new Date(0);
         const dateB = b.takenAt || b.uploadedAt || new Date(0);
         return new Date(dateB).getTime() - new Date(dateA).getTime(); // Most recent first
@@ -746,8 +757,20 @@ export class MemStorage implements IStorage {
       photos = photos.filter(photo => photo.locationId === locationId);
     }
     
-    // Sort by takenAt (EXIF data) descending, fallback to uploadedAt (most recent first)
+    // Sort by location tour order (startDate), then by takenAt/uploadedAt within location
     photos.sort((a, b) => {
+      // Get location start dates for tour ordering
+      const locationA = Array.from(this.locations.values()).find(loc => loc.id === a.locationId);
+      const locationB = Array.from(this.locations.values()).find(loc => loc.id === b.locationId);
+      
+      const startDateA = locationA?.startDate ? new Date(locationA.startDate) : new Date(0);
+      const startDateB = locationB?.startDate ? new Date(locationB.startDate) : new Date(0);
+      
+      // First sort by location tour order (later locations on top)
+      const locationOrder = startDateB.getTime() - startDateA.getTime();
+      if (locationOrder !== 0) return locationOrder;
+      
+      // Within same location, sort by takenAt (EXIF) then uploadedAt
       const dateA = a.takenAt || a.uploadedAt || new Date(0);
       const dateB = b.takenAt || b.uploadedAt || new Date(0);
       return new Date(dateB).getTime() - new Date(dateA).getTime();
@@ -1489,10 +1512,18 @@ export class DatabaseStorage implements IStorage {
       ) as any;
     }
     
-    // Order by takenAt (EXIF data) descending, fallback to uploadedAt, then by ID
-    const result = await query
-      .orderBy(sql`COALESCE(${tripPhotos.takenAt}, ${tripPhotos.uploadedAt}) DESC`, desc(tripPhotos.id))
+    // Order by location tour order (startDate) descending, then by takenAt/uploadedAt, then by ID
+    const resultWithLocation = await query
+      .leftJoin(locations, eq(tripPhotos.locationId, locations.id))
+      .orderBy(
+        sql`COALESCE(${locations.startDate}, '1900-01-01') DESC`,
+        sql`COALESCE(${tripPhotos.takenAt}, ${tripPhotos.uploadedAt}) DESC`, 
+        desc(tripPhotos.id)
+      )
       .limit(limit + 1); // Get one extra to determine if there's a next page
+    
+    // Extract trip photos from joined result
+    const result = resultWithLocation.map(row => row.trip_photos);
     
     // Check if there are more items
     const hasMore = result.length > limit;
