@@ -696,18 +696,20 @@ export class MemStorage implements IStorage {
     return Array.from(this.tripPhotos.values())
       .filter(photo => photo.locationId === locationId)
       .sort((a, b) => {
-        const dateA = a.uploadedAt ? new Date(a.uploadedAt).getTime() : 0;
-        const dateB = b.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
-        return dateB - dateA;
+        // Use takenAt (EXIF data) as primary sort, fallback to uploadedAt
+        const dateA = a.takenAt || a.uploadedAt || new Date(0);
+        const dateB = b.takenAt || b.uploadedAt || new Date(0);
+        return new Date(dateB).getTime() - new Date(dateA).getTime();
       });
   }
 
   async getAllTripPhotos(): Promise<TripPhoto[]> {
     return Array.from(this.tripPhotos.values())
       .sort((a, b) => {
-        const dateA = a.uploadedAt ? new Date(a.uploadedAt).getTime() : 0;
-        const dateB = b.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
-        return dateB - dateA; // Most recent first
+        // Use takenAt (EXIF data) as primary sort, fallback to uploadedAt
+        const dateA = a.takenAt || a.uploadedAt || new Date(0);
+        const dateB = b.takenAt || b.uploadedAt || new Date(0);
+        return new Date(dateB).getTime() - new Date(dateA).getTime(); // Most recent first
       });
   }
 
@@ -744,11 +746,11 @@ export class MemStorage implements IStorage {
       photos = photos.filter(photo => photo.locationId === locationId);
     }
     
-    // Sort by uploadedAt desc (most recent first)
+    // Sort by takenAt (EXIF data) descending, fallback to uploadedAt (most recent first)
     photos.sort((a, b) => {
-      const dateA = a.uploadedAt ? new Date(a.uploadedAt).getTime() : 0;
-      const dateB = b.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
-      return dateB - dateA;
+      const dateA = a.takenAt || a.uploadedAt || new Date(0);
+      const dateB = b.takenAt || b.uploadedAt || new Date(0);
+      return new Date(dateB).getTime() - new Date(dateA).getTime();
     });
     
     // Apply cursor pagination
@@ -1487,9 +1489,9 @@ export class DatabaseStorage implements IStorage {
       ) as any;
     }
     
-    // Order and limit
+    // Order by takenAt (EXIF data) descending, fallback to uploadedAt, then by ID
     const result = await query
-      .orderBy(desc(tripPhotos.uploadedAt), desc(tripPhotos.id))
+      .orderBy(sql`COALESCE(${tripPhotos.takenAt}, ${tripPhotos.uploadedAt}) DESC`, desc(tripPhotos.id))
       .limit(limit + 1); // Get one extra to determine if there's a next page
     
     // Check if there are more items

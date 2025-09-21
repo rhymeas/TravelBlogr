@@ -535,7 +535,7 @@ export default function GlobalTripFeed() {
     setName("");
     setSelectedCreatorId("");
     setSelectedLocationId("");
-    setSelectedFile(null);
+    setSelectedFiles([]);
     setMediaType('image');
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -656,12 +656,6 @@ export default function GlobalTripFeed() {
                 </div>
               </div>
 
-              {/* Post Caption */}
-              {photo.caption && (
-                <div className="px-3 pb-2">
-                  <p className="text-sm" data-testid={`post-caption-${photo.id}`}>{photo.caption}</p>
-                </div>
-              )}
 
               {/* Post Media - Image or Video */}
               {photo.mediaType === 'video' && photo.videoUrl ? (
@@ -706,6 +700,13 @@ export default function GlobalTripFeed() {
                       <Maximize2 className="w-6 h-6 text-black dark:text-white" />
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Post Caption - Now Below Media */}
+              {photo.caption && (
+                <div className="px-3 pb-2">
+                  <p className="text-sm" data-testid={`post-caption-${photo.id}`}>{photo.caption}</p>
                 </div>
               )}
 
