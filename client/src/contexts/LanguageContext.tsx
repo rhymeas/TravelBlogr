@@ -12,6 +12,10 @@ interface Translations {
 const translations: Translations = {
   // Header and Navigation
   'liveFeed': { de: 'Live Feed', en: 'Live Feed' },
+  'homepage': { de: 'Startseite', en: 'Home' },
+  'navItinerary': { de: 'Reiseverlauf', en: 'Itinerary' },
+  'navEdit': { de: 'Editieren', en: 'Edit' },
+  'language': { de: 'Sprache', en: 'Language' },
   
   // Home Page Stats
   'travelDays': { de: 'Reisetage', en: 'Travel Days' },

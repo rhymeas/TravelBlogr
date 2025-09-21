@@ -6,9 +6,12 @@ import LocationCard from "@/components/LocationCard";
 import Header from "@/components/Header";
 import { Lightbox } from "@/components/Lightbox";
 import { Link } from "wouter";
+import { useLanguage } from "@/contexts/LanguageContext";
 import type { Location, TourSettings, ScenicContent } from "@shared/schema";
 
 export default function Home() {
+  const { t } = useLanguage();
+  
   // Lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -85,21 +88,21 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div className="animate-fade-in" data-testid="stat-days">
               <div className="text-3xl font-bold text-primary mb-2">17</div>
-              <div className="text-muted-foreground">Reisetage</div>
+              <div className="text-muted-foreground">{t('travelDays')}</div>
             </div>
             <div className="animate-fade-in" data-testid="stat-destinations">
               <div className="text-3xl font-bold text-primary mb-2">{locations?.length || 7}</div>
-              <div className="text-muted-foreground">Reiseziele</div>
+              <div className="text-muted-foreground">{t('destinations')}</div>
             </div>
             <div className="animate-fade-in" data-testid="stat-distance">
               <div className="text-3xl font-bold text-primary mb-2">
                 {tourSettings?.totalDistance?.toLocaleString('de-DE') || '2.130'}
               </div>
-              <div className="text-muted-foreground">Kilometer</div>
+              <div className="text-muted-foreground">{t('kilometers')}</div>
             </div>
             <div className="animate-fade-in" data-testid="stat-memories">
               <div className="text-3xl font-bold text-primary mb-2">∞</div>
-              <div className="text-muted-foreground">Erinnerungen</div>
+              <div className="text-muted-foreground">{t('memories')}</div>
             </div>
           </div>
         </div>
@@ -109,9 +112,9 @@ export default function Home() {
       <section id="timeline" className="py-20 bg-background" data-testid="timeline-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Unser Reiseverlauf</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">{t('ourItinerary')}</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Eine sorgfältig geplante Reise durch die schönsten Regionen Westkanadas
+              {t('itineraryDescription')}
             </p>
           </div>
           <Timeline locations={locations || []} />
@@ -123,10 +126,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              {scenicContent?.title || "Spektakuläre Landschaften erwarten uns"}
+              {scenicContent?.title || t('spectacularLandscapes')}
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              {scenicContent?.subtitle || "Von den türkisfarbenen Seen des Okanagan-Tals bis zu den majestätischen Gipfeln der Rocky Mountains - jeder Ort ist ein Fotomotiv"}
+              {scenicContent?.subtitle || t('landscapeDescription')}
             </p>
           </div>
 
@@ -201,10 +204,10 @@ export default function Home() {
               <h3 className="text-xl font-semibold">{tourSettings?.tourName || "Weinberg Tour 2025"}</h3>
             </div>
             <p className="text-background/80 mb-6">
-              {tourSettings?.description || "Eine unvergessliche Reise durch Westkanada"}
+              {tourSettings?.description || t('unforgettableJourney')}
             </p>
             <div className="text-background/60 text-sm">
-              {tourSettings?.startDate} - {tourSettings?.endDate} • {locations?.length} Destinationen • {tourSettings?.totalDistance?.toLocaleString('de-DE')} km
+              {tourSettings?.startDate} - {tourSettings?.endDate} • {locations?.length} {t('destinations')} • {tourSettings?.totalDistance?.toLocaleString('de-DE')} km
             </div>
           </div>
         </div>

@@ -8,7 +8,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 export default function Header() {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
 
   // Fetch tour settings to get the current tour name
   const { data: tourSettings } = useQuery<TourSettings>({
@@ -53,15 +53,15 @@ export default function Header() {
 
   // Create navigation links with context-aware Reiseverlauf on home page
   const baseNavLinks = [
-    { href: "/", label: "Startseite", icon: Home, type: "link" },
+    { href: "/", label: t('homepage'), icon: Home, type: "link" },
   ];
 
   const homePageScrollLinks = location === "/" ? [
-    { href: "#timeline", label: "Reiseverlauf", icon: Map, type: "scroll", scrollTarget: "timeline" },
+    { href: "#timeline", label: t('navItinerary'), icon: Map, type: "scroll", scrollTarget: "timeline" },
   ] : [];
 
   const otherNavLinks = [
-    { href: "/admin", label: "Editieren", icon: Settings, type: "link" },
+    { href: "/admin", label: t('navEdit'), icon: Settings, type: "link" },
   ];
 
   const navLinks = [...baseNavLinks, ...homePageScrollLinks, ...otherNavLinks];
@@ -141,10 +141,10 @@ export default function Header() {
                   : "text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
               }`}
               data-testid="mobile-live-feed-button"
-              aria-label="Live Feed"
+              aria-label={t('liveFeed')}
             >
               <Camera className="w-5 h-5" />
-              <span className="text-sm font-medium">Live Feed</span>
+              <span className="text-sm font-medium">{t('liveFeed')}</span>
             </Link>
 
             {/* Mobile Menu Button */}
@@ -210,7 +210,7 @@ export default function Header() {
               data-testid="mobile-language-toggle"
             >
               <Globe className="w-5 h-5" />
-              <span>Language: {language.toUpperCase()}</span>
+              <span>{t('language')}: {language.toUpperCase()}</span>
             </button>
           </div>
         </div>
