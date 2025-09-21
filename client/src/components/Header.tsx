@@ -210,7 +210,7 @@ export default function Header() {
               data-testid="mobile-language-toggle"
             >
               <Globe className="w-5 h-5" />
-              <span>{t('language')}: {language.toUpperCase()}</span>
+              <span>Language: {language.toUpperCase()}</span>
             </button>
           </div>
         </div>
