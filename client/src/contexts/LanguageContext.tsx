@@ -49,7 +49,6 @@ const translations: Translations = {
   'delete': { de: 'Löschen', en: 'Delete' },
   
   // Location Details
-  'locationAndMap': { de: 'Lage & Karte', en: 'Location & Map' },
   'about': { de: 'Über', en: 'About' },
   'activities': { de: 'Aktivitäten', en: 'Activities' },
   'restaurants': { de: 'Restaurants', en: 'Restaurants' },
@@ -100,7 +99,7 @@ const translations: Translations = {
   
   // Navigation
   'next': { de: 'Nächste', en: 'Next' },
-  'back': { de: 'Zurück', en: 'Back' },
+  'backButton': { de: 'Zurück', en: 'Back' },
   'morePages': { de: 'Mehr Seiten', en: 'More Pages' },
   
   // Date and Time
@@ -114,15 +113,54 @@ const translations: Translations = {
   
   // Media Upload
   'galleryImages': { de: 'Bilder-Galerie', en: 'Image Gallery' },
+  'nights': { de: 'Nächte', en: 'Nights' },
   
   // Error Messages (keeping some original German for multer)
   'onlyImageFilesAllowed': { de: 'Nur Bilddateien sind erlaubt (JPG, PNG, WebP, GIF)', en: 'Only image files are allowed (JPG, PNG, WebP, GIF)' },
+  
+  // Location Detail Page  
+  'locationNotFound': { de: 'Ort nicht gefunden', en: 'Location Not Found' },
+  'locationNotFoundDescription': { de: 'Der angeforderte Ort konnte nicht gefunden werden.', en: 'The requested location could not be found.' },
+  'backToHomepage': { de: 'Zurück zur Startseite', en: 'Back to Homepage' },
+  'editLocation': { de: 'Ort bearbeiten', en: 'Edit Location' },
+  'viewDetails': { de: 'Details ansehen', en: 'View Details' },
+  'locationMap': { de: 'Lage & Karte', en: 'Location & Map' },
+  'aboutLocation': { de: 'Über', en: 'About' },
+  
+  // Image Gallery
+  'addImage': { de: 'Bild hinzufügen', en: 'Add Image' },
+  'imageAdded': { de: 'Bild hinzugefügt', en: 'Image Added' },
+  'imageAddedSuccess': { de: 'Das Bild wurde erfolgreich zur Galerie hinzugefügt.', en: 'The image was successfully added to the gallery.' },
+  'imageDeleted': { de: 'Bild gelöscht', en: 'Image Deleted' },
+  'imageDeletedSuccess': { de: 'Das Bild wurde erfolgreich aus der Galerie entfernt.', en: 'The image was successfully removed from the gallery.' },
+  'error': { de: 'Fehler', en: 'Error' },
+  'imageCouldNotBeAdded': { de: 'Bild konnte nicht hinzugefügt werden', en: 'Image could not be added' },
+  'imageCouldNotBeDeleted': { de: 'Bild konnte nicht gelöscht werden', en: 'Image could not be deleted' },
+  
+  // Timeline
+  'liveTrackingActivated': { de: 'Live-Tracking aktiviert!', en: 'Live Tracking Activated!' },
+  'gpsOptional': { de: 'GPS optional', en: 'GPS Optional' },
+  'gpsError': { de: 'GPS-Fehler', en: 'GPS Error' },
+  'liveCarOptional': { de: 'Das Live-Auto ist optional. Die App funktioniert trotzdem!', en: 'Live car tracking is optional. The app works anyway!' },
+  
+  // Categories (used in LocationCard)
+  'wineCountry': { de: 'Wine Country', en: 'Wine Country' },
+  'alpineAdventure': { de: 'Alpine Adventure', en: 'Alpine Adventure' },
+  'wilderness': { de: 'Wilderness', en: 'Wilderness' },
+  
+  // Additional Location Detail Sections
+  'restaurantsAndCulinary': { de: 'Restaurants & Kulinarik', en: 'Restaurants & Culinary' },
+  'specialExperiences': { de: 'Besondere Erlebnisse', en: 'Special Experiences' },
+  'yourAccommodation': { de: 'Ihre Unterkunft', en: 'Your Accommodation' },
+  'accommodationDescription': { de: 'Zentral gelegene Unterkunft mit modernen Annehmlichkeiten', en: 'Centrally located accommodation with modern amenities' },
 };
 
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
+  getLocationText: (germanText: string | null | undefined, englishText: string | null | undefined) => string;
+  getLocationArray: (germanArray: string[] | null | undefined, englishArray: string[] | null | undefined) => string[];
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -139,8 +177,22 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     return translation[language];
   };
 
+  const getLocationText = (germanText: string | null | undefined, englishText: string | null | undefined): string => {
+    if (language === 'en' && englishText) {
+      return englishText;
+    }
+    return germanText || '';
+  };
+
+  const getLocationArray = (germanArray: string[] | null | undefined, englishArray: string[] | null | undefined): string[] => {
+    if (language === 'en' && englishArray && englishArray.length > 0) {
+      return englishArray;
+    }
+    return germanArray || [];
+  };
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, getLocationText, getLocationArray }}>
       {children}
     </LanguageContext.Provider>
   );

@@ -8,11 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { ImageGallery } from "@/components/ImageGallery";
 import Header from "@/components/Header";
 import { calculateNights, formatNights } from "@/lib/utils";
+import { useLanguage } from "@/contexts/LanguageContext";
 import type { Location } from "@shared/schema";
 
 export default function LocationDetail() {
   const { slug } = useParams<{ slug: string }>();
   const [checkedActivities, setCheckedActivities] = useState<Set<number>>(new Set());
+  const { t, getLocationText, getLocationArray } = useLanguage();
 
   const { data: location, isLoading } = useQuery<Location>({
     queryKey: ["/api/locations", slug],
@@ -43,10 +45,10 @@ export default function LocationDetail() {
       <div className="min-h-screen flex items-center justify-center" data-testid="location-not-found">
         <Card className="w-full max-w-md mx-4">
           <CardContent className="pt-6 text-center">
-            <h1 className="text-2xl font-bold text-foreground mb-4">Ort nicht gefunden</h1>
-            <p className="text-muted-foreground mb-4">Der angeforderte Ort konnte nicht gefunden werden.</p>
+            <h1 className="text-2xl font-bold text-foreground mb-4">{t('locationNotFound')}</h1>
+            <p className="text-muted-foreground mb-4">{t('locationNotFoundDescription')}</p>
             <Link href="/">
-              <Button>Zurück zur Startseite</Button>
+              <Button>{t('backToHomepage')}</Button>
             </Link>
           </CardContent>
         </Card>
@@ -64,11 +66,13 @@ export default function LocationDetail() {
             <Link href="/">
               <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10" data-testid="back-button">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Zurück
+                {t('backButton')}
               </Button>
             </Link>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-2 pr-8" data-testid="location-title">{location.name}</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-2 pr-8" data-testid="location-title">
+            {getLocationText(location.name, location.nameEn)}
+          </h1>
           <div className="flex flex-wrap gap-4 text-primary-foreground/90">
             <div className="flex items-center">
               <Calendar className="w-4 h-4 mr-2" />
@@ -125,12 +129,12 @@ export default function LocationDetail() {
               <Card data-testid="location-map">
                 <CardContent className="pt-6">
                   <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center">
-                    🗺️ <span className="ml-2">Lage & Karte</span>
+                    🗺️ <span className="ml-2">{t('locationMap')}</span>
                   </h2>
                   <div className="rounded-xl overflow-hidden border border-border bg-gray-100 dark:bg-gray-800">
                     <img 
                       src={(location as any).mapImageUrl} 
-                      alt={`Karte von ${location.name}`}
+                      alt={`Map of ${getLocationText(location.name, location.nameEn)}`}
                       className="w-full h-64 object-cover"
                       data-testid="location-map-image"
                       onError={(e) => {
@@ -145,7 +149,7 @@ export default function LocationDetail() {
                         <div className="w-12 h-12 mx-auto mb-3 bg-white/20 rounded-full flex items-center justify-center">
                           <MapPin className="w-6 h-6" />
                         </div>
-                        <p className="text-sm font-medium">Karte wird geladen...</p>
+                        <p className="text-sm font-medium">Loading map...</p>
                       </div>
                     </div>
                   </div>
@@ -156,20 +160,22 @@ export default function LocationDetail() {
             {/* Description */}
             <Card data-testid="location-description">
               <CardContent className="pt-6">
-                <h2 className="text-2xl font-bold text-foreground mb-4">Über {location.name}</h2>
+                <h2 className="text-2xl font-bold text-foreground mb-4">
+                  {t('aboutLocation')} {getLocationText(location.name, location.nameEn)}
+                </h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  {location.description}
+                  {getLocationText(location.description, location.descriptionEn)}
                 </p>
               </CardContent>
             </Card>
 
             {/* Activities */}
-            {location.activities && location.activities.length > 0 && (
+            {(getLocationArray(location.activities, location.activitiesEn).length > 0) && (
               <Card data-testid="location-activities">
                 <CardContent className="pt-6">
-                  <h2 className="text-2xl font-bold text-foreground mb-4">🎯 Aktivitäten</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-4">🎯 {t('activities')}</h2>
                   <ul className="space-y-3">
-                    {location.activities.map((activity, index) => (
+                    {getLocationArray(location.activities, location.activitiesEn).map((activity, index) => (
                       <li key={index} className="flex items-start" data-testid={`activity-${index}`}>
                         <label className="flex items-start cursor-pointer w-full">
                           <input
@@ -194,7 +200,7 @@ export default function LocationDetail() {
             {location.restaurants && location.restaurants.length > 0 && (
               <Card data-testid="location-restaurants">
                 <CardContent className="pt-6">
-                  <h2 className="text-2xl font-bold text-foreground mb-6">🍽️ Restaurants & Kulinarik</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-6">🍽️ {t('restaurantsAndCulinary')}</h2>
                   <div className="grid md:grid-cols-2 gap-6">
                     {location.restaurants.map((restaurant, index) => (
                       <div key={index} className="border border-border rounded-xl p-6 hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-white to-gray-50/50" data-testid={`restaurant-${index}`}>
@@ -252,7 +258,7 @@ export default function LocationDetail() {
             {location.experiences && location.experiences.length > 0 && (
               <Card data-testid="location-experiences">
                 <CardContent className="pt-6">
-                  <h2 className="text-2xl font-bold text-foreground mb-4">✨ Besondere Erlebnisse</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-4">✨ {t('specialExperiences')}</h2>
                   <ul className="space-y-3">
                     {location.experiences.map((experience, index) => (
                       <li key={index} className="flex items-start" data-testid={`experience-${index}`}>
@@ -294,7 +300,7 @@ export default function LocationDetail() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-bold text-foreground flex items-center">
-                      🏨 <span className="ml-2">Ihre Unterkunft</span>
+                      🏨 <span className="ml-2">{t('yourAccommodation')}</span>
                     </h3>
                     <div className="bg-primary/20 text-primary px-2 py-1 rounded-full text-xs font-medium">
                       Premium
@@ -315,7 +321,7 @@ export default function LocationDetail() {
                       )}
                       <div className="flex-1">
                         <h4 className="font-bold text-foreground text-base mb-2">{location.accommodation}</h4>
-                        <p className="text-sm text-muted-foreground mb-3">Zentral gelegene Unterkunft mit modernen Annehmlichkeiten</p>
+                        <p className="text-sm text-muted-foreground mb-3">{t('accommodationDescription')}</p>
                         {(location as any).accommodationWebsite && (
                           <a 
                             href={(location as any).accommodationWebsite} 
@@ -432,7 +438,7 @@ export default function LocationDetail() {
             {location.highlights && location.highlights.length > 0 && (
               <Card data-testid="location-highlights">
                 <CardContent className="pt-6">
-                  <h3 className="font-semibold text-foreground mb-4">🌟 Highlights</h3>
+                  <h3 className="font-semibold text-foreground mb-4">🌟 {t('highlights')}</h3>
                   <div className="flex flex-wrap gap-2">
                     {location.highlights.map((highlight, index) => (
                       <Badge key={index} variant="outline" className="text-xs" data-testid={`highlight-${index}`}>
@@ -533,7 +539,7 @@ export default function LocationDetail() {
             {/* Edit Button */}
             <Link href="/admin">
               <Button className="w-full" variant="outline" data-testid="edit-location-button">
-                📝 Ort bearbeiten
+                📝 {t('editLocation')}
               </Button>
             </Link>
           </div>
