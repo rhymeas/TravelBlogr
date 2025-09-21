@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Location, Creator } from "@shared/schema";
+import * as exifr from "exifr";
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -20,7 +21,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [name, setName] = useState("");
   const [selectedLocationId, setSelectedLocationId] = useState<string>("general");
   const [selectedCreatorId, setSelectedCreatorId] = useState<string>("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -36,18 +37,64 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     queryKey: ["/api/creators"],
   });
 
-  // Upload mutation for centralized trip photos
+  // Extract EXIF data from image files
+  const extractExifData = async (file: File): Promise<Date | null> => {
+    try {
+      if (!file.type.startsWith('image/')) {
+        return null; // Not an image file
+      }
+      
+      const exifData = await exifr.parse(file);
+      
+      // Try to get the DateTimeOriginal, DateTime, or CreateDate
+      const dateTime = exifData?.DateTimeOriginal || 
+                       exifData?.DateTime || 
+                       exifData?.CreateDate;
+      
+      if (dateTime && dateTime instanceof Date) {
+        return dateTime;
+      }
+      
+      return null;
+    } catch (error) {
+      console.warn('Failed to extract EXIF data from', file.name, error);
+      return null;
+    }
+  };
+
+  // Upload mutation for batch trip photos
   const uploadMutation = useMutation({
-    mutationFn: async ({ file, caption, uploadedBy, locationId, creatorId }: { file: File; caption: string; uploadedBy: string; locationId?: string; creatorId?: string }) => {
+    mutationFn: async ({ files, caption, uploadedBy, locationId, creatorId }: { files: File[]; caption: string; uploadedBy: string; locationId?: string; creatorId?: string }) => {
       const formData = new FormData();
-      formData.append('media', file); // Use 'media' key to support both images and videos
-      formData.append('caption', caption || ''); // Always append caption, even if empty
-      formData.append('mediaType', mediaType); // Specify whether it's image or video
+      
+      // Add all files to the form data
+      files.forEach((file) => {
+        formData.append('media', file);
+      });
+      
+      // Extract EXIF data for each file and add to form data
+      const exifDataPromises = files.map(async (file, index) => {
+        const takenAt = await extractExifData(file);
+        return { index, takenAt };
+      });
+      
+      const exifResults = await Promise.all(exifDataPromises);
+      
+      // Add EXIF data to form data as JSON
+      const exifData = exifResults.reduce((acc, { index, takenAt }) => {
+        if (takenAt) {
+          acc[index] = takenAt.toISOString();
+        }
+        return acc;
+      }, {} as Record<number, string>);
+      
+      formData.append('exifData', JSON.stringify(exifData));
+      formData.append('caption', caption || '');
       if (uploadedBy) formData.append('uploadedBy', uploadedBy);
       if (locationId) formData.append('locationId', locationId);
       if (creatorId) formData.append('creatorId', creatorId);
 
-      const response = await fetch('/api/trip-photos/media', {
+      const response = await fetch('/api/trip-photos/media-batch', {
         method: 'POST',
         body: formData,
       });
@@ -82,41 +129,63 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     setName("");
     setSelectedLocationId("general");
     setSelectedCreatorId("");
-    setSelectedFile(null);
+    setSelectedFiles([]);
     setMediaType('image');
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // File selection handler
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // File selection handler for multiple files
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    // Validate file type and size
-    const isImage = file.type.startsWith('image/');
-    const isVideo = file.type.startsWith('video/');
-    
-    if (!isImage && !isVideo) {
-      toast({
-        title: "Ungültiger Dateityp",
-        description: "Bitte wählen Sie ein Bild oder Video aus.",
-        variant: "destructive",
-      });
+    const validFiles: File[] = [];
+    let hasVideo = false;
+    let hasImage = false;
+
+    // Validate each file
+    for (const file of files) {
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+      
+      if (!isImage && !isVideo) {
+        toast({
+          title: "Ungültiger Dateityp",
+          description: `Datei "${file.name}" ist kein gültiges Bild oder Video.`,
+          variant: "destructive",
+        });
+        continue;
+      }
+
+      const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024; // 50MB for video, 10MB for image
+      if (file.size > maxSize) {
+        toast({
+          title: "Datei zu groß",
+          description: `"${file.name}" ist zu groß. ${isVideo ? 'Videos' : 'Bilder'} dürfen maximal ${isVideo ? '50' : '10'}MB groß sein.`,
+          variant: "destructive",
+        });
+        continue;
+      }
+
+      validFiles.push(file);
+      if (isVideo) hasVideo = true;
+      if (isImage) hasImage = true;
+    }
+
+    if (validFiles.length === 0) {
       return;
     }
 
-    const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024; // 50MB for video, 10MB for image
-    if (file.size > maxSize) {
-      toast({
-        title: "Datei zu groß",
-        description: `${isVideo ? 'Videos' : 'Bilder'} dürfen maximal ${isVideo ? '50' : '10'}MB groß sein.`,
-        variant: "destructive",
-      });
-      return;
+    // Set media type based on content
+    if (hasVideo && hasImage) {
+      setMediaType('image'); // Mixed content, default to image
+    } else if (hasVideo) {
+      setMediaType('video');
+    } else {
+      setMediaType('image');
     }
 
-    setSelectedFile(file);
-    setMediaType(isVideo ? 'video' : 'image');
+    setSelectedFiles(validFiles);
   };
 
   // Handle modal close
@@ -125,12 +194,12 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     onClose();
   };
 
-  // Upload handler
+  // Upload handler for multiple files
   const handleUpload = async () => {
-    if (!selectedFile) {
+    if (selectedFiles.length === 0) {
       toast({
-        title: "Keine Datei ausgewählt",
-        description: "Bitte wählen Sie ein Bild oder Video aus.",
+        title: "Keine Dateien ausgewählt",
+        description: "Bitte wählen Sie mindestens ein Bild oder Video aus.",
         variant: "destructive",
       });
       return;
@@ -140,7 +209,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     if (!selectedCreatorId) {
       toast({
         title: "Person auswählen",
-        description: "Bitte wählen Sie aus, wer die Datei hochlädt.",
+        description: "Bitte wählen Sie aus, wer die Dateien hochlädt.",
         variant: "destructive",
       });
       return;
@@ -149,7 +218,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     setUploading(true);
     try {
       await uploadMutation.mutateAsync({
-        file: selectedFile,
+        files: selectedFiles,
         caption: caption.trim(),
         uploadedBy: name.trim(),
         locationId: selectedLocationId === "general" ? undefined : selectedLocationId,
@@ -175,6 +244,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       <input
         ref={fileInputRef}
         type="file"
+        multiple
         accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
         onChange={handleFileSelect}
         className="hidden"
@@ -184,23 +254,23 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-md" data-testid="upload-modal">
           <DialogHeader>
-            <DialogTitle>Foto oder Video teilen</DialogTitle>
+            <DialogTitle>Fotos oder Videos teilen</DialogTitle>
             <DialogDescription>
-              Teilen Sie Ihr Foto oder Video mit der Gruppe und fügen Sie optional eine Beschreibung hinzu.
+              Teilen Sie Ihre Fotos oder Videos mit der Gruppe und fügen Sie optional eine Beschreibung hinzu.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
             {/* File selection section */}
-            {!selectedFile ? (
+            {selectedFiles.length === 0 ? (
               <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6">
                 <div className="text-center">
                   <Camera className="w-12 h-12 mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                    Foto oder Video auswählen
+                    Fotos oder Videos auswählen
                   </h3>
                   <p className="text-gray-500 text-sm mb-4">
-                    Bilder (JPG, PNG, WebP, GIF) bis 10MB oder Videos (MP4, WebM, MOV) bis 50MB
+                    Mehrere Dateien auswählen: Bilder (JPG, PNG, WebP, GIF) bis 10MB oder Videos (MP4, WebM, MOV) bis 50MB
                   </p>
                   <Button
                     onClick={() => fileInputRef.current?.click()}
@@ -209,36 +279,56 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                     data-testid="button-select-file"
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    Datei auswählen
+                    Dateien auswählen
                   </Button>
                 </div>
               </div>
             ) : (
               <>
-                {/* Selected file preview */}
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    {mediaType === 'video' ? (
-                      <Video className="w-4 h-4 text-blue-600" />
-                    ) : (
-                      <Image className="w-4 h-4 text-green-600" />
-                    )}
-                    <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{selectedFile.name}</span>
+                {/* Selected files preview */}
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {selectedFiles.length} Datei{selectedFiles.length !== 1 ? 'en' : ''} ausgewählt
+                    </span>
+                    <button
+                      onClick={() => setSelectedFiles([])}
+                      className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                      data-testid="button-remove-all-files"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setSelectedFile(null)}
-                    className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                    data-testid="button-remove-file"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {selectedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center space-x-2 text-xs">
+                        {file.type.startsWith('video/') ? (
+                          <Video className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                        ) : (
+                          <Image className="w-3 h-3 text-green-600 flex-shrink-0" />
+                        )}
+                        <span className="text-gray-600 dark:text-gray-400 truncate">{file.name}</span>
+                        <button
+                          onClick={() => {
+                            const newFiles = [...selectedFiles];
+                            newFiles.splice(index, 1);
+                            setSelectedFiles(newFiles);
+                          }}
+                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0"
+                          data-testid={`button-remove-file-${index}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Form fields */}
                 <div className="space-y-3">
                   {/* Creator Selection - Required */}
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Wer lädt die Datei hoch? *</label>
+                    <label className="text-sm font-medium mb-2 block">Wer lädt die Dateien hoch? *</label>
                     <Select value={selectedCreatorId} onValueChange={setSelectedCreatorId}>
                       <SelectTrigger className="border-gray-300 dark:border-gray-700" data-testid="creator-dropdown">
                         <SelectValue placeholder="Bitte wählen Sie eine Person aus" />
@@ -297,7 +387,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                   {uploading ? (
                     <span>Wird hochgeladen...</span>
                   ) : (
-                    <span>Teilen</span>
+                    <span>{selectedFiles.length} Datei{selectedFiles.length !== 1 ? 'en' : ''} teilen</span>
                   )}
                 </Button>
               </>

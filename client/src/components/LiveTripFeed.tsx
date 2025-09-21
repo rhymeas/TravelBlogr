@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Clock, User, Camera, Send, Image, Upload, Heart, Trash2, Video, Play } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { TripPhoto, Creator } from "@shared/schema";
+import type { TripPhoto, Creator, GroupedTripPhoto } from "@shared/schema";
 
 interface LiveTripFeedProps {
   locationId: string;
@@ -57,7 +57,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
     queryKey: ["/api/creators"],
   });
 
-  // Infinite query for paginated trip photos
+  // Infinite query for grouped paginated trip photos
   const {
     data,
     fetchNextPage,
@@ -66,7 +66,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
     isLoading,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["/api/trip-photos/paginated", locationId],
+    queryKey: ["/api/trip-photos/paginated-grouped", locationId],
     queryFn: async ({ pageParam }) => {
       const params = new URLSearchParams({
         limit: '10',
@@ -74,7 +74,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
         ...(pageParam && { cursor: pageParam }),
       });
       
-      const response = await fetch(`/api/trip-photos/paginated?${params}`);
+      const response = await fetch(`/api/trip-photos/paginated-grouped?${params}`);
       if (!response.ok) {
         throw new Error('Failed to fetch photos');
       }
@@ -85,8 +85,8 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
     refetchInterval: 60000, // Auto-refresh every minute
   });
 
-  // Flatten all pages into a single array
-  const tripPhotos = data?.pages.flatMap(page => page.items) || [];
+  // Flatten all pages into a single array of grouped photos
+  const groupedPhotos = data?.pages.flatMap(page => page.items) || [] as GroupedTripPhoto[];
 
   // Enhanced media upload mutation using new API
   const uploadMutation = useMutation({
@@ -126,7 +126,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
       }
       
       // Refetch the first page to include new photo
-      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated", locationId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated-grouped", locationId] });
       refetch();
       
       setCaption("");
@@ -165,7 +165,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
     },
     onMutate: async ({ photoId }) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["/api/trip-photos/paginated", locationId] });
+      await queryClient.cancelQueries({ queryKey: ["/api/trip-photos/paginated-grouped", locationId] });
       
       // Optimistic update
       setLikedPhotos(prev => {
@@ -180,7 +180,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
       
       // Update cache optimistically
       queryClient.setQueryData(
-        ["/api/trip-photos/paginated", locationId],
+        ["/api/trip-photos/paginated-grouped", locationId],
         (oldData: any) => {
           if (!oldData) return oldData;
           
@@ -188,16 +188,19 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
             ...oldData,
             pages: oldData.pages.map((page: any) => ({
               ...page,
-              items: page.items.map((photo: any) => {
-                if (photo.id === photoId) {
-                  const isLiked = likedPhotos.has(photoId);
-                  return {
-                    ...photo,
-                    likesCount: Math.max(0, (photo.likesCount || 0) + (isLiked ? -1 : 1))
-                  };
-                }
-                return photo;
-              })
+              items: page.items.map((group: any) => ({
+                ...group,
+                media: group.media.map((mediaItem: any) => {
+                  if (mediaItem.id === photoId) {
+                    const isLiked = likedPhotos.has(photoId);
+                    return {
+                      ...mediaItem,
+                      likesCount: Math.max(0, (mediaItem.likesCount || 0) + (isLiked ? -1 : 1))
+                    };
+                  }
+                  return mediaItem;
+                })
+              }))
             }))
           };
         }
@@ -219,7 +222,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
       
       // Update cache with actual server data
       queryClient.setQueryData(
-        ["/api/trip-photos/paginated", locationId],
+        ["/api/trip-photos/paginated-grouped", locationId],
         (oldData: any) => {
           if (!oldData) return oldData;
           
@@ -227,9 +230,12 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
             ...oldData,
             pages: oldData.pages.map((page: any) => ({
               ...page,
-              items: page.items.map((photo: any) => 
-                photo.id === photoId ? { ...photo, likesCount } : photo
-              )
+              items: page.items.map((group: any) => ({
+                ...group,
+                media: group.media.map((mediaItem: any) => 
+                  mediaItem.id === photoId ? { ...mediaItem, likesCount } : mediaItem
+                )
+              }))
             }))
           };
         }
@@ -248,7 +254,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
       });
       
       // Invalidate and refetch to get correct state
-      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated", locationId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated-grouped", locationId] });
       
       toast({
         title: "Fehler",
@@ -281,9 +287,9 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
         return newTokens;
       });
       
-      // Update cache by removing the deleted photo
+      // Update cache by removing the deleted photo from groups
       queryClient.setQueryData(
-        ["/api/trip-photos/paginated", locationId],
+        ["/api/trip-photos/paginated-grouped", locationId],
         (oldData: any) => {
           if (!oldData) return oldData;
           
@@ -291,7 +297,10 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
             ...oldData,
             pages: oldData.pages.map((page: any) => ({
               ...page,
-              items: page.items.filter((photo: any) => photo.id !== photoId)
+              items: page.items.map((group: any) => ({
+                ...group,
+                media: group.media.filter((mediaItem: any) => mediaItem.id !== photoId)
+              })).filter((group: any) => group.media.length > 0) // Remove empty groups
             }))
           };
         }
@@ -564,7 +573,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
         <Camera className="w-5 h-5 text-primary" />
         <h3 className="font-semibold text-lg">Live aus {locationName}</h3>
         <div className="ml-auto text-xs text-muted-foreground">
-          {tripPhotos.length} {tripPhotos.length === 1 ? 'Beitrag' : 'Beiträge'}
+          {groupedPhotos.length} {groupedPhotos.length === 1 ? 'Beitrag' : 'Beiträge'}
         </div>
       </div>
 
@@ -575,7 +584,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         </Card>
-      ) : tripPhotos.length === 0 ? (
+      ) : groupedPhotos.length === 0 ? (
         <Card className="p-8 text-center" data-testid="no-posts">
           <Camera className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
           <p className="font-medium text-muted-foreground">Noch keine Beiträge</p>
@@ -583,101 +592,165 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
         </Card>
       ) : (
         <div className="space-y-3">
-          {tripPhotos.map((photo) => (
-            <Card key={photo.id} className="overflow-hidden" data-testid={`post-${photo.id}`}>
-              {/* Post Header */}
-              <div className="p-3 pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    {photo.uploadedBy && (
-                      <div className="flex items-center space-x-1" data-testid={`post-author-${photo.id}`}>
+          {groupedPhotos.map((group) => {
+            const hasMultipleMedia = group.media.length > 1;
+            const totalLikes = group.media.reduce((sum, media) => sum + (media.likesCount || 0), 0);
+            const firstMedia = group.media[0];
+            
+            return (
+              <Card key={group.id} className="overflow-hidden" data-testid={`post-${group.id}`}>
+                {/* Post Header */}
+                <div className="p-3 pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1" data-testid={`post-author-${group.id}`}>
                         <User className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-medium text-sm">{photo.uploadedBy}</span>
+                        <span className="font-medium text-sm">Von {group.creatorId || 'Anonym'}</span>
                       </div>
-                    )}
-                    {photo.mediaType === 'video' && (
-                      <div className="flex items-center space-x-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                      {hasMultipleMedia && (
+                        <div className="flex items-center space-x-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                          <Camera className="w-3 h-3" />
+                          <span>{group.media.length} Fotos</span>
+                        </div>
+                      )}
+                      {firstMedia.mediaType === 'video' && (
+                        <div className="flex items-center space-x-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                          <Video className="w-3 h-3" />
+                          <span>Video</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-1 text-xs text-muted-foreground" data-testid={`post-time-${group.id}`}>
+                      <Clock className="w-3 h-3" />
+                      <span>Aufgenommen: {formatTime(group.groupTakenAt)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Post Content */}
+                {group.caption && (
+                  <div className="px-3 pb-2">
+                    <p className="text-sm" data-testid={`post-caption-${group.id}`}>{group.caption}</p>
+                  </div>
+                )}
+
+                {/* Post Media - Single or Gallery */}
+                {hasMultipleMedia ? (
+                  /* Image Gallery */
+                  <div className="grid grid-cols-2 gap-0.5" data-testid={`post-gallery-${group.id}`}>
+                    {group.media.slice(0, 4).map((media, index) => (
+                      <div key={media.id} className="relative">
+                        {media.mediaType === 'video' && media.videoUrl ? (
+                          <video
+                            src={media.videoUrl}
+                            poster={media.thumbnailUrl || undefined}
+                            controls={false}
+                            className="w-full aspect-square object-cover"
+                            data-testid={`gallery-video-${media.id}`}
+                            onClick={() => {
+                              // Create and click a new video element to start playing
+                              const videoEl = document.createElement('video');
+                              videoEl.src = media.videoUrl;
+                              videoEl.controls = true;
+                              videoEl.autoplay = true;
+                              videoEl.style.position = 'fixed';
+                              videoEl.style.top = '50%';
+                              videoEl.style.left = '50%';
+                              videoEl.style.transform = 'translate(-50%, -50%)';
+                              videoEl.style.zIndex = '9999';
+                              videoEl.style.maxWidth = '90vw';
+                              videoEl.style.maxHeight = '90vh';
+                              videoEl.style.backgroundColor = 'black';
+                              document.body.appendChild(videoEl);
+                              videoEl.addEventListener('click', () => document.body.removeChild(videoEl));
+                            }}
+                          />
+                        ) : (
+                          <img
+                            src={media.imageUrl}
+                            alt={group.caption || "Gallery image"}
+                            className="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                            data-testid={`gallery-image-${media.id}`}
+                          />
+                        )}
+                        {index === 3 && group.media.length > 4 && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-medium">
+                            +{group.media.length - 4}
+                          </div>
+                        )}
+                        {media.mediaType === 'video' && (
+                          <div className="absolute top-1 left-1 bg-black/50 text-white px-1 py-0.5 rounded text-xs">
+                            <Video className="w-3 h-3" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  /* Single Media */
+                  firstMedia.mediaType === 'video' && firstMedia.videoUrl ? (
+                    <div className="relative">
+                      <video
+                        src={firstMedia.videoUrl}
+                        poster={firstMedia.thumbnailUrl || undefined}
+                        controls
+                        className="w-full max-h-96"
+                        data-testid={`post-video-${firstMedia.id}`}
+                      >
+                        <source src={firstMedia.videoUrl} type="video/mp4" />
+                        Ihr Browser unterstützt das Video-Element nicht.
+                      </video>
+                      <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded-md text-xs flex items-center space-x-1">
                         <Video className="w-3 h-3" />
                         <span>Video</span>
                       </div>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-1 text-xs text-muted-foreground" data-testid={`post-time-${photo.id}`}>
-                    <Clock className="w-3 h-3" />
-                    <span>{formatTime(photo.uploadedAt)}</span>
-                  </div>
-                </div>
-              </div>
+                    </div>
+                  ) : firstMedia.imageUrl && (
+                    <div className="relative">
+                      <img
+                        src={firstMedia.imageUrl}
+                        alt={group.caption || "Reisefoto"}
+                        className="w-full object-cover max-h-96"
+                        data-testid={`post-image-${firstMedia.id}`}
+                      />
+                    </div>
+                  )
+                )}
 
-              {/* Post Content */}
-              {photo.caption && (
-                <div className="px-3 pb-2">
-                  <p className="text-sm" data-testid={`post-caption-${photo.id}`}>{photo.caption}</p>
-                </div>
-              )}
-
-              {/* Post Media - Image or Video */}
-              {photo.mediaType === 'video' && photo.videoUrl ? (
-                <div className="relative">
-                  <video
-                    src={photo.videoUrl}
-                    poster={photo.thumbnailUrl || undefined}
-                    controls
-                    className="w-full max-h-96"
-                    data-testid={`post-video-${photo.id}`}
-                  >
-                    <source src={photo.videoUrl} type="video/mp4" />
-                    Ihr Browser unterstützt das Video-Element nicht.
-                  </video>
-                  <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded-md text-xs flex items-center space-x-1">
-                    <Video className="w-3 h-3" />
-                    <span>Video</span>
-                  </div>
-                </div>
-              ) : photo.imageUrl && (
-                <div className="relative">
-                  <img
-                    src={photo.imageUrl}
-                    alt={photo.caption || "Reisefoto"}
-                    className="w-full object-cover max-h-96"
-                    data-testid={`post-image-${photo.id}`}
-                  />
-                </div>
-              )}
-
-              {/* Post Actions - Like and Delete */}
-              <div className="p-3 pt-2 border-t border-border/50">
-                <div className="flex items-center justify-between">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleLike(photo.id)}
-                    className={`flex items-center space-x-2 ${
-                      likedPhotos.has(photo.id) ? 'text-red-500' : 'text-muted-foreground'
-                    }`}
-                    data-testid={`like-button-${photo.id}`}
-                  >
-                    <Heart 
-                      className={`w-4 h-4 ${likedPhotos.has(photo.id) ? 'fill-current' : ''}`} 
-                    />
-                    <span>{photo.likesCount || 0}</span>
-                  </Button>
-                  
-                  {deleteTokens[photo.id] && (
+                {/* Post Actions - Like and Delete */}
+                <div className="p-3 pt-2 border-t border-border/50">
+                  <div className="flex items-center justify-between">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleDelete(photo.id)}
-                      className="text-muted-foreground hover:text-red-500"
-                      data-testid={`delete-button-${photo.id}`}
+                      onClick={() => handleLike(firstMedia.id)}
+                      className={`flex items-center space-x-2 ${
+                        likedPhotos.has(firstMedia.id) ? 'text-red-500' : 'text-muted-foreground'
+                      }`}
+                      data-testid={`like-button-${group.id}`}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Heart 
+                        className={`w-4 h-4 ${likedPhotos.has(firstMedia.id) ? 'fill-current' : ''}`} 
+                      />
+                      <span>{hasMultipleMedia ? totalLikes : (firstMedia.likesCount || 0)}</span>
                     </Button>
-                  )}
+                    
+                    {group.media.some(media => deleteTokens[media.id]) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(firstMedia.id)}
+                        className="text-muted-foreground hover:text-red-500"
+                        data-testid={`delete-button-${group.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
           
           {/* Infinite Scroll Trigger */}
           <div ref={loadMoreRef} className="flex justify-center p-4">
@@ -695,7 +768,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
               >
                 Weitere Beiträge laden
               </Button>
-            ) : tripPhotos.length > 0 ? (
+            ) : groupedPhotos.length > 0 ? (
               <p className="text-sm text-muted-foreground">Alle Beiträge geladen</p>
             ) : null}
           </div>

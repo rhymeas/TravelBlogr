@@ -78,6 +78,8 @@ export const tripPhotos = pgTable("trip_photos", {
   uploadedAt: timestamp("uploaded_at").defaultNow(),
   uploadedBy: text("uploaded_by"), // deprecated - kept for backward compatibility
   likesCount: integer("likes_count").default(0), // denormalized likes count for performance
+  groupId: text("group_id"), // optional - links multiple files uploaded together
+  takenAt: timestamp("taken_at"), // when photo was actually taken (from EXIF data)
 });
 
 // Likes for trip photos
@@ -276,3 +278,22 @@ export type HeroImage = typeof heroImages.$inferSelect;
 export type InsertHeroImage = z.infer<typeof insertHeroImageSchema>;
 export type ScenicContent = typeof scenicContent.$inferSelect;
 export type InsertScenicContent = z.infer<typeof insertScenicContentSchema>;
+
+// Grouped trip photo type for the gallery feature
+export interface GroupedTripPhoto {
+  id: string; // groupId for grouped photos, regular id for single photos
+  caption: string | null;
+  locationId: string | null;
+  creatorId: string | null;
+  uploadedAt: Date;
+  groupTakenAt: Date; // earliest takenAt in the group
+  media: {
+    id: string;
+    mediaType: string;
+    imageUrl: string;
+    videoUrl: string | null;
+    thumbnailUrl: string | null;
+    takenAt: Date | null;
+    likesCount: number;
+  }[];
+}

@@ -7,6 +7,7 @@ import {
   InsertCreator,
   TripPhoto,
   InsertTripPhoto,
+  GroupedTripPhoto,
   TourSettings, 
   InsertTourSettings,
   LocationPing,
@@ -316,6 +317,7 @@ export interface IStorage {
   getTripPhotos(locationId: string): Promise<TripPhoto[]>;
   getAllTripPhotos(): Promise<TripPhoto[]>;
   listTripPhotos(params: { locationId?: string; limit?: number; cursor?: string }): Promise<{ items: TripPhoto[]; nextCursor?: string }>;
+  listTripPhotosGrouped(params: { locationId?: string; limit?: number; cursor?: string }): Promise<{ items: GroupedTripPhoto[]; nextCursor?: string }>;
   addTripPhoto(tripPhoto: InsertTripPhoto): Promise<TripPhoto>;
   createTripPhotoMedia(tripPhoto: InsertTripPhoto & { deleteToken: string }): Promise<TripPhoto & { deleteToken: string }>;
   toggleTripPhotoLike(photoId: string, userKey: string): Promise<{ liked: boolean; likesCount: number }>;
@@ -724,6 +726,8 @@ export class MemStorage implements IStorage {
       uploadedBy: tripPhoto.uploadedBy || null,
       uploadedAt: new Date(),
       likesCount: 0,
+      groupId: tripPhoto.groupId || null,
+      takenAt: tripPhoto.takenAt || null,
     };
     this.tripPhotos.set(id, newTripPhoto);
     return newTripPhoto;
@@ -765,6 +769,83 @@ export class MemStorage implements IStorage {
     return { items, nextCursor };
   }
 
+  async listTripPhotosGrouped(params: { locationId?: string; limit?: number; cursor?: string }): Promise<{ items: GroupedTripPhoto[]; nextCursor?: string }> {
+    const { locationId, limit = 10, cursor } = params;
+    
+    let photos = Array.from(this.tripPhotos.values());
+    
+    // Filter by location if specified
+    if (locationId) {
+      photos = photos.filter(photo => photo.locationId === locationId);
+    }
+    
+    // Group photos by groupId (fallback to individual id for backward compatibility)
+    const groups = new Map<string, TripPhoto[]>();
+    photos.forEach(photo => {
+      const groupKey = photo.groupId || photo.id;
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, []);
+      }
+      groups.get(groupKey)!.push(photo);
+    });
+    
+    // Transform groups into GroupedTripPhoto format
+    const groupedPhotos: GroupedTripPhoto[] = Array.from(groups.entries()).map(([groupId, groupPhotos]) => {
+      // Sort photos within group by takenAt (fallback to uploadedAt)
+      const sortedPhotos = groupPhotos.sort((a, b) => {
+        const dateA = a.takenAt || a.uploadedAt || new Date(0);
+        const dateB = b.takenAt || b.uploadedAt || new Date(0);
+        return new Date(dateA).getTime() - new Date(dateB).getTime();
+      });
+      
+      // Use the first photo for group metadata
+      const firstPhoto = sortedPhotos[0];
+      const earliestTakenAt = sortedPhotos.find(p => p.takenAt)?.takenAt || firstPhoto.uploadedAt || new Date();
+      
+      return {
+        id: groupId,
+        caption: firstPhoto.caption,
+        locationId: firstPhoto.locationId,
+        creatorId: firstPhoto.creatorId,
+        uploadedAt: firstPhoto.uploadedAt || new Date(),
+        groupTakenAt: earliestTakenAt,
+        media: sortedPhotos.map(photo => ({
+          id: photo.id,
+          mediaType: photo.mediaType || 'image',
+          imageUrl: photo.imageUrl,
+          videoUrl: photo.videoUrl,
+          thumbnailUrl: photo.thumbnailUrl,
+          takenAt: photo.takenAt,
+          likesCount: photo.likesCount || 0,
+        }))
+      };
+    });
+    
+    // Sort groups by groupTakenAt desc (most recent first)
+    groupedPhotos.sort((a, b) => {
+      return new Date(b.groupTakenAt).getTime() - new Date(a.groupTakenAt).getTime();
+    });
+    
+    // Apply cursor pagination
+    let filteredGroups = groupedPhotos;
+    if (cursor) {
+      const [cursorDate, cursorId] = cursor.split('_');
+      const cursorTimestamp = parseInt(cursorDate);
+      filteredGroups = groupedPhotos.filter(group => {
+        const groupTimestamp = new Date(group.groupTakenAt).getTime();
+        return groupTimestamp < cursorTimestamp || (groupTimestamp === cursorTimestamp && group.id < cursorId);
+      });
+    }
+    
+    // Apply limit and get next cursor
+    const items = filteredGroups.slice(0, limit);
+    const nextCursor = items.length === limit && filteredGroups.length > limit 
+      ? `${new Date(items[items.length - 1].groupTakenAt).getTime()}_${items[items.length - 1].id}`
+      : undefined;
+    
+    return { items, nextCursor };
+  }
+
   async createTripPhotoMedia(tripPhoto: InsertTripPhoto & { deleteToken: string }): Promise<TripPhoto & { deleteToken: string }> {
     const id = randomUUID();
     const deleteTokenHash = createHash('sha256').update(tripPhoto.deleteToken).digest('hex');
@@ -783,6 +864,8 @@ export class MemStorage implements IStorage {
       uploadedBy: tripPhoto.uploadedBy || null,
       uploadedAt: new Date(),
       likesCount: 0,
+      groupId: tripPhoto.groupId || null,
+      takenAt: tripPhoto.takenAt || null,
     };
     
     this.tripPhotos.set(id, newTripPhoto);
@@ -1398,6 +1481,88 @@ export class DatabaseStorage implements IStorage {
     
     const nextCursor = hasMore && items.length > 0
       ? `${items[items.length - 1].uploadedAt!.getTime()}_${items[items.length - 1].id}`
+      : undefined;
+    
+    return { items, nextCursor };
+  }
+
+  async listTripPhotosGrouped(params: { locationId?: string; limit?: number; cursor?: string }): Promise<{ items: GroupedTripPhoto[]; nextCursor?: string }> {
+    await this.ensureInitialized();
+    
+    const { locationId, limit = 10, cursor } = params;
+    
+    // Get all photos
+    let query = db.select().from(tripPhotos);
+    
+    // Filter by location if specified
+    if (locationId) {
+      query = query.where(eq(tripPhotos.locationId, locationId)) as any;
+    }
+    
+    const allPhotos = await query.orderBy(desc(tripPhotos.uploadedAt));
+    
+    // Group photos by groupId (fallback to individual id for backward compatibility)
+    const groups = new Map<string, TripPhoto[]>();
+    allPhotos.forEach(photo => {
+      const groupKey = photo.groupId || photo.id;
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, []);
+      }
+      groups.get(groupKey)!.push(photo);
+    });
+    
+    // Transform groups into GroupedTripPhoto format
+    const groupedPhotos: GroupedTripPhoto[] = Array.from(groups.entries()).map(([groupId, groupPhotos]) => {
+      // Sort photos within group by takenAt (fallback to uploadedAt)
+      const sortedPhotos = groupPhotos.sort((a, b) => {
+        const dateA = a.takenAt || a.uploadedAt || new Date(0);
+        const dateB = b.takenAt || b.uploadedAt || new Date(0);
+        return new Date(dateA).getTime() - new Date(dateB).getTime();
+      });
+      
+      // Use the first photo for group metadata
+      const firstPhoto = sortedPhotos[0];
+      const earliestTakenAt = sortedPhotos.find(p => p.takenAt)?.takenAt || firstPhoto.uploadedAt || new Date();
+      
+      return {
+        id: groupId,
+        caption: firstPhoto.caption,
+        locationId: firstPhoto.locationId,
+        creatorId: firstPhoto.creatorId,
+        uploadedAt: firstPhoto.uploadedAt || new Date(),
+        groupTakenAt: earliestTakenAt,
+        media: sortedPhotos.map(photo => ({
+          id: photo.id,
+          mediaType: photo.mediaType || 'image',
+          imageUrl: photo.imageUrl,
+          videoUrl: photo.videoUrl,
+          thumbnailUrl: photo.thumbnailUrl,
+          takenAt: photo.takenAt,
+          likesCount: photo.likesCount || 0,
+        }))
+      };
+    });
+    
+    // Sort groups by groupTakenAt desc (most recent first)
+    groupedPhotos.sort((a, b) => {
+      return new Date(b.groupTakenAt).getTime() - new Date(a.groupTakenAt).getTime();
+    });
+    
+    // Apply cursor pagination
+    let filteredGroups = groupedPhotos;
+    if (cursor) {
+      const [cursorDate, cursorId] = cursor.split('_');
+      const cursorTimestamp = parseInt(cursorDate);
+      filteredGroups = groupedPhotos.filter(group => {
+        const groupTimestamp = new Date(group.groupTakenAt).getTime();
+        return groupTimestamp < cursorTimestamp || (groupTimestamp === cursorTimestamp && group.id < cursorId);
+      });
+    }
+    
+    // Apply limit and get next cursor
+    const items = filteredGroups.slice(0, limit);
+    const nextCursor = items.length === limit && filteredGroups.length > limit 
+      ? `${new Date(items[items.length - 1].groupTakenAt).getTime()}_${items[items.length - 1].id}`
       : undefined;
     
     return { items, nextCursor };

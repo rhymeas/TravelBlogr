@@ -583,6 +583,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Grouped paginated trip photos endpoint
+  app.get("/api/trip-photos/paginated-grouped", async (req, res) => {
+    try {
+      const { locationId, limit = '10', cursor } = req.query;
+      
+      const params = {
+        locationId: locationId as string || undefined,
+        limit: parseInt(limit as string),
+        cursor: cursor as string || undefined,
+      };
+      
+      const result = await storage.listTripPhotosGrouped(params);
+      
+      // Generate direct serving URLs for media items in each group
+      const itemsWithUrls = result.items.map(group => ({
+        ...group,
+        media: group.media.map(mediaItem => ({
+          ...mediaItem,
+          imageUrl: `/api/trip-photos/${mediaItem.id}/image`,
+          videoUrl: mediaItem.videoUrl ? `/api/trip-photos/${mediaItem.id}/video` : null,
+          thumbnailUrl: mediaItem.thumbnailUrl ? `/api/trip-photos/${mediaItem.id}/thumbnail` : null,
+        }))
+      }));
+      
+      res.json({
+        items: itemsWithUrls,
+        nextCursor: result.nextCursor,
+      });
+    } catch (error) {
+      console.error("Error fetching grouped trip photos:", error);
+      res.status(500).json({ error: "Failed to fetch grouped trip photos" });
+    }
+  });
+
   // Video/Media upload endpoint
   app.post("/api/trip-photos/media", 
     mediaUpload.fields([
@@ -709,6 +743,149 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error adding media trip photo:", error);
       res.status(500).json({ 
         error: "Media konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut." 
+      });
+    }
+  });
+
+  // Batch media upload endpoint for multiple files
+  app.post("/api/trip-photos/media-batch", 
+    mediaUpload.array('media', 10), // Allow up to 10 files
+    async (req, res) => {
+    try {
+      const files = req.files as Express.Multer.File[];
+      
+      if (!files || files.length === 0) {
+        return res.status(400).json({ 
+          error: "Bitte wählen Sie mindestens eine Datei zum Hochladen." 
+        });
+      }
+
+      // Extract form data
+      const { caption, uploadedBy, locationId, creatorId, exifData } = req.body;
+      
+      // Parse EXIF data if provided
+      let parsedExifData: Record<number, string> = {};
+      try {
+        if (exifData) {
+          parsedExifData = JSON.parse(exifData);
+        }
+      } catch (error) {
+        console.warn("Failed to parse EXIF data:", error);
+      }
+      
+      // Generate a group ID for this batch
+      const groupId = randomUUID();
+      
+      // Validate file types and sizes
+      const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
+      const maxImageSize = 10 * 1024 * 1024; // 10MB
+      
+      // Process each file
+      const results = [];
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const isVideo = allowedVideoTypes.includes(file.mimetype);
+        const isImage = allowedImageTypes.includes(file.mimetype);
+        
+        if (!isVideo && !isImage) {
+          console.warn(`Skipping file ${file.originalname}: invalid type ${file.mimetype}`);
+          continue;
+        }
+        
+        if (isImage && file.size > maxImageSize) {
+          console.warn(`Skipping file ${file.originalname}: too large (${file.size} bytes)`);
+          continue;
+        }
+        
+        try {
+          // Generate delete token for this file
+          const deleteToken = crypto.randomBytes(32).toString('hex');
+          
+          const objectStorageService = new ObjectStorageService();
+          
+          // Upload file to object storage
+          const { uploadURL, objectPath } = await objectStorageService.getObjectEntityUploadInfo();
+          
+          const uploadResponse = await fetch(uploadURL, {
+            method: 'PUT',
+            body: file.buffer,
+            headers: {
+              'Content-Type': file.mimetype,
+            },
+          });
+
+          if (!uploadResponse.ok) {
+            console.warn(`Failed to upload file ${file.originalname} to object storage`);
+            continue;
+          }
+
+          // Get EXIF date for this file if available
+          let takenAt = null;
+          if (parsedExifData[i]) {
+            try {
+              takenAt = new Date(parsedExifData[i]);
+              // Validate the date
+              if (isNaN(takenAt.getTime())) {
+                takenAt = null;
+              }
+            } catch (error) {
+              console.warn(`Invalid EXIF date for file ${file.originalname}:`, error);
+              takenAt = null;
+            }
+          }
+
+          // Create trip photo record
+          const tripPhotoData = {
+            locationId: locationId || null,
+            creatorId: creatorId || null,
+            objectPath: objectPath,
+            imageUrl: '/placeholder',
+            caption: caption || null,
+            uploadedBy: uploadedBy || null,
+            mediaType: isVideo ? 'video' : 'image',
+            videoUrl: isVideo ? objectPath : null,
+            thumbnailUrl: null,
+            deleteToken,
+            groupId: groupId,
+            takenAt: takenAt,
+          };
+
+          const tripPhoto = await storage.createTripPhotoMedia(tripPhotoData);
+          
+          results.push({
+            ...tripPhoto,
+            imageUrl: `/api/trip-photos/${tripPhoto.id}/image`,
+            videoUrl: tripPhoto.videoUrl ? `/api/trip-photos/${tripPhoto.id}/video` : null,
+            thumbnailUrl: tripPhoto.thumbnailUrl ? `/api/trip-photos/${tripPhoto.id}/thumbnail` : null,
+            deleteToken: deleteToken,
+          });
+
+        } catch (fileError) {
+          console.error(`Error processing file ${file.originalname}:`, fileError);
+          // Continue with other files
+        }
+      }
+
+      if (results.length === 0) {
+        return res.status(400).json({ 
+          error: "Keine Dateien konnten erfolgreich hochgeladen werden." 
+        });
+      }
+
+      // Return batch results
+      res.status(201).json({
+        groupId: groupId,
+        uploadedCount: results.length,
+        totalCount: files.length,
+        files: results,
+      });
+
+    } catch (error) {
+      console.error("Error in batch media upload:", error);
+      res.status(500).json({ 
+        error: "Batch-Upload fehlgeschlagen. Bitte versuchen Sie es erneut." 
       });
     }
   });
