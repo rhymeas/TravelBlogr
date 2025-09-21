@@ -1,18 +1,35 @@
 import { Link, useLocation } from "wouter";
-import { Home, Camera, Settings, Menu, X, Map, Globe } from "lucide-react";
-import { useState } from "react";
+import { Home, Camera, Settings, Menu, X, Map, Globe, MapPin, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { TourSettings } from "@shared/schema";
+import type { TourSettings, LocationPing } from "@shared/schema";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getLocationStatus } from "@/lib/locationUtils";
 
 export default function Header() {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const { language, setLanguage, t } = useLanguage();
+
+  // Update time every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch tour settings to get the current tour name
   const { data: tourSettings } = useQuery<TourSettings>({
     queryKey: ["/api/tour-settings"],
+  });
+
+  // Fetch latest location ping for GPS status
+  const { data: latestPing } = useQuery<LocationPing>({
+    queryKey: ["/api/location-ping/latest"],
+    enabled: Boolean(tourSettings?.gpsActivatedByAdmin),
+    refetchInterval: 2 * 60 * 1000, // Refresh every 2 minutes
   });
 
   // Helper function to extract initials from tour name
@@ -81,6 +98,20 @@ export default function Header() {
               {tourSettings?.tourName || 'Weinberg Tour 2025'}
             </span>
           </Link>
+
+          {/* Location Status - Desktop */}
+          {tourSettings?.gpsActivatedByAdmin && latestPing && (
+            <div className="hidden lg:flex items-center space-x-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800" data-testid="location-status-desktop">
+              <MapPin className="w-4 h-4 text-green-600 dark:text-green-400" />
+              <span className="text-sm text-green-700 dark:text-green-300">
+                {getLocationStatus(
+                  parseFloat(latestPing.latitude), 
+                  parseFloat(latestPing.longitude), 
+                  language === 'en'
+                )}
+              </span>
+            </div>
+          )}
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
@@ -168,6 +199,19 @@ export default function Header() {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" data-testid="mobile-menu">
           <div className="px-4 py-3 space-y-1">
+            {/* Location Status - Mobile */}
+            {tourSettings?.gpsActivatedByAdmin && latestPing && (
+              <div className="flex items-center space-x-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mb-2" data-testid="location-status-mobile">
+                <MapPin className="w-4 h-4 text-green-600 dark:text-green-400" />
+                <span className="text-sm text-green-700 dark:text-green-300">
+                  {getLocationStatus(
+                    parseFloat(latestPing.latitude), 
+                    parseFloat(latestPing.longitude), 
+                    language === 'en'
+                  )}
+                </span>
+              </div>
+            )}
             {navLinks.map((link) => {
               const Icon = link.icon;
               
