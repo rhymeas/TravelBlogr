@@ -321,6 +321,7 @@ export interface IStorage {
   addTripPhoto(tripPhoto: InsertTripPhoto): Promise<TripPhoto>;
   createTripPhotoMedia(tripPhoto: InsertTripPhoto & { deleteToken: string }): Promise<TripPhoto & { deleteToken: string }>;
   toggleTripPhotoLike(photoId: string, userKey: string): Promise<{ liked: boolean; likesCount: number }>;
+  updateTripPhoto(photoId: string, updates: { caption?: string; locationId?: string }): Promise<TripPhoto>;
   updateTripPhotoCaption(photoId: string, caption: string): Promise<TripPhoto>;
   deleteTripPhoto(photoId: string, deleteToken?: string): Promise<void>;
   cleanupBrokenTripPhotos(): Promise<number>; // Returns number of photos removed
@@ -927,6 +928,23 @@ export class MemStorage implements IStorage {
     this.tripPhotos.set(photoId, updatedPhoto);
     
     return { liked, likesCount };
+  }
+
+  async updateTripPhoto(photoId: string, updates: { caption?: string; locationId?: string }): Promise<TripPhoto> {
+    const photo = this.tripPhotos.get(photoId);
+    if (!photo) {
+      throw new Error('Photo not found');
+    }
+
+    // Update the fields
+    const updatedPhoto = {
+      ...photo,
+      ...(updates.caption !== undefined && { caption: updates.caption || null }),
+      ...(updates.locationId !== undefined && { locationId: updates.locationId || null }),
+    };
+
+    this.tripPhotos.set(photoId, updatedPhoto);
+    return updatedPhoto;
   }
 
   async updateTripPhotoCaption(photoId: string, caption: string): Promise<TripPhoto> {
@@ -1684,6 +1702,31 @@ export class DatabaseStorage implements IStorage {
       .limit(1);
     
     return { liked, likesCount: updatedPhoto[0]?.likesCount || 0 };
+  }
+
+  async updateTripPhoto(photoId: string, updates: { caption?: string; locationId?: string }): Promise<TripPhoto> {
+    await this.ensureInitialized();
+    
+    // Build update object
+    const updateData: any = {};
+    if (updates.caption !== undefined) {
+      updateData.caption = updates.caption || null;
+    }
+    if (updates.locationId !== undefined) {
+      updateData.locationId = updates.locationId || null;
+    }
+    
+    // Update the trip photo in the database
+    const result = await db.update(tripPhotos)
+      .set(updateData)
+      .where(eq(tripPhotos.id, photoId))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Photo not found');
+    }
+    
+    return result[0];
   }
 
   async updateTripPhotoCaption(photoId: string, caption: string): Promise<TripPhoto> {

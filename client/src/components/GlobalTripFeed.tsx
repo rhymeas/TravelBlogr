@@ -41,6 +41,7 @@ export default function GlobalTripFeed() {
   // Edit state
   const [editingPost, setEditingPost] = useState<string | null>(null);
   const [editCaption, setEditCaption] = useState("");
+  const [editLocationId, setEditLocationId] = useState("");
   
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -348,21 +349,21 @@ export default function GlobalTripFeed() {
 
   // Edit mutation
   const editMutation = useMutation({
-    mutationFn: async ({ photoId, caption }: { photoId: string; caption: string }) => {
-      const response = await fetch(`/api/trip-photos/${photoId}/caption`, {
+    mutationFn: async ({ photoId, caption, locationId }: { photoId: string; caption: string; locationId: string }) => {
+      const response = await fetch(`/api/trip-photos/${photoId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ caption }),
+        body: JSON.stringify({ caption, locationId }),
       });
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update caption');
+        throw new Error(errorData.error || 'Failed to update post');
       }
       return response.json();
     },
-    onSuccess: (_, { photoId, caption }) => {
-      // Update cache with new caption
+    onSuccess: (_, { photoId, caption, locationId }) => {
+      // Update cache with new caption and location
       queryClient.setQueryData(
         ["/api/trip-photos/paginated", "global"],
         (oldData: any) => {
@@ -373,7 +374,7 @@ export default function GlobalTripFeed() {
             pages: oldData.pages.map((page: any) => ({
               ...page,
               items: page.items.map((photo: any) => 
-                photo.id === photoId ? { ...photo, caption } : photo
+                photo.id === photoId ? { ...photo, caption, locationId } : photo
               )
             }))
           };
@@ -382,10 +383,11 @@ export default function GlobalTripFeed() {
       
       setEditingPost(null);
       setEditCaption("");
+      setEditLocationId("");
       
       toast({
         title: "Aktualisiert",
-        description: "Beschreibung wurde erfolgreich geändert.",
+        description: "Beitrag wurde erfolgreich geändert.",
       });
     },
     onError: (error: Error) => {
@@ -635,6 +637,7 @@ export default function GlobalTripFeed() {
                             onClick={() => {
                               setEditingPost(photo.id);
                               setEditCaption(photo.caption || "");
+                              setEditLocationId(photo.locationId || "");
                             }}
                             className="text-blue-600 hover:text-blue-700 cursor-pointer"
                             data-testid={`edit-menu-item-${photo.id}`}
@@ -950,6 +953,7 @@ export default function GlobalTripFeed() {
           if (!open) {
             setEditingPost(null);
             setEditCaption("");
+            setEditLocationId("");
           }
         }}>
           <DialogContent className="sm:max-w-md">
@@ -957,21 +961,41 @@ export default function GlobalTripFeed() {
               <DialogTitle>Beitrag bearbeiten</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <Textarea
-                placeholder="Beschreibung bearbeiten..."
-                value={editCaption}
-                onChange={(e) => setEditCaption(e.target.value)}
-                className="text-base"
-                rows={4}
-                maxLength={500}
-                data-testid="edit-caption-input"
-              />
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Beschreibung</label>
+                <Textarea
+                  placeholder="Beschreibung bearbeiten..."
+                  value={editCaption}
+                  onChange={(e) => setEditCaption(e.target.value)}
+                  className="text-base"
+                  rows={4}
+                  maxLength={500}
+                  data-testid="edit-caption-input"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Ort</label>
+                <Select value={editLocationId} onValueChange={setEditLocationId}>
+                  <SelectTrigger data-testid="edit-location-select">
+                    <SelectValue placeholder="Ort auswählen..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {locations.map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="flex items-center justify-end space-x-2">
                 <Button
                   variant="outline"
                   onClick={() => {
                     setEditingPost(null);
                     setEditCaption("");
+                    setEditLocationId("");
                   }}
                   data-testid="edit-cancel-button"
                 >
@@ -979,14 +1003,15 @@ export default function GlobalTripFeed() {
                 </Button>
                 <Button
                   onClick={() => {
-                    if (editingPost) {
+                    if (editingPost && editLocationId) {
                       editMutation.mutate({
                         photoId: editingPost,
-                        caption: editCaption
+                        caption: editCaption,
+                        locationId: editLocationId
                       });
                     }
                   }}
-                  disabled={editMutation.isPending}
+                  disabled={editMutation.isPending || !editLocationId}
                   data-testid="edit-save-button"
                 >
                   {editMutation.isPending ? "Speichern..." : "Speichern"}

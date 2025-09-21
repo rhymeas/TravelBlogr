@@ -912,6 +912,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update trip photo (caption and/or location)
+  app.patch("/api/trip-photos/:photoId", async (req, res) => {
+    try {
+      const { photoId } = req.params;
+      const { caption, locationId } = req.body;
+      
+      if (caption !== undefined && caption.length > 500) {
+        return res.status(400).json({ error: "Caption is too long (max 500 characters)" });
+      }
+      
+      const updatedPhoto = await storage.updateTripPhoto(photoId, { caption, locationId });
+      res.json(updatedPhoto);
+    } catch (error) {
+      console.error("Error updating trip photo:", error);
+      if (error instanceof Error && error.message === 'Photo not found') {
+        res.status(404).json({ error: "Photo not found" });
+      } else {
+        res.status(500).json({ error: "Failed to update trip photo" });
+      }
+    }
+  });
+
   // Update caption endpoint
   app.patch("/api/trip-photos/:photoId/caption", async (req, res) => {
     try {
