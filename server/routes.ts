@@ -766,7 +766,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Serve video file directly from object storage
       const objectStorageService = new ObjectStorageService();
-      const normalizedVideoPath = objectStorageService.normalizeObjectEntityPath(tripPhoto.videoUrl);
+      
+      // Handle direct bucket paths (not URLs)
+      let videoPath = tripPhoto.videoUrl;
+      if (videoPath.startsWith('/replit-objstore-')) {
+        // This is a direct bucket path, use it directly to get file
+        const { bucketName, objectName } = parseObjectPath(videoPath);
+        const bucket = objectStorageClient.bucket(bucketName);
+        const file = bucket.file(objectName);
+        const [fileBuffer] = await file.download();
+        
+        res.setHeader('Content-Type', 'video/mp4');
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        res.send(fileBuffer);
+        return;
+      }
+      
+      // Fallback to original logic for URL-based paths
+      const normalizedVideoPath = objectStorageService.normalizeObjectEntityPath(videoPath);
       const file = await objectStorageService.getObjectEntityFile(normalizedVideoPath);
       const [fileBuffer] = await file.download();
       
