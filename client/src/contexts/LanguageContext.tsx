@@ -153,6 +153,27 @@ const translations: Translations = {
   'specialExperiences': { de: 'Besondere Erlebnisse', en: 'Special Experiences' },
   'yourAccommodation': { de: 'Ihre Unterkunft', en: 'Your Accommodation' },
   'accommodationDescription': { de: 'Zentral gelegene Unterkunft mit modernen Annehmlichkeiten', en: 'Centrally located accommodation with modern amenities' },
+  
+  // Image Gallery
+  'noImagesYet': { de: 'Noch keine Bilder vorhanden', en: 'No Images Yet' },
+  'noImagesAdmin': { de: 'Fügen Sie die ersten Bilder zu diesem Ort hinzu, um eine schöne Galerie zu erstellen', en: 'Add the first images to this location to create a beautiful gallery' },
+  'imagesComingSoon': { de: 'Bilder werden bald hinzugefügt', en: 'Images will be added soon' },
+  'dragFilesOrSelect': { de: 'Ziehen Sie Dateien hierher oder wählen Sie sie aus', en: 'Drag files here or select them' },
+  'selectFiles': { de: 'Dateien auswählen', en: 'Select Files' },
+  'mainImage': { de: 'Hauptbild', en: 'Main Image' },
+  'addMoreImages': { de: 'Weitere hinzufügen', en: 'Add More' },
+  'moreImages': { de: 'Weitere Bilder', en: 'More Images' },
+  'images': { de: 'Bilder', en: 'Images' },
+  'setAsMain': { de: 'Als Hauptbild festlegen', en: 'Set as Main' },
+  'addUrlImage': { de: 'URL hinzufügen', en: 'Add URL' },
+  'uploadFiles': { de: 'Dateien hochladen', en: 'Upload Files' },
+  'uploadDescription': { de: 'Wählen Sie bis zu 5 Bilder aus (max. 10MB pro Datei)', en: 'Select up to 5 images (max. 10MB per file)' },
+  'imagePreview': { de: 'Bild-Vorschau', en: 'Image Preview' },
+  'saving': { de: 'Speichern...', en: 'Saving...' },
+  'preview': { de: 'Vorschau', en: 'Preview' },
+  'mainImageSet': { de: 'Hauptbild festgelegt', en: 'Main Image Set' },
+  'mainImageSetDescription': { de: 'Das Bild wurde als Hauptbild festgelegt.', en: 'The image has been set as the main image.' },
+  'mainImageSetError': { de: 'Hauptbild konnte nicht festgelegt werden', en: 'Could not set main image' },
 };
 
 interface LanguageContextType {

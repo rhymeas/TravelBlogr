@@ -11,6 +11,7 @@ import { Trash2, Star, Plus, Upload, Link, Camera, X, CheckCircle, Loader2 } fro
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { Lightbox } from "@/components/Lightbox";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import type { LocationImage } from "@shared/schema";
 
 interface ImageGalleryProps {
@@ -35,6 +36,7 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   // Fetch images for the location
   const { data: images = [], isLoading } = useQuery<LocationImage[]>({
@@ -98,14 +100,14 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/locations", locationId, "images"] });
       toast({
-        title: "Hauptbild festgelegt",
-        description: "Das Bild wurde als Hauptbild festgelegt.",
+        title: t('mainImageSet'),
+        description: t('mainImageSetDescription'),
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Fehler", 
-        description: `Hauptbild konnte nicht festgelegt werden: ${error.message}`,
+        description: `${t('mainImageSetError')}: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -199,7 +201,7 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
   return (
     <Card className={className} data-testid="image-gallery">
       <CardHeader>
-        <CardTitle>Bilder-Galerie ({images.length})</CardTitle>
+        <CardTitle>{t('galleryImages')} ({images.length})</CardTitle>
       </CardHeader>
       <CardContent>
         {/* Empty State with Modern Upload Area */}
@@ -209,12 +211,12 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
               <Camera className="w-12 h-12 text-primary" />
             </div>
             <h3 className="text-xl font-semibold text-foreground mb-2">
-              Noch keine Bilder vorhanden
+              {t('noImagesYet')}
             </h3>
             <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
               {isAdmin 
-                ? "Fügen Sie die ersten Bilder zu diesem Ort hinzu, um eine schöne Galerie zu erstellen"
-                : "Bilder werden bald hinzugefügt"}
+                ? t('noImagesAdmin')
+                : t('imagesComingSoon')}
             </p>
             
             {/* Modern Integrated Upload Area */}
@@ -226,9 +228,9 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
                       <Upload className="w-8 h-8 text-primary" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-lg mb-2">Bilder hinzufügen</h4>
+                      <h4 className="font-medium text-lg mb-2">{t('addImage')}</h4>
                       <p className="text-muted-foreground text-sm mb-4">
-                        Ziehen Sie Dateien hierher oder wählen Sie sie aus
+                        {t('dragFilesOrSelect')}
                       </p>
                     </div>
                     
@@ -241,7 +243,7 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
                         buttonClassName="min-w-[120px]"
                       >
                         <Upload className="w-4 h-4 mr-2" />
-                        Dateien auswählen
+                        {t('selectFiles')}
                       </ObjectUploader>
                       <Button 
                         variant="outline" 
@@ -251,7 +253,7 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
                         data-testid="button-add-url"
                       >
                         <Link className="w-4 h-4 mr-2" />
-                        URL hinzufügen
+                        {t('addUrlImage')}
                       </Button>
                     </div>
                   </div>
@@ -265,7 +267,7 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
             {mainImage && (
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-semibold text-lg">Hauptbild</h4>
+                  <h4 className="font-semibold text-lg">{t('mainImage')}</h4>
                   {isAdmin && (
                     <Button
                       variant="outline"
@@ -274,7 +276,7 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
                       data-testid="button-add-more-images"
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      Weitere hinzufügen
+                      {t('addMoreImages')}
                     </Button>
                   )}
                 </div>
@@ -286,7 +288,7 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
                   >
                     <img
                       src={mainImage.imageUrl}
-                      alt={mainImage.caption || "Hauptbild"}
+                      alt={mainImage.caption || t('mainImage')}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       data-testid="main-image"
                     />
@@ -294,7 +296,7 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
                   <div className="absolute top-4 left-4">
                     <Badge className="bg-yellow-500 text-yellow-900 shadow-lg">
                       <Star className="w-3 h-3 mr-1" />
-                      Hauptbild
+                      {t('mainImage')}
                     </Badge>
                   </div>
                   {isAdmin && (
@@ -322,7 +324,7 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
             {/* Image Grid */}
             <div>
               <h4 className="font-semibold text-lg mb-4">
-                {otherImages.length > 0 ? `Weitere Bilder (${otherImages.length})` : "Bilder"}
+                {otherImages.length > 0 ? `${t('moreImages')} (${otherImages.length})` : t('images')}
               </h4>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {otherImages.map((image) => (
@@ -347,7 +349,7 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
                           className="h-8 w-8 p-0 shadow-lg"
                           onClick={() => setMainImageMutation.mutate(image.id)}
                           data-testid={`button-set-main-${image.id}`}
-                          title="Als Hauptbild festlegen"
+                          title={t('setAsMain')}
                         >
                           <Star className="w-3 h-3" />
                         </Button>
@@ -381,7 +383,7 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
                       data-testid="button-add-image-card"
                     >
                       <Plus className="w-8 h-8" />
-                      <span className="text-sm">Bild hinzufügen</span>
+                      <span className="text-sm">{t('addImage')}</span>
                     </Button>
                   </div>
                 )}
@@ -396,7 +398,7 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
             <Card className="w-full max-w-lg mx-4">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Bild hinzufügen</CardTitle>
+                  <CardTitle>{t('addImage')}</CardTitle>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -444,9 +446,9 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
                         <Upload className="w-6 h-6 text-primary" />
                       </div>
                       <div>
-                        <p className="font-medium mb-2">Dateien hochladen</p>
+                        <p className="font-medium mb-2">{t('uploadFiles')}</p>
                         <p className="text-sm text-muted-foreground mb-4">
-                          Wählen Sie bis zu 5 Bilder aus (max. 10MB pro Datei)
+                          {t('uploadDescription')}
                         </p>
                       </div>
                       <ObjectUploader
@@ -457,7 +459,7 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
                         buttonClassName="w-full"
                       >
                         <Upload className="w-4 h-4 mr-2" />
-                        Dateien auswählen
+                        {t('selectFiles')}
                       </ObjectUploader>
                     </div>
                   </div>
@@ -497,7 +499,7 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
                           <div className="w-16 h-16 rounded bg-muted flex-shrink-0 overflow-hidden">
                             <img
                               src={newImageData.imageUrl}
-                              alt="Vorschau"
+                              alt={t('preview')}
                               className="w-full h-full object-cover"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).style.display = 'none';
@@ -505,7 +507,7 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
                             />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">Bild-Vorschau</p>
+                            <p className="text-sm font-medium truncate">{t('imagePreview')}</p>
                             <p className="text-xs text-muted-foreground truncate">{newImageData.imageUrl}</p>
                           </div>
                         </div>
@@ -522,12 +524,12 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
                         {addImageMutation.isPending ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Speichern...
+                            {t('saving')}
                           </>
                         ) : (
                           <>
                             <CheckCircle className="w-4 h-4 mr-2" />
-                            Bild hinzufügen
+                            {t('addImage')}
                           </>
                         )}
                       </Button>
@@ -539,7 +541,7 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
                         }}
                         data-testid="button-cancel-add-image"
                       >
-                        Abbrechen
+                        {t('cancel')}
                       </Button>
                     </div>
                   </div>
