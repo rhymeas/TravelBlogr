@@ -766,7 +766,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Serve video file directly from object storage
       const objectStorageService = new ObjectStorageService();
-      const file = await objectStorageService.getObjectEntityFile(tripPhoto.videoUrl);
+      const normalizedVideoPath = objectStorageService.normalizeObjectEntityPath(tripPhoto.videoUrl);
+      const file = await objectStorageService.getObjectEntityFile(normalizedVideoPath);
       const [fileBuffer] = await file.download();
       
       res.setHeader('Content-Type', 'video/mp4');
@@ -794,7 +795,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Serve thumbnail file directly from object storage
       const objectStorageService = new ObjectStorageService();
-      const file = await objectStorageService.getObjectEntityFile(tripPhoto.thumbnailUrl);
+      const normalizedThumbnailPath = objectStorageService.normalizeObjectEntityPath(tripPhoto.thumbnailUrl);
+      const file = await objectStorageService.getObjectEntityFile(normalizedThumbnailPath);
       const [fileBuffer] = await file.download();
       
       res.setHeader('Content-Type', 'image/jpeg');
