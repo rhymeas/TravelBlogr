@@ -801,7 +801,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                       <p className="text-sm text-foreground flex-1 mr-2" data-testid={`post-caption-${group.id}`}>
                         {group.caption}
                       </p>
-                      {group.media.some(media => deleteTokens[media.id]) && (
+                      {group.caption && (
                         <Dialog open={editingPost === group.id} onOpenChange={(open) => {
                           if (!open) {
                             setEditingPost(null);
