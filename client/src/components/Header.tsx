@@ -1,12 +1,14 @@
 import { Link, useLocation } from "wouter";
-import { Home, Camera, Settings, Menu, X, Map } from "lucide-react";
+import { Home, Camera, Settings, Menu, X, Map, Globe } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { TourSettings } from "@shared/schema";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Header() {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { language, setLanguage } = useLanguage();
 
   // Fetch tour settings to get the current tour name
   const { data: tourSettings } = useQuery<TourSettings>({
@@ -115,6 +117,17 @@ export default function Header() {
                 </Link>
               );
             })}
+            
+            {/* Language Toggle */}
+            <button
+              onClick={() => setLanguage(language === 'de' ? 'en' : 'de')}
+              className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
+              data-testid="language-toggle"
+              title="Switch Language"
+            >
+              <Globe className="w-4 h-4" />
+              <span className="text-sm font-medium">{language.toUpperCase()}</span>
+            </button>
           </div>
 
           {/* Mobile Actions */}
@@ -189,6 +202,16 @@ export default function Header() {
                 </Link>
               );
             })}
+            
+            {/* Mobile Language Toggle */}
+            <button
+              onClick={() => setLanguage(language === 'de' ? 'en' : 'de')}
+              className="flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-gray-800 w-full text-left"
+              data-testid="mobile-language-toggle"
+            >
+              <Globe className="w-5 h-5" />
+              <span>Language: {language.toUpperCase()}</span>
+            </button>
           </div>
         </div>
       )}
