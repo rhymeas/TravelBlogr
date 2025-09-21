@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import PrivacyWrapper from "@/components/PrivacyWrapper";
 import FloatingUploadButton from "@/components/FloatingUploadButton";
 import NotFound from "@/pages/not-found";
@@ -27,15 +28,17 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <PrivacyWrapper>
-            <Router />
-            <FloatingUploadButton />
-          </PrivacyWrapper>
-        </TooltipProvider>
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <PrivacyWrapper>
+              <Router />
+              <FloatingUploadButton />
+            </PrivacyWrapper>
+          </TooltipProvider>
+        </AuthProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }
