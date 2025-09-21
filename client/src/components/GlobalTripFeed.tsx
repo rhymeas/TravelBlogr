@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Clock, User, Camera, Send, Image, Upload, Heart, Trash2, Video, Play, MoreVertical, X, Maximize2 } from "lucide-react";
+import { Plus, Clock, User, Camera, Send, Image, Upload, Heart, Trash2, Video, Play, MoreVertical, X, Maximize2, Edit } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { TripPhoto, Creator, Location } from "@shared/schema";
@@ -37,6 +37,10 @@ export default function GlobalTripFeed() {
   // Modal state
   const [fullViewMedia, setFullViewMedia] = useState<TripPhoto | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  
+  // Edit state
+  const [editingPost, setEditingPost] = useState<string | null>(null);
+  const [editCaption, setEditCaption] = useState("");
   
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -319,6 +323,57 @@ export default function GlobalTripFeed() {
     },
   });
 
+  // Edit mutation
+  const editMutation = useMutation({
+    mutationFn: async ({ photoId, caption }: { photoId: string; caption: string }) => {
+      const response = await fetch(`/api/trip-photos/${photoId}/caption`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caption }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update caption');
+      }
+      return response.json();
+    },
+    onSuccess: (_, { photoId, caption }) => {
+      // Update cache with new caption
+      queryClient.setQueryData(
+        ["/api/trip-photos/paginated", "global"],
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page: any) => ({
+              ...page,
+              items: page.items.map((photo: any) => 
+                photo.id === photoId ? { ...photo, caption } : photo
+              )
+            }))
+          };
+        }
+      );
+      
+      setEditingPost(null);
+      setEditCaption("");
+      
+      toast({
+        title: "Aktualisiert",
+        description: "Beschreibung wurde erfolgreich geändert.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Aktualisierung fehlgeschlagen",
+        description: error.message || "Bitte versuchen Sie es erneut.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Infinite scroll hook
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -532,6 +587,19 @@ export default function GlobalTripFeed() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="z-50">
+                          {photo.caption && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingPost(photo.id);
+                                setEditCaption(photo.caption || "");
+                              }}
+                              className="text-blue-600 hover:text-blue-700 cursor-pointer"
+                              data-testid={`edit-menu-item-${photo.id}`}
+                            >
+                              <Edit className="w-4 h-4 mr-2" />
+                              Bearbeiten
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem
                             onClick={() => handleDelete(photo.id)}
                             className="text-red-600 hover:text-red-700 cursor-pointer"
@@ -825,6 +893,59 @@ export default function GlobalTripFeed() {
                   data-testid="full-view-image"
                 />
               )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Edit Dialog */}
+      {editingPost && (
+        <Dialog open={!!editingPost} onOpenChange={(open) => {
+          if (!open) {
+            setEditingPost(null);
+            setEditCaption("");
+          }
+        }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Beitrag bearbeiten</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Textarea
+                placeholder="Beschreibung bearbeiten..."
+                value={editCaption}
+                onChange={(e) => setEditCaption(e.target.value)}
+                className="text-base"
+                rows={4}
+                maxLength={500}
+                data-testid="edit-caption-input"
+              />
+              <div className="flex items-center justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditingPost(null);
+                    setEditCaption("");
+                  }}
+                  data-testid="edit-cancel-button"
+                >
+                  Abbrechen
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (editingPost) {
+                      editMutation.mutate({
+                        photoId: editingPost,
+                        caption: editCaption
+                      });
+                    }
+                  }}
+                  disabled={editMutation.isPending}
+                  data-testid="edit-save-button"
+                >
+                  {editMutation.isPending ? "Speichern..." : "Speichern"}
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
