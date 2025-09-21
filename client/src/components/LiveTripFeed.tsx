@@ -101,15 +101,32 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
       creatorId: string;
       mediaType: 'image' | 'video';
     }) => {
+      // Extract EXIF data for proper date sorting
+      let exifData: Record<number, string> = {};
+      if (mediaType === 'image') {
+        try {
+          const exifr = await import('exifr');
+          const parsed = await exifr.parse(file);
+          const dateTime = parsed?.DateTimeOriginal || parsed?.DateTime || parsed?.CreateDate;
+          if (dateTime && dateTime instanceof Date) {
+            exifData[0] = dateTime.toISOString();
+          }
+        } catch (error) {
+          console.warn('Failed to extract EXIF data:', error);
+        }
+      }
+
       const formData = new FormData();
       formData.append('media', file);
       if (caption) formData.append('caption', caption);
       if (uploadedBy) formData.append('uploadedBy', uploadedBy);
       if (creatorId) formData.append('creatorId', creatorId);
-      formData.append('mediaType', mediaType);
       if (locationId) formData.append('locationId', locationId);
+      if (Object.keys(exifData).length > 0) {
+        formData.append('exifData', JSON.stringify(exifData));
+      }
 
-      const response = await fetch('/api/trip-photos/media', {
+      const response = await fetch('/api/trip-photos/media-batch', {
         method: 'POST',
         body: formData,
       });
@@ -118,7 +135,8 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
         const errorData = await response.json();
         throw new Error(errorData.error || "Upload fehlgeschlagen");
       }
-      return response.json();
+      const result = await response.json();
+      return result.files?.[0] || result; // Return first file from batch result
     },
     onSuccess: (newPhoto) => {
       // Store delete token locally
@@ -684,13 +702,6 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                     </div>
                   </div>
                 </div>
-
-                {/* Post Content */}
-                {group.caption && (
-                  <div className="px-3 pb-2">
-                    <p className="text-sm" data-testid={`post-caption-${group.id}`}>{group.caption}</p>
-                  </div>
-                )}
 
                 {/* Post Media - Single or Gallery */}
                 {hasMultipleMedia ? (
