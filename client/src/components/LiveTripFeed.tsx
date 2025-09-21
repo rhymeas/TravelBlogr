@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Clock, User, Camera, Send, Image, Upload, Heart, Trash2, Video, Play } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Plus, Clock, User, Camera, Send, Image, Upload, Heart, Trash2, Video, Play, Edit } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { TripPhoto, Creator, GroupedTripPhoto } from "@shared/schema";
@@ -35,6 +36,8 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
     }
   });
   const [currentImageIndex, setCurrentImageIndex] = useState<Record<string, number>>({});
+  const [editingPost, setEditingPost] = useState<string | null>(null);
+  const [editCaption, setEditCaption] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -260,6 +263,60 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
       toast({
         title: "Fehler",
         description: "Like konnte nicht gespeichert werden.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Edit post mutation
+  const editMutation = useMutation({
+    mutationFn: async ({ postId, caption }: { postId: string; caption: string }) => {
+      const response = await fetch(`/api/trip-photos/${postId}/caption`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caption }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update caption');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (_, { postId, caption }) => {
+      // Update cache with new caption
+      queryClient.setQueryData(
+        ['/api/trip-photos/paginated-grouped', locationId],
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page: any) => ({
+              ...page,
+              items: page.items.map((group: any) => 
+                group.id === postId 
+                  ? { ...group, caption }
+                  : group
+              )
+            }))
+          };
+        }
+      );
+      
+      setEditingPost(null);
+      setEditCaption("");
+      
+      toast({
+        title: "Aktualisiert",
+        description: "Ihr Beitrag wurde erfolgreich bearbeitet.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Fehler",
+        description: error.message || "Bearbeitung fehlgeschlagen.",
         variant: "destructive",
       });
     },
@@ -724,6 +781,75 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                       />
                     </div>
                   )
+                )}
+
+                {/* Post Caption */}
+                {group.caption && (
+                  <div className="px-3 py-2 border-t border-border/50">
+                    <div className="flex items-start justify-between">
+                      <p className="text-sm text-foreground flex-1 mr-2" data-testid={`post-caption-${group.id}`}>
+                        {group.caption}
+                      </p>
+                      {group.media.some(media => deleteTokens[media.id]) && (
+                        <Dialog open={editingPost === group.id} onOpenChange={(open) => {
+                          if (!open) {
+                            setEditingPost(null);
+                            setEditCaption("");
+                          }
+                        }}>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditingPost(group.id);
+                                setEditCaption(group.caption || "");
+                              }}
+                              className="text-muted-foreground hover:text-primary p-1 h-auto"
+                              data-testid={`edit-button-${group.id}`}
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                              <DialogTitle>Beitrag bearbeiten</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <Textarea
+                                placeholder="Beschreibung bearbeiten..."
+                                value={editCaption}
+                                onChange={(e) => setEditCaption(e.target.value)}
+                                className="text-base"
+                                rows={4}
+                                maxLength={500}
+                                data-testid="edit-caption-input"
+                              />
+                              <div className="flex items-center justify-end space-x-2">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => {
+                                    setEditingPost(null);
+                                    setEditCaption("");
+                                  }}
+                                  data-testid="cancel-edit-button"
+                                >
+                                  Abbrechen
+                                </Button>
+                                <Button
+                                  onClick={() => editMutation.mutate({ postId: group.id, caption: editCaption })}
+                                  disabled={editMutation.isPending}
+                                  data-testid="save-edit-button"
+                                >
+                                  {editMutation.isPending ? "Speichern..." : "Speichern"}
+                                </Button>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                    </div>
+                  </div>
                 )}
 
                 {/* Post Actions - Like and Delete */}

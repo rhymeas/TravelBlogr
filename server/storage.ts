@@ -321,6 +321,7 @@ export interface IStorage {
   addTripPhoto(tripPhoto: InsertTripPhoto): Promise<TripPhoto>;
   createTripPhotoMedia(tripPhoto: InsertTripPhoto & { deleteToken: string }): Promise<TripPhoto & { deleteToken: string }>;
   toggleTripPhotoLike(photoId: string, userKey: string): Promise<{ liked: boolean; likesCount: number }>;
+  updateTripPhotoCaption(photoId: string, caption: string): Promise<TripPhoto>;
   deleteTripPhoto(photoId: string, deleteToken?: string): Promise<void>;
   cleanupBrokenTripPhotos(): Promise<number>; // Returns number of photos removed
 
@@ -901,6 +902,22 @@ export class MemStorage implements IStorage {
     this.tripPhotos.set(photoId, updatedPhoto);
     
     return { liked, likesCount };
+  }
+
+  async updateTripPhotoCaption(photoId: string, caption: string): Promise<TripPhoto> {
+    const photo = this.tripPhotos.get(photoId);
+    if (!photo) {
+      throw new Error('Photo not found');
+    }
+
+    // Update the caption
+    const updatedPhoto = {
+      ...photo,
+      caption: caption || null, // Set to null if caption is empty
+    };
+
+    this.tripPhotos.set(photoId, updatedPhoto);
+    return updatedPhoto;
   }
 
   async deleteTripPhoto(photoId: string, deleteToken?: string): Promise<void> {
@@ -1634,6 +1651,22 @@ export class DatabaseStorage implements IStorage {
       .limit(1);
     
     return { liked, likesCount: updatedPhoto[0]?.likesCount || 0 };
+  }
+
+  async updateTripPhotoCaption(photoId: string, caption: string): Promise<TripPhoto> {
+    await this.ensureInitialized();
+    
+    // Update the caption in the database
+    const result = await db.update(tripPhotos)
+      .set({ caption: caption || null })
+      .where(eq(tripPhotos.id, photoId))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Photo not found');
+    }
+    
+    return result[0];
   }
 
   async deleteTripPhoto(photoId: string, deleteToken?: string): Promise<void> {
