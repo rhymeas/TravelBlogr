@@ -34,6 +34,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
       return {};
     }
   });
+  const [currentImageIndex, setCurrentImageIndex] = useState<Record<string, number>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -636,55 +637,63 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
 
                 {/* Post Media - Single or Gallery */}
                 {hasMultipleMedia ? (
-                  /* Image Gallery */
-                  <div className="grid grid-cols-2 gap-0.5" data-testid={`post-gallery-${group.id}`}>
-                    {group.media.slice(0, 4).map((media, index) => (
-                      <div key={media.id} className="relative">
-                        {media.mediaType === 'video' && media.videoUrl ? (
-                          <video
-                            src={media.videoUrl}
-                            poster={media.thumbnailUrl || undefined}
-                            controls={false}
-                            className="w-full aspect-square object-cover"
-                            data-testid={`gallery-video-${media.id}`}
-                            onClick={() => {
-                              // Create and click a new video element to start playing
-                              const videoEl = document.createElement('video');
-                              videoEl.src = media.videoUrl;
-                              videoEl.controls = true;
-                              videoEl.autoplay = true;
-                              videoEl.style.position = 'fixed';
-                              videoEl.style.top = '50%';
-                              videoEl.style.left = '50%';
-                              videoEl.style.transform = 'translate(-50%, -50%)';
-                              videoEl.style.zIndex = '9999';
-                              videoEl.style.maxWidth = '90vw';
-                              videoEl.style.maxHeight = '90vh';
-                              videoEl.style.backgroundColor = 'black';
-                              document.body.appendChild(videoEl);
-                              videoEl.addEventListener('click', () => document.body.removeChild(videoEl));
-                            }}
-                          />
-                        ) : (
-                          <img
-                            src={media.imageUrl}
-                            alt={group.caption || "Gallery image"}
-                            className="w-full aspect-square object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                            data-testid={`gallery-image-${media.id}`}
-                          />
-                        )}
-                        {index === 3 && group.media.length > 4 && (
-                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-medium">
-                            +{group.media.length - 4}
+                  /* Carousel Gallery */
+                  <div className="relative" data-testid={`post-gallery-${group.id}`}>
+                    {(() => {
+                      const currentIndex = currentImageIndex[group.id] || 0;
+                      const currentMedia = group.media[currentIndex];
+                      return (
+                        <>
+                          {/* Main Image/Video Display */}
+                          <div className="relative">
+                            {currentMedia.mediaType === 'video' && currentMedia.videoUrl ? (
+                              <video
+                                src={currentMedia.videoUrl}
+                                poster={currentMedia.thumbnailUrl || undefined}
+                                controls
+                                className="w-full max-h-96 object-cover"
+                                data-testid={`gallery-video-${currentMedia.id}`}
+                              >
+                                <source src={currentMedia.videoUrl} type="video/mp4" />
+                                Ihr Browser unterstützt das Video-Element nicht.
+                              </video>
+                            ) : (
+                              <img
+                                src={currentMedia.imageUrl}
+                                alt={group.caption || "Gallery image"}
+                                className="w-full max-h-96 object-cover"
+                                data-testid={`gallery-image-${currentMedia.id}`}
+                              />
+                            )}
+                            {currentMedia.mediaType === 'video' && (
+                              <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded-md text-xs flex items-center space-x-1">
+                                <Video className="w-3 h-3" />
+                                <span>Video</span>
+                              </div>
+                            )}
                           </div>
-                        )}
-                        {media.mediaType === 'video' && (
-                          <div className="absolute top-1 left-1 bg-black/50 text-white px-1 py-0.5 rounded text-xs">
-                            <Video className="w-3 h-3" />
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                          
+                          {/* Navigation Dots */}
+                          {group.media.length > 1 && (
+                            <div className="flex justify-center items-center space-x-2 py-3 bg-gray-50 dark:bg-gray-800">
+                              {group.media.map((_, index) => (
+                                <button
+                                  key={index}
+                                  onClick={() => setCurrentImageIndex(prev => ({ ...prev, [group.id]: index }))}
+                                  className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                                    index === currentIndex 
+                                      ? 'bg-primary scale-125' 
+                                      : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
+                                  }`}
+                                  data-testid={`gallery-dot-${index}`}
+                                  aria-label={`Go to image ${index + 1}`}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()
                   </div>
                 ) : (
                   /* Single Media */
