@@ -705,7 +705,7 @@ export default function GlobalTripFeed() {
 
               {/* Post Caption - Now Below Media */}
               {photo.caption && (
-                <div className="px-3 pb-2">
+                <div className="px-3 py-1.5">
                   <p className="text-sm" data-testid={`post-caption-${photo.id}`}>{photo.caption}</p>
                 </div>
               )}
