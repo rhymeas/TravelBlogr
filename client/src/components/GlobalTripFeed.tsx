@@ -62,6 +62,15 @@ export default function GlobalTripFeed() {
   const [modalTouchStart, setModalTouchStart] = useState<number | null>(null);
   const [modalTouchEnd, setModalTouchEnd] = useState<number | null>(null);
   
+  // Zoom state for full view modal
+  const [zoomScale, setZoomScale] = useState(1);
+  const [zoomPan, setZoomPan] = useState({ x: 0, y: 0 });
+  const [initialZoomDistance, setInitialZoomDistance] = useState<number | null>(null);
+  const [initialZoomScale, setInitialZoomScale] = useState(1);
+  const [initialPanPosition, setInitialPanPosition] = useState({ x: 0, y: 0 });
+  const [isPinching, setIsPinching] = useState(false);
+  const [isPanning, setIsPanning] = useState(false);
+  
   // Edit state
   const [editingPost, setEditingPost] = useState<string | null>(null);
   const [editCaption, setEditCaption] = useState("");
@@ -646,6 +655,7 @@ export default function GlobalTripFeed() {
     setFullViewMedia(null);
     setFullViewCarousel(null);
     setFullViewIndex(0);
+    resetZoom();
   };
 
   // Keyboard navigation for full view modal
@@ -685,6 +695,7 @@ export default function GlobalTripFeed() {
 
   const goToFullViewNext = () => {
     if (!fullViewCarousel) return;
+    resetZoom();
     const nextIndex = (fullViewIndex + 1) % fullViewCarousel.length;
     setFullViewIndex(nextIndex);
     setFullViewMedia(fullViewCarousel[nextIndex]);
@@ -692,6 +703,7 @@ export default function GlobalTripFeed() {
 
   const goToFullViewPrev = () => {
     if (!fullViewCarousel) return;
+    resetZoom();
     const prevIndex = (fullViewIndex - 1 + fullViewCarousel.length) % fullViewCarousel.length;
     setFullViewIndex(prevIndex);
     setFullViewMedia(fullViewCarousel[prevIndex]);
@@ -699,22 +711,98 @@ export default function GlobalTripFeed() {
 
   const goToFullViewIndex = (index: number) => {
     if (!fullViewCarousel || index < 0 || index >= fullViewCarousel.length) return;
+    resetZoom();
     setFullViewIndex(index);
     setFullViewMedia(fullViewCarousel[index]);
   };
 
-  // Touch event handlers for full view modal swipe
+  // Zoom utility functions
+  const getDistance = (touch1: Touch, touch2: Touch) => {
+    return Math.sqrt(
+      Math.pow(touch2.clientX - touch1.clientX, 2) +
+      Math.pow(touch2.clientY - touch1.clientY, 2)
+    );
+  };
+
+  const resetZoom = () => {
+    setZoomScale(1);
+    setZoomPan({ x: 0, y: 0 });
+    setIsPinching(false);
+    setIsPanning(false);
+  };
+
+  const handleZoomIn = () => {
+    setZoomScale(prev => Math.min(prev * 1.5, 5));
+  };
+
+  const handleZoomOut = () => {
+    setZoomScale(prev => Math.max(prev / 1.5, 1));
+    if (zoomScale <= 1.5) {
+      setZoomPan({ x: 0, y: 0 });
+    }
+  };
+
+  // Touch event handlers for full view modal swipe and zoom
   const handleModalTouchStart = (e: React.TouchEvent) => {
-    setModalTouchEnd(null);
-    setModalTouchStart(e.targetTouches[0].clientX);
+    if (e.touches.length === 1) {
+      // Single touch - prepare for swipe or pan
+      setModalTouchEnd(null);
+      setModalTouchStart(e.targetTouches[0].clientX);
+      if (zoomScale > 1) {
+        setIsPanning(true);
+        setInitialPanPosition({
+          x: e.touches[0].clientX - zoomPan.x,
+          y: e.touches[0].clientY - zoomPan.y
+        });
+      }
+    } else if (e.touches.length === 2) {
+      // Two fingers - pinch zoom
+      setIsPinching(true);
+      const distance = getDistance(e.touches[0], e.touches[1]);
+      setInitialZoomDistance(distance);
+      setInitialZoomScale(zoomScale);
+    }
   };
 
   const handleModalTouchMove = (e: React.TouchEvent) => {
-    setModalTouchEnd(e.targetTouches[0].clientX);
+    e.preventDefault();
+    
+    if (e.touches.length === 1) {
+      if (isPanning && zoomScale > 1) {
+        // Pan the zoomed image
+        const newX = e.touches[0].clientX - initialPanPosition.x;
+        const newY = e.touches[0].clientY - initialPanPosition.y;
+        setZoomPan({ x: newX, y: newY });
+      } else if (!isPinching) {
+        // Single touch swipe detection
+        setModalTouchEnd(e.targetTouches[0].clientX);
+      }
+    } else if (e.touches.length === 2 && isPinching && initialZoomDistance) {
+      // Pinch zoom
+      const currentDistance = getDistance(e.touches[0], e.touches[1]);
+      const scale = (currentDistance / initialZoomDistance) * initialZoomScale;
+      setZoomScale(Math.min(Math.max(scale, 1), 5));
+      
+      if (scale <= 1) {
+        setZoomPan({ x: 0, y: 0 });
+      }
+    }
   };
 
   const handleModalTouchEnd = () => {
-    if (!modalTouchStart || !modalTouchEnd || !fullViewCarousel || fullViewCarousel.length <= 1) return;
+    if (isPinching) {
+      setIsPinching(false);
+      setInitialZoomDistance(null);
+      return;
+    }
+    
+    if (isPanning) {
+      setIsPanning(false);
+      return;
+    }
+    
+    // Swipe navigation (only if not zoomed)
+    if (zoomScale > 1 || !modalTouchStart || !modalTouchEnd || !fullViewCarousel || fullViewCarousel.length <= 1) return;
     
     const distance = modalTouchStart - modalTouchEnd;
     const isLeftSwipe = distance > 50;
@@ -1133,6 +1221,43 @@ export default function GlobalTripFeed() {
                       </span>
                     </div>
                   )}
+                  {/* Desktop Zoom Controls */}
+                  {fullViewMedia?.mediaType === 'image' && (
+                    <div className="hidden md:flex items-center space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleZoomOut}
+                        disabled={zoomScale <= 1}
+                        className="text-white hover:bg-white/20 h-8 w-8 p-0"
+                        data-testid="zoom-out-button"
+                      >
+                        <span className="text-lg">−</span>
+                      </Button>
+                      <span className="text-sm px-2">{Math.round(zoomScale * 100)}%</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleZoomIn}
+                        disabled={zoomScale >= 5}
+                        className="text-white hover:bg-white/20 h-8 w-8 p-0"
+                        data-testid="zoom-in-button"
+                      >
+                        <span className="text-lg">+</span>
+                      </Button>
+                      {zoomScale > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={resetZoom}
+                          className="text-white hover:bg-white/20 h-8 px-2 text-xs"
+                          data-testid="zoom-reset-button"
+                        >
+                          Reset
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <Button
                   variant="ghost"
@@ -1172,10 +1297,14 @@ export default function GlobalTripFeed() {
 
               {/* Clean image area */}
               <div 
-                className="flex-1 flex items-center justify-center bg-black min-h-0 py-4"
+                className="flex-1 flex items-center justify-center bg-black min-h-0 py-4 overflow-hidden"
                 onTouchStart={handleModalTouchStart}
                 onTouchMove={handleModalTouchMove}
                 onTouchEnd={handleModalTouchEnd}
+                style={{ 
+                  touchAction: zoomScale > 1 ? 'none' : 'pan-y',
+                  cursor: zoomScale > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default'
+                }}
               >
                 {fullViewMedia.mediaType === 'video' && fullViewMedia.videoUrl ? (
                   <video
@@ -1193,8 +1322,20 @@ export default function GlobalTripFeed() {
                   <img
                     src={fullViewMedia.imageUrl}
                     alt={fullViewMedia.caption || "Reisefoto"}
-                    className="max-w-full max-h-full object-contain"
+                    className="max-w-full max-h-full object-contain transition-transform duration-200 ease-out"
+                    style={{
+                      transform: `scale(${zoomScale}) translate(${zoomPan.x / zoomScale}px, ${zoomPan.y / zoomScale}px)`,
+                      cursor: zoomScale > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default'
+                    }}
                     data-testid="full-view-image"
+                    onWheel={(e) => {
+                      e.preventDefault();
+                      if (e.deltaY < 0) {
+                        handleZoomIn();
+                      } else {
+                        handleZoomOut();
+                      }
+                    }}
                   />
                 )}
               </div>
