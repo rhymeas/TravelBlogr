@@ -840,15 +840,14 @@ export default function GlobalTripFeed() {
     return location?.name || null;
   };
 
-  // Format timestamp with relative time
+  // Format timestamp with date only
   const formatTime = (date: Date | string | null) => {
     if (!date) return '';
     const timestamp = typeof date === 'string' ? new Date(date) : date;
     return timestamp.toLocaleString('de-DE', {
       day: '2-digit',
       month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
+      year: 'numeric',
     });
   };
 
