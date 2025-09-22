@@ -1075,6 +1075,17 @@ export default function GlobalTripFeed() {
         </div>
       )}
       
+      {/* Hidden File Input - Outside modal so it's always available */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*,video/*"
+        onChange={handleFileSelect}
+        className="hidden"
+        data-testid="file-input"
+      />
+
       {/* Floating Upload Button */}
       <Button
         onClick={() => fileInputRef.current?.click()}
@@ -1094,15 +1105,6 @@ export default function GlobalTripFeed() {
             <div className="space-y-4">
               {/* File Upload */}
               <div className="space-y-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept="image/*,video/*"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  data-testid="file-input"
-                />
                 <Button
                   variant="outline"
                   onClick={() => fileInputRef.current?.click()}
