@@ -6,12 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import type { TourSettings } from "@shared/schema";
 
 export default function PrivacyLoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const { login, isLoading } = useAuth();
   const { toast } = useToast();
+
+  // Fetch tour settings to get the current tour name
+  const { data: tourSettings } = useQuery<TourSettings>({
+    queryKey: ["/api/tour-settings"],
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +44,7 @@ export default function PrivacyLoginPage() {
     } else {
       toast({
         title: "Erfolgreich angemeldet",
-        description: "Willkommen zur Weinberg Tour 2025!",
+        description: `Willkommen zur ${tourSettings?.tourName || 'Weinberg Tour 2025'}!`,
       });
     }
   };
@@ -53,7 +60,7 @@ export default function PrivacyLoginPage() {
             </div>
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Weinberg Tour 2025
+            {tourSettings?.tourName || 'Weinberg Tour 2025'}
           </h1>
           <p className="text-gray-600 dark:text-gray-300 text-sm">
             Bitte geben Sie das Passwort ein, um die Tour-Details zu sehen

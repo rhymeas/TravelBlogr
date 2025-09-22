@@ -61,22 +61,6 @@ export default function GlobalTripFeed() {
     localStorage.setItem('userKey', userKey);
   }, [userKey]);
 
-  // Handle deep linking focus behavior
-  useEffect(() => {
-    if (shouldFocus && data?.pages?.[0]?.items?.length > 0) {
-      const firstItem = data.pages[0].items[0];
-      // Scroll to the first item
-      setTimeout(() => {
-        const element = document.querySelector(`[data-testid="post-image-${firstItem.id}"]`) || 
-                       document.querySelector(`[data-testid="video-player-${firstItem.id}"]`);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          // Optional: Open full view
-          openFullView(firstItem);
-        }
-      }, 500); // Wait for rendering
-    }
-  }, [shouldFocus, data]);
 
   // Save delete tokens to localStorage whenever they change
   useEffect(() => {
@@ -128,6 +112,32 @@ export default function GlobalTripFeed() {
   // Flatten the paginated data
   const tripPhotos = data?.pages.flatMap(page => page.items) || [];
   
+  // Handle deep linking focus behavior
+  useEffect(() => {
+    if (shouldFocus && data?.pages?.[0]?.items?.length) {
+      const firstItem = data.pages[0].items[0];
+      // Scroll to the first item
+      setTimeout(() => {
+        const element = document.querySelector(`[data-testid="post-image-${firstItem.id}"]`) || 
+                       document.querySelector(`[data-testid="post-video-${firstItem.id}"]`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Optional: Open full view
+          openFullView(firstItem);
+        }
+      }, 500); // Wait for rendering
+    }
+  }, [shouldFocus, data]);
+  
+  // Helper function to safely get time from Date or string
+  const getTimeSafe = (date: Date | string | null): number => {
+    if (!date) return 0;
+    if (typeof date === 'string') {
+      return new Date(date).getTime();
+    }
+    return date.getTime();
+  };
+
   // Group photos by groupId for carousel display
   const groupedPhotos = React.useMemo(() => {
     const groups = new Map<string, TripPhoto[]>();
@@ -151,13 +161,17 @@ export default function GlobalTripFeed() {
     // Add carousel groups
     groups.forEach((photos, groupId) => {
       if (photos.length > 1) {
+        // Sort photos by time (oldest to newest for carousel display)
+        const sortedPhotos = photos.sort((a, b) => getTimeSafe(a.uploadedAt) - getTimeSafe(b.uploadedAt));
+        // Use the newest photo's timestamp for feed ordering
+        const newestPhoto = sortedPhotos[sortedPhotos.length - 1];
         groupedItems.push({
           type: 'carousel',
           groupId,
-          photos: photos.sort((a, b) => (a.uploadedAt?.getTime() || 0) - (b.uploadedAt?.getTime() || 0)),
+          photos: sortedPhotos,
           id: `carousel-${groupId}`,
-          uploadedAt: photos[0]?.uploadedAt || null,
-          locationId: photos[0]?.locationId || null
+          uploadedAt: newestPhoto?.uploadedAt || null,
+          locationId: newestPhoto?.locationId || null
         });
       } else {
         // Single photo in group, treat as individual
@@ -170,8 +184,8 @@ export default function GlobalTripFeed() {
     
     // Sort by upload time (most recent first)
     return groupedItems.sort((a, b) => {
-      const timeA = 'photos' in a ? (a.photos[0]?.uploadedAt?.getTime() || 0) : (a.uploadedAt?.getTime() || 0);
-      const timeB = 'photos' in b ? (b.photos[0]?.uploadedAt?.getTime() || 0) : (b.uploadedAt?.getTime() || 0);
+      const timeA = getTimeSafe(a.uploadedAt);
+      const timeB = getTimeSafe(b.uploadedAt);
       return timeB - timeA;
     });
   }, [tripPhotos]);
@@ -620,7 +634,7 @@ export default function GlobalTripFeed() {
   const getLocationName = (locationId: string | null) => {
     if (!locationId || !locations) return null;
     const location = locations.find(l => l.id === locationId);
-    return location?.name;
+    return location?.name || null;
   };
 
   // Format timestamp with relative time
