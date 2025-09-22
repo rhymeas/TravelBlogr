@@ -724,7 +724,7 @@ export default function GlobalTripFeed() {
   };
 
   // Zoom utility functions
-  const getDistance = (touch1: Touch, touch2: Touch) => {
+  const getDistance = (touch1: React.Touch, touch2: React.Touch) => {
     return Math.sqrt(
       Math.pow(touch2.clientX - touch1.clientX, 2) +
       Math.pow(touch2.clientY - touch1.clientY, 2)
@@ -1120,6 +1120,22 @@ export default function GlobalTripFeed() {
                     </span>
                   </div>
                 </Button>
+                
+                {/* iOS Google Photos Help Text */}
+                <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-start space-x-2">
+                    <div className="text-blue-600 dark:text-blue-400 mt-0.5">ℹ️</div>
+                    <div>
+                      <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">
+                        iOS/iPad Tipp: Google Photos Zugriff
+                      </p>
+                      <p className="text-blue-700 dark:text-blue-300">
+                        Wenn Sie Fotos aus Google Photos hochladen möchten, speichern Sie diese zuerst in der iOS Fotos-App: 
+                        Google Photos öffnen → Foto auswählen → Teilen → "Zu Fotos hinzufügen"
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
               
               {selectedFiles.length > 0 && (
