@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Clock, User, Camera, Send, Image, Upload, Heart, Trash2, Video, Play, MoreVertical, X, Maximize2, Edit, ChevronLeft, ChevronRight, PlayCircle } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -663,11 +664,49 @@ export default function GlobalTripFeed() {
 
       {/* Feed Content */}
       {isLoading ? (
-        <Card className="p-8" data-testid="loading-posts">
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        </Card>
+        <div className="space-y-3" data-testid="loading-posts">
+          {/* Render 3 skeleton cards */}
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Card key={`skeleton-${index}`} className="overflow-hidden">
+              {/* Skeleton Post Header */}
+              <div className="p-3 pb-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2">
+                      <Skeleton className="w-4 h-4 rounded-full" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </div>
+                  <Skeleton className="w-6 h-6 rounded" />
+                </div>
+                <div className="mt-2">
+                  <Skeleton className="h-3 w-24" />
+                </div>
+              </div>
+
+              {/* Skeleton Media Area */}
+              <Skeleton className="w-full h-96" />
+
+              {/* Skeleton Caption */}
+              <div className="p-3">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+
+                {/* Skeleton Footer */}
+                <div className="flex items-center justify-between mt-3">
+                  <Skeleton className="h-4 w-20" />
+                  <div className="flex items-center space-x-2">
+                    <Skeleton className="w-8 h-8 rounded-full" />
+                    <Skeleton className="h-4 w-6" />
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       ) : tripPhotos.length === 0 ? (
         <Card className="p-8 text-center" data-testid="no-posts">
           <Camera className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
