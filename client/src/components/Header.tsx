@@ -78,6 +78,7 @@ export default function Header() {
   ] : [];
 
   const otherNavLinks = [
+    { href: "/live", label: t('liveFeed'), icon: Camera, type: "link" },
     { href: "/admin", label: t('navEdit'), icon: Settings, type: "link" },
   ];
 
