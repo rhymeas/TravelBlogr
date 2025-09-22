@@ -224,6 +224,52 @@ export default function GlobalTripFeed() {
     });
   }, [tripPhotos]);
 
+  // Generate video thumbnail function
+  const generateVideoThumbnail = (videoFile: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        reject(new Error('Canvas context not available'));
+        return;
+      }
+
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
+        // Set canvas size to video dimensions (max 400px width to keep thumbnail small)
+        const maxWidth = 400;
+        const aspectRatio = video.videoHeight / video.videoWidth;
+        canvas.width = Math.min(video.videoWidth, maxWidth);
+        canvas.height = canvas.width * aspectRatio;
+        
+        // Seek to 1 second or 10% of video duration for better thumbnail
+        video.currentTime = Math.min(1, video.duration * 0.1);
+      };
+      
+      video.onseeked = () => {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const thumbnailFile = new File([blob], `${videoFile.name}_thumb.jpg`, {
+              type: 'image/jpeg'
+            });
+            resolve(thumbnailFile);
+          } else {
+            reject(new Error('Failed to generate thumbnail'));
+          }
+        }, 'image/jpeg', 0.8);
+      };
+      
+      video.onerror = () => {
+        reject(new Error('Failed to load video for thumbnail generation'));
+      };
+      
+      video.src = URL.createObjectURL(videoFile);
+    });
+  };
+
   // Upload mutation with batch support and EXIF data
   const uploadMutation = useMutation({
     mutationFn: async ({ files, caption, uploadedBy, creatorId, locationId }: { 
@@ -233,44 +279,78 @@ export default function GlobalTripFeed() {
       creatorId: string;
       locationId: string;
     }) => {
-      // Extract EXIF data for proper date sorting
-      let exifData: Record<number, string> = {};
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (file.type.startsWith('image/')) {
-          try {
-            const exifr = await import('exifr');
-            const parsed = await exifr.parse(file);
-            const dateTime = parsed?.DateTimeOriginal || parsed?.DateTime || parsed?.CreateDate;
-            if (dateTime && dateTime instanceof Date) {
-              exifData[i] = dateTime.toISOString();
+      // Handle single video differently to support thumbnails
+      if (files.length === 1 && files[0].type.startsWith('video/')) {
+        const videoFile = files[0];
+        
+        const formData = new FormData();
+        formData.append('media', videoFile);
+        formData.append('caption', caption || '');
+        formData.append('uploadedBy', uploadedBy || '');
+        formData.append('creatorId', creatorId || '');
+        formData.append('locationId', locationId || '');
+        formData.append('mediaType', 'video');
+        
+        // Generate and add thumbnail for video
+        try {
+          const thumbnail = await generateVideoThumbnail(videoFile);
+          formData.append('thumbnail', thumbnail);
+        } catch (error) {
+          console.warn('Failed to generate video thumbnail:', error);
+          // Continue without thumbnail
+        }
+
+        const response = await fetch('/api/trip-photos/media', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Upload fehlgeschlagen");
+        }
+        return response.json();
+      } else {
+        // Original batch upload logic for images and multiple files
+        // Extract EXIF data for proper date sorting
+        let exifData: Record<number, string> = {};
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          if (file.type.startsWith('image/')) {
+            try {
+              const exifr = await import('exifr');
+              const parsed = await exifr.parse(file);
+              const dateTime = parsed?.DateTimeOriginal || parsed?.DateTime || parsed?.CreateDate;
+              if (dateTime && dateTime instanceof Date) {
+                exifData[i] = dateTime.toISOString();
+              }
+            } catch (error) {
+              console.warn('Failed to extract EXIF data from', file.name, error);
             }
-          } catch (error) {
-            console.warn('Failed to extract EXIF data from', file.name, error);
           }
         }
-      }
 
-      const formData = new FormData();
-      files.forEach(file => formData.append('media', file));
-      if (caption) formData.append('caption', caption);
-      if (uploadedBy) formData.append('uploadedBy', uploadedBy);
-      if (creatorId) formData.append('creatorId', creatorId);
-      if (locationId) formData.append('locationId', locationId);
-      if (Object.keys(exifData).length > 0) {
-        formData.append('exifData', JSON.stringify(exifData));
-      }
+        const formData = new FormData();
+        files.forEach(file => formData.append('media', file));
+        if (caption) formData.append('caption', caption);
+        if (uploadedBy) formData.append('uploadedBy', uploadedBy);
+        if (creatorId) formData.append('creatorId', creatorId);
+        if (locationId) formData.append('locationId', locationId);
+        if (Object.keys(exifData).length > 0) {
+          formData.append('exifData', JSON.stringify(exifData));
+        }
 
-      const response = await fetch('/api/trip-photos/media-batch', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Upload fehlgeschlagen");
+        const response = await fetch('/api/trip-photos/media-batch', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Upload fehlgeschlagen");
+        }
+        return response.json();
       }
-      return response.json();
     },
     onSuccess: (result) => {
       // Store delete tokens locally for batch uploads
