@@ -62,7 +62,7 @@ export default function GlobalTripFeed() {
 
   // Handle deep linking focus behavior
   useEffect(() => {
-    if (shouldFocus && data?.pages[0]?.items?.length > 0) {
+    if (shouldFocus && data?.pages?.[0]?.items?.length > 0) {
       const firstItem = data.pages[0].items[0];
       // Scroll to the first item
       setTimeout(() => {
