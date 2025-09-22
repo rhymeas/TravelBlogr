@@ -85,14 +85,12 @@ export default function LocationCard({ location }: LocationCardProps) {
               {getIcon(category)}
               <span>{category}</span>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
+            <div 
+              className="opacity-0 group-hover:opacity-100 transition-opacity px-3 py-1 text-sm border border-border rounded-md flex items-center hover:bg-accent"
               data-testid={`view-details-button-${location.slug}`}
             >
               Details <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
