@@ -96,7 +96,7 @@ export default function Header() {
               </span>
             </div>
             <span className="font-semibold text-lg hidden sm:block" data-testid="header-tour-name">
-              {tourSettings?.tourName || 'Weinberg Tour 2025'}
+              {tourSettings?.tourName || 'Kanada Tour 2025'}
             </span>
           </Link>
 

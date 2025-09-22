@@ -59,7 +59,7 @@ export default function PrivacyWrapper({ children }: PrivacyWrapperProps) {
             </div>
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Weinberg Tour 2025
+            Kanada Tour 2025
           </h1>
           <div className="flex items-center justify-center gap-2 text-gray-600 dark:text-gray-300">
             <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />

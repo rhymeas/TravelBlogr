@@ -199,7 +199,7 @@ export default function Home() {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-sm">WT</span>
               </div>
-              <h3 className="text-xl font-semibold">{tourSettings?.tourName || "Weinberg Tour 2025"}</h3>
+              <h3 className="text-xl font-semibold">{tourSettings?.tourName || "Kanada Tour 2025"}</h3>
             </div>
             <p className="text-background/80 mb-6">
               {tourSettings?.description || t('unforgettableJourney')}

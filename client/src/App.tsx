@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import PrivacyWrapper from "@/components/PrivacyWrapper";
 import FloatingUploadButton from "@/components/FloatingUploadButton";
+import DocumentTitle from "@/components/DocumentTitle";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import LocationDetail from "@/pages/LocationDetail";
@@ -32,6 +33,7 @@ function App() {
         <AuthProvider>
           <TooltipProvider>
             <Toaster />
+            <DocumentTitle />
             <PrivacyWrapper>
               <Router />
               <FloatingUploadButton />

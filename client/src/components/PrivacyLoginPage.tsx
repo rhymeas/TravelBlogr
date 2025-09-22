@@ -44,7 +44,7 @@ export default function PrivacyLoginPage() {
     } else {
       toast({
         title: "Erfolgreich angemeldet",
-        description: `Willkommen zur ${tourSettings?.tourName || 'Weinberg Tour 2025'}!`,
+        description: `Willkommen zur ${tourSettings?.tourName || 'Kanada Tour 2025'}!`,
       });
     }
   };
@@ -60,7 +60,7 @@ export default function PrivacyLoginPage() {
             </div>
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {tourSettings?.tourName || 'Weinberg Tour 2025'}
+            {tourSettings?.tourName || 'Kanada Tour 2025'}
           </h1>
           <p className="text-gray-600 dark:text-gray-300 text-sm">
             Bitte geben Sie das Passwort ein, um die Tour-Details zu sehen
