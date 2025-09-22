@@ -11,7 +11,7 @@ interface Translations {
 
 const translations: Translations = {
   // Header and Navigation
-  'liveFeed': { de: 'Live Feed', en: 'Live Feed' },
+  'liveFeed': { de: 'Live Fotoalbum', en: 'Live Feed' },
   'homepage': { de: 'Startseite', en: 'Home' },
   'navItinerary': { de: 'Reiseverlauf', en: 'Itinerary' },
   'navEdit': { de: 'Editieren', en: 'Edit' },
