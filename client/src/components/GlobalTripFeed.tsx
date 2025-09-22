@@ -693,6 +693,13 @@ export default function GlobalTripFeed() {
     };
   }, [fullViewMedia, fullViewCarousel]);
 
+  // Auto-open upload modal when files are selected via floating button
+  useEffect(() => {
+    if (selectedFiles.length > 0 && !showUploadModal) {
+      setShowUploadModal(true);
+    }
+  }, [selectedFiles, showUploadModal]);
+
   const goToFullViewNext = () => {
     if (!fullViewCarousel) return;
     resetZoom();
@@ -1070,7 +1077,7 @@ export default function GlobalTripFeed() {
       
       {/* Floating Upload Button */}
       <Button
-        onClick={openUploadModal}
+        onClick={() => fileInputRef.current?.click()}
         className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-shadow"
         data-testid="floating-upload-button"
       >
