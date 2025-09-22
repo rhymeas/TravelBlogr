@@ -635,7 +635,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
+              accept="image/*,video/*"
               onChange={handleFileSelect}
               className="hidden"
               data-testid="file-input"

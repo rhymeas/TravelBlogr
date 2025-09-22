@@ -1004,7 +1004,7 @@ export default function GlobalTripFeed() {
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
+                  accept="image/*,video/*"
                   onChange={handleFileSelect}
                   className="hidden"
                   data-testid="file-input"
