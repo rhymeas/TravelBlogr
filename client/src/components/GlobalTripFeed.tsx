@@ -45,6 +45,8 @@ export default function GlobalTripFeed() {
   
   // Modal state
   const [fullViewMedia, setFullViewMedia] = useState<TripPhoto | null>(null);
+  const [fullViewCarousel, setFullViewCarousel] = useState<TripPhoto[] | null>(null);
+  const [fullViewIndex, setFullViewIndex] = useState(0);
   const [showUploadModal, setShowUploadModal] = useState(false);
   
   // Edit state
@@ -606,12 +608,77 @@ export default function GlobalTripFeed() {
   };
 
   // Full view handlers
-  const openFullView = (photo: TripPhoto) => {
+  const openFullView = (photo: TripPhoto, carousel?: TripPhoto[]) => {
     setFullViewMedia(photo);
+    if (carousel && carousel.length > 1) {
+      setFullViewCarousel(carousel);
+      const index = carousel.findIndex(p => p.id === photo.id);
+      setFullViewIndex(index >= 0 ? index : 0);
+    } else {
+      setFullViewCarousel(null);
+      setFullViewIndex(0);
+    }
   };
 
   const closeFullView = () => {
     setFullViewMedia(null);
+    setFullViewCarousel(null);
+    setFullViewIndex(0);
+  };
+
+  // Keyboard navigation for full view modal
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (!fullViewMedia) return;
+
+      switch (e.key) {
+        case 'Escape':
+          closeFullView();
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          if (fullViewCarousel && fullViewCarousel.length > 1) {
+            goToFullViewPrev();
+          }
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          if (fullViewCarousel && fullViewCarousel.length > 1) {
+            goToFullViewNext();
+          }
+          break;
+      }
+    };
+
+    if (fullViewMedia) {
+      document.addEventListener('keydown', handleKeyPress);
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyPress);
+      document.body.style.overflow = 'unset';
+    };
+  }, [fullViewMedia, fullViewCarousel]);
+
+  const goToFullViewNext = () => {
+    if (!fullViewCarousel) return;
+    const nextIndex = (fullViewIndex + 1) % fullViewCarousel.length;
+    setFullViewIndex(nextIndex);
+    setFullViewMedia(fullViewCarousel[nextIndex]);
+  };
+
+  const goToFullViewPrev = () => {
+    if (!fullViewCarousel) return;
+    const prevIndex = (fullViewIndex - 1 + fullViewCarousel.length) % fullViewCarousel.length;
+    setFullViewIndex(prevIndex);
+    setFullViewMedia(fullViewCarousel[prevIndex]);
+  };
+
+  const goToFullViewIndex = (index: number) => {
+    if (!fullViewCarousel || index < 0 || index >= fullViewCarousel.length) return;
+    setFullViewIndex(index);
+    setFullViewMedia(fullViewCarousel[index]);
   };
 
   // Upload modal handlers
@@ -1051,7 +1118,79 @@ export default function GlobalTripFeed() {
                   data-testid="full-view-image"
                 />
               )}
+
+              {/* Carousel Navigation Arrows - Only show if viewing carousel */}
+              {fullViewCarousel && fullViewCarousel.length > 1 && (
+                <>
+                  <button
+                    onClick={goToFullViewPrev}
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 transition-colors z-10"
+                    data-testid="full-view-prev"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                  <button
+                    onClick={goToFullViewNext}
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 transition-colors z-10"
+                    data-testid="full-view-next"
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                </>
+              )}
+
+              {/* Image Counter */}
+              {fullViewCarousel && fullViewCarousel.length > 1 && (
+                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-black/50 text-white px-4 py-2 rounded-full text-sm font-medium">
+                  <span data-testid="full-view-counter">
+                    {fullViewIndex + 1} von {fullViewCarousel.length}
+                  </span>
+                </div>
+              )}
             </div>
+
+            {/* Thumbnail Navigation - Only show if viewing carousel */}
+            {fullViewCarousel && fullViewCarousel.length > 1 && (
+              <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-4">
+                <div className="flex justify-center space-x-2 overflow-x-auto">
+                  {fullViewCarousel.map((photo, index) => (
+                    <button
+                      key={photo.id}
+                      onClick={() => goToFullViewIndex(index)}
+                      className={`flex-shrink-0 w-16 h-16 rounded border-2 transition-all overflow-hidden ${
+                        index === fullViewIndex 
+                          ? 'border-white shadow-lg' 
+                          : 'border-white/30 hover:border-white/60'
+                      }`}
+                      data-testid={`full-view-thumbnail-${index}`}
+                    >
+                      {photo.mediaType === 'video' && photo.thumbnailUrl ? (
+                        <div className="relative w-full h-full">
+                          <img
+                            src={photo.thumbnailUrl}
+                            alt="Video thumbnail"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Play className="w-4 h-4 text-white" />
+                          </div>
+                        </div>
+                      ) : photo.imageUrl ? (
+                        <img
+                          src={photo.imageUrl}
+                          alt={photo.caption || "Thumbnail"}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-600 flex items-center justify-center">
+                          <Camera className="w-6 h-6 text-white/50" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       )}
@@ -1144,19 +1283,33 @@ interface CarouselPostProps {
   likedPhotos: Set<string>;
   handleLike: (photoId: string) => void;
   handleDelete: (photoId: string) => void;
-  openFullView: (photo: TripPhoto) => void;
+  openFullView: (photo: TripPhoto, carousel?: TripPhoto[]) => void;
 }
 
 function CarouselPost({ carousel, creators, getLocationName, formatTime, likedPhotos, handleLike, handleDelete, openFullView }: CarouselPostProps) {
   const [currentIndex, setCurrentIndex] = React.useState(0);
+  const [isTransitioning, setIsTransitioning] = React.useState(false);
   const currentPhoto = carousel.photos[currentIndex];
 
   const nextPhoto = () => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
     setCurrentIndex((prev) => (prev + 1) % carousel.photos.length);
+    setTimeout(() => setIsTransitioning(false), 300);
   };
 
   const prevPhoto = () => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
     setCurrentIndex((prev) => (prev - 1 + carousel.photos.length) % carousel.photos.length);
+    setTimeout(() => setIsTransitioning(false), 300);
+  };
+
+  const goToSlide = (index: number) => {
+    if (isTransitioning || index === currentIndex) return;
+    setIsTransitioning(true);
+    setCurrentIndex(index);
+    setTimeout(() => setIsTransitioning(false), 300);
   };
 
 
@@ -1217,25 +1370,34 @@ function CarouselPost({ carousel, creators, getLocationName, formatTime, likedPh
       </div>
 
       {/* Carousel Content */}
-      <div className="relative group">
-        {/* Current Photo/Video */}
-        {currentPhoto.mediaType === 'video' && currentPhoto.videoUrl ? (
-          <VideoPreview photo={currentPhoto} openFullView={openFullView} />
-        ) : currentPhoto.imageUrl && (
-          <div className="relative cursor-pointer" onClick={() => openFullView(currentPhoto)}>
-            <img
-              src={currentPhoto.imageUrl}
-              alt={currentPhoto.caption || "Reisefoto"}
-              className="w-full object-cover max-h-96 bg-gray-50 dark:bg-gray-800"
-              data-testid={`post-image-${currentPhoto.id}`}
-            />
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="bg-white/90 dark:bg-black/90 rounded-full p-3">
-                <Maximize2 className="w-6 h-6 text-black dark:text-white" />
-              </div>
+      <div className="relative group overflow-hidden">
+        {/* Sliding Container */}
+        <div 
+          className="flex transition-transform duration-300 ease-in-out"
+          style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+        >
+          {carousel.photos.map((photo, index) => (
+            <div key={photo.id} className="w-full flex-shrink-0 relative">
+              {photo.mediaType === 'video' && photo.videoUrl ? (
+                <VideoPreview photo={photo} openFullView={(p) => openFullView(p, carousel.photos)} />
+              ) : photo.imageUrl && (
+                <div className="relative cursor-pointer" onClick={() => openFullView(photo, carousel.photos)}>
+                  <img
+                    src={photo.imageUrl}
+                    alt={photo.caption || "Reisefoto"}
+                    className="w-full object-cover max-h-96 bg-gray-50 dark:bg-gray-800"
+                    data-testid={`post-image-${photo.id}`}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="bg-white/90 dark:bg-black/90 rounded-full p-3">
+                      <Maximize2 className="w-6 h-6 text-black dark:text-white" />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          ))}
+        </div>
 
         {/* Navigation Arrows - Only show if more than 1 photo */}
         {carousel.photos.length > 1 && (
@@ -1263,7 +1425,7 @@ function CarouselPost({ carousel, creators, getLocationName, formatTime, likedPh
             {carousel.photos.map((_, index) => (
               <button
                 key={index}
-                onClick={() => setCurrentIndex(index)}
+                onClick={() => goToSlide(index)}
                 className={`w-2 h-2 rounded-full transition-colors ${
                   index === currentIndex ? 'bg-white' : 'bg-white/50'
                 }`}
@@ -1307,7 +1469,7 @@ function CarouselPost({ carousel, creators, getLocationName, formatTime, likedPh
 // Video Preview Component with fallback handling
 interface VideoPreviewProps {
   photo: TripPhoto;
-  openFullView: (photo: TripPhoto) => void;
+  openFullView: (photo: TripPhoto, carousel?: TripPhoto[]) => void;
 }
 
 function VideoPreview({ photo, openFullView }: VideoPreviewProps) {
