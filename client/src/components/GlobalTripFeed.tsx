@@ -236,37 +236,64 @@ export default function GlobalTripFeed() {
         return;
       }
 
+      let objectUrl: string | null = null;
+
+      const cleanup = () => {
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+          objectUrl = null;
+        }
+      };
+
+      video.crossOrigin = 'anonymous';
       video.preload = 'metadata';
-      video.onloadedmetadata = () => {
-        // Set canvas size to video dimensions (max 400px width to keep thumbnail small)
-        const maxWidth = 400;
-        const aspectRatio = video.videoHeight / video.videoWidth;
-        canvas.width = Math.min(video.videoWidth, maxWidth);
-        canvas.height = canvas.width * aspectRatio;
+      video.muted = true;
+      
+      video.oncanplay = () => {
+        // Ensure video has loaded dimensions
+        if (video.videoWidth === 0 || video.videoHeight === 0) {
+          cleanup();
+          reject(new Error('Video dimensions not ready'));
+          return;
+        }
         
         // Seek to 1 second or 10% of video duration for better thumbnail
         video.currentTime = Math.min(1, video.duration * 0.1);
       };
       
       video.onseeked = () => {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const thumbnailFile = new File([blob], `${videoFile.name}_thumb.jpg`, {
-              type: 'image/jpeg'
-            });
-            resolve(thumbnailFile);
-          } else {
-            reject(new Error('Failed to generate thumbnail'));
-          }
-        }, 'image/jpeg', 0.8);
+        try {
+          // Set canvas size to video dimensions (max 400px width to keep thumbnail small)
+          const maxWidth = 400;
+          const aspectRatio = video.videoHeight / video.videoWidth;
+          canvas.width = Math.min(video.videoWidth, maxWidth);
+          canvas.height = canvas.width * aspectRatio;
+          
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((blob) => {
+            cleanup();
+            if (blob) {
+              const thumbnailFile = new File([blob], `${videoFile.name}_thumb.jpg`, {
+                type: 'image/jpeg'
+              });
+              resolve(thumbnailFile);
+            } else {
+              reject(new Error('Failed to generate thumbnail blob'));
+            }
+          }, 'image/jpeg', 0.8);
+        } catch (error) {
+          cleanup();
+          reject(new Error(`Canvas operation failed: ${error}`));
+        }
       };
       
       video.onerror = () => {
+        cleanup();
         reject(new Error('Failed to load video for thumbnail generation'));
       };
       
-      video.src = URL.createObjectURL(videoFile);
+      objectUrl = URL.createObjectURL(videoFile);
+      video.src = objectUrl;
     });
   };
 
@@ -311,45 +338,65 @@ export default function GlobalTripFeed() {
         }
         return response.json();
       } else {
-        // Original batch upload logic for images and multiple files
-        // Extract EXIF data for proper date sorting
-        let exifData: Record<number, string> = {};
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          if (file.type.startsWith('image/')) {
+        // Handle multiple files - use individual uploads to support video thumbnails
+        // Generate a shared groupId for all files in this upload
+        const groupId = `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        const uploadPromises = files.map(async (file, index) => {
+          const isVideo = file.type.startsWith('video/');
+          
+          const formData = new FormData();
+          formData.append('media', file);
+          formData.append('caption', index === 0 ? caption : ''); // Only first file gets caption
+          formData.append('uploadedBy', uploadedBy || '');
+          formData.append('creatorId', creatorId || '');
+          formData.append('locationId', locationId || '');
+          formData.append('mediaType', isVideo ? 'video' : 'image');
+          formData.append('groupId', groupId); // Add shared groupId
+          
+          // Generate and add thumbnail for videos
+          if (isVideo) {
+            try {
+              const thumbnail = await generateVideoThumbnail(file);
+              formData.append('thumbnail', thumbnail);
+            } catch (error) {
+              console.warn('Failed to generate video thumbnail for', file.name, ':', error);
+              // Continue without thumbnail
+            }
+          } else {
+            // Extract EXIF data for images
             try {
               const exifr = await import('exifr');
               const parsed = await exifr.parse(file);
               const dateTime = parsed?.DateTimeOriginal || parsed?.DateTime || parsed?.CreateDate;
               if (dateTime && dateTime instanceof Date) {
-                exifData[i] = dateTime.toISOString();
+                formData.append('takenAt', dateTime.toISOString());
               }
             } catch (error) {
               console.warn('Failed to extract EXIF data from', file.name, error);
             }
           }
-        }
 
-        const formData = new FormData();
-        files.forEach(file => formData.append('media', file));
-        if (caption) formData.append('caption', caption);
-        if (uploadedBy) formData.append('uploadedBy', uploadedBy);
-        if (creatorId) formData.append('creatorId', creatorId);
-        if (locationId) formData.append('locationId', locationId);
-        if (Object.keys(exifData).length > 0) {
-          formData.append('exifData', JSON.stringify(exifData));
-        }
-
-        const response = await fetch('/api/trip-photos/media-batch', {
-          method: 'POST',
-          body: formData,
+          const response = await fetch('/api/trip-photos/media', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Upload von ${file.name} fehlgeschlagen`);
+          }
+          return response.json();
         });
+
+        // Wait for all uploads to complete
+        const results = await Promise.all(uploadPromises);
         
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Upload fehlgeschlagen");
-        }
-        return response.json();
+        // Return combined results
+        return {
+          files: results,
+          groupId: results[0]?.groupId || null
+        };
       }
     },
     onSuccess: (result) => {
@@ -1822,15 +1869,55 @@ function VideoPreview({ photo, openFullView }: VideoPreviewProps) {
   const [showVideo, setShowVideo] = React.useState(false);
   const [thumbnailError, setThumbnailError] = React.useState(false);
   const [isVideoLoaded, setIsVideoLoaded] = React.useState(false);
+  const [generatedThumbnail, setGeneratedThumbnail] = React.useState<string | null>(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const hiddenVideoRef = React.useRef<HTMLVideoElement>(null);
 
   // Generate a thumbnail from the video if no thumbnailUrl is available
-  const handleVideoLoadedMetadata = () => {
-    const video = videoRef.current;
-    if (video && !photo.thumbnailUrl && !thumbnailError) {
-      // Try to capture a frame at 1 second or 10% of video duration, whichever is smaller
+  const generateThumbnailFromVideo = React.useCallback(() => {
+    const video = hiddenVideoRef.current;
+    if (!video || photo.thumbnailUrl || generatedThumbnail) return;
+
+    // Ensure video has loaded dimensions
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      console.warn('Video dimensions not ready for thumbnail generation');
+      return;
+    }
+
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // Set canvas size to video dimensions
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      // Draw the current frame
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Convert to data URL
+      const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+      setGeneratedThumbnail(dataURL);
+    } catch (error) {
+      console.warn('Failed to generate video thumbnail:', error);
+      setThumbnailError(true);
+    }
+  }, [photo.thumbnailUrl, generatedThumbnail]);
+
+  const handleHiddenVideoLoadedMetadata = () => {
+    const video = hiddenVideoRef.current;
+    if (video && !photo.thumbnailUrl) {
+      // Seek to 1 second or 10% of video duration for better thumbnail
       video.currentTime = Math.min(1, video.duration * 0.1);
     }
+  };
+
+  const handleHiddenVideoSeeked = () => {
+    generateThumbnailFromVideo();
+  };
+
+  const handleVideoLoadedMetadata = () => {
     setIsVideoLoaded(true);
   };
 
@@ -1845,11 +1932,30 @@ function VideoPreview({ photo, openFullView }: VideoPreviewProps) {
   };
 
   const hasThumbnail = photo.thumbnailUrl && !thumbnailError;
+  const hasGeneratedThumbnail = generatedThumbnail && !hasThumbnail;
 
   return (
     <div className="relative group" data-testid={`post-video-${photo.id}`}>
+      {/* Hidden video for thumbnail generation - only load if no thumbnailUrl */}
+      {!photo.thumbnailUrl && (
+        <video
+          ref={hiddenVideoRef}
+          src={photo.videoUrl || ""}
+          crossOrigin="anonymous"
+          preload="metadata"
+          muted
+          playsInline
+          className="absolute opacity-0 pointer-events-none"
+          style={{ width: '1px', height: '1px' }}
+          onLoadedMetadata={handleHiddenVideoLoadedMetadata}
+          onSeeked={handleHiddenVideoSeeked}
+          onCanPlay={generateThumbnailFromVideo}
+          onError={() => setThumbnailError(true)}
+        />
+      )}
+      
       {!showVideo ? (
-        // Preview mode - show thumbnail or placeholder
+        // Preview mode - show thumbnail, generated thumbnail, or placeholder
         <div className="relative w-full h-96 bg-gray-900 rounded cursor-pointer" onClick={handlePlayClick}>
           {hasThumbnail ? (
             <img
@@ -1859,12 +1965,19 @@ function VideoPreview({ photo, openFullView }: VideoPreviewProps) {
               onError={() => setThumbnailError(true)}
               data-testid={`post-video-thumbnail-${photo.id}`}
             />
+          ) : hasGeneratedThumbnail ? (
+            <img
+              src={generatedThumbnail}
+              alt={photo.caption || "Video Vorschau"}
+              className="w-full h-full object-cover rounded"
+              data-testid={`post-video-generated-thumbnail-${photo.id}`}
+            />
           ) : (
             // Fallback placeholder with gradient background
             <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 rounded flex items-center justify-center">
               <div className="text-center text-white">
                 <Video className="w-16 h-16 mx-auto mb-2 opacity-60" />
-                <p className="text-sm opacity-80">Video Vorschau</p>
+                <p className="text-sm opacity-80">Video wird geladen...</p>
               </div>
             </div>
           )}
@@ -1888,7 +2001,8 @@ function VideoPreview({ photo, openFullView }: VideoPreviewProps) {
           <video
             ref={videoRef}
             src={photo.videoUrl || ""}
-            poster={photo.thumbnailUrl || undefined}
+            crossOrigin="anonymous"
+            poster={hasGeneratedThumbnail ? generatedThumbnail : (photo.thumbnailUrl || undefined)}
             controls
             preload="metadata"
             playsInline

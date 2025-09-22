@@ -637,7 +637,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const thumbnailFile = files.thumbnail?.[0];
       
       // Extract form data
-      const { caption, uploadedBy, locationId, creatorId, mediaType = 'image' } = req.body;
+      const { caption, uploadedBy, locationId, creatorId, mediaType = 'image', groupId } = req.body;
       
       // Generate delete token
       const deleteToken = crypto.randomBytes(32).toString('hex');
@@ -719,6 +719,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           videoUrl: mediaType === 'video' ? mediaObjectPath : null,
           thumbnailUrl: thumbnailObjectPath,
           deleteToken,
+          groupId: groupId || null,
         };
 
         const tripPhoto = await storage.createTripPhotoMedia(tripPhotoData);
