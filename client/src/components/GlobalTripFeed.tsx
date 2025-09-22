@@ -32,7 +32,16 @@ export default function GlobalTripFeed() {
   
   // User and interaction state
   const [userKey] = useState(() => localStorage.getItem('userKey') || `user_${Date.now()}_${Math.random()}`);
-  const [likedPhotos, setLikedPhotos] = useState(new Set<string>());
+  const [likedPhotos, setLikedPhotos] = useState(() => {
+    // Load liked photos from localStorage on mount
+    try {
+      const currentUserKey = localStorage.getItem('userKey') || `user_${Date.now()}_${Math.random()}`;
+      const saved = localStorage.getItem(`likedPhotos_${currentUserKey}`);
+      return saved ? new Set<string>(JSON.parse(saved)) : new Set<string>();
+    } catch {
+      return new Set<string>();
+    }
+  });
   const [deleteTokens, setDeleteTokens] = useState<Record<string, string>>(() => {
     // Load delete tokens from localStorage on mount
     try {
@@ -68,6 +77,15 @@ export default function GlobalTripFeed() {
     localStorage.setItem('userKey', userKey);
   }, [userKey]);
 
+
+  // Save liked photos to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(`likedPhotos_${userKey}`, JSON.stringify(Array.from(likedPhotos)));
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [likedPhotos, userKey]);
 
   // Save delete tokens to localStorage whenever they change
   useEffect(() => {
