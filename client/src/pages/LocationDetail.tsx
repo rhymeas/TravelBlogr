@@ -282,7 +282,7 @@ export default function LocationDetail() {
                   <p className="text-muted-foreground">
                     Teile deine besten Momente von {location.name} im zentralen Live-Feed
                   </p>
-                  <Link href="/live-feed">
+                  <Link href={`/live-feed?locationId=${location.id}&focus=first`}>
                     <Button className="bg-teal-600 hover:bg-teal-700 text-white" data-testid="button-go-to-live-feed">
                       🚗 Zum Live-Feed gehen
                     </Button>

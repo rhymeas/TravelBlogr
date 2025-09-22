@@ -761,11 +761,12 @@ export class MemStorage implements IStorage {
     // Sort by location tour order (startDate), then by takenAt/uploadedAt within location
     photos.sort((a, b) => {
       // Get location start dates for tour ordering
-      const locationA = Array.from(this.locations.values()).find(loc => loc.id === a.locationId);
-      const locationB = Array.from(this.locations.values()).find(loc => loc.id === b.locationId);
+      const locationA = a.locationId ? Array.from(this.locations.values()).find(loc => loc.id === a.locationId) : null;
+      const locationB = b.locationId ? Array.from(this.locations.values()).find(loc => loc.id === b.locationId) : null;
       
-      const startDateA = locationA?.startDate ? new Date(locationA.startDate) : new Date(0);
-      const startDateB = locationB?.startDate ? new Date(locationB.startDate) : new Date(0);
+      // Photos with null locationId go to the top (most recent)
+      const startDateA = locationA?.startDate ? new Date(locationA.startDate) : new Date('2099-12-31');
+      const startDateB = locationB?.startDate ? new Date(locationB.startDate) : new Date('2099-12-31');
       
       // First sort by location tour order (later locations on top)
       const locationOrder = startDateB.getTime() - startDateA.getTime();

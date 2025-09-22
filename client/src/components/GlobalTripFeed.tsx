@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useLocation } from "wouter";
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,12 @@ import { useToast } from "@/hooks/use-toast";
 import type { TripPhoto, Creator, Location } from "@shared/schema";
 
 export default function GlobalTripFeed() {
+  const [, setLocation] = useLocation();
+  
+  // Get URL parameters for deep linking
+  const urlParams = new URLSearchParams(window.location.search);
+  const filterLocationId = urlParams.get('locationId');
+  const shouldFocus = urlParams.get('focus') === 'first';
   // Upload state
   const [caption, setCaption] = useState("");
   const [name, setName] = useState("");
@@ -53,6 +60,23 @@ export default function GlobalTripFeed() {
     localStorage.setItem('userKey', userKey);
   }, [userKey]);
 
+  // Handle deep linking focus behavior
+  useEffect(() => {
+    if (shouldFocus && data?.pages[0]?.items?.length > 0) {
+      const firstItem = data.pages[0].items[0];
+      // Scroll to the first item
+      setTimeout(() => {
+        const element = document.querySelector(`[data-testid="post-image-${firstItem.id}"]`) || 
+                       document.querySelector(`[data-testid="video-player-${firstItem.id}"]`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Optional: Open full view
+          openFullView(firstItem);
+        }
+      }, 500); // Wait for rendering
+    }
+  }, [shouldFocus, data]);
+
   // Save delete tokens to localStorage whenever they change
   useEffect(() => {
     try {
@@ -81,11 +105,12 @@ export default function GlobalTripFeed() {
     isLoading,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["/api/trip-photos/paginated", "global"],
+    queryKey: ["/api/trip-photos/paginated", "global", filterLocationId],
     queryFn: async ({ pageParam }) => {
       const params = new URLSearchParams({
         limit: '10',
         ...(pageParam && { cursor: pageParam }),
+        ...(filterLocationId && { locationId: filterLocationId }),
       });
       
       const response = await fetch(`/api/trip-photos/paginated?${params}`);
@@ -978,9 +1003,10 @@ export default function GlobalTripFeed() {
                 <label className="text-sm font-medium">Ort</label>
                 <Select value={editLocationId} onValueChange={setEditLocationId}>
                   <SelectTrigger data-testid="edit-location-select">
-                    <SelectValue placeholder="Ort auswählen..." />
+                    <SelectValue placeholder="Ort auswählen (optional)..." />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="">Kein Ort</SelectItem>
                     {locations.map((location) => (
                       <SelectItem key={location.id} value={location.id}>
                         {location.name}
@@ -1003,15 +1029,15 @@ export default function GlobalTripFeed() {
                 </Button>
                 <Button
                   onClick={() => {
-                    if (editingPost && editLocationId) {
+                    if (editingPost) {
                       editMutation.mutate({
                         photoId: editingPost,
                         caption: editCaption,
-                        locationId: editLocationId
+                        locationId: editLocationId || ""
                       });
                     }
                   }}
-                  disabled={editMutation.isPending || !editLocationId}
+                  disabled={editMutation.isPending}
                   data-testid="edit-save-button"
                 >
                   {editMutation.isPending ? "Speichern..." : "Speichern"}
