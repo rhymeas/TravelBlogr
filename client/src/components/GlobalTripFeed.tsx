@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Clock, User, Camera, Send, Image, Upload, Heart, Trash2, Video, Play, MoreVertical, X, Maximize2, Edit, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Clock, User, Camera, Send, Image, Upload, Heart, Trash2, Video, Play, MoreVertical, X, Maximize2, Edit, ChevronLeft, ChevronRight, PlayCircle } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { TripPhoto, Creator, Location } from "@shared/schema";
@@ -758,34 +758,7 @@ export default function GlobalTripFeed() {
 
               {/* Post Media - Image or Video */}
               {photo.mediaType === 'video' && photo.videoUrl ? (
-                <div className="relative group">
-                  <video
-                    src={photo.videoUrl}
-                    poster={photo.thumbnailUrl || undefined}
-                    controls
-                    preload="metadata"
-                    className="w-full max-h-96 object-cover rounded"
-                    data-testid={`post-video-${photo.id}`}
-                    onError={(e) => {
-                      console.error('Video error:', e);
-                      console.log('Video URL:', photo.videoUrl);
-                    }}
-                  >
-                    <source src={photo.videoUrl} type="video/mp4" />
-                    Ihr Browser unterstützt das Video-Element nicht.
-                  </video>
-                  <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded-md text-xs flex items-center space-x-1">
-                    <Video className="w-3 h-3" />
-                    <span>Video</span>
-                  </div>
-                  <button 
-                    onClick={() => openFullView(photo)}
-                    className="absolute top-2 right-2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
-                    title="Vollbild anzeigen"
-                  >
-                    <Maximize2 className="w-4 h-4" />
-                  </button>
-                </div>
+                <VideoPreview photo={photo} openFullView={openFullView} />
               ) : photo.imageUrl && (
                 <div className="relative group cursor-pointer" onClick={() => openFullView(photo)}>
                   <img
@@ -1208,19 +1181,7 @@ function CarouselPost({ carousel, creators, getLocationName, formatTime, likedPh
       <div className="relative group">
         {/* Current Photo/Video */}
         {currentPhoto.mediaType === 'video' && currentPhoto.videoUrl ? (
-          <div className="relative">
-            <video
-              src={currentPhoto.videoUrl}
-              poster={currentPhoto.thumbnailUrl || undefined}
-              controls
-              preload="metadata"
-              className="w-full max-h-96 object-cover rounded"
-              data-testid={`post-video-${currentPhoto.id}`}
-            >
-              <source src={currentPhoto.videoUrl} type="video/mp4" />
-              Ihr Browser unterstützt das Video-Element nicht.
-            </video>
-          </div>
+          <VideoPreview photo={currentPhoto} openFullView={openFullView} />
         ) : currentPhoto.imageUrl && (
           <div className="relative cursor-pointer" onClick={() => openFullView(currentPhoto)}>
             <img
@@ -1301,5 +1262,118 @@ function CarouselPost({ carousel, creators, getLocationName, formatTime, likedPh
         </div>
       </div>
     </Card>
+  );
+}
+
+// Video Preview Component with fallback handling
+interface VideoPreviewProps {
+  photo: TripPhoto;
+  openFullView: (photo: TripPhoto) => void;
+}
+
+function VideoPreview({ photo, openFullView }: VideoPreviewProps) {
+  const [showVideo, setShowVideo] = React.useState(false);
+  const [thumbnailError, setThumbnailError] = React.useState(false);
+  const [isVideoLoaded, setIsVideoLoaded] = React.useState(false);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+
+  // Generate a thumbnail from the video if no thumbnailUrl is available
+  const handleVideoLoadedMetadata = () => {
+    const video = videoRef.current;
+    if (video && !photo.thumbnailUrl && !thumbnailError) {
+      // Try to capture a frame at 1 second or 10% of video duration, whichever is smaller
+      video.currentTime = Math.min(1, video.duration * 0.1);
+    }
+    setIsVideoLoaded(true);
+  };
+
+  const handlePlayClick = () => {
+    setShowVideo(true);
+    // Small delay to ensure video element is rendered
+    setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.play();
+      }
+    }, 100);
+  };
+
+  const hasThumbnail = photo.thumbnailUrl && !thumbnailError;
+
+  return (
+    <div className="relative group" data-testid={`post-video-${photo.id}`}>
+      {!showVideo ? (
+        // Preview mode - show thumbnail or placeholder
+        <div className="relative w-full h-96 bg-gray-900 rounded cursor-pointer" onClick={handlePlayClick}>
+          {hasThumbnail ? (
+            <img
+              src={photo.thumbnailUrl || ""}
+              alt={photo.caption || "Video Vorschau"}
+              className="w-full h-full object-cover rounded"
+              onError={() => setThumbnailError(true)}
+              data-testid={`post-video-thumbnail-${photo.id}`}
+            />
+          ) : (
+            // Fallback placeholder with gradient background
+            <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 rounded flex items-center justify-center">
+              <div className="text-center text-white">
+                <Video className="w-16 h-16 mx-auto mb-2 opacity-60" />
+                <p className="text-sm opacity-80">Video Vorschau</p>
+              </div>
+            </div>
+          )}
+          
+          {/* Play button overlay */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="bg-black/60 rounded-full p-4 hover:bg-black/80 transition-colors" data-testid={`button-play-${photo.id}`}>
+              <PlayCircle className="w-12 h-12 text-white" />
+            </div>
+          </div>
+          
+          {/* Video badge */}
+          <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded-md text-xs flex items-center space-x-1">
+            <Video className="w-3 h-3" />
+            <span>Video</span>
+          </div>
+        </div>
+      ) : (
+        // Video mode - show actual video player
+        <div className="relative">
+          <video
+            ref={videoRef}
+            src={photo.videoUrl || ""}
+            poster={photo.thumbnailUrl || undefined}
+            controls
+            preload="metadata"
+            playsInline
+            className="w-full max-h-96 object-cover rounded"
+            data-testid={`post-video-player-${photo.id}`}
+            onLoadedMetadata={handleVideoLoadedMetadata}
+            onError={(e) => {
+              console.error('Video error:', e);
+              console.log('Video URL:', photo.videoUrl);
+            }}
+          >
+            <source src={photo.videoUrl || ""} type="video/mp4" />
+            Ihr Browser unterstützt das Video-Element nicht.
+          </video>
+          
+          {/* Video badge */}
+          <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded-md text-xs flex items-center space-x-1">
+            <Video className="w-3 h-3" />
+            <span>Video</span>
+          </div>
+          
+          {/* Fullscreen button */}
+          <button 
+            onClick={() => openFullView(photo)}
+            className="absolute top-2 right-2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+            title="Vollbild anzeigen"
+            data-testid={`button-fullview-${photo.id}`}
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
