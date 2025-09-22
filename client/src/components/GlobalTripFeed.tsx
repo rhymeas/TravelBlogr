@@ -1328,8 +1328,13 @@ export default function GlobalTripFeed() {
                   <img
                     src={fullViewMedia.imageUrl}
                     alt={fullViewMedia.caption || "Reisefoto"}
-                    className="max-w-full max-h-full object-contain transition-transform duration-200 ease-out"
+                    className="transition-transform duration-200 ease-out"
                     style={{
+                      maxWidth: zoomScale === 1 ? '100%' : 'none',
+                      maxHeight: zoomScale === 1 ? '100%' : 'none',
+                      width: zoomScale === 1 ? 'auto' : '100vw',
+                      height: zoomScale === 1 ? 'auto' : '100vh',
+                      objectFit: 'contain',
                       transform: `scale(${zoomScale}) translate(${zoomPan.x / zoomScale}px, ${zoomPan.y / zoomScale}px)`,
                       cursor: zoomScale > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default'
                     }}
