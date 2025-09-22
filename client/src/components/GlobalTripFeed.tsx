@@ -49,6 +49,10 @@ export default function GlobalTripFeed() {
   const [fullViewIndex, setFullViewIndex] = useState(0);
   const [showUploadModal, setShowUploadModal] = useState(false);
   
+  // Touch state for full view modal
+  const [modalTouchStart, setModalTouchStart] = useState<number | null>(null);
+  const [modalTouchEnd, setModalTouchEnd] = useState<number | null>(null);
+  
   // Edit state
   const [editingPost, setEditingPost] = useState<string | null>(null);
   const [editCaption, setEditCaption] = useState("");
@@ -681,6 +685,31 @@ export default function GlobalTripFeed() {
     setFullViewMedia(fullViewCarousel[index]);
   };
 
+  // Touch event handlers for full view modal swipe
+  const handleModalTouchStart = (e: React.TouchEvent) => {
+    setModalTouchEnd(null);
+    setModalTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleModalTouchMove = (e: React.TouchEvent) => {
+    setModalTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleModalTouchEnd = () => {
+    if (!modalTouchStart || !modalTouchEnd || !fullViewCarousel || fullViewCarousel.length <= 1) return;
+    
+    const distance = modalTouchStart - modalTouchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe) {
+      goToFullViewNext();
+    }
+    if (isRightSwipe) {
+      goToFullViewPrev();
+    }
+  };
+
   // Upload modal handlers
   const openUploadModal = () => {
     setShowUploadModal(true);
@@ -1097,7 +1126,12 @@ export default function GlobalTripFeed() {
               </div>
             </DialogHeader>
             
-            <div className="relative h-full flex items-center justify-center bg-black">
+            <div 
+              className="relative h-full flex items-center justify-center bg-black"
+              onTouchStart={handleModalTouchStart}
+              onTouchMove={handleModalTouchMove}
+              onTouchEnd={handleModalTouchEnd}
+            >
               {fullViewMedia.mediaType === 'video' && fullViewMedia.videoUrl ? (
                 <video
                   src={fullViewMedia.videoUrl}
@@ -1289,6 +1323,8 @@ interface CarouselPostProps {
 function CarouselPost({ carousel, creators, getLocationName, formatTime, likedPhotos, handleLike, handleDelete, openFullView }: CarouselPostProps) {
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const [isTransitioning, setIsTransitioning] = React.useState(false);
+  const [touchStart, setTouchStart] = React.useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = React.useState<number | null>(null);
   const currentPhoto = carousel.photos[currentIndex];
 
   const nextPhoto = () => {
@@ -1310,6 +1346,31 @@ function CarouselPost({ carousel, creators, getLocationName, formatTime, likedPh
     setIsTransitioning(true);
     setCurrentIndex(index);
     setTimeout(() => setIsTransitioning(false), 300);
+  };
+
+  // Touch event handlers for mobile swipe
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe && carousel.photos.length > 1) {
+      nextPhoto();
+    }
+    if (isRightSwipe && carousel.photos.length > 1) {
+      prevPhoto();
+    }
   };
 
 
@@ -1370,7 +1431,12 @@ function CarouselPost({ carousel, creators, getLocationName, formatTime, likedPh
       </div>
 
       {/* Carousel Content */}
-      <div className="relative group overflow-hidden">
+      <div 
+        className="relative group overflow-hidden"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {/* Sliding Container */}
         <div 
           className="flex transition-transform duration-300 ease-in-out"
