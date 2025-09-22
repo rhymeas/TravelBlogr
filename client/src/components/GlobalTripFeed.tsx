@@ -1117,12 +1117,23 @@ export default function GlobalTripFeed() {
       {/* Full View Modal */}
       {fullViewMedia && (
         <Dialog open={!!fullViewMedia} onOpenChange={closeFullView}>
-          <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden" data-testid="full-view-modal">
-            <DialogHeader className="absolute top-0 left-0 right-0 z-10 bg-black/50 text-white p-4">
+          <DialogContent className="max-w-5xl max-h-[95vh] p-0 overflow-hidden flex flex-col bg-black" data-testid="full-view-modal">
+            {/* Header - Outside image */}
+            <DialogHeader className="bg-black text-white p-4 border-b border-gray-800 flex-shrink-0">
               <div className="flex items-center justify-between">
-                <DialogTitle className="text-lg font-medium">
-                  {fullViewMedia.caption || 'Reisefoto'}
-                </DialogTitle>
+                <div className="flex items-center space-x-4">
+                  <DialogTitle className="text-lg font-medium">
+                    {fullViewMedia.caption || 'Reisefoto'}
+                  </DialogTitle>
+                  {/* Image Counter - In header */}
+                  {fullViewCarousel && fullViewCarousel.length > 1 && (
+                    <div className="bg-gray-800 text-white px-3 py-1 rounded-full text-sm font-medium">
+                      <span data-testid="full-view-counter">
+                        {fullViewIndex + 1} von {fullViewCarousel.length}
+                      </span>
+                    </div>
+                  )}
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -1133,7 +1144,7 @@ export default function GlobalTripFeed() {
                   <X className="w-4 h-4" />
                 </Button>
               </div>
-              <div className="text-sm opacity-80">
+              <div className="text-sm opacity-80 mt-2">
                 {fullViewMedia.creatorId ? 
                   creators.find(c => c.id === fullViewMedia.creatorId)?.name || fullViewMedia.uploadedBy || 'Unbekannt' : 
                   fullViewMedia.uploadedBy || 'Unbekannt'
@@ -1144,66 +1155,67 @@ export default function GlobalTripFeed() {
               </div>
             </DialogHeader>
             
-            <div 
-              className="relative h-full flex items-center justify-center bg-black"
-              onTouchStart={handleModalTouchStart}
-              onTouchMove={handleModalTouchMove}
-              onTouchEnd={handleModalTouchEnd}
-            >
-              {fullViewMedia.mediaType === 'video' && fullViewMedia.videoUrl ? (
-                <video
-                  src={fullViewMedia.videoUrl}
-                  poster={fullViewMedia.thumbnailUrl || undefined}
-                  controls
-                  autoPlay
-                  className="max-w-full max-h-full object-contain"
-                  data-testid="full-view-video"
-                >
-                  <source src={fullViewMedia.videoUrl} type="video/mp4" />
-                  Ihr Browser unterstützt das Video-Element nicht.
-                </video>
-              ) : fullViewMedia.imageUrl && (
-                <img
-                  src={fullViewMedia.imageUrl}
-                  alt={fullViewMedia.caption || "Reisefoto"}
-                  className="max-w-full max-h-full object-contain"
-                  data-testid="full-view-image"
-                />
-              )}
-
-              {/* Carousel Navigation Arrows - Only show if viewing carousel */}
+            {/* Main content area with navigation */}
+            <div className="flex flex-1 items-center bg-black min-h-0">
+              {/* Left Navigation - Outside image */}
               {fullViewCarousel && fullViewCarousel.length > 1 && (
-                <>
+                <div className="flex-shrink-0 px-4">
                   <button
                     onClick={goToFullViewPrev}
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 transition-colors z-10"
+                    className="bg-gray-800 text-white p-3 rounded-full hover:bg-gray-700 transition-colors"
                     data-testid="full-view-prev"
                   >
                     <ChevronLeft className="w-6 h-6" />
                   </button>
+                </div>
+              )}
+
+              {/* Clean image area */}
+              <div 
+                className="flex-1 flex items-center justify-center bg-black min-h-0 py-4"
+                onTouchStart={handleModalTouchStart}
+                onTouchMove={handleModalTouchMove}
+                onTouchEnd={handleModalTouchEnd}
+              >
+                {fullViewMedia.mediaType === 'video' && fullViewMedia.videoUrl ? (
+                  <video
+                    src={fullViewMedia.videoUrl}
+                    poster={fullViewMedia.thumbnailUrl || undefined}
+                    controls
+                    autoPlay
+                    className="max-w-full max-h-full object-contain"
+                    data-testid="full-view-video"
+                  >
+                    <source src={fullViewMedia.videoUrl} type="video/mp4" />
+                    Ihr Browser unterstützt das Video-Element nicht.
+                  </video>
+                ) : fullViewMedia.imageUrl && (
+                  <img
+                    src={fullViewMedia.imageUrl}
+                    alt={fullViewMedia.caption || "Reisefoto"}
+                    className="max-w-full max-h-full object-contain"
+                    data-testid="full-view-image"
+                  />
+                )}
+              </div>
+
+              {/* Right Navigation - Outside image */}
+              {fullViewCarousel && fullViewCarousel.length > 1 && (
+                <div className="flex-shrink-0 px-4">
                   <button
                     onClick={goToFullViewNext}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-3 rounded-full hover:bg-black/70 transition-colors z-10"
+                    className="bg-gray-800 text-white p-3 rounded-full hover:bg-gray-700 transition-colors"
                     data-testid="full-view-next"
                   >
                     <ChevronRight className="w-6 h-6" />
                   </button>
-                </>
-              )}
-
-              {/* Image Counter */}
-              {fullViewCarousel && fullViewCarousel.length > 1 && (
-                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-black/50 text-white px-4 py-2 rounded-full text-sm font-medium">
-                  <span data-testid="full-view-counter">
-                    {fullViewIndex + 1} von {fullViewCarousel.length}
-                  </span>
                 </div>
               )}
             </div>
 
-            {/* Thumbnail Navigation - Only show if viewing carousel */}
+            {/* Thumbnail Navigation - Outside image at bottom */}
             {fullViewCarousel && fullViewCarousel.length > 1 && (
-              <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-4">
+              <div className="bg-black border-t border-gray-800 p-4 flex-shrink-0">
                 <div className="flex justify-center space-x-2 overflow-x-auto">
                   {fullViewCarousel.map((photo, index) => (
                     <button
@@ -1212,7 +1224,7 @@ export default function GlobalTripFeed() {
                       className={`flex-shrink-0 w-16 h-16 rounded border-2 transition-all overflow-hidden ${
                         index === fullViewIndex 
                           ? 'border-white shadow-lg' 
-                          : 'border-white/30 hover:border-white/60'
+                          : 'border-gray-600 hover:border-gray-400'
                       }`}
                       data-testid={`full-view-thumbnail-${index}`}
                     >
