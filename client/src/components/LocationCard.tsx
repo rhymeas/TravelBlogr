@@ -54,7 +54,7 @@ export default function LocationCard({ location }: LocationCardProps) {
   const category = getCategoryFromHighlights(location.highlights);
 
   return (
-    <Link href={`/locations/${location.slug}`}>
+    <Link href={`/location/${location.slug}`}>
       <Card className="group cursor-pointer hover:shadow-lg transition-shadow" data-testid={`location-card-${location.slug}`}>
         <div className="relative overflow-hidden">
           {location.imageUrl ? (

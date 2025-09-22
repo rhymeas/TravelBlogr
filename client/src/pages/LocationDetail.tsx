@@ -536,6 +536,14 @@ export default function LocationDetail() {
               </CardContent>
             </Card>
 
+            {/* Live Feed Button */}
+            <Link href={`/live-feed?locationId=${location.id}&focus=first`}>
+              <Button className="w-full mb-3" data-testid="live-feed-button">
+                <Camera className="w-4 h-4 mr-2" />
+                📸 Live Feed für {location.name}
+              </Button>
+            </Link>
+
             {/* Edit Button */}
             <Link href="/admin">
               <Button className="w-full" variant="outline" data-testid="edit-location-button">

@@ -803,7 +803,7 @@ export default function GlobalTripFeed() {
                   <img
                     src={photo.imageUrl}
                     alt={photo.caption || "Reisefoto"}
-                    className="w-full object-contain max-h-96 bg-gray-50 dark:bg-gray-800"
+                    className="w-full object-cover max-h-96 bg-gray-50 dark:bg-gray-800"
                     data-testid={`post-image-${photo.id}`}
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1226,7 +1226,7 @@ function CarouselPost({ carousel, creators, getLocationName, formatTime, likedPh
             <img
               src={currentPhoto.imageUrl}
               alt={currentPhoto.caption || "Reisefoto"}
-              className="w-full object-contain max-h-96 bg-gray-50 dark:bg-gray-800"
+              className="w-full object-cover max-h-96 bg-gray-50 dark:bg-gray-800"
               data-testid={`post-image-${currentPhoto.id}`}
             />
             <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
