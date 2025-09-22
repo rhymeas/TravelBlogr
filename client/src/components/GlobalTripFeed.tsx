@@ -276,7 +276,7 @@ export default function GlobalTripFeed() {
       }
       
       // Invalidate queries to refresh feed
-      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated", "global"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated", "global", filterLocationId] });
       
       // Reset form and close modal
       setCaption("");
@@ -329,7 +329,7 @@ export default function GlobalTripFeed() {
       
       // Update cache optimistically using captured state
       queryClient.setQueryData(
-        ["/api/trip-photos/paginated", "global"],
+        ["/api/trip-photos/paginated", "global", filterLocationId],
         (oldData: any) => {
           if (!oldData) return oldData;
           
@@ -369,7 +369,7 @@ export default function GlobalTripFeed() {
       
       // Update cache with actual server data
       queryClient.setQueryData(
-        ["/api/trip-photos/paginated", "global"],
+        ["/api/trip-photos/paginated", "global", filterLocationId],
         (oldData: any) => {
           if (!oldData) return oldData;
           
@@ -399,7 +399,7 @@ export default function GlobalTripFeed() {
       });
       
       // Invalidate and refetch to get correct state
-      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated", "global"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated", "global", filterLocationId] });
       
       toast({
         title: "Fehler",
