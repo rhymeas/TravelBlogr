@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import React from "react";
 import { useLocation } from "wouter";
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Clock, User, Camera, Send, Image, Upload, Heart, Trash2, Video, Play, MoreVertical, X, Maximize2, Edit } from "lucide-react";
+import { Plus, Clock, User, Camera, Send, Image, Upload, Heart, Trash2, Video, Play, MoreVertical, X, Maximize2, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { TripPhoto, Creator, Location } from "@shared/schema";
@@ -126,6 +127,54 @@ export default function GlobalTripFeed() {
 
   // Flatten the paginated data
   const tripPhotos = data?.pages.flatMap(page => page.items) || [];
+  
+  // Group photos by groupId for carousel display
+  const groupedPhotos = React.useMemo(() => {
+    const groups = new Map<string, TripPhoto[]>();
+    const singles: TripPhoto[] = [];
+    
+    tripPhotos.forEach(photo => {
+      if (photo.groupId) {
+        if (!groups.has(photo.groupId)) {
+          groups.set(photo.groupId, []);
+        }
+        groups.get(photo.groupId)!.push(photo);
+      } else {
+        singles.push(photo);
+      }
+    });
+    
+    // Convert grouped photos to display items
+    type CarouselItem = { type: 'carousel', groupId: string, photos: TripPhoto[], id: string, uploadedAt: Date | null, locationId: string | null };
+    const groupedItems: (TripPhoto | CarouselItem)[] = [];
+    
+    // Add carousel groups
+    groups.forEach((photos, groupId) => {
+      if (photos.length > 1) {
+        groupedItems.push({
+          type: 'carousel',
+          groupId,
+          photos: photos.sort((a, b) => (a.uploadedAt?.getTime() || 0) - (b.uploadedAt?.getTime() || 0)),
+          id: `carousel-${groupId}`,
+          uploadedAt: photos[0]?.uploadedAt || null,
+          locationId: photos[0]?.locationId || null
+        });
+      } else {
+        // Single photo in group, treat as individual
+        groupedItems.push(photos[0]);
+      }
+    });
+    
+    // Add individual photos
+    groupedItems.push(...singles);
+    
+    // Sort by upload time (most recent first)
+    return groupedItems.sort((a, b) => {
+      const timeA = 'photos' in a ? (a.photos[0]?.uploadedAt?.getTime() || 0) : (a.uploadedAt?.getTime() || 0);
+      const timeB = 'photos' in b ? (b.photos[0]?.uploadedAt?.getTime() || 0) : (b.uploadedAt?.getTime() || 0);
+      return timeB - timeA;
+    });
+  }, [tripPhotos]);
 
   // Upload mutation with batch support and EXIF data
   const uploadMutation = useMutation({
@@ -613,7 +662,15 @@ export default function GlobalTripFeed() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {tripPhotos.map((photo) => (
+          {groupedPhotos.map((item) => {
+            const isCarousel = 'type' in item && item.type === 'carousel';
+            
+            if (isCarousel) {
+              return <CarouselPost key={item.id} carousel={item} creators={creators} getLocationName={getLocationName} formatTime={formatTime} likedPhotos={likedPhotos} handleLike={handleLike} handleDelete={handleDelete} openFullView={openFullView} />;
+            }
+            
+            const photo = item as TripPhoto;
+            return (
             <Card key={photo.id} className="overflow-hidden" data-testid={`post-${photo.id}`}>
               {/* Post Header */}
               <div className="p-3 pb-2">
@@ -758,7 +815,8 @@ export default function GlobalTripFeed() {
                 </div>
               </div>
             </Card>
-          ))}
+            );
+          })}
           
           {/* Infinite Scroll Trigger */}
           <div ref={loadMoreRef} className="flex justify-center p-4">
@@ -776,7 +834,7 @@ export default function GlobalTripFeed() {
               >
                 Weitere Beiträge laden
               </Button>
-            ) : tripPhotos.length > 0 ? (
+            ) : groupedPhotos.length > 0 ? (
               <p className="text-sm text-muted-foreground">Alle Beiträge geladen</p>
             ) : null}
           </div>
@@ -1048,5 +1106,186 @@ export default function GlobalTripFeed() {
         </Dialog>
       )}
     </div>
+  );
+}
+
+// Carousel Post Component
+interface CarouselPostProps {
+  carousel: { type: 'carousel', groupId: string, photos: TripPhoto[], id: string, uploadedAt: Date | null, locationId: string | null };
+  creators: Creator[];
+  getLocationName: (locationId: string | null) => string | null;
+  formatTime: (date: Date | null) => string;
+  likedPhotos: Set<string>;
+  handleLike: (photoId: string) => void;
+  handleDelete: (photoId: string) => void;
+  openFullView: (photo: TripPhoto) => void;
+}
+
+function CarouselPost({ carousel, creators, getLocationName, formatTime, likedPhotos, handleLike, handleDelete, openFullView }: CarouselPostProps) {
+  const [currentIndex, setCurrentIndex] = React.useState(0);
+  const currentPhoto = carousel.photos[currentIndex];
+
+  const nextPhoto = () => {
+    setCurrentIndex((prev) => (prev + 1) % carousel.photos.length);
+  };
+
+  const prevPhoto = () => {
+    setCurrentIndex((prev) => (prev - 1 + carousel.photos.length) % carousel.photos.length);
+  };
+
+
+  return (
+    <Card className="overflow-hidden" data-testid={`post-${carousel.id}`}>
+      {/* Post Header */}
+      <div className="p-3 pb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1" data-testid={`post-author-${carousel.id}`}>
+              <User className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium text-sm">
+                {currentPhoto.creatorId ? 
+                  creators.find(c => c.id === currentPhoto.creatorId)?.name || currentPhoto.uploadedBy || 'Unbekannt' : 
+                  currentPhoto.uploadedBy || 'Unbekannt'
+                }
+              </span>
+            </div>
+            <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full flex items-center space-x-1">
+              <Image className="w-3 h-3" />
+              <span>{carousel.photos.length} Fotos</span>
+            </div>
+            {getLocationName(currentPhoto.locationId) && (
+              <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                📍 {getLocationName(currentPhoto.locationId)}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 text-xs text-muted-foreground" data-testid={`post-time-${carousel.id}`}>
+              <Clock className="w-3 h-3" />
+              <span>{formatTime(currentPhoto.uploadedAt)}</span>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 z-50 relative"
+                  data-testid={`post-menu-${carousel.id}`}
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="z-50">
+                <DropdownMenuItem
+                  onClick={() => handleDelete(currentPhoto.id)}
+                  className="text-red-600 focus:text-red-600"
+                  data-testid={`delete-post-${carousel.id}`}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Löschen
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </div>
+
+      {/* Carousel Content */}
+      <div className="relative group">
+        {/* Current Photo/Video */}
+        {currentPhoto.mediaType === 'video' && currentPhoto.videoUrl ? (
+          <div className="relative">
+            <video
+              src={currentPhoto.videoUrl}
+              poster={currentPhoto.thumbnailUrl || undefined}
+              controls
+              preload="metadata"
+              className="w-full max-h-96 object-cover rounded"
+              data-testid={`post-video-${currentPhoto.id}`}
+            >
+              <source src={currentPhoto.videoUrl} type="video/mp4" />
+              Ihr Browser unterstützt das Video-Element nicht.
+            </video>
+          </div>
+        ) : currentPhoto.imageUrl && (
+          <div className="relative cursor-pointer" onClick={() => openFullView(currentPhoto)}>
+            <img
+              src={currentPhoto.imageUrl}
+              alt={currentPhoto.caption || "Reisefoto"}
+              className="w-full object-contain max-h-96 bg-gray-50 dark:bg-gray-800"
+              data-testid={`post-image-${currentPhoto.id}`}
+            />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="bg-white/90 dark:bg-black/90 rounded-full p-3">
+                <Maximize2 className="w-6 h-6 text-black dark:text-white" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation Arrows - Only show if more than 1 photo */}
+        {carousel.photos.length > 1 && (
+          <>
+            <button
+              onClick={prevPhoto}
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+              data-testid={`carousel-prev-${carousel.id}`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={nextPhoto}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+              data-testid={`carousel-next-${carousel.id}`}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </>
+        )}
+
+        {/* Carousel Indicators */}
+        {carousel.photos.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+            {carousel.photos.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentIndex(index)}
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  index === currentIndex ? 'bg-white' : 'bg-white/50'
+                }`}
+                data-testid={`carousel-indicator-${carousel.id}-${index}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Post Caption */}
+      {currentPhoto.caption && (
+        <div className="px-3 py-1.5">
+          <p className="text-sm" data-testid={`post-caption-${currentPhoto.id}`}>{currentPhoto.caption}</p>
+        </div>
+      )}
+
+      {/* Post Actions - Like */}
+      <div className="p-3 pt-2 border-t border-border/50">
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleLike(currentPhoto.id)}
+            className={`flex items-center space-x-2 ${
+              likedPhotos.has(currentPhoto.id) ? 'text-red-500' : 'text-muted-foreground'
+            }`}
+            data-testid={`like-button-${currentPhoto.id}`}
+          >
+            <Heart 
+              className={`w-4 h-4 ${likedPhotos.has(currentPhoto.id) ? 'fill-current' : ''}`} 
+            />
+            <span>{currentPhoto.likesCount || 0}</span>
+          </Button>
+        </div>
+      </div>
+    </Card>
   );
 }
