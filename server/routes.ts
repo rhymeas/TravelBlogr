@@ -919,7 +919,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }));
             
             return res.status(400).json({ 
-              error: `Validation failed: ${failedFields.map(f => `${f.path}: ${f.message}`).join(', ')}`,
+              error: `Validation failed: ${failedFields.map((f: any) => `${f.path}: ${f.message}`).join(', ')}`,
               details: 'Zod schema validation error',
               failedFields: failedFields
             });

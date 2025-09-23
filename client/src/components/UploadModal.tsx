@@ -84,21 +84,30 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       setProcessedFiles(0);
       setVisualPercent(0);
       
-      // Extract EXIF data for each file and add to form data
-      const exifDataPromises = files.map(async (file, index) => {
+      // Extract EXIF data for each file sequentially for realistic progress
+      const exifResults = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
         const takenAt = await extractExifData(file);
-        // Update actual files processed and visual percentage (0-80% for processing)
-        const processed = index + 1;
+        
+        // Update progress per file (0-60% for EXIF processing)
+        const processed = i + 1;
         setProcessedFiles(processed);
-        setVisualPercent(Math.min(80, Math.round((processed / files.length) * 80)));
-        return { index, takenAt };
-      });
+        setVisualPercent(Math.round((processed / files.length) * 60));
+        
+        // Small delay for realistic progress display
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        exifResults.push({ index: i, takenAt });
+      }
       
-      const exifResults = await Promise.all(exifDataPromises);
-      
-      // Update progress: Upload starting (stay at 80% while uploading)
+      // Update progress: Starting upload (60-80%)
       setUploadStatus("Hochladen");
-      setVisualPercent(80);
+      setVisualPercent(65);
+      
+      // Gradual progress during upload preparation
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setVisualPercent(75);
       
       // Add EXIF data to form data as JSON
       const exifData = exifResults.reduce((acc, { index, takenAt }) => {
@@ -114,6 +123,9 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       if (locationId) formData.append('locationId', locationId);
       if (creatorId) formData.append('creatorId', creatorId);
 
+      // Show uploading progress
+      setVisualPercent(85);
+      
       const response = await fetch('/api/trip-photos/media-batch', {
         method: 'POST',
         body: formData,
@@ -123,6 +135,10 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Upload fehlgeschlagen");
       }
+      
+      // Final progress steps
+      setVisualPercent(95);
+      await new Promise(resolve => setTimeout(resolve, 200));
       
       // Update progress: Upload complete (100%)
       setUploadStatus("Fertig");
