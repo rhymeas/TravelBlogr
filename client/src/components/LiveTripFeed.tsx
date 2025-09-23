@@ -982,7 +982,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                           )}
                         </>
                       );
-                    })()
+                    })()}
                   </div>
                 ) : (
                   /* Single Media */

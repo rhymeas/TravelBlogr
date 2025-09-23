@@ -1,5 +1,5 @@
 import Header from "@/components/Header";
-import GlobalTripFeed from "@/components/GlobalTripFeed";
+import { LiveTripFeed } from "@/components/LiveTripFeed";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function LiveFeedPage() {
@@ -19,7 +19,7 @@ export default function LiveFeedPage() {
 
       {/* Content */}
       <div className="max-w-2xl mx-auto px-4 py-6">
-        <GlobalTripFeed />
+        <LiveTripFeed showUpload={true} />
       </div>
     </div>
   );
