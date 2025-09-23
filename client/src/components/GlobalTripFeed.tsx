@@ -176,11 +176,13 @@ export default function GlobalTripFeed() {
 
   // Group photos by groupId for carousel display
   const groupedPhotos = React.useMemo(() => {
+    console.log('GROUPING DEBUG: Starting with', tripPhotos.length, 'photos');
     const groups = new Map<string, TripPhoto[]>();
     const singles: TripPhoto[] = [];
     
     tripPhotos.forEach(photo => {
       if (photo.groupId) {
+        console.log('Found photo with groupId:', photo.groupId);
         if (!groups.has(photo.groupId)) {
           groups.set(photo.groupId, []);
         }
@@ -190,6 +192,8 @@ export default function GlobalTripFeed() {
       }
     });
     
+    console.log('GROUPING DEBUG: Found', groups.size, 'groups and', singles.length, 'singles');
+    
     // Convert grouped photos to display items
     type CarouselItem = { type: 'carousel', groupId: string, photos: TripPhoto[], id: string, uploadedAt: Date | null, locationId: string | null };
     const groupedItems: (TripPhoto | CarouselItem)[] = [];
@@ -197,6 +201,7 @@ export default function GlobalTripFeed() {
     // Add carousel groups
     groups.forEach((photos, groupId) => {
       if (photos.length > 1) {
+        console.log('Creating carousel for group', groupId, 'with', photos.length, 'photos');
         // Sort photos by time (oldest to newest for carousel display)
         const sortedPhotos = photos.sort((a, b) => getTimeSafe(a.uploadedAt) - getTimeSafe(b.uploadedAt));
         // Use the newest photo's timestamp for feed ordering
@@ -211,6 +216,7 @@ export default function GlobalTripFeed() {
         });
       } else {
         // Single photo in group, treat as individual
+        console.log('Single photo in group', groupId, ', treating as individual');
         groupedItems.push(photos[0]);
       }
     });
@@ -219,11 +225,14 @@ export default function GlobalTripFeed() {
     groupedItems.push(...singles);
     
     // Sort by upload time (most recent first)
-    return groupedItems.sort((a, b) => {
+    const finalItems = groupedItems.sort((a, b) => {
       const timeA = getTimeSafe(a.uploadedAt);
       const timeB = getTimeSafe(b.uploadedAt);
       return timeB - timeA;
     });
+    
+    console.log('GROUPING FINAL:', finalItems.length, 'items,', finalItems.filter(item => 'type' in item && item.type === 'carousel').length, 'carousels');
+    return finalItems;
   }, [tripPhotos]);
 
 
@@ -1085,7 +1094,14 @@ export default function GlobalTripFeed() {
             
             if (isCarousel) {
               console.log('Rendering carousel:', item.id, 'with', item.photos?.length, 'photos');
-              return <CarouselPost key={item.id} carousel={item} creators={creators} getLocationName={getLocationName} formatTime={formatTime} likedPhotos={likedPhotos} handleLike={handleLike} handleDelete={handleDelete} openFullView={openFullView} />;
+              return (
+                <div key={item.id}>
+                  <div style={{ background: 'yellow', padding: '10px', marginBottom: '5px' }}>
+                    DEBUG: Carousel {item.id} with {item.photos?.length} photos
+                  </div>
+                  <CarouselPost carousel={item} creators={creators} getLocationName={getLocationName} formatTime={formatTime} likedPhotos={likedPhotos} handleLike={handleLike} handleDelete={handleDelete} openFullView={openFullView} />
+                </div>
+              );
             }
             
             const photo = item as TripPhoto;
