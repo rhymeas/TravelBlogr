@@ -192,21 +192,6 @@ export default function Hero({ tourSettings }: HeroProps) {
         </div>
       </div>
 
-      {/* Image Indicators - Only show if more than 1 image */}
-      {heroImages.length > 1 && (
-        <div className="absolute bottom-6 sm:bottom-20 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2" data-testid="hero-indicators">
-          {heroImages.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentImage(index)}
-              className={`w-3 h-3 rounded-full transition-all ${
-                index === currentImage ? 'bg-white' : 'bg-white/40 hover:bg-white/60'
-              }`}
-              data-testid={`hero-indicator-${index}`}
-            />
-          ))}
-        </div>
-      )}
         
       {/* Animated scroll indicator - Hidden on mobile */}
       <div className="hidden sm:block absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 animate-float z-20" data-testid="scroll-indicator">
