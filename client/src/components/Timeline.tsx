@@ -42,7 +42,15 @@ export default function Timeline({ locations }: TimelineProps) {
     type: 'location' | 'custom';
     locationId?: string;
     position?: { top: number };
-  } | null>(null);
+  } | null>(() => {
+    // Load from localStorage on initialization
+    try {
+      const saved = localStorage.getItem('timeline-active-marker');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
   // Ensure marker persists and repositions properly during viewport changes
   useEffect(() => {
@@ -82,6 +90,40 @@ export default function Timeline({ locations }: TimelineProps) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [activeMarker, locations]);
+
+  // Save activeMarker to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      if (activeMarker) {
+        localStorage.setItem('timeline-active-marker', JSON.stringify(activeMarker));
+      } else {
+        localStorage.removeItem('timeline-active-marker');
+      }
+    } catch {
+      // Ignore localStorage errors (incognito mode, storage full, etc.)
+    }
+  }, [activeMarker]);
+
+  // Restore marker position after locations are loaded and layout is ready
+  useEffect(() => {
+    if (activeMarker && activeMarker.type === 'location' && activeMarker.locationId && locations.length > 0 && timelineRef.current) {
+      // Delay to ensure DOM elements are rendered
+      const timer = setTimeout(() => {
+        const locationIndex = locations.findIndex(loc => loc.id === activeMarker.locationId);
+        if (locationIndex !== -1) {
+          const timelineElement = document.querySelector(`[data-testid="timeline-item-${locations[locationIndex].slug}"]`);
+          if (timelineElement && timelineRef.current) {
+            const rect = timelineElement.getBoundingClientRect();
+            const containerRect = timelineRef.current.getBoundingClientRect();
+            const relativeTop = rect.top - containerRect.top + rect.height / 2;
+            setActiveMarker(prev => prev ? { ...prev, position: { top: relativeTop } } : null);
+          }
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [locations, activeMarker?.locationId]);
 
   // Fetch tour settings to check if GPS is activated by admin
   const { data: tourSettings } = useQuery<TourSettings>({

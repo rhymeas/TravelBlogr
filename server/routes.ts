@@ -897,8 +897,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
 
         } catch (fileError) {
-          console.error(`Error processing file ${file.originalname}:`, fileError);
-          // Continue with other files
+          console.error(`Error processing file ${file.originalname} (${file.mimetype}, ${file.size} bytes):`, fileError);
+          console.error('Failed tripPhotoData:', JSON.stringify(tripPhotoData, null, 2));
+          console.error('File metadata:', {
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+            isVideo: allowedVideoTypes.includes(file.mimetype),
+            isImage: allowedImageTypes.includes(file.mimetype)
+          });
+          
+          // Handle Zod validation errors specifically
+          if (fileError instanceof Error && fileError.name === 'ZodError') {
+            const zodError = fileError as any;
+            console.error('Zod validation issues:', zodError.issues);
+            const failedFields = zodError.issues.map((issue: any) => ({
+              path: issue.path.join('.'),
+              message: issue.message,
+              code: issue.code,
+              received: issue.received
+            }));
+            
+            return res.status(400).json({ 
+              error: `Validation failed: ${failedFields.map(f => `${f.path}: ${f.message}`).join(', ')}`,
+              details: 'Zod schema validation error',
+              failedFields: failedFields
+            });
+          }
+          
+          // Handle pattern validation errors
+          if (fileError instanceof Error && (
+            fileError.message.includes('string did not match') || 
+            fileError.message.includes('pattern') ||
+            fileError.message.includes('Invalid')
+          )) {
+            console.error('Pattern validation error detected');
+            return res.status(400).json({ 
+              error: fileError.message,
+              details: 'Pattern validation error during file processing',
+              fileInfo: `${file.originalname} (${file.mimetype}, ${file.size} bytes)`
+            });
+          }
+          
+          console.error('Error details:', fileError instanceof Error ? {
+            name: fileError.name,
+            message: fileError.message,
+            stack: fileError.stack
+          } : fileError);
+          
+          // Continue with other files for other errors
         }
       }
 
