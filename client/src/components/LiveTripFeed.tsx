@@ -43,6 +43,40 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  // Image preloading for performance
+  const preloadNextImages = useCallback((photos: GroupedTripPhoto[], currentIndex: number) => {
+    // Preload next 3 images to improve perceived loading speed
+    const nextPhotos = photos.slice(currentIndex + 1, currentIndex + 4);
+    nextPhotos.forEach(group => {
+      group.media.forEach(media => {
+        if (media.imageUrl && media.mediaType === 'image') {
+          const img = new Image();
+          img.src = media.imageUrl;
+        }
+      });
+    });
+  }, []);
+
+  // Intersection observer for smart loading
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   // Save user key to localStorage
   useEffect(() => {
     localStorage.setItem('userKey', userKey);
@@ -62,7 +96,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
     queryKey: ["/api/creators"],
   });
 
-  // Infinite query for grouped paginated trip photos
+  // Infinite query for grouped paginated trip photos with optimized caching
   const {
     data,
     fetchNextPage,
@@ -87,11 +121,21 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     initialPageParam: undefined as string | undefined,
+    staleTime: 2 * 60 * 1000, // 2 minutes for live feed updates
+    gcTime: 15 * 60 * 1000, // 15 minutes cache for images
     refetchInterval: 60000, // Auto-refresh every minute
   });
 
   // Flatten all pages into a single array of grouped photos
   const groupedPhotos = data?.pages.flatMap(page => page.items) || [] as GroupedTripPhoto[];
+
+  // Trigger image preloading when new data loads
+  useEffect(() => {
+    if (groupedPhotos.length > 0) {
+      // Preload images for better performance, starting from the visible ones
+      preloadNextImages(groupedPhotos, Math.max(0, groupedPhotos.length - 10));
+    }
+  }, [groupedPhotos.length, preloadNextImages]);
 
   // Enhanced media upload mutation using new API
   const uploadMutation = useMutation({
