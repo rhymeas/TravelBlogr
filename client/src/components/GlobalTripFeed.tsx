@@ -226,6 +226,7 @@ export default function GlobalTripFeed() {
     });
   }, [tripPhotos]);
 
+
   // Generate video thumbnail function
   const generateVideoThumbnail = (videoFile: File): Promise<File> => {
     return new Promise((resolve, reject) => {
@@ -1837,14 +1838,14 @@ function CarouselPost({ carousel, creators, getLocationName, formatTime, likedPh
           <>
             <button
               onClick={prevPhoto}
-              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full opacity-60 hover:opacity-100 transition-opacity hover:bg-black/70"
               data-testid={`carousel-prev-${carousel.id}`}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={nextPhoto}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full opacity-60 hover:opacity-100 transition-opacity hover:bg-black/70"
               data-testid={`carousel-next-${carousel.id}`}
             >
               <ChevronRight className="w-4 h-4" />
@@ -1854,12 +1855,12 @@ function CarouselPost({ carousel, creators, getLocationName, formatTime, likedPh
 
         {/* Carousel Indicators */}
         {carousel.photos.length > 1 && (
-          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+          <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex space-x-2 bg-black/30 px-2 py-1 rounded-full">
             {carousel.photos.map((_, index) => (
               <button
                 key={index}
                 onClick={() => goToSlide(index)}
-                className={`w-2 h-2 rounded-full transition-colors ${
+                className={`w-2.5 h-2.5 rounded-full transition-colors ${
                   index === currentIndex ? 'bg-white' : 'bg-white/50'
                 }`}
                 data-testid={`carousel-indicator-${carousel.id}-${index}`}
