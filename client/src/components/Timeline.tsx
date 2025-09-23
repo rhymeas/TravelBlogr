@@ -169,9 +169,9 @@ export default function Timeline({ locations }: TimelineProps) {
 
   return (
     <div className="relative py-8 min-h-full" data-testid="timeline" ref={timelineRef}>
-      {/* Timeline line - extends full height with strong visibility on desktop */}
+      {/* Timeline line - visible on all devices, positioned responsive */}
       <div 
-        className="hidden md:block absolute left-1/2 top-0 h-full w-1 bg-primary transform -translate-x-1/2 shadow-md hover:w-2 transition-all duration-200"
+        className="absolute left-4 md:left-1/2 top-0 h-full w-0.5 md:w-1 bg-primary transform md:-translate-x-1/2 shadow-md hover:w-1 md:hover:w-2 transition-all duration-200"
         data-testid="timeline-line"
       ></div>
       
