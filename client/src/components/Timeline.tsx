@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Calendar, ChevronRight, MapPin, Car } from "lucide-react";
+import { Calendar, ChevronRight, MapPin, Car, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
@@ -36,6 +36,13 @@ export default function Timeline({ locations }: TimelineProps) {
   const [carPosition, setCarPosition] = useState<any>(null);
   const [isTrackingEnabled, setIsTrackingEnabled] = useState(false);
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
+  
+  // Interactive marker state
+  const [activeMarker, setActiveMarker] = useState<{
+    type: 'location' | 'custom';
+    locationId?: string;
+    position?: { top: number };
+  } | null>(null);
 
   // Fetch tour settings to check if GPS is activated by admin
   const { data: tourSettings } = useQuery<TourSettings>({
@@ -94,10 +101,58 @@ export default function Timeline({ locations }: TimelineProps) {
     ? calculateTimelinePosition(carPosition, timelineRef.current)
     : null;
 
+  // Handle location dot click
+  const handleLocationDotClick = (locationId: string, event: React.MouseEvent) => {
+    if (!timelineRef.current) return;
+    
+    const rect = timelineRef.current.getBoundingClientRect();
+    const clickY = event.currentTarget.getBoundingClientRect().top - rect.top + 32; // 32px = half of dot height
+    
+    setActiveMarker({
+      type: 'location',
+      locationId: locationId,
+      position: { top: clickY }
+    });
+  };
+
+  // Handle trip line click
+  const handleTripLineClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!timelineRef.current) return;
+    
+    const rect = timelineRef.current.getBoundingClientRect();
+    const clickY = event.clientY - rect.top;
+    
+    setActiveMarker({
+      type: 'custom',
+      position: { top: clickY }
+    });
+  };
+
   return (
     <div className="relative py-8 min-h-full" data-testid="timeline" ref={timelineRef}>
       {/* Timeline line - extends full height with strong visibility on desktop */}
-      <div className="hidden md:block absolute left-1/2 top-0 h-full w-1 bg-primary transform -translate-x-1/2 shadow-md"></div>
+      <div 
+        className="hidden md:block absolute left-1/2 top-0 h-full w-1 bg-primary transform -translate-x-1/2 shadow-md hover:w-2 transition-all duration-200"
+        data-testid="timeline-line"
+      ></div>
+      
+      {/* Expanded clickable area for timeline line - higher z-index to ensure clicks work everywhere */}
+      <div 
+        className="hidden md:block absolute left-1/2 top-0 h-full w-12 transform -translate-x-1/2 cursor-pointer z-50"
+        onClick={handleTripLineClick}
+        onMouseEnter={(e) => {
+          // Visual feedback on hover
+          const line = e.currentTarget.previousElementSibling as HTMLElement;
+          if (line) line.style.width = '8px';
+        }}
+        onMouseLeave={(e) => {
+          // Reset on leave
+          const line = e.currentTarget.previousElementSibling as HTMLElement;
+          if (line) line.style.width = '4px';
+        }}
+        data-testid="timeline-line-clickable-area"
+        title="Klicken Sie hier, um Ihre Position zu markieren"
+      ></div>
       
       {/* Car Icon positioned on timeline - now visible on mobile too */}
       {carTimelinePosition && carTimelinePosition.isVisible && (
@@ -110,6 +165,30 @@ export default function Timeline({ locations }: TimelineProps) {
             position="middle"
             isMoving={carPosition?.isMoving || false}
           />
+        </div>
+      )}
+
+      {/* "Wir sind hier" Interactive Marker */}
+      {activeMarker && (
+        <div 
+          className="absolute left-1/2 md:left-1/2 transform -translate-x-1/2 z-40 animate-in fade-in zoom-in duration-300"
+          style={{ 
+            top: `${activeMarker.position?.top || 0}px`
+          }}
+          data-testid="active-location-marker"
+        >
+          <div className="relative">
+            {/* Marker Icon */}
+            <div className="bg-red-500 text-white p-2 md:p-3 rounded-full shadow-lg border-2 md:border-4 border-white animate-pulse min-w-[44px] min-h-[44px] flex items-center justify-center">
+              <Navigation className="w-4 h-4 md:w-6 md:h-6" />
+            </div>
+            
+            {/* "Wir sind hier" Label */}
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 md:mt-2 bg-red-500 text-white px-2 md:px-4 py-1 md:py-2 rounded-lg shadow-lg text-xs md:text-sm font-semibold whitespace-nowrap">
+              <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-red-500 rotate-45"></div>
+              Wir sind hier
+            </div>
+          </div>
         </div>
       )}
 
@@ -141,14 +220,35 @@ export default function Timeline({ locations }: TimelineProps) {
             className={`relative ${
               index === 0 ? 'mt-0' : 'mt-6 md:-mt-[234px]'
             }`}
+            style={{ zIndex: locations.length - index + 20 }}
             data-testid={`timeline-item-${location.slug}`}>
             {/* Connector line between cards - only on desktop */}
             {index > 0 && (
               <div className="hidden md:block absolute left-1/2 -top-20 w-px h-24 bg-gray-300 transform -translate-x-1/2 z-0"></div>
             )}
             
-            {/* Timeline marker */}
-            <div className="hidden md:block absolute left-1/2 top-8 w-8 h-8 bg-primary rounded-full transform -translate-x-1/2 z-10 border-4 border-white shadow-lg"></div>
+            {/* Timeline marker - now clickable with better touch targets */}
+            <div 
+              className="hidden md:block absolute left-1/2 top-8 w-8 h-8 bg-primary rounded-full transform -translate-x-1/2 z-10 border-4 border-white shadow-lg cursor-pointer hover:scale-110 transition-all duration-200"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLocationDotClick(location.id, e);
+              }}
+              data-testid={`location-dot-${location.slug}`}
+            >
+            </div>
+            
+            {/* Mobile timeline marker - visible on mobile with proper touch targets */}
+            <div 
+              className="md:hidden absolute left-4 top-4 w-8 h-8 bg-primary rounded-full z-10 border-4 border-white shadow-lg cursor-pointer hover:scale-110 transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLocationDotClick(location.id, e);
+              }}
+              data-testid={`mobile-location-dot-${location.slug}`}
+            >
+              <div className="w-4 h-4 bg-primary rounded-full"></div>
+            </div>
             
             {/* Mobile timeline dot - removed to avoid clutter */}
             
