@@ -124,7 +124,7 @@ export default function GlobalTripFeed() {
     isLoading,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["/api/trip-photos/paginated-grouped", "global", filterLocationId],
+    queryKey: ["/api/trip-photos/paginated", "global", filterLocationId],
     queryFn: async ({ pageParam }) => {
       const params = new URLSearchParams({
         limit: '15', // Larger pages for better performance
@@ -132,7 +132,7 @@ export default function GlobalTripFeed() {
         ...(filterLocationId && { locationId: filterLocationId }),
       });
       
-      const response = await fetch(`/api/trip-photos/paginated-grouped?${params}`);
+      const response = await fetch(`/api/trip-photos/paginated?${params}`);
       if (!response.ok) {
         throw new Error('Failed to fetch photos');
       }
@@ -408,7 +408,7 @@ export default function GlobalTripFeed() {
       }
       
       // Invalidate queries to refresh feed
-      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated-grouped", "global", filterLocationId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated", "global", filterLocationId] });
       
       // Reset form and close modal
       setCaption("");
@@ -461,7 +461,7 @@ export default function GlobalTripFeed() {
       
       // Update cache optimistically using captured state
       queryClient.setQueryData(
-        ["/api/trip-photos/paginated-grouped", "global", filterLocationId],
+        ["/api/trip-photos/paginated", "global", filterLocationId],
         (oldData: any) => {
           if (!oldData) return oldData;
           
@@ -501,7 +501,7 @@ export default function GlobalTripFeed() {
       
       // Update cache with actual server data
       queryClient.setQueryData(
-        ["/api/trip-photos/paginated-grouped", "global", filterLocationId],
+        ["/api/trip-photos/paginated", "global", filterLocationId],
         (oldData: any) => {
           if (!oldData) return oldData;
           
@@ -531,7 +531,7 @@ export default function GlobalTripFeed() {
       });
       
       // Invalidate and refetch to get correct state
-      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated-grouped", "global", filterLocationId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated", "global", filterLocationId] });
       
       toast({
         title: "Fehler",
@@ -570,7 +570,7 @@ export default function GlobalTripFeed() {
       
       // Optimistically update the ungrouped cache
       queryClient.setQueryData(
-        ["/api/trip-photos/paginated-grouped", "global", filterLocationId],
+        ["/api/trip-photos/paginated", "global", filterLocationId],
         (oldData: any) => {
           if (!oldData) return oldData;
           
@@ -637,7 +637,7 @@ export default function GlobalTripFeed() {
     onSuccess: (_, { photoId, caption, locationId }) => {
       // Update cache with new caption and location
       queryClient.setQueryData(
-        ["/api/trip-photos/paginated-grouped", "global"],
+        ["/api/trip-photos/paginated", "global"],
         (oldData: any) => {
           if (!oldData) return oldData;
           
