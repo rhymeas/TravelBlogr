@@ -898,20 +898,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         } catch (fileError) {
           console.error(`Error processing file ${file.originalname} (${file.mimetype}, ${file.size} bytes):`, fileError);
-          console.error('Failed tripPhotoData:', JSON.stringify({
-            locationId: locationId || null,
-            creatorId: creatorId || null,
-            objectPath: objectPath,
-            imageUrl: '/placeholder',
-            caption: caption || null,
-            uploadedBy: uploadedBy || null,
-            mediaType: isVideo ? 'video' : 'image',
-            videoUrl: isVideo ? objectPath : null,
-            thumbnailUrl: null,
-            deleteToken,
-            groupId: groupId,
-            takenAt: takenAt,
-          }, null, 2));
+          console.error('Failed tripPhotoData for file:', file.originalname);
           console.error('File metadata:', {
             originalname: file.originalname,
             mimetype: file.mimetype,
