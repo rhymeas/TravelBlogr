@@ -1003,7 +1003,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                         <span>Video</span>
                       </div>
                     </div>
-                  ) : firstMedia.imageUrl && (
+                  ) : firstMedia.imageUrl ? (
                     <div className="relative">
                       <img
                         src={firstMedia.imageUrl}
@@ -1014,8 +1014,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                         data-testid={`post-image-${firstMedia.id}`}
                       />
                     </div>
-                  )
-                }
+                  ) : null
                 )}
 
                 {/* Post Caption */}
