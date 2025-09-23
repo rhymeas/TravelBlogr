@@ -30,7 +30,7 @@ import {
 } from "@shared/schema";
 import { randomUUID, createHash } from "crypto";
 import { db } from "./db";
-import { eq, desc, and, isNull, lt, sql } from "drizzle-orm";
+import { eq, desc, and, isNull, lt, sql, or, asc, inArray } from "drizzle-orm";
 
 // Shared location data for both MemStorage and DatabaseStorage 
 const INITIAL_LOCATIONS: InsertLocation[] = [
@@ -1562,25 +1562,82 @@ export class DatabaseStorage implements IStorage {
     
     const { locationId, limit = 10, cursor } = params;
     
-    // Get all photos
-    let query = db.select().from(tripPhotos);
+    // PERFORMANCE OPTIMIZATION: Use database-level pagination instead of fetching all photos
+    let baseQuery = db.select().from(tripPhotos);
     
     // Filter by location if specified
     if (locationId) {
-      query = query.where(eq(tripPhotos.locationId, locationId)) as any;
+      baseQuery = baseQuery.where(eq(tripPhotos.locationId, locationId)) as any;
     }
     
-    const allPhotos = await query.orderBy(desc(tripPhotos.uploadedAt));
+    // Apply cursor filtering at database level for better performance
+    if (cursor) {
+      const [cursorDate, cursorId] = cursor.split('_');
+      if (cursorDate && cursorId) {
+        const cursorTimestamp = new Date(parseInt(cursorDate));
+        baseQuery = baseQuery.where(
+          or(
+            lt(tripPhotos.uploadedAt, cursorTimestamp),
+            and(
+              eq(tripPhotos.uploadedAt, cursorTimestamp),
+              lt(tripPhotos.id, cursorId)
+            )
+          )
+        ) as any;
+      }
+    }
     
-    // Group photos by groupId (fallback to individual id for backward compatibility)
+    // Fetch limited set of photos with optimized limit for grouping
+    const photos = await baseQuery
+      .orderBy(desc(tripPhotos.uploadedAt), desc(tripPhotos.id))
+      .limit(limit * 4); // Get 4x limit to handle group boundaries efficiently
+    
+    if (photos.length === 0) {
+      return { items: [] };
+    }
+    
+    // Group photos by groupId (fallback to individual id for backward compatibility)  
     const groups = new Map<string, TripPhoto[]>();
-    allPhotos.forEach(photo => {
+    const seenGroupIds = new Set<string>();
+    
+    for (const photo of photos) {
       const groupKey = photo.groupId || photo.id;
       if (!groups.has(groupKey)) {
         groups.set(groupKey, []);
       }
       groups.get(groupKey)!.push(photo);
+      seenGroupIds.add(groupKey);
+    }
+    
+    // For groups with actual groupId (not single photo groups), fetch complete groups
+    const realGroupIds = Array.from(seenGroupIds).filter(id => {
+      // Only fetch complete groups for actual group IDs (which are longer UUIDs)
+      // Single photos use their photo ID as groupKey, so skip those
+      const isRealGroup = photos.some(p => p.groupId === id && p.groupId !== null);
+      return isRealGroup;
     });
+    
+    // Fetch complete groups in a single efficient query
+    if (realGroupIds.length > 0) {
+      const completeGroupPhotos = await db.select().from(tripPhotos)
+        .where(inArray(tripPhotos.groupId, realGroupIds))
+        .orderBy(asc(tripPhotos.takenAt), asc(tripPhotos.uploadedAt));
+      
+      // Replace partial groups with complete groups
+      const completeGroups = new Map<string, TripPhoto[]>();
+      for (const photo of completeGroupPhotos) {
+        const groupId = photo.groupId!;
+        if (!completeGroups.has(groupId)) {
+          completeGroups.set(groupId, []);
+        }
+        completeGroups.get(groupId)!.push(photo);
+      }
+      
+      // Merge complete groups back
+      for (const [groupId, groupPhotos] of completeGroups) {
+        groups.set(groupId, groupPhotos);
+      }
+    }
     
     // Transform groups into GroupedTripPhoto format
     const groupedPhotos: GroupedTripPhoto[] = Array.from(groups.entries()).map(([groupId, groupPhotos]) => {
@@ -1614,26 +1671,15 @@ export class DatabaseStorage implements IStorage {
       };
     });
     
-    // Sort groups by groupTakenAt desc (most recent first)
+    // Sort groups by uploadedAt (database order preserved mostly, just need final sort)
     groupedPhotos.sort((a, b) => {
-      return new Date(b.groupTakenAt).getTime() - new Date(a.groupTakenAt).getTime();
+      return new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime();
     });
     
-    // Apply cursor pagination
-    let filteredGroups = groupedPhotos;
-    if (cursor) {
-      const [cursorDate, cursorId] = cursor.split('_');
-      const cursorTimestamp = parseInt(cursorDate);
-      filteredGroups = groupedPhotos.filter(group => {
-        const groupTimestamp = new Date(group.groupTakenAt).getTime();
-        return groupTimestamp < cursorTimestamp || (groupTimestamp === cursorTimestamp && group.id < cursorId);
-      });
-    }
-    
-    // Apply limit and get next cursor
-    const items = filteredGroups.slice(0, limit);
-    const nextCursor = items.length === limit && filteredGroups.length > limit 
-      ? `${new Date(items[items.length - 1].groupTakenAt).getTime()}_${items[items.length - 1].id}`
+    // Take only the requested limit of groups and generate next cursor
+    const items = groupedPhotos.slice(0, limit);
+    const nextCursor = items.length === limit && groupedPhotos.length > limit 
+      ? `${new Date(items[items.length - 1].uploadedAt).getTime()}_${items[items.length - 1].id}`
       : undefined;
     
     return { items, nextCursor };

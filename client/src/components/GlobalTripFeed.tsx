@@ -127,7 +127,7 @@ export default function GlobalTripFeed() {
     queryKey: ["/api/trip-photos/paginated", "global", filterLocationId],
     queryFn: async ({ pageParam }) => {
       const params = new URLSearchParams({
-        limit: '10',
+        limit: '15', // Larger pages for better performance
         ...(pageParam && { cursor: pageParam }),
         ...(filterLocationId && { locationId: filterLocationId }),
       });
@@ -140,7 +140,9 @@ export default function GlobalTripFeed() {
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     initialPageParam: undefined as string | undefined,
-    refetchInterval: 60000, // Auto-refresh every minute
+    staleTime: 15 * 60 * 1000, // 15 minutes for better performance
+    gcTime: 45 * 60 * 1000, // 45 minutes cache retention
+    refetchInterval: 5 * 60 * 1000, // Reduced to 5 minutes for performance
   });
 
   // Flatten the paginated data
@@ -338,64 +340,58 @@ export default function GlobalTripFeed() {
         }
         return response.json();
       } else {
-        // Handle multiple files - use individual uploads to support video thumbnails
-        // Generate a shared groupId for all files in this upload
-        const groupId = `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        // Handle multiple files - use batch upload endpoint
+        const formData = new FormData();
         
-        const uploadPromises = files.map(async (file, index) => {
-          const isVideo = file.type.startsWith('video/');
-          
-          const formData = new FormData();
+        // Append all files
+        files.forEach(file => {
           formData.append('media', file);
-          formData.append('caption', index === 0 ? caption : ''); // Only first file gets caption
-          formData.append('uploadedBy', uploadedBy || '');
-          formData.append('creatorId', creatorId || '');
-          formData.append('locationId', locationId || '');
-          formData.append('mediaType', isVideo ? 'video' : 'image');
-          formData.append('groupId', groupId); // Add shared groupId
-          
-          // Generate and add thumbnail for videos
-          if (isVideo) {
-            try {
-              const thumbnail = await generateVideoThumbnail(file);
-              formData.append('thumbnail', thumbnail);
-            } catch (error) {
-              console.warn('Failed to generate video thumbnail for', file.name, ':', error);
-              // Continue without thumbnail
-            }
-          } else {
-            // Extract EXIF data for images
+        });
+        
+        // Extract EXIF data for all image files
+        const exifDataMap: Record<number, string> = {};
+        
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          if (file.type.startsWith('image/')) {
             try {
               const exifr = await import('exifr');
               const parsed = await exifr.parse(file);
               const dateTime = parsed?.DateTimeOriginal || parsed?.DateTime || parsed?.CreateDate;
               if (dateTime && dateTime instanceof Date) {
-                formData.append('takenAt', dateTime.toISOString());
+                exifDataMap[i] = dateTime.toISOString();
               }
             } catch (error) {
-              console.warn('Failed to extract EXIF data from', file.name, error);
+              console.warn(`Failed to extract EXIF data for ${file.name}:`, error);
             }
           }
-
-          const response = await fetch('/api/trip-photos/media', {
-            method: 'POST',
-            body: formData,
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Upload von ${file.name} fehlgeschlagen`);
-          }
-          return response.json();
-        });
-
-        // Wait for all uploads to complete
-        const results = await Promise.all(uploadPromises);
+        }
         
-        // Return combined results
+        // Append form data
+        if (caption.trim()) formData.append('caption', caption.trim());
+        if (uploadedBy.trim()) formData.append('uploadedBy', uploadedBy.trim());
+        if (creatorId) formData.append('creatorId', creatorId);
+        if (locationId) formData.append('locationId', locationId);
+        if (Object.keys(exifDataMap).length > 0) {
+          formData.append('exifData', JSON.stringify(exifDataMap));
+        }
+
+        const response = await fetch('/api/trip-photos/media-batch', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Upload fehlgeschlagen");
+        }
+        
+        const results = await response.json();
+        
+        // Return batch upload results in expected format
         return {
-          files: results,
-          groupId: results[0]?.groupId || null
+          files: results.files || [],
+          groupId: results.groupId || null
         };
       }
     },
@@ -566,9 +562,15 @@ export default function GlobalTripFeed() {
         return newTokens;
       });
       
-      // Update cache by removing the deleted photo
+      // Invalidate all trip-photos related caches
+      queryClient.invalidateQueries({ 
+        predicate: (query) => Array.isArray(query.queryKey) && 
+                              String(query.queryKey[0]).startsWith('/api/trip-photos') 
+      });
+      
+      // Optimistically update the ungrouped cache
       queryClient.setQueryData(
-        ["/api/trip-photos/paginated", "global"],
+        ["/api/trip-photos/paginated", "global", filterLocationId],
         (oldData: any) => {
           if (!oldData) return oldData;
           
@@ -581,6 +583,27 @@ export default function GlobalTripFeed() {
           };
         }
       );
+      
+      // Optimistically update grouped caches for all locations
+      queryClient.getQueryCache().getAll().forEach(query => {
+        if (Array.isArray(query.queryKey) && 
+            query.queryKey[0] === '/api/trip-photos/paginated-grouped') {
+          queryClient.setQueryData(query.queryKey, (oldData: any) => {
+            if (!oldData) return oldData;
+            
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page: any) => ({
+                ...page,
+                items: page.items.map((group: any) => ({
+                  ...group,
+                  media: group.media.filter((media: any) => media.id !== photoId)
+                })).filter((group: any) => group.media.length > 0) // Remove empty groups
+              }))
+            };
+          });
+        }
+      });
       
       toast({
         title: "Gelöscht",
@@ -648,7 +671,7 @@ export default function GlobalTripFeed() {
     },
   });
 
-  // Infinite scroll hook
+  // Optimized infinite scroll with aggressive preloading for smooth performance  
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -656,14 +679,19 @@ export default function GlobalTripFeed() {
           fetchNextPage();
         }
       },
-      { threshold: 1 }
+      { threshold: 0, rootMargin: '500px 0px' } // Optimized for smooth preloading
     );
 
     if (loadMoreRef.current) {
       observer.observe(loadMoreRef.current);
     }
 
-    return () => observer.disconnect();
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+      observer.disconnect();
+    };
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   const handleLike = (photoId: string) => {

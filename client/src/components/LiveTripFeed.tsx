@@ -57,25 +57,6 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
     });
   }, []);
 
-  // Intersection observer for smart loading
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
-            fetchNextPage();
-          }
-        });
-      },
-      { threshold: 0.1, rootMargin: '100px' }
-    );
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Save user key to localStorage
   useEffect(() => {
@@ -108,7 +89,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
     queryKey: ["/api/trip-photos/paginated-grouped", locationId],
     queryFn: async ({ pageParam }) => {
       const params = new URLSearchParams({
-        limit: '10',
+        limit: '15', // Slightly larger pages for better performance
         ...(locationId && { locationId }),
         ...(pageParam && { cursor: pageParam }),
       });
@@ -121,9 +102,9 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     initialPageParam: undefined as string | undefined,
-    staleTime: 2 * 60 * 1000, // 2 minutes for live feed updates
-    gcTime: 15 * 60 * 1000, // 15 minutes cache for images
-    refetchInterval: 60000, // Auto-refresh every minute
+    staleTime: 15 * 60 * 1000, // 15 minutes - much longer for performance
+    gcTime: 45 * 60 * 1000, // 45 minutes cache for better image retention
+    refetchInterval: 5 * 60 * 1000, // Reduced to 5 minutes for better performance
   });
 
   // Flatten all pages into a single array of grouped photos
@@ -199,7 +180,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
       setCaption("");
       setName("");
       setSelectedCreatorId("");
-      setSelectedFile(null);
+      setSelectedFiles([]);
       setMediaType('image');
       if (fileInputRef.current) fileInputRef.current.value = "";
       toast({
@@ -408,24 +389,32 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
         return newTokens;
       });
       
-      // Update cache by removing the deleted photo from groups
-      queryClient.setQueryData(
-        ["/api/trip-photos/paginated-grouped", locationId],
-        (oldData: any) => {
-          if (!oldData) return oldData;
-          
-          return {
-            ...oldData,
-            pages: oldData.pages.map((page: any) => ({
-              ...page,
-              items: page.items.map((group: any) => ({
-                ...group,
-                media: group.media.filter((mediaItem: any) => mediaItem.id !== photoId)
-              })).filter((group: any) => group.media.length > 0) // Remove empty groups
-            }))
-          };
+      // Invalidate all trip-photos related caches
+      queryClient.invalidateQueries({ 
+        predicate: (query) => Array.isArray(query.queryKey) && 
+                              String(query.queryKey[0]).startsWith('/api/trip-photos') 
+      });
+      
+      // Optimistically update grouped caches for all locations
+      queryClient.getQueryCache().getAll().forEach(query => {
+        if (Array.isArray(query.queryKey) && 
+            query.queryKey[0] === '/api/trip-photos/paginated-grouped') {
+          queryClient.setQueryData(query.queryKey, (oldData: any) => {
+            if (!oldData) return oldData;
+            
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page: any) => ({
+                ...page,
+                items: page.items.map((group: any) => ({
+                  ...group,
+                  media: group.media.filter((mediaItem: any) => mediaItem.id !== photoId)
+                })).filter((group: any) => group.media.length > 0) // Remove empty groups
+              }))
+            };
+          });
         }
-      );
+      });
       
       toast({
         title: "Gelöscht",
@@ -441,7 +430,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
     },
   });
 
-  // Infinite scroll hook
+  // Optimized infinite scroll with aggressive preloading for smooth scrolling
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -449,15 +438,27 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
           fetchNextPage();
         }
       },
-      { threshold: 1 }
+      { threshold: 0, rootMargin: '500px 0px' } // Optimized for smooth preloading
     );
 
     if (loadMoreRef.current) {
       observer.observe(loadMoreRef.current);
     }
 
-    return () => observer.disconnect();
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+      observer.disconnect();
+    };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Image preloading effect - preload next 3 images when data loads
+  useEffect(() => {
+    if (groupedPhotos.length > 0) {
+      preloadNextImages(groupedPhotos, Math.max(0, groupedPhotos.length - 3));
+    }
+  }, [groupedPhotos, preloadNextImages]);
 
   // Enhanced file selection with multiple file support
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
