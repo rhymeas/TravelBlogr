@@ -700,25 +700,43 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
             ) : (
               /* Files Selected - Show Preview and Details */
               <div className="space-y-4">
-                {/* Upload Progress Indicator */}
+                {/* Enhanced Upload Progress Indicator */}
                 {uploading && (
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                      <span className="font-medium text-blue-800">Uploading files...</span>
-                      <span className="text-sm text-blue-600">
-                        {uploadProgress.total > 0 && `Processing ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}...`}
-                      </span>
+                  <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-300 shadow-md">
+                    <div className="flex items-center space-x-4 mb-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-200 border-t-blue-600"></div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-blue-900 text-lg">Upload läuft...</h3>
+                        <p className="text-blue-700">
+                          {selectedFiles.length} {selectedFiles.length === 1 ? 'Datei wird' : 'Dateien werden'} hochgeladen
+                        </p>
+                      </div>
                     </div>
-                    <div className="w-full bg-blue-200 rounded-full h-2">
+                    
+                    {/* Progress Bar */}
+                    <div className="w-full bg-blue-200 rounded-full h-3 mb-3 shadow-inner">
                       <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        className="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-500 ease-out shadow-sm"
                         style={{
-                          width: `${uploadProgress.total > 0 ? 100 : 0}%`
+                          width: `${uploadProgress.total > 0 ? 100 : 30}%`,
+                          animation: uploadProgress.total === 0 ? 'pulse 2s infinite' : 'none'
                         }}
                       ></div>
                     </div>
-                    <p className="text-xs text-blue-600 mt-1">Bitte warten Sie, während Ihre Dateien verarbeitet werden...</p>
+                    
+                    {/* Status Messages */}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-blue-700 font-medium">
+                        📤 Dateien werden verarbeitet...
+                      </span>
+                      <span className="text-blue-600">
+                        {selectedFiles.length} von {selectedFiles.length}
+                      </span>
+                    </div>
+                    
+                    <p className="text-xs text-blue-600 mt-3 bg-blue-100 p-2 rounded text-center">
+                      ⏳ Bitte schließen Sie dieses Fenster nicht während des Uploads
+                    </p>
                   </div>
                 )}
                 
@@ -871,7 +889,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
         <div className="space-y-3">
           {groupedPhotos.map((group) => {
             const hasMultipleMedia = group.media.length > 1;
-            const totalLikes = group.media.reduce((sum, media) => sum + (media.likesCount || 0), 0);
+            const totalLikes = group.media.reduce((sum: number, media: any) => sum + (media.likesCount || 0), 0);
             const firstMedia = group.media[0];
             
             return (
@@ -947,7 +965,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                           {/* Navigation Dots */}
                           {group.media.length > 1 && (
                             <div className="flex justify-center items-center space-x-2 py-4 bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700">
-                              {group.media.map((_, index) => (
+                              {group.media.map((_: any, index: number) => (
                                 <button
                                   key={index}
                                   onClick={() => setCurrentImageIndex(prev => ({ ...prev, [group.id]: index }))}
@@ -997,6 +1015,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                       />
                     </div>
                   )
+                }
                 )}
 
                 {/* Post Caption */}
@@ -1086,7 +1105,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                       <span>{hasMultipleMedia ? totalLikes : (firstMedia.likesCount || 0)}</span>
                     </Button>
                     
-                    {group.media.some(media => deleteTokens[media.id]) && (
+                    {group.media.some((media: any) => deleteTokens[media.id]) && (
                       <Button
                         variant="ghost"
                         size="sm"
