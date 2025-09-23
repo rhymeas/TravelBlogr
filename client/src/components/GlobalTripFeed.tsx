@@ -632,7 +632,7 @@ export default function GlobalTripFeed() {
       
       setEditingPost(null);
       setEditCaption("");
-      setEditLocationId("");
+      setEditLocationId("none");
       
       toast({
         title: "Aktualisiert",
@@ -1107,7 +1107,7 @@ export default function GlobalTripFeed() {
                             onClick={() => {
                               setEditingPost(photo.id);
                               setEditCaption(photo.caption || "");
-                              setEditLocationId(photo.locationId || "");
+                              setEditLocationId(photo.locationId || "none");
                             }}
                             className="text-blue-600 hover:text-blue-700 cursor-pointer"
                             data-testid={`edit-menu-item-${photo.id}`}
@@ -1570,7 +1570,7 @@ export default function GlobalTripFeed() {
           if (!open) {
             setEditingPost(null);
             setEditCaption("");
-            setEditLocationId("");
+            setEditLocationId("none");
           }
         }}>
           <DialogContent className="sm:max-w-md">
@@ -1598,12 +1598,14 @@ export default function GlobalTripFeed() {
                     <SelectValue placeholder="Ort auswählen (optional)..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Kein Ort</SelectItem>
-                    {locations.map((location) => (
+                    <SelectItem value="none">Kein Ort</SelectItem>
+                    {locations && locations.length > 0 ? locations.map((location) => (
                       <SelectItem key={location.id} value={location.id}>
                         {location.name}
                       </SelectItem>
-                    ))}
+                    )) : (
+                      <SelectItem value="loading" disabled>Lade Orte...</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -1613,7 +1615,7 @@ export default function GlobalTripFeed() {
                   onClick={() => {
                     setEditingPost(null);
                     setEditCaption("");
-                    setEditLocationId("");
+                    setEditLocationId("none");
                   }}
                   data-testid="edit-cancel-button"
                 >
@@ -1625,7 +1627,7 @@ export default function GlobalTripFeed() {
                       editMutation.mutate({
                         photoId: editingPost,
                         caption: editCaption,
-                        locationId: editLocationId || ""
+                        locationId: editLocationId === "none" ? "" : editLocationId || ""
                       });
                     }
                   }}

@@ -38,7 +38,10 @@ const upload = multer({
 // Configure multer for media uploads (images and videos)
 const mediaUpload = multer({
   limits: {
-    // No file size limit for video uploads
+    fileSize: 52428800, // 50MB max file size for videos
+    fieldSize: 52428800, // 50MB max field size
+    fields: 10, // Max number of non-file fields
+    files: 10, // Max number of files
   },
   fileFilter: (req, file, cb) => {
     // Check file type for both images and videos
@@ -750,7 +753,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Batch media upload endpoint for multiple files
   app.post("/api/trip-photos/media-batch", 
-    mediaUpload.array('media', 10), // Allow up to 10 files
+    (req, res, next) => {
+      mediaUpload.array('media', 10)(req, res, (err) => {
+        if (err) {
+          console.error("Multer error:", err);
+          
+          // Handle specific multer errors
+          if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(413).json({ 
+              error: "Datei zu groß. Videos müssen unter 50MB und Bilder unter 10MB sein." 
+            });
+          } else if (err.code === 'LIMIT_FILE_COUNT') {
+            return res.status(400).json({ 
+              error: "Zu viele Dateien. Maximal 10 Dateien erlaubt." 
+            });
+          } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+            return res.status(400).json({ 
+              error: "Unerwartete Datei. Bitte verwenden Sie das richtige Upload-Feld." 
+            });
+          } else if (err.message) {
+            return res.status(400).json({ 
+              error: err.message 
+            });
+          } else {
+            return res.status(500).json({ 
+              error: "Datei-Upload fehlgeschlagen. Bitte versuchen Sie es erneut." 
+            });
+          }
+        }
+        next();
+      });
+    },
     async (req, res) => {
     try {
       const files = req.files as Express.Multer.File[];

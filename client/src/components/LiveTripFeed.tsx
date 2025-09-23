@@ -819,7 +819,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
             const firstMedia = group.media[0];
             
             return (
-              <Card key={group.id} className="overflow-hidden" data-testid={`post-${group.id}`}>
+              <Card key={group.id} className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700" data-testid={`post-${group.id}`}>
                 {/* Post Header */}
                 <div className="p-3 pb-2">
                   <div className="flex items-center justify-between">
@@ -864,7 +864,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                                 src={currentMedia.videoUrl}
                                 poster={currentMedia.thumbnailUrl || undefined}
                                 controls
-                                className="w-full max-h-96 object-cover"
+                                className="w-full h-64 sm:h-80 md:h-96 lg:h-[32rem] xl:h-[36rem] object-cover rounded-t-lg cursor-pointer transition-transform hover:scale-[1.01]"
                                 data-testid={`gallery-video-${currentMedia.id}`}
                               >
                                 <source src={currentMedia.videoUrl} type="video/mp4" />
@@ -874,7 +874,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                               <img
                                 src={currentMedia.imageUrl}
                                 alt={group.caption || "Gallery image"}
-                                className="w-full max-h-96 object-cover"
+                                className="w-full h-64 sm:h-80 md:h-96 lg:h-[32rem] xl:h-[36rem] object-cover rounded-t-lg cursor-pointer transition-transform hover:scale-[1.01]"
                                 loading="lazy"
                                 decoding="async"
                                 data-testid={`gallery-image-${currentMedia.id}`}
@@ -890,7 +890,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                           
                           {/* Navigation Dots */}
                           {group.media.length > 1 && (
-                            <div className="flex justify-center items-center space-x-2 py-3 bg-gray-50 dark:bg-gray-800">
+                            <div className="flex justify-center items-center space-x-2 py-4 bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700">
                               {group.media.map((_, index) => (
                                 <button
                                   key={index}
@@ -918,7 +918,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                         src={firstMedia.videoUrl}
                         poster={firstMedia.thumbnailUrl || undefined}
                         controls
-                        className="w-full max-h-96"
+                        className="w-full h-64 sm:h-80 md:h-96 lg:h-[32rem] xl:h-[36rem] object-cover rounded-t-lg cursor-pointer transition-transform hover:scale-[1.01]"
                         data-testid={`post-video-${firstMedia.id}`}
                       >
                         <source src={firstMedia.videoUrl} type="video/mp4" />
@@ -934,7 +934,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                       <img
                         src={firstMedia.imageUrl}
                         alt={group.caption || "Reisefoto"}
-                        className="w-full object-cover max-h-96"
+                        className="w-full h-64 sm:h-80 md:h-96 lg:h-[32rem] xl:h-[36rem] object-cover rounded-t-lg cursor-pointer transition-transform hover:scale-[1.01]"
                         loading="lazy"
                         decoding="async"
                         data-testid={`post-image-${firstMedia.id}`}
