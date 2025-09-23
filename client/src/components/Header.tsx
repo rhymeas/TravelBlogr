@@ -88,14 +88,14 @@ export default function Header() {
     <header className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800" data-testid="main-header">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo/Brand */}
-          <Link href="/" className="flex items-center space-x-3 text-foreground" data-testid="header-logo">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm" data-testid="header-logo-initials">
+          {/* Logo/Brand - tablet optimized */}
+          <Link href="/" className="flex items-center space-x-2 md:space-x-3 text-foreground" data-testid="header-logo">
+            <div className="w-7 h-7 md:w-8 md:h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-xs md:text-sm" data-testid="header-logo-initials">
                 {getInitialsFromTourName(tourSettings?.tourName)}
               </span>
             </div>
-            <span className="font-semibold text-lg hidden sm:block" data-testid="header-tour-name">
+            <span className="font-semibold text-base md:text-lg hidden sm:block" data-testid="header-tour-name">
               {tourSettings?.tourName || 'Kanada Tour 2025'}
             </span>
           </Link>
@@ -114,8 +114,8 @@ export default function Header() {
             </div>
           )}
 
-          {/* Desktop Navigation - optimized for tablet */}
-          <div className="hidden md:flex items-center space-x-2 lg:space-x-6">
+          {/* Desktop Navigation - sleeker tablet design */}
+          <div className="hidden md:flex items-center space-x-1 lg:space-x-4 xl:space-x-6">
             {navLinks.map((link) => {
               const Icon = link.icon;
               
@@ -124,11 +124,12 @@ export default function Header() {
                   <button
                     key={link.href}
                     onClick={() => scrollToSection((link as any).scrollTarget || "timeline")}
-                    className="flex items-center space-x-1 lg:space-x-2 px-2 lg:px-3 py-2 rounded-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
+                    className="flex items-center space-x-0 lg:space-x-2 px-1.5 lg:px-3 py-1.5 lg:py-2 rounded-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
                     data-testid={`nav-${link.label.toLowerCase().replace(/\s+/g, "-")}`}
+                    title={link.label}
                   >
                     <Icon className="w-4 h-4" />
-                    <span className="text-sm lg:text-base">{link.label}</span>
+                    <span className="hidden lg:inline text-sm lg:text-base ml-2">{link.label}</span>
                   </button>
                 );
               }
@@ -137,28 +138,29 @@ export default function Header() {
                 <Link 
                   key={link.href} 
                   href={link.href}
-                  className={`flex items-center space-x-1 lg:space-x-2 px-2 lg:px-3 py-2 rounded-lg transition-colors ${
+                  className={`flex items-center space-x-0 lg:space-x-2 px-1.5 lg:px-3 py-1.5 lg:py-2 rounded-lg transition-colors ${
                     isActive(link.href)
                       ? "bg-primary/10 text-primary font-medium"
                       : "text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                   data-testid={`nav-${link.label.toLowerCase().replace(/\s+/g, "-")}`}
+                  title={link.label}
                 >
                   <Icon className="w-4 h-4" />
-                  <span className="text-sm lg:text-base">{link.label}</span>
+                  <span className="hidden lg:inline text-sm lg:text-base ml-2">{link.label}</span>
                 </Link>
               );
             })}
             
-            {/* Language Toggle */}
+            {/* Language Toggle - compact on tablet */}
             <button
               onClick={() => setLanguage(language === 'de' ? 'en' : 'de')}
-              className="flex items-center space-x-1 lg:space-x-2 px-2 lg:px-3 py-2 rounded-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="flex items-center space-x-0 lg:space-x-2 px-1.5 lg:px-3 py-1.5 lg:py-2 rounded-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
               data-testid="language-toggle"
               title="Switch Language"
             >
               <Globe className="w-4 h-4" />
-              <span className="text-sm font-medium">{language.toUpperCase()}</span>
+              <span className="hidden lg:inline text-sm font-medium ml-2">{language.toUpperCase()}</span>
             </button>
           </div>
 

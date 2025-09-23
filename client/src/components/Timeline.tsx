@@ -265,7 +265,7 @@ export default function Timeline({ locations }: TimelineProps) {
           <div 
             key={location.id} 
             className={`relative ${
-              index === 0 ? 'mt-0' : 'mt-6 md:-mt-[180px] lg:-mt-[220px] xl:-mt-[234px]'
+              index === 0 ? 'mt-0' : 'mt-6 md:-mt-[160px] lg:-mt-[200px] xl:-mt-[234px]'
             }`}
             style={{ zIndex: locations.length - index + 20 }}
             data-testid={`timeline-item-${location.slug}`}>
@@ -300,15 +300,15 @@ export default function Timeline({ locations }: TimelineProps) {
             {/* Mobile timeline dot - removed to avoid clutter */}
             
             {/* Card positioned alternating left/right with proper spacing from center - tablet optimized */}
-            <div className={`flex ${index % 2 === 0 ? 'md:justify-start md:pr-4 lg:pr-8 xl:pr-10' : 'md:justify-end md:pl-4 lg:pl-8 xl:pl-10'}`}>
-              <div className="w-full md:w-[calc(50%-2rem)] lg:w-[calc(50%-2rem)] xl:w-[calc(50%-2.5rem)]">
+            <div className={`flex ${index % 2 === 0 ? 'md:justify-start md:pr-3 lg:pr-6 xl:pr-10' : 'md:justify-end md:pl-3 lg:pl-6 xl:pl-10'}`}>
+              <div className="w-full md:w-[calc(50%-1.5rem)] lg:w-[calc(50%-2rem)] xl:w-[calc(50%-2.5rem)]">
                 <Card 
                   className={`w-full bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-[1.02] ${index % 2 === 0 ? 'md:mr-auto' : 'md:ml-auto'}`}
                   onClick={() => setLocation(`/location/${location.slug}`)}
                 >
-                {/* Header with location name and date - tablet optimized */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-6 pb-4 gap-2 md:gap-0">
-                  <h3 className="text-xl md:text-2xl font-bold text-gray-900" data-testid={`location-name-${location.slug}`}>
+                {/* Header with location name and date - tablet proportioned */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-5 lg:p-6 pb-3 md:pb-4 gap-2 md:gap-0">
+                  <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900" data-testid={`location-name-${location.slug}`}>
                     {location.name}
                   </h3>
                   <div className="flex items-center text-primary font-medium">
@@ -317,19 +317,19 @@ export default function Timeline({ locations }: TimelineProps) {
                   </div>
                 </div>
 
-                {/* Image - tablet optimized dimensions */}
+                {/* Image - tablet proportioned dimensions */}
                 {location.imageUrl ? (
-                  <div className="px-4 md:px-6 pb-4">
+                  <div className="px-4 md:px-5 lg:px-6 pb-4">
                     <img 
                       src={location.imageUrl}
                       alt={location.name}
-                      className="w-full h-48 md:h-56 lg:h-64 object-cover rounded-lg"
+                      className="w-full h-44 md:h-48 lg:h-56 xl:h-64 object-cover rounded-lg"
                       data-testid={`location-image-${location.slug}`}
                     />
                   </div>
                 ) : (
-                  <div className="px-4 md:px-6 pb-4">
-                    <div className="w-full h-48 md:h-56 lg:h-64 bg-gray-100 rounded-lg flex items-center justify-center" data-testid={`location-image-placeholder-${location.slug}`}>
+                  <div className="px-4 md:px-5 lg:px-6 pb-4">
+                    <div className="w-full h-44 md:h-48 lg:h-56 xl:h-64 bg-gray-100 rounded-lg flex items-center justify-center" data-testid={`location-image-placeholder-${location.slug}`}>
                       <div className="text-center text-gray-400">
                         <MapPin className="w-8 h-8 mx-auto mb-2" />
                         <p className="text-sm">Bild wird bald hinzugefügt</p>
@@ -338,15 +338,15 @@ export default function Timeline({ locations }: TimelineProps) {
                   </div>
                 )}
 
-                {/* Description - tablet optimized */}
-                <div className="px-4 md:px-6 pb-4">
-                  <p className="text-gray-600 text-sm md:text-base leading-relaxed" data-testid={`location-description-${location.slug}`}>
+                {/* Description - tablet proportioned */}
+                <div className="px-4 md:px-5 lg:px-6 pb-3 md:pb-4">
+                  <p className="text-gray-600 text-sm md:text-sm lg:text-base leading-relaxed" data-testid={`location-description-${location.slug}`}>
                     {location.description}
                   </p>
                 </div>
 
-                {/* Restaurants and Activities grid - boxed in subtle gray - tablet optimized */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 px-4 md:px-6 pb-4">
+                {/* Restaurants and Activities grid - boxed in subtle gray - tablet responsive */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 px-4 md:px-5 lg:px-6 pb-3 md:pb-4">
                   {/* Restaurants */}
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                     <div className="flex items-center mb-3">
