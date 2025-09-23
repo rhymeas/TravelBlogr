@@ -21,9 +21,10 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
   const [caption, setCaption] = useState("");
   const [name, setName] = useState("");
   const [selectedCreatorId, setSelectedCreatorId] = useState<string>("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{current: number, total: number}>({current: 0, total: 0});
   const [userKey] = useState(() => localStorage.getItem('userKey') || `user_${Date.now()}_${Math.random()}`);
   const [likedPhotos, setLikedPhotos] = useState(new Set<string>());
   const [deleteTokens, setDeleteTokens] = useState<Record<string, string>>(() => {
@@ -414,19 +415,26 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Enhanced file selection with video support
+  // Enhanced file selection with multiple file support
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const validFiles: File[] = [];
+    let hasErrors = false;
+
+    // Validate each file
+    for (const file of files) {
       // File size validation (50MB for videos, 10MB for images)
       const maxSize = file.type.startsWith('video/') ? 52428800 : 10485760;
       if (file.size > maxSize) {
         toast({
           title: "Datei zu groß",
-          description: `Bitte wählen Sie eine ${file.type.startsWith('video/') ? 'Video unter 50MB' : 'Bild unter 10MB'}.`,
+          description: `${file.name}: ${file.type.startsWith('video/') ? 'Videos müssen unter 50MB' : 'Bilder müssen unter 10MB'} sein.`,
           variant: "destructive",
         });
-        return;
+        hasErrors = true;
+        continue;
       }
       
       // File type validation
@@ -437,49 +445,149 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
       if (!allAllowedTypes.includes(file.type)) {
         toast({
           title: "Ungültiger Dateityp",
-          description: "Nur Bilder (JPG, PNG, WebP, GIF) und Videos (MP4, WebM, MOV) sind erlaubt.",
+          description: `${file.name}: Nur Bilder (JPG, PNG, WebP, GIF) und Videos (MP4, WebM, MOV) sind erlaubt.`,
           variant: "destructive",
         });
-        return;
+        hasErrors = true;
+        continue;
       }
       
-      // Set media type based on file
-      const detectedMediaType = file.type.startsWith('video/') ? 'video' : 'image';
-      setMediaType(detectedMediaType);
-      setSelectedFile(file);
+      validFiles.push(file);
+    }
+
+    if (validFiles.length > 0) {
+      setSelectedFiles(validFiles);
+      // Set media type based on first file
+      const firstFileType = validFiles[0].type.startsWith('video/') ? 'video' : 'image';
+      setMediaType(firstFileType);
+      
+      const fileCount = validFiles.length;
+      const mixedTypes = validFiles.some(f => f.type.startsWith('video/')) && validFiles.some(f => f.type.startsWith('image/'));
       
       toast({
-        title: `${detectedMediaType === 'video' ? 'Video' : 'Foto'} ausgewählt`,
-        description: `${file.name} bereit zum Hochladen.`,
+        title: `${fileCount} ${fileCount === 1 ? 'Datei' : 'Dateien'} ausgewählt`,
+        description: mixedTypes ? 'Bilder und Videos bereit zum Hochladen.' : `${fileCount} ${firstFileType === 'video' ? 'Video(s)' : 'Foto(s)'} bereit zum Hochladen.`,
       });
+    }
+
+    if (hasErrors && validFiles.length === 0) {
+      // Clear selection if all files were invalid
+      setSelectedFiles([]);
     }
   };
 
-  // Enhanced upload handler with media type support
+  // Enhanced upload handler with multiple file support
   const handleUpload = async () => {
-    if (!selectedFile) {
+    if (selectedFiles.length === 0) {
       toast({
         title: `Bitte ${mediaType === 'video' ? 'Video' : 'Foto'} wählen`,
-        description: `Wählen Sie ein ${mediaType === 'video' ? 'Video' : 'Foto'} zum Hochladen aus.`,
+        description: `Wählen Sie ${mediaType === 'video' ? 'Videos' : 'Fotos'} zum Hochladen aus.`,
         variant: "destructive",
       });
       return;
     }
 
     setUploading(true);
+    setUploadProgress({current: 0, total: selectedFiles.length});
+    
     try {
-      await uploadMutation.mutateAsync({
-        file: selectedFile,
-        caption: caption.trim(),
-        uploadedBy: name.trim(),
-        creatorId: selectedCreatorId,
-        mediaType,
-      });
+      // Upload all files as a batch
+      await uploadMultipleFiles(selectedFiles);
     } catch (error) {
-      // Error handling is already in the mutation
       console.error("Upload error:", error);
     } finally {
       setUploading(false);
+      setUploadProgress({current: 0, total: 0});
+    }
+  };
+
+  // Upload multiple files using the batch endpoint
+  const uploadMultipleFiles = async (files: File[]) => {
+    try {
+      // Extract EXIF data for all image files
+      const exifDataMap: Record<number, string> = {};
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.type.startsWith('image/')) {
+          try {
+            const exifr = await import('exifr');
+            const parsed = await exifr.parse(file);
+            const dateTime = parsed?.DateTimeOriginal || parsed?.DateTime || parsed?.CreateDate;
+            if (dateTime && dateTime instanceof Date) {
+              exifDataMap[i] = dateTime.toISOString();
+            }
+          } catch (error) {
+            console.warn(`Failed to extract EXIF data for ${file.name}:`, error);
+          }
+        }
+      }
+
+      const formData = new FormData();
+      
+      // Append all files
+      files.forEach(file => {
+        formData.append('media', file);
+      });
+      
+      // Append form data
+      if (caption.trim()) formData.append('caption', caption.trim());
+      if (name.trim()) formData.append('uploadedBy', name.trim());
+      if (selectedCreatorId) formData.append('creatorId', selectedCreatorId);
+      if (locationId) formData.append('locationId', locationId);
+      if (Object.keys(exifDataMap).length > 0) {
+        formData.append('exifData', JSON.stringify(exifDataMap));
+      }
+
+      const response = await fetch('/api/trip-photos/media-batch', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Upload fehlgeschlagen");
+      }
+      
+      const result = await response.json();
+      
+      // Store delete tokens for all uploaded files
+      if (result.files) {
+        result.files.forEach((photo: any) => {
+          if (photo.deleteToken) {
+            setDeleteTokens(prev => ({
+              ...prev,
+              [photo.id]: photo.deleteToken
+            }));
+          }
+        });
+      }
+      
+      // Refresh the feed
+      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated-grouped", locationId] });
+      refetch();
+      
+      // Clear form
+      setCaption("");
+      setName("");
+      setSelectedCreatorId("");
+      setSelectedFiles([]);
+      setMediaType('image');
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      
+      const fileCount = result.files?.length || files.length;
+      toast({
+        title: "Erfolgreich hochgeladen!",
+        description: `${fileCount} ${fileCount === 1 ? 'Datei' : 'Dateien'} erfolgreich geteilt.`,
+      });
+      
+    } catch (error: any) {
+      toast({
+        title: "Upload fehlgeschlagen",
+        description: error.message || "Bitte versuchen Sie es erneut.",
+        variant: "destructive",
+      });
+      throw error;
     }
   };
 
@@ -521,7 +629,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
       {showUpload && (
         <Card className="p-6" data-testid="upload-area">
           <div className="space-y-4">
-            {!selectedFile ? (
+            {selectedFiles.length === 0 ? (
               /* Large Upload Button */
               <Button
                 variant="outline"
@@ -530,36 +638,72 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                 data-testid="large-upload-button"
               >
                 <Upload className="w-8 h-8" />
-                <span className="text-lg font-medium">Foto oder Video aus {locationName} hochladen</span>
-                <span className="text-sm text-muted-foreground">Bilder (JPG, PNG, WebP, GIF - max. 10MB) oder Videos (MP4, WebM, MOV - max. 50MB)</span>
+                <span className="text-lg font-medium">Fotos oder Videos aus {locationName} hochladen</span>
+                <span className="text-sm text-muted-foreground">Mehrere Dateien möglich: Bilder (JPG, PNG, WebP, GIF - max. 10MB) oder Videos (MP4, WebM, MOV - max. 50MB)</span>
               </Button>
             ) : (
-              /* File Selected - Show Preview and Details */
+              /* Files Selected - Show Preview and Details */
               <div className="space-y-4">
-                <div className="flex items-center space-x-3 p-4 bg-green-50 rounded-lg border border-green-200" data-testid="file-preview">
-                  {mediaType === 'video' ? (
-                    <Video className="w-6 h-6 text-green-600" />
-                  ) : (
-                    <Image className="w-6 h-6 text-green-600" />
-                  )}
-                  <div className="flex-1">
-                    <p className="font-medium text-green-800">{selectedFile.name}</p>
-                    <p className="text-sm text-green-600">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                    <p className="text-xs text-green-600">{mediaType === 'video' ? 'Video' : 'Bild'}</p>
+                {/* Upload Progress Indicator */}
+                {uploading && (
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                      <span className="font-medium text-blue-800">Uploading files...</span>
+                      <span className="text-sm text-blue-600">
+                        {uploadProgress.total > 0 && `Processing ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}...`}
+                      </span>
+                    </div>
+                    <div className="w-full bg-blue-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${uploadProgress.total > 0 ? 100 : 0}%`
+                        }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-blue-600 mt-1">Bitte warten Sie, während Ihre Dateien verarbeitet werden...</p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedFile(null);
-                      if (fileInputRef.current) fileInputRef.current.value = "";
-                    }}
-                    className="text-green-700 hover:text-green-800"
-                    data-testid="remove-file"
-                  >
-                    ×
-                  </Button>
+                )}
+                
+                {/* File List */}
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {selectedFiles.map((file, index) => {
+                    const isVideo = file.type.startsWith('video/');
+                    return (
+                      <div key={index} className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg border border-green-200" data-testid={`file-preview-${index}`}>
+                        {isVideo ? (
+                          <Video className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <Image className="w-5 h-5 text-green-600" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-green-800 truncate">{file.name}</p>
+                          <p className="text-sm text-green-600">{(file.size / 1024 / 1024).toFixed(2)} MB • {isVideo ? 'Video' : 'Bild'}</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+                          }}
+                          className="text-green-700 hover:text-green-800 flex-shrink-0"
+                          data-testid={`remove-file-${index}`}
+                          disabled={uploading}
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    );
+                  })}
                 </div>
+                
+                {/* Summary */}
+                {selectedFiles.length > 1 && (
+                  <div className="text-sm text-green-600 bg-green-50 p-2 rounded text-center">
+                    {selectedFiles.length} Dateien ausgewählt • Gesamt: {(selectedFiles.reduce((sum, file) => sum + file.size, 0) / 1024 / 1024).toFixed(2)} MB
+                  </div>
+                )}
 
                 {/* Creator Selection */}
                 <Select value={selectedCreatorId} onValueChange={setSelectedCreatorId}>
@@ -600,17 +744,18 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                   <Button
                     variant="outline"
                     onClick={() => {
-                      setSelectedFile(null);
+                      setSelectedFiles([]);
                       if (fileInputRef.current) fileInputRef.current.value = "";
                     }}
                     data-testid="change-photo"
+                    disabled={uploading}
                   >
-                    Anderes Foto wählen
+                    {selectedFiles.length > 1 ? 'Andere Dateien wählen' : 'Andere Datei wählen'}
                   </Button>
                   
                   <Button
                     onClick={handleUpload}
-                    disabled={uploading || !selectedFile}
+                    disabled={uploading || selectedFiles.length === 0}
                     className="flex items-center space-x-2 px-6"
                     data-testid="post-button"
                   >
@@ -622,7 +767,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                     ) : (
                       <>
                         <Upload className="w-4 h-4" />
-                        <span>Foto posten</span>
+                        <span>{selectedFiles.length > 1 ? `${selectedFiles.length} Dateien posten` : 'Datei posten'}</span>
                       </>
                     )}
                   </Button>
@@ -630,11 +775,12 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
               </div>
             )}
             
-            {/* Hidden File Input - Now supports video */}
+            {/* Hidden File Input - Now supports multiple files and videos */}
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*,video/*"
+              multiple
               onChange={handleFileSelect}
               className="hidden"
               data-testid="file-input"
