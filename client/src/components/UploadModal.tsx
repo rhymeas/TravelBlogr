@@ -151,7 +151,6 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       // Invalidate all trip photo queries to refresh feed
       queryClient.invalidateQueries({ queryKey: ["/api/trip-photos"] });
       queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated-grouped"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated"] });
       // Auto-redirect to news feed after upload
       setLocation('/live-feed');
     },
