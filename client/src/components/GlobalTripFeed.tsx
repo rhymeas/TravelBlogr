@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Clock, User, Camera, Send, Image, Upload, Heart, Trash2, Video, Play, MoreVertical, X, Maximize2, Edit, ChevronLeft, ChevronRight, PlayCircle } from "lucide-react";
+import { Plus, Clock, User, Camera, Send, Image, Upload, Heart, Trash2, Video, Play, MoreVertical, X, Maximize2, Edit, ChevronLeft, ChevronRight, PlayCircle, Filter, SortAsc } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { TripPhoto, Creator, Location } from "@shared/schema";
@@ -22,6 +22,10 @@ export default function GlobalTripFeed() {
   const urlParams = new URLSearchParams(window.location.search);
   const filterLocationId = urlParams.get('locationId');
   const shouldFocus = urlParams.get('focus') === 'first';
+  
+  // Filter and sort state
+  const [selectedLocationFilter, setSelectedLocationFilter] = useState<string>(filterLocationId || 'all');
+  const [sortOption, setSortOption] = useState<string>(urlParams.get('sortBy') || 'newest');
   // Upload state
   const [caption, setCaption] = useState("");
   const [name, setName] = useState("");
@@ -124,12 +128,12 @@ export default function GlobalTripFeed() {
     isLoading,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["/api/trip-photos/paginated", "global", filterLocationId],
+    queryKey: ["/api/trip-photos/paginated", "global", selectedLocationFilter === 'all' ? null : selectedLocationFilter],
     queryFn: async ({ pageParam }) => {
       const params = new URLSearchParams({
         limit: '15', // Larger pages for better performance
         ...(pageParam && { cursor: pageParam }),
-        ...(filterLocationId && { locationId: filterLocationId }),
+        ...(selectedLocationFilter !== 'all' && { locationId: selectedLocationFilter }),
       });
       
       const response = await fetch(`/api/trip-photos/paginated?${params}`);
@@ -218,13 +222,29 @@ export default function GlobalTripFeed() {
     // Add individual photos
     groupedItems.push(...singles);
     
-    // Sort by upload time (most recent first)
+    // Sort based on selected option
     return groupedItems.sort((a, b) => {
-      const timeA = getTimeSafe(a.uploadedAt);
-      const timeB = getTimeSafe(b.uploadedAt);
-      return timeB - timeA;
+      switch (sortOption) {
+        case 'oldest':
+          const timeA = getTimeSafe(a.uploadedAt);
+          const timeB = getTimeSafe(b.uploadedAt);
+          return timeA - timeB; // Oldest first
+        case 'photo-date':
+          const takenA = getTimeSafe('type' in a ? a.photos[0]?.takenAt : a.takenAt) || getTimeSafe(a.uploadedAt);
+          const takenB = getTimeSafe('type' in b ? b.photos[0]?.takenAt : b.takenAt) || getTimeSafe(b.uploadedAt);
+          return takenB - takenA; // Most recent photo date first
+        case 'most-liked':
+          const likesA = 'type' in a ? Math.max(...a.photos.map(p => p.likesCount || 0)) : (a.likesCount || 0);
+          const likesB = 'type' in b ? Math.max(...b.photos.map(p => p.likesCount || 0)) : (b.likesCount || 0);
+          return likesB - likesA; // Most liked first
+        case 'newest':
+        default:
+          const uploadA = getTimeSafe(a.uploadedAt);
+          const uploadB = getTimeSafe(b.uploadedAt);
+          return uploadB - uploadA; // Newest first (default)
+      }
     });
-  }, [tripPhotos]);
+  }, [tripPhotos, sortOption]);
 
 
 
@@ -409,8 +429,11 @@ export default function GlobalTripFeed() {
         setDeleteTokens(prev => ({ ...prev, ...newTokens }));
       }
       
-      // Invalidate queries to refresh feed
-      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated", "global", filterLocationId] });
+      // Invalidate all feed queries to refresh all views
+      queryClient.invalidateQueries({ 
+        predicate: (query) => Array.isArray(query.queryKey) && 
+                              query.queryKey[0] === '/api/trip-photos/paginated'
+      });
       
       // Reset form and close modal
       setCaption("");
@@ -463,7 +486,7 @@ export default function GlobalTripFeed() {
       
       // Update cache optimistically using captured state
       queryClient.setQueryData(
-        ["/api/trip-photos/paginated", "global", filterLocationId],
+        ["/api/trip-photos/paginated", "global", selectedLocationFilter === 'all' ? null : selectedLocationFilter],
         (oldData: any) => {
           if (!oldData) return oldData;
           
@@ -503,7 +526,7 @@ export default function GlobalTripFeed() {
       
       // Update cache with actual server data
       queryClient.setQueryData(
-        ["/api/trip-photos/paginated", "global", filterLocationId],
+        ["/api/trip-photos/paginated", "global", selectedLocationFilter === 'all' ? null : selectedLocationFilter],
         (oldData: any) => {
           if (!oldData) return oldData;
           
@@ -533,7 +556,7 @@ export default function GlobalTripFeed() {
       });
       
       // Invalidate and refetch to get correct state
-      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated", "global", filterLocationId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated", "global", selectedLocationFilter === 'all' ? null : selectedLocationFilter] });
       
       toast({
         title: "Fehler",
@@ -572,7 +595,7 @@ export default function GlobalTripFeed() {
       
       // Optimistically update the ungrouped cache
       queryClient.setQueryData(
-        ["/api/trip-photos/paginated", "global", filterLocationId],
+        ["/api/trip-photos/paginated", "global", selectedLocationFilter === 'all' ? null : selectedLocationFilter],
         (oldData: any) => {
           if (!oldData) return oldData;
           
@@ -1024,6 +1047,43 @@ export default function GlobalTripFeed() {
         <Camera className="w-5 h-5 text-primary" />
         <div className="text-xs text-muted-foreground">
           {tripPhotos.length} {tripPhotos.length === 1 ? 'Beitrag' : 'Beiträge'}
+        </div>
+      </div>
+
+      {/* Filter and Sort Controls */}
+      <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg" data-testid="filter-sort-controls">
+        {/* Location Filter */}
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <Select value={selectedLocationFilter} onValueChange={setSelectedLocationFilter}>
+            <SelectTrigger className="w-40 h-8 text-sm" data-testid="location-filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Alle Orte</SelectItem>
+              {locations.map((location) => (
+                <SelectItem key={location.id} value={location.id}>
+                  {location.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Sort Options */}
+        <div className="flex items-center gap-2">
+          <SortAsc className="w-4 h-4 text-muted-foreground" />
+          <Select value={sortOption} onValueChange={setSortOption}>
+            <SelectTrigger className="w-36 h-8 text-sm" data-testid="sort-option">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Neueste zuerst</SelectItem>
+              <SelectItem value="oldest">Älteste zuerst</SelectItem>
+              <SelectItem value="most-liked">Meist gelikt</SelectItem>
+              <SelectItem value="photo-date">Nach Fotodatum</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
