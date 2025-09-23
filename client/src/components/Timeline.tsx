@@ -37,12 +37,51 @@ export default function Timeline({ locations }: TimelineProps) {
   const [isTrackingEnabled, setIsTrackingEnabled] = useState(false);
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
   
-  // Interactive marker state
+  // Interactive marker state - persists until manually changed
   const [activeMarker, setActiveMarker] = useState<{
     type: 'location' | 'custom';
     locationId?: string;
     position?: { top: number };
   } | null>(null);
+
+  // Ensure marker persists and repositions properly during viewport changes
+  useEffect(() => {
+    if (activeMarker && activeMarker.type === 'location' && activeMarker.locationId && timelineRef.current) {
+      // Recalculate position for location-based markers on viewport/content changes
+      const locationIndex = locations.findIndex(loc => loc.id === activeMarker.locationId);
+      if (locationIndex !== -1) {
+        // Recompute position after layout changes
+        const timelineElement = document.querySelector(`[data-testid="timeline-item-${locations[locationIndex].slug}"]`);
+        if (timelineElement) {
+          const rect = timelineElement.getBoundingClientRect();
+          const containerRect = timelineRef.current.getBoundingClientRect();
+          const relativeTop = rect.top - containerRect.top + rect.height / 2;
+          setActiveMarker(prev => prev ? { ...prev, position: { top: relativeTop } } : null);
+        }
+      }
+    }
+  }, [locations, activeMarker?.locationId]);
+
+  // Handle window resize for marker repositioning
+  useEffect(() => {
+    const handleResize = () => {
+      if (activeMarker && activeMarker.type === 'location' && activeMarker.locationId && timelineRef.current) {
+        const locationIndex = locations.findIndex(loc => loc.id === activeMarker.locationId);
+        if (locationIndex !== -1) {
+          const timelineElement = document.querySelector(`[data-testid="timeline-item-${locations[locationIndex].slug}"]`);
+          if (timelineElement) {
+            const rect = timelineElement.getBoundingClientRect();
+            const containerRect = timelineRef.current.getBoundingClientRect();
+            const relativeTop = rect.top - containerRect.top + rect.height / 2;
+            setActiveMarker(prev => prev ? { ...prev, position: { top: relativeTop } } : null);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [activeMarker, locations]);
 
   // Fetch tour settings to check if GPS is activated by admin
   const { data: tourSettings } = useQuery<TourSettings>({
@@ -136,9 +175,9 @@ export default function Timeline({ locations }: TimelineProps) {
         data-testid="timeline-line"
       ></div>
       
-      {/* Expanded clickable area for timeline line - higher z-index to ensure clicks work everywhere */}
+      {/* Expanded clickable area for timeline line - below location dots */}
       <div 
-        className="hidden md:block absolute left-1/2 top-0 h-full w-12 transform -translate-x-1/2 cursor-pointer z-50"
+        className="hidden md:block absolute left-1/2 top-0 h-full w-12 transform -translate-x-1/2 cursor-pointer z-0"
         onClick={handleTripLineClick}
         onMouseEnter={(e) => {
           // Visual feedback on hover
@@ -152,6 +191,14 @@ export default function Timeline({ locations }: TimelineProps) {
         }}
         data-testid="timeline-line-clickable-area"
         title="Klicken Sie hier, um Ihre Position zu markieren"
+      ></div>
+      
+      {/* Mobile timeline clickable area - center only, below cards */}
+      <div 
+        className="md:hidden absolute left-1/2 transform -translate-x-1/2 top-0 h-full w-10 cursor-pointer z-10 pointer-events-auto"
+        onClick={handleTripLineClick}
+        data-testid="mobile-timeline-clickable-area"
+        title="Tippen Sie hier, um Ihre Position zu markieren"
       ></div>
       
       {/* Car Icon positioned on timeline - now visible on mobile too */}
@@ -168,23 +215,23 @@ export default function Timeline({ locations }: TimelineProps) {
         </div>
       )}
 
-      {/* "Wir sind hier" Interactive Marker */}
+      {/* "Wir sind hier" Interactive Marker - Persists until manually changed */}
       {activeMarker && (
         <div 
-          className="absolute left-1/2 md:left-1/2 transform -translate-x-1/2 z-40 animate-in fade-in zoom-in duration-300"
+          className="absolute left-4 md:left-1/2 transform md:-translate-x-1/2 z-40 animate-in fade-in zoom-in duration-300"
           style={{ 
             top: `${activeMarker.position?.top || 0}px`
           }}
           data-testid="active-location-marker"
         >
           <div className="relative">
-            {/* Marker Icon */}
-            <div className="bg-red-500 text-white p-2 md:p-3 rounded-full shadow-lg border-2 md:border-4 border-white animate-pulse min-w-[44px] min-h-[44px] flex items-center justify-center">
-              <Navigation className="w-4 h-4 md:w-6 md:h-6" />
+            {/* Marker Icon - tablet optimized sizing */}
+            <div className="bg-red-500 text-white p-2 md:p-2 lg:p-3 rounded-full shadow-lg border-2 md:border-2 lg:border-4 border-white animate-pulse min-w-[44px] min-h-[44px] flex items-center justify-center">
+              <Navigation className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6" />
             </div>
             
-            {/* "Wir sind hier" Label */}
-            <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 md:mt-2 bg-red-500 text-white px-2 md:px-4 py-1 md:py-2 rounded-lg shadow-lg text-xs md:text-sm font-semibold whitespace-nowrap">
+            {/* "Wir sind hier" Label - tablet optimized */}
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 md:mt-1 lg:mt-2 bg-red-500 text-white px-2 md:px-3 lg:px-4 py-1 md:py-1 lg:py-2 rounded-lg shadow-lg text-xs md:text-xs lg:text-sm font-semibold whitespace-nowrap">
               <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-red-500 rotate-45"></div>
               Wir sind hier
             </div>
@@ -218,7 +265,7 @@ export default function Timeline({ locations }: TimelineProps) {
           <div 
             key={location.id} 
             className={`relative ${
-              index === 0 ? 'mt-0' : 'mt-6 md:-mt-[234px]'
+              index === 0 ? 'mt-0' : 'mt-6 md:-mt-[180px] lg:-mt-[220px] xl:-mt-[234px]'
             }`}
             style={{ zIndex: locations.length - index + 20 }}
             data-testid={`timeline-item-${location.slug}`}>
@@ -227,9 +274,9 @@ export default function Timeline({ locations }: TimelineProps) {
               <div className="hidden md:block absolute left-1/2 -top-20 w-px h-24 bg-gray-300 transform -translate-x-1/2 z-0"></div>
             )}
             
-            {/* Timeline marker - now clickable with better touch targets */}
+            {/* Timeline marker - now clickable with better touch targets and proper z-index */}
             <div 
-              className="hidden md:block absolute left-1/2 top-8 w-8 h-8 bg-primary rounded-full transform -translate-x-1/2 z-10 border-4 border-white shadow-lg cursor-pointer hover:scale-110 transition-all duration-200"
+              className="hidden md:block absolute left-1/2 top-8 w-8 h-8 bg-primary rounded-full transform -translate-x-1/2 z-50 border-4 border-white shadow-lg cursor-pointer hover:scale-110 transition-all duration-200"
               onClick={(e) => {
                 e.stopPropagation();
                 handleLocationDotClick(location.id, e);
@@ -252,16 +299,16 @@ export default function Timeline({ locations }: TimelineProps) {
             
             {/* Mobile timeline dot - removed to avoid clutter */}
             
-            {/* Card positioned alternating left/right with proper spacing from center */}
-            <div className={`flex ${index % 2 === 0 ? 'md:justify-start md:pr-6 lg:pr-8 xl:pr-10' : 'md:justify-end md:pl-6 lg:pl-8 xl:pl-10'}`}>
-              <div className="w-full md:w-[calc(50%-1.5rem)] lg:w-[calc(50%-2rem)] xl:w-[calc(50%-2.5rem)]">
+            {/* Card positioned alternating left/right with proper spacing from center - tablet optimized */}
+            <div className={`flex ${index % 2 === 0 ? 'md:justify-start md:pr-4 lg:pr-8 xl:pr-10' : 'md:justify-end md:pl-4 lg:pl-8 xl:pl-10'}`}>
+              <div className="w-full md:w-[calc(50%-2rem)] lg:w-[calc(50%-2rem)] xl:w-[calc(50%-2.5rem)]">
                 <Card 
                   className={`w-full bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-[1.02] ${index % 2 === 0 ? 'md:mr-auto' : 'md:ml-auto'}`}
                   onClick={() => setLocation(`/location/${location.slug}`)}
                 >
-                {/* Header with location name and date */}
-                <div className="flex items-center justify-between p-6 pb-4">
-                  <h3 className="text-2xl font-bold text-gray-900" data-testid={`location-name-${location.slug}`}>
+                {/* Header with location name and date - tablet optimized */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-6 pb-4 gap-2 md:gap-0">
+                  <h3 className="text-xl md:text-2xl font-bold text-gray-900" data-testid={`location-name-${location.slug}`}>
                     {location.name}
                   </h3>
                   <div className="flex items-center text-primary font-medium">
@@ -270,19 +317,19 @@ export default function Timeline({ locations }: TimelineProps) {
                   </div>
                 </div>
 
-                {/* Image */}
+                {/* Image - tablet optimized dimensions */}
                 {location.imageUrl ? (
-                  <div className="px-6 pb-4">
+                  <div className="px-4 md:px-6 pb-4">
                     <img 
                       src={location.imageUrl}
                       alt={location.name}
-                      className="w-full h-64 object-cover rounded-lg"
+                      className="w-full h-48 md:h-56 lg:h-64 object-cover rounded-lg"
                       data-testid={`location-image-${location.slug}`}
                     />
                   </div>
                 ) : (
-                  <div className="px-6 pb-4">
-                    <div className="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center" data-testid={`location-image-placeholder-${location.slug}`}>
+                  <div className="px-4 md:px-6 pb-4">
+                    <div className="w-full h-48 md:h-56 lg:h-64 bg-gray-100 rounded-lg flex items-center justify-center" data-testid={`location-image-placeholder-${location.slug}`}>
                       <div className="text-center text-gray-400">
                         <MapPin className="w-8 h-8 mx-auto mb-2" />
                         <p className="text-sm">Bild wird bald hinzugefügt</p>
@@ -291,15 +338,15 @@ export default function Timeline({ locations }: TimelineProps) {
                   </div>
                 )}
 
-                {/* Description */}
-                <div className="px-6 pb-4">
-                  <p className="text-gray-600 text-base leading-relaxed" data-testid={`location-description-${location.slug}`}>
+                {/* Description - tablet optimized */}
+                <div className="px-4 md:px-6 pb-4">
+                  <p className="text-gray-600 text-sm md:text-base leading-relaxed" data-testid={`location-description-${location.slug}`}>
                     {location.description}
                   </p>
                 </div>
 
-                {/* Restaurants and Activities grid - boxed in subtle gray */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-6 pb-4">
+                {/* Restaurants and Activities grid - boxed in subtle gray - tablet optimized */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 px-4 md:px-6 pb-4">
                   {/* Restaurants */}
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                     <div className="flex items-center mb-3">
@@ -367,8 +414,8 @@ export default function Timeline({ locations }: TimelineProps) {
                   </div>
                 </div>
 
-                {/* Accommodation - boxed in subtle gray */}
-                <div className="px-6 pb-4">
+                {/* Accommodation - boxed in subtle gray - tablet optimized */}
+                <div className="px-4 md:px-6 pb-4">
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                     <p className="text-sm text-gray-700">
                       <span className="font-medium">Unterkunft:</span> {(location as any).accommodationWebsite ? (
@@ -388,8 +435,8 @@ export default function Timeline({ locations }: TimelineProps) {
                   </div>
                 </div>
 
-                {/* Fun Facts Preview */}
-                <div className="px-6 pb-4">
+                {/* Fun Facts Preview - tablet optimized */}
+                <div className="px-4 md:px-6 pb-4">
                   <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
                     <div className="flex items-center mb-2">
                       <span className="text-lg mr-2">🎯</span>
@@ -422,12 +469,16 @@ export default function Timeline({ locations }: TimelineProps) {
                   </div>
                 </div>
 
-                {/* Clickable indicator */}
-                <div className="px-6 pb-6">
-                  <div className="flex justify-end">
+                {/* Clickable indicator - tablet optimized with proper z-index */}
+                <div className="px-4 md:px-6 pb-4 md:pb-6">
+                  <div className="flex justify-end relative z-10">
                     <Button 
                       variant="ghost"
-                      className="text-gray-700 hover:text-primary p-0 h-auto font-normal pointer-events-none"
+                      className="text-gray-700 hover:text-primary p-2 h-auto font-normal relative z-20 cursor-pointer hover:bg-gray-100"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLocation(`/location/${location.slug}`);
+                      }}
                       data-testid={`details-button-${location.slug}`}
                     >
                       Details ansehen
