@@ -227,6 +227,7 @@ export default function GlobalTripFeed() {
   }, [tripPhotos]);
 
 
+
   // Generate video thumbnail function
   const generateVideoThumbnail = (videoFile: File): Promise<File> => {
     return new Promise((resolve, reject) => {
@@ -1083,6 +1084,7 @@ export default function GlobalTripFeed() {
             const isCarousel = 'type' in item && item.type === 'carousel';
             
             if (isCarousel) {
+              console.log('Rendering carousel:', item.id, 'with', item.photos?.length, 'photos');
               return <CarouselPost key={item.id} carousel={item} creators={creators} getLocationName={getLocationName} formatTime={formatTime} likedPhotos={likedPhotos} handleLike={handleLike} handleDelete={handleDelete} openFullView={openFullView} />;
             }
             
