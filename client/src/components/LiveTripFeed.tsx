@@ -679,12 +679,23 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
               <Button
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full h-20 border-2 border-dashed border-blue-300 hover:border-blue-400 hover:bg-blue-50 flex flex-col items-center justify-center space-y-2 text-blue-600"
+                disabled={uploading}
+                className="w-full h-20 border-2 border-dashed border-blue-300 hover:border-blue-400 hover:bg-blue-50 flex flex-col items-center justify-center space-y-2 text-blue-600 disabled:opacity-50"
                 data-testid="large-upload-button"
               >
-                <Upload className="w-8 h-8" />
-                <span className="text-lg font-medium">Fotos oder Videos aus {locationName} hochladen</span>
-                <span className="text-sm text-muted-foreground">Mehrere Dateien möglich: Bilder (JPG, PNG, WebP, GIF - max. 10MB) oder Videos (MP4, WebM, MOV - max. 50MB)</span>
+                {uploading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span className="text-lg font-medium">Upload läuft...</span>
+                    <span className="text-sm text-muted-foreground">Ihre Dateien werden verarbeitet, bitte warten...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-8 h-8" />
+                    <span className="text-lg font-medium">Fotos oder Videos aus {locationName} hochladen</span>
+                    <span className="text-sm text-muted-foreground">Mehrere Dateien möglich: Bilder (JPG, PNG, WebP, GIF - max. 10MB) oder Videos (MP4, WebM, MOV - max. 50MB)</span>
+                  </>
+                )}
               </Button>
             ) : (
               /* Files Selected - Show Preview and Details */
