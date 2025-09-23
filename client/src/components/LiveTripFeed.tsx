@@ -1017,74 +1017,79 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                   ) : null
                 )}
 
-                {/* Post Caption */}
-                {group.caption && (
-                  <div className="px-3 py-2 border-t border-border/50">
-                    <div className="flex items-start justify-between">
+                {/* Post Caption and Edit */}
+                <div className="px-3 py-2 border-t border-border/50">
+                  <div className="flex items-start justify-between">
+                    {group.caption ? (
                       <p className="text-sm text-foreground flex-1 mr-2" data-testid={`post-caption-${group.id}`}>
                         {group.caption}
                       </p>
-                      {group.caption && (
-                        <Dialog open={editingPost === group.id} onOpenChange={(open) => {
-                          if (!open) {
-                            setEditingPost(null);
-                            setEditCaption("");
-                          }
-                        }}>
-                          <DialogTrigger asChild>
+                    ) : (
+                      <p className="text-sm text-muted-foreground flex-1 mr-2 italic">
+                        Keine Beschreibung
+                      </p>
+                    )}
+                    
+                    {/* Edit button - always accessible */}
+                    <Dialog open={editingPost === group.id} onOpenChange={(open) => {
+                      if (!open) {
+                        setEditingPost(null);
+                        setEditCaption("");
+                      }
+                    }}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setEditingPost(group.id);
+                            setEditCaption(group.caption || "");
+                          }}
+                          className="text-muted-foreground hover:text-primary p-1 h-auto"
+                          data-testid={`edit-button-${group.id}`}
+                          title="Beitrag bearbeiten"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Beitrag bearbeiten</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <Textarea
+                            placeholder="Beschreibung hinzufügen oder bearbeiten..."
+                            value={editCaption}
+                            onChange={(e) => setEditCaption(e.target.value)}
+                            className="text-base"
+                            rows={4}
+                            maxLength={500}
+                            data-testid="edit-caption-input"
+                          />
+                          <div className="flex items-center justify-end space-x-2">
                             <Button
-                              variant="ghost"
-                              size="sm"
+                              variant="outline"
                               onClick={() => {
-                                setEditingPost(group.id);
-                                setEditCaption(group.caption || "");
+                                setEditingPost(null);
+                                setEditCaption("");
                               }}
-                              className="text-muted-foreground hover:text-primary p-1 h-auto"
-                              data-testid={`edit-button-${group.id}`}
+                              data-testid="cancel-edit-button"
                             >
-                              <Edit className="w-3 h-3" />
+                              Abbrechen
                             </Button>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-md">
-                            <DialogHeader>
-                              <DialogTitle>Beitrag bearbeiten</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <Textarea
-                                placeholder="Beschreibung bearbeiten..."
-                                value={editCaption}
-                                onChange={(e) => setEditCaption(e.target.value)}
-                                className="text-base"
-                                rows={4}
-                                maxLength={500}
-                                data-testid="edit-caption-input"
-                              />
-                              <div className="flex items-center justify-end space-x-2">
-                                <Button
-                                  variant="outline"
-                                  onClick={() => {
-                                    setEditingPost(null);
-                                    setEditCaption("");
-                                  }}
-                                  data-testid="cancel-edit-button"
-                                >
-                                  Abbrechen
-                                </Button>
-                                <Button
-                                  onClick={() => editMutation.mutate({ postId: group.id, caption: editCaption })}
-                                  disabled={editMutation.isPending}
-                                  data-testid="save-edit-button"
-                                >
-                                  {editMutation.isPending ? "Speichern..." : "Speichern"}
-                                </Button>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      )}
-                    </div>
+                            <Button
+                              onClick={() => editMutation.mutate({ postId: group.id, caption: editCaption })}
+                              disabled={editMutation.isPending}
+                              data-testid="save-edit-button"
+                            >
+                              {editMutation.isPending ? "Speichern..." : "Speichern"}
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
-                )}
+                </div>
 
                 {/* Post Actions - Like and Delete */}
                 <div className="p-3 pt-2 border-t border-border/50">
