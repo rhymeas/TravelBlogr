@@ -1452,6 +1452,8 @@ export class DatabaseStorage implements IStorage {
     await this.ensureInitialized();
     // Delete related images first
     await db.delete(locationImages).where(eq(locationImages.locationId, id));
+    // Delete related trip photos
+    await db.delete(tripPhotos).where(eq(tripPhotos.locationId, id));
     // Delete location
     await db.delete(locations).where(eq(locations.id, id));
   }
