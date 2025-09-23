@@ -62,6 +62,8 @@ export default function LocationCard({ location }: LocationCardProps) {
               src={location.imageUrl}
               alt={location.name}
               className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+              decoding="async"
             />
           ) : (
             <div className="w-full h-48 bg-gray-100 flex items-center justify-center">

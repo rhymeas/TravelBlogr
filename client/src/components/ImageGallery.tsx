@@ -290,6 +290,8 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
                       src={mainImage.imageUrl}
                       alt={mainImage.caption || t('mainImage')}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                      decoding="async"
                       data-testid="main-image"
                     />
                   </div>
@@ -338,6 +340,8 @@ export function ImageGallery({ locationId, isAdmin = false, className = "" }: Im
                         src={image.imageUrl}
                         alt={image.caption || "Galerie Bild"}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        loading="lazy"
+                        decoding="async"
                         data-testid={`gallery-image-${image.id}`}
                       />
                     </div>

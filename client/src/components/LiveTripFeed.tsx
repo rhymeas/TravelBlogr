@@ -729,6 +729,8 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                                 src={currentMedia.imageUrl}
                                 alt={group.caption || "Gallery image"}
                                 className="w-full max-h-96 object-cover"
+                                loading="lazy"
+                                decoding="async"
                                 data-testid={`gallery-image-${currentMedia.id}`}
                               />
                             )}
@@ -787,6 +789,8 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
                         src={firstMedia.imageUrl}
                         alt={group.caption || "Reisefoto"}
                         className="w-full object-cover max-h-96"
+                        loading="lazy"
+                        decoding="async"
                         data-testid={`post-image-${firstMedia.id}`}
                       />
                     </div>

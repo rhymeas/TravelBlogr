@@ -146,6 +146,7 @@ export function Lightbox({
         <img
           src={currentImage.imageUrl}
           alt={currentImage.caption || `Bild ${currentIndex + 1}`}
+          decoding="async"
           className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
             imageLoading ? 'opacity-0' : 'opacity-100'
           }`}

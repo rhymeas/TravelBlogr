@@ -1139,6 +1139,8 @@ export default function GlobalTripFeed() {
                     src={photo.imageUrl}
                     alt={photo.caption || "Reisefoto"}
                     className="w-full object-cover max-h-96 bg-gray-50 dark:bg-gray-800"
+                    loading="lazy"
+                    decoding="async"
                     data-testid={`post-image-${photo.id}`}
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1474,6 +1476,8 @@ export default function GlobalTripFeed() {
                     src={fullViewMedia.imageUrl}
                     alt={fullViewMedia.caption || "Reisefoto"}
                     className="transition-transform duration-200 ease-out"
+                    loading="lazy"
+                    decoding="async"
                     style={{
                       maxWidth: zoomScale === 1 ? '100%' : 'none',
                       maxHeight: zoomScale === 1 ? '100%' : 'none',
@@ -1531,6 +1535,8 @@ export default function GlobalTripFeed() {
                             src={photo.thumbnailUrl}
                             alt="Video thumbnail"
                             className="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
                           />
                           <div className="absolute inset-0 flex items-center justify-center">
                             <Play className="w-4 h-4 text-white" />
@@ -1541,6 +1547,8 @@ export default function GlobalTripFeed() {
                           src={photo.imageUrl}
                           alt={photo.caption || "Thumbnail"}
                           className="w-full h-full object-cover"
+                          loading="lazy"
+                          decoding="async"
                         />
                       ) : (
                         <div className="w-full h-full bg-gray-600 flex items-center justify-center">
@@ -1779,6 +1787,8 @@ function CarouselPost({ carousel, creators, getLocationName, formatTime, likedPh
                     src={photo.imageUrl}
                     alt={photo.caption || "Reisefoto"}
                     className="w-full object-cover max-h-96 bg-gray-50 dark:bg-gray-800"
+                    loading="lazy"
+                    decoding="async"
                     data-testid={`post-image-${photo.id}`}
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
