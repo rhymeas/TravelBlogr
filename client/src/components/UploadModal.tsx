@@ -27,6 +27,9 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
+  const [uploadStatus, setUploadStatus] = useState<string>("");
+  const [processedFiles, setProcessedFiles] = useState(0);
+  const [visualPercent, setVisualPercent] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -76,18 +79,26 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       });
       
       // Update progress: Processing EXIF data
-      setUploadProgress({ current: 1, total: files.length + 2 });
+      setUploadStatus("Vorbereitung");
+      setUploadProgress({ current: 0, total: files.length });
+      setProcessedFiles(0);
+      setVisualPercent(0);
       
       // Extract EXIF data for each file and add to form data
       const exifDataPromises = files.map(async (file, index) => {
         const takenAt = await extractExifData(file);
+        // Update actual files processed and visual percentage (0-80% for processing)
+        const processed = index + 1;
+        setProcessedFiles(processed);
+        setVisualPercent(Math.min(80, Math.round((processed / files.length) * 80)));
         return { index, takenAt };
       });
       
       const exifResults = await Promise.all(exifDataPromises);
       
-      // Update progress: EXIF processing complete
-      setUploadProgress({ current: files.length + 1, total: files.length + 2 });
+      // Update progress: Upload starting (stay at 80% while uploading)
+      setUploadStatus("Hochladen");
+      setVisualPercent(80);
       
       // Add EXIF data to form data as JSON
       const exifData = exifResults.reduce((acc, { index, takenAt }) => {
@@ -113,8 +124,10 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
         throw new Error(errorData.error || "Upload fehlgeschlagen");
       }
       
-      // Update progress: Upload complete
-      setUploadProgress({ current: files.length + 2, total: files.length + 2 });
+      // Update progress: Upload complete (100%)
+      setUploadStatus("Fertig");
+      setVisualPercent(100);
+      setUploadProgress({ current: files.length, total: files.length });
       
       return response.json();
     },
@@ -127,6 +140,9 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     onSettled: () => {
       setUploading(false);
       setUploadProgress({ current: 0, total: 0 });
+      setUploadStatus("");
+      setProcessedFiles(0);
+      setVisualPercent(0);
     },
     onError: (error: Error) => {
       toast({
@@ -230,7 +246,10 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     }
 
     setUploading(true);
+    setUploadStatus("Start");
     setUploadProgress({ current: 0, total: selectedFiles.length });
+    setProcessedFiles(0);
+    setVisualPercent(0);
     
     try {
       await uploadMutation.mutateAsync({
@@ -411,21 +430,24 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                   <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                        📤 Hochladen...
+                        📤 {uploadStatus}
                       </span>
                       <span className="text-sm text-blue-600 dark:text-blue-400">
-                        {uploadProgress.current} von {uploadProgress.total} Dateien
+                        {uploadStatus === "Vorbereitung" ? `Verarbeitet: ${processedFiles}/${uploadProgress.total}` : 
+                         uploadStatus === "Hochladen" ? "Upload läuft..." : 
+                         `${uploadProgress.current}/${uploadProgress.total} Dateien`}
                       </span>
                     </div>
                     <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2.5 mb-2">
                       <div 
                         className="bg-gradient-to-r from-blue-500 to-green-500 h-2.5 rounded-full transition-all duration-300 ease-out"
-                        style={{ width: `${Math.round((uploadProgress.current / uploadProgress.total) * 100)}%` }}
+                        style={{ width: `${visualPercent}%` }}
+                        data-testid="upload-progress-bar"
                       ></div>
                     </div>
                     <div className="text-center">
-                      <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                        {Math.round((uploadProgress.current / uploadProgress.total) * 100)}% abgeschlossen
+                      <span className="text-xs text-blue-600 dark:text-blue-400 font-medium" data-testid="upload-percentage">
+                        {visualPercent}% abgeschlossen
                       </span>
                     </div>
                   </div>
