@@ -26,6 +26,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -74,6 +75,9 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
         formData.append('media', file);
       });
       
+      // Update progress: Processing EXIF data
+      setUploadProgress({ current: 1, total: files.length + 2 });
+      
       // Extract EXIF data for each file and add to form data
       const exifDataPromises = files.map(async (file, index) => {
         const takenAt = await extractExifData(file);
@@ -81,6 +85,9 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       });
       
       const exifResults = await Promise.all(exifDataPromises);
+      
+      // Update progress: EXIF processing complete
+      setUploadProgress({ current: files.length + 1, total: files.length + 2 });
       
       // Add EXIF data to form data as JSON
       const exifData = exifResults.reduce((acc, { index, takenAt }) => {
@@ -105,6 +112,10 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Upload fehlgeschlagen");
       }
+      
+      // Update progress: Upload complete
+      setUploadProgress({ current: files.length + 2, total: files.length + 2 });
+      
       return response.json();
     },
     onSuccess: () => {
@@ -115,6 +126,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     },
     onSettled: () => {
       setUploading(false);
+      setUploadProgress({ current: 0, total: 0 });
     },
     onError: (error: Error) => {
       toast({
@@ -218,6 +230,8 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     }
 
     setUploading(true);
+    setUploadProgress({ current: 0, total: selectedFiles.length });
+    
     try {
       await uploadMutation.mutateAsync({
         files: selectedFiles,
@@ -226,10 +240,23 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
         locationId: selectedLocationId === "general" ? undefined : selectedLocationId,
         creatorId: selectedCreatorId,
       });
+      
+      // Reset form on success
+      resetForm();
+      onClose();
+      
+      toast({
+        title: "📤 Upload erfolgreich!",
+        description: `${selectedFiles.length} Datei${selectedFiles.length !== 1 ? 'en' : ''} wurden erfolgreich hochgeladen.`,
+        variant: "default",
+      });
     } catch (error) {
       console.error("Upload error:", error);
-    } finally {
-      setUploading(false);
+      toast({
+        title: "Upload fehlgeschlagen",
+        description: error instanceof Error ? error.message : "Bitte versuchen Sie es erneut.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -379,6 +406,31 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                   </Select>
                 </div>
 
+                {/* Upload Progress Indicator */}
+                {uploading && uploadProgress.total > 0 && (
+                  <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                        📤 Hochladen...
+                      </span>
+                      <span className="text-sm text-blue-600 dark:text-blue-400">
+                        {uploadProgress.current} von {uploadProgress.total} Dateien
+                      </span>
+                    </div>
+                    <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2.5 mb-2">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 to-green-500 h-2.5 rounded-full transition-all duration-300 ease-out"
+                        style={{ width: `${Math.round((uploadProgress.current / uploadProgress.total) * 100)}%` }}
+                      ></div>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                        {Math.round((uploadProgress.current / uploadProgress.total) * 100)}% abgeschlossen
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Upload button */}
                 <Button
                   onClick={handleUpload}
@@ -387,7 +439,10 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                   data-testid="button-upload"
                 >
                   {uploading ? (
-                    <span>Wird hochgeladen...</span>
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Wird hochgeladen...</span>
+                    </div>
                   ) : (
                     <span>{selectedFiles.length} Datei{selectedFiles.length !== 1 ? 'en' : ''} teilen</span>
                   )}
