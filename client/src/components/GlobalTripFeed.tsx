@@ -1095,12 +1095,45 @@ export default function GlobalTripFeed() {
             if (isCarousel) {
               console.log('Rendering carousel:', item.id, 'with', item.photos?.length, 'photos');
               return (
-                <div key={item.id}>
-                  <div style={{ background: 'yellow', padding: '10px', marginBottom: '5px' }}>
-                    DEBUG: Carousel {item.id} with {item.photos?.length} photos
+                <Card key={item.id} className="overflow-hidden" data-testid={`post-${item.id}`}>
+                  <div style={{ background: 'yellow', padding: '20px', marginBottom: '10px', fontSize: '16px', fontWeight: 'bold' }}>
+                    🎠 CAROUSEL: {item.photos?.length} photos - Group: {item.groupId?.substring(0, 8)}
                   </div>
-                  <CarouselPost carousel={item} creators={creators} getLocationName={getLocationName} formatTime={formatTime} likedPhotos={likedPhotos} handleLike={handleLike} handleDelete={handleDelete} openFullView={openFullView} />
-                </div>
+                  
+                  {/* Basic carousel display - first photo with navigation */}
+                  <div className="relative">
+                    {item.photos && item.photos[0] && (
+                      <img
+                        src={`/api/trip-photos/${item.photos[0].id}/image`}
+                        alt={item.photos[0].caption || "Carousel photo"}
+                        className="w-full h-64 object-cover"
+                      />
+                    )}
+                    
+                    {/* Photo count badge */}
+                    <div className="absolute top-3 right-3 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">
+                      📸 {item.photos?.length} Fotos
+                    </div>
+                    
+                    {/* Navigation arrows */}
+                    {item.photos && item.photos.length > 1 && (
+                      <>
+                        <button className="absolute left-3 top-1/2 transform -translate-y-1/2 bg-black/60 text-white p-2 rounded-full">
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <button className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-black/60 text-white p-2 rounded-full">
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  
+                  <div className="p-3">
+                    <p className="text-sm text-muted-foreground">
+                      Caption: {item.photos && item.photos[0] ? item.photos[0].caption : 'No caption'}
+                    </p>
+                  </div>
+                </Card>
               );
             }
             
