@@ -50,7 +50,7 @@ export function LiveTripFeed({ locationId, locationName, showUpload = true }: Li
     nextPhotos.forEach(group => {
       group.media.forEach(media => {
         if (media.imageUrl && media.mediaType === 'image') {
-          const img = new Image();
+          const img = new window.Image();
           img.src = media.imageUrl;
         }
       });
