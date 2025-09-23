@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Camera, Upload, X, Video, Image } from "lucide-react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +18,7 @@ interface UploadModalProps {
 }
 
 export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
+  const [, setLocation] = useLocation();
   const [caption, setCaption] = useState("");
   const [name, setName] = useState("");
   const [selectedLocationId, setSelectedLocationId] = useState<string>("general");
@@ -109,7 +111,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/trip-photos"] });
       queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated", "global"] });
       // Auto-redirect to news feed after upload
-      window.location.href = '/live-feed';
+      setLocation('/live-feed');
     },
     onSettled: () => {
       setUploading(false);

@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wine, Mountain, Network, MapPin, ArrowRight } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import type { Location } from "@shared/schema";
 
 interface LocationCardProps {
@@ -9,6 +9,8 @@ interface LocationCardProps {
 }
 
 export default function LocationCard({ location }: LocationCardProps) {
+  const [, setLocation] = useLocation();
+  
   const getCategoryFromHighlights = (highlights: string[] | null): string => {
     if (!highlights || highlights.length === 0) return "Alpine Adventure";
     
@@ -94,13 +96,13 @@ export default function LocationCard({ location }: LocationCardProps) {
               tabIndex={0}
               onClick={(e) => {
                 e.stopPropagation();
-                window.location.href = `/location/${location.slug}`;
+                setLocation(`/location/${location.slug}`);
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   e.stopPropagation();
-                  window.location.href = `/location/${location.slug}`;
+                  setLocation(`/location/${location.slug}`);
                 }
               }}
             >
