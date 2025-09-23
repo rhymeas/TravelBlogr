@@ -88,8 +88,21 @@ export default function LocationCard({ location }: LocationCardProps) {
               <span>{category}</span>
             </div>
             <div 
-              className="opacity-0 group-hover:opacity-100 transition-opacity px-3 py-1 text-sm border border-border rounded-md flex items-center hover:bg-accent"
+              className="opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity px-3 py-1 text-sm border border-border rounded-md flex items-center hover:bg-accent cursor-pointer relative z-10"
               data-testid={`view-details-button-${location.slug}`}
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation();
+                window.location.href = `/location/${location.slug}`;
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.location.href = `/location/${location.slug}`;
+                }
+              }}
             >
               Details <ArrowRight className="w-4 h-4 ml-1" />
             </div>
