@@ -193,18 +193,18 @@ export default function Timeline({ locations }: TimelineProps) {
         title="Klicken Sie hier, um Ihre Position zu markieren"
       ></div>
       
-      {/* Mobile timeline clickable area - center only, below cards */}
+      {/* Mobile timeline clickable area - positioned safely to avoid card overlap */}
       <div 
-        className="md:hidden absolute left-1/2 transform -translate-x-1/2 top-0 h-full w-10 cursor-pointer z-10 pointer-events-auto"
+        className="md:hidden absolute left-0 top-0 h-full w-8 cursor-pointer z-10 pointer-events-auto"
         onClick={handleTripLineClick}
         data-testid="mobile-timeline-clickable-area"
         title="Tippen Sie hier, um Ihre Position zu markieren"
       ></div>
       
-      {/* Car Icon positioned on timeline - now visible on mobile too */}
+      {/* Car Icon positioned on timeline - positioned clear of cards */}
       {carTimelinePosition && carTimelinePosition.isVisible && (
         <div 
-          className="absolute left-4 md:left-1/2 transform md:-translate-x-1/2 z-30"
+          className="absolute -left-1 md:left-1/2 transform md:-translate-x-1/2 z-40"
           style={{ top: `${carTimelinePosition.top}px` }}
         >
           <CarIcon
@@ -215,10 +215,10 @@ export default function Timeline({ locations }: TimelineProps) {
         </div>
       )}
 
-      {/* "Wir sind hier" Interactive Marker - Persists until manually changed */}
+      {/* "Wir sind hier" Interactive Marker - Positioned clear of cards */}
       {activeMarker && (
         <div 
-          className="absolute left-4 md:left-1/2 transform md:-translate-x-1/2 z-40 animate-in fade-in zoom-in duration-300"
+          className="absolute -left-1 md:left-1/2 transform md:-translate-x-1/2 z-50 animate-in fade-in zoom-in duration-300"
           style={{ 
             top: `${activeMarker.position?.top || 0}px`
           }}
@@ -274,9 +274,9 @@ export default function Timeline({ locations }: TimelineProps) {
               <div className="hidden md:block absolute left-1/2 -top-20 w-px h-24 bg-gray-300 transform -translate-x-1/2 z-0"></div>
             )}
             
-            {/* Timeline marker - now clickable with better touch targets and proper z-index */}
+            {/* Timeline marker - positioned clear of card content */}
             <div 
-              className="hidden md:block absolute left-1/2 top-8 w-8 h-8 bg-primary rounded-full transform -translate-x-1/2 z-50 border-4 border-white shadow-lg cursor-pointer hover:scale-110 transition-all duration-200"
+              className="hidden md:block absolute left-1/2 -top-4 w-8 h-8 bg-primary rounded-full transform -translate-x-1/2 z-20 border-4 border-white shadow-lg cursor-pointer hover:scale-110 transition-all duration-200"
               onClick={(e) => {
                 e.stopPropagation();
                 handleLocationDotClick(location.id, e);
@@ -285,23 +285,23 @@ export default function Timeline({ locations }: TimelineProps) {
             >
             </div>
             
-            {/* Mobile timeline marker - visible on mobile with proper touch targets */}
+            {/* Mobile timeline marker - positioned left of card with higher z-index */}
             <div 
-              className="md:hidden absolute left-4 top-4 w-8 h-8 bg-primary rounded-full z-10 border-4 border-white shadow-lg cursor-pointer hover:scale-110 transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="md:hidden absolute -left-2 top-8 w-10 h-10 bg-primary rounded-full z-30 border-4 border-white shadow-lg cursor-pointer hover:scale-110 transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center"
               onClick={(e) => {
                 e.stopPropagation();
                 handleLocationDotClick(location.id, e);
               }}
               data-testid={`mobile-location-dot-${location.slug}`}
             >
-              <div className="w-4 h-4 bg-primary rounded-full"></div>
+              <div className="w-5 h-5 bg-primary rounded-full"></div>
             </div>
             
             {/* Mobile timeline dot - removed to avoid clutter */}
             
-            {/* Card positioned alternating left/right with proper spacing from center - tablet optimized */}
-            <div className={`flex ${index % 2 === 0 ? 'md:justify-start md:pr-3 lg:pr-6 xl:pr-10' : 'md:justify-end md:pl-3 lg:pl-6 xl:pl-10'}`}>
-              <div className="w-full md:w-[calc(50%-1.5rem)] lg:w-[calc(50%-2rem)] xl:w-[calc(50%-2.5rem)]">
+            {/* Card positioned alternating left/right with clearance from timeline elements */}
+            <div className={`flex ${index % 2 === 0 ? 'md:justify-start md:pr-4 lg:pr-6 xl:pr-10' : 'md:justify-end md:pl-4 lg:pl-6 xl:pl-10'}`}>
+              <div className="w-full pl-12 md:pl-0 md:w-[calc(50%-2rem)] lg:w-[calc(50%-2rem)] xl:w-[calc(50%-2.5rem)]">
                 <Card 
                   className={`w-full bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-[1.02] ${index % 2 === 0 ? 'md:mr-auto' : 'md:ml-auto'}`}
                   onClick={() => setLocation(`/location/${location.slug}`)}
