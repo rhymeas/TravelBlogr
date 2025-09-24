@@ -25,10 +25,9 @@ export default function Header() {
     queryKey: ["/api/tour-settings"],
   });
 
-  // Fetch latest location ping for GPS status
+  // Fetch latest location ping for GPS status (always enabled if data exists)
   const { data: latestPing } = useQuery<LocationPing>({
     queryKey: ["/api/location-ping/latest"],
-    enabled: Boolean(tourSettings?.gpsActivatedByAdmin),
     refetchInterval: 2 * 60 * 1000, // Refresh every 2 minutes
   });
 
@@ -101,7 +100,7 @@ export default function Header() {
           </Link>
 
           {/* Location Status - Desktop */}
-          {tourSettings?.gpsActivatedByAdmin && latestPing && (
+          {latestPing && (
             <div className="hidden lg:flex items-center space-x-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800" data-testid="location-status-desktop">
               <MapPin className="w-4 h-4 text-green-600 dark:text-green-400" />
               <span className="text-sm text-green-700 dark:text-green-300">
@@ -166,7 +165,7 @@ export default function Header() {
             {/* Mobile Live Feed Button */}
             <Link
               href="/live-feed"
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors z-[60] relative ${
                 isActive("/live-feed")
                   ? "bg-primary/10 text-primary font-medium"
                   : "text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -200,7 +199,7 @@ export default function Header() {
         <div className="md:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900" data-testid="mobile-menu">
           <div className="px-4 py-3 space-y-1">
             {/* Location Status - Mobile */}
-            {tourSettings?.gpsActivatedByAdmin && latestPing && (
+            {latestPing && (
               <div className="flex items-center space-x-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mb-2" data-testid="location-status-mobile">
                 <MapPin className="w-4 h-4 text-green-600 dark:text-green-400" />
                 <span className="text-sm text-green-700 dark:text-green-300">
