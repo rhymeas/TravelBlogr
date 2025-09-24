@@ -1448,17 +1448,17 @@ export default function GlobalTripFeed() {
       {/* Full View Modal */}
       {fullViewMedia && (
         <Dialog open={!!fullViewMedia} onOpenChange={closeFullView}>
-          <DialogContent className="max-w-5xl max-h-[95vh] p-0 overflow-hidden flex flex-col bg-black" data-testid="full-view-modal">
-            {/* Header - Outside image */}
-            <DialogHeader className="bg-black text-white p-4 border-b border-gray-800 flex-shrink-0">
+          <DialogContent className="w-screen h-screen max-w-none max-h-none p-0 m-0 overflow-hidden flex flex-col bg-black border-0 rounded-none" data-testid="full-view-modal">
+            {/* Header - Minimized for mobile */}
+            <DialogHeader className="bg-black text-white p-2 md:p-4 flex-shrink-0">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <DialogTitle className="text-lg font-medium">
+                <div className="flex items-center space-x-2 md:space-x-4">
+                  <DialogTitle className="text-sm md:text-lg font-medium truncate">
                     {fullViewMedia.caption || 'Reisefoto'}
                   </DialogTitle>
                   {/* Image Counter - In header */}
                   {fullViewCarousel && fullViewCarousel.length > 1 && (
-                    <div className="bg-gray-800 text-white px-3 py-1 rounded-full text-sm font-medium">
+                    <div className="bg-gray-800 text-white px-2 py-1 md:px-3 rounded-full text-xs md:text-sm font-medium flex-shrink-0">
                       <span data-testid="full-view-counter">
                         {fullViewIndex + 1} von {fullViewCarousel.length}
                       </span>
@@ -1506,13 +1506,13 @@ export default function GlobalTripFeed() {
                   variant="ghost"
                   size="sm"
                   onClick={closeFullView}
-                  className="text-white hover:bg-white/20 h-8 w-8 p-0"
+                  className="text-white hover:bg-white/20 h-8 w-8 md:h-8 md:w-8 p-0 touch-manipulation"
                   data-testid="close-full-view"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5 md:w-4 md:h-4" />
                 </Button>
               </div>
-              <div className="text-sm opacity-80 mt-2">
+              <div className="text-xs md:text-sm opacity-80 mt-1 md:mt-2 truncate">
                 {fullViewMedia.creatorId ? 
                   creators.find(c => c.id === fullViewMedia.creatorId)?.name || fullViewMedia.uploadedBy || 'Unbekannt' : 
                   fullViewMedia.uploadedBy || 'Unbekannt'
@@ -1525,12 +1525,12 @@ export default function GlobalTripFeed() {
             
             {/* Main content area with navigation */}
             <div className="flex flex-1 items-center bg-black min-h-0">
-              {/* Left Navigation - Outside image */}
+              {/* Left Navigation - Hidden on mobile, visible on desktop only */}
               {fullViewCarousel && fullViewCarousel.length > 1 && (
-                <div className="flex-shrink-0 px-4">
+                <div className="hidden md:flex flex-shrink-0 px-4">
                   <button
                     onClick={goToFullViewPrev}
-                    className="bg-gray-800 text-white p-3 rounded-full hover:bg-gray-700 transition-colors"
+                    className="bg-gray-800/80 text-white p-3 rounded-full hover:bg-gray-700 transition-colors backdrop-blur-sm"
                     data-testid="full-view-prev"
                   >
                     <ChevronLeft className="w-6 h-6" />
@@ -1538,9 +1538,9 @@ export default function GlobalTripFeed() {
                 </div>
               )}
 
-              {/* Clean image area */}
+              {/* Full-width image area with touch support */}
               <div 
-                className="flex-1 flex items-center justify-center bg-black min-h-0 py-4 overflow-hidden"
+                className="flex-1 flex items-center justify-center bg-black min-h-0 overflow-hidden relative"
                 onTouchStart={handleModalTouchStart}
                 onTouchMove={handleModalTouchMove}
                 onTouchEnd={handleModalTouchEnd}
@@ -1549,13 +1549,39 @@ export default function GlobalTripFeed() {
                   cursor: zoomScale > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default'
                 }}
               >
+                {/* Mobile Touch Areas for Navigation - Full Height */}
+                {fullViewCarousel && fullViewCarousel.length > 1 && (
+                  <>
+                    {/* Left touch area */}
+                    <div 
+                      className="md:hidden absolute left-0 top-0 bottom-0 w-1/3 z-10 flex items-center justify-start pl-4"
+                      onClick={goToFullViewPrev}
+                      style={{ touchAction: 'manipulation' }}
+                    >
+                      <div className="opacity-0 bg-white text-black p-2 rounded-full">
+                        <ChevronLeft className="w-4 h-4" />
+                      </div>
+                    </div>
+                    
+                    {/* Right touch area */}
+                    <div 
+                      className="md:hidden absolute right-0 top-0 bottom-0 w-1/3 z-10 flex items-center justify-end pr-4"
+                      onClick={goToFullViewNext}
+                      style={{ touchAction: 'manipulation' }}
+                    >
+                      <div className="opacity-0 bg-white text-black p-2 rounded-full">
+                        <ChevronRight className="w-4 h-4" />
+                      </div>
+                    </div>
+                  </>
+                )}
                 {fullViewMedia.mediaType === 'video' && fullViewMedia.videoUrl ? (
                   <video
                     src={fullViewMedia.videoUrl}
                     poster={fullViewMedia.thumbnailUrl || undefined}
                     controls
                     autoPlay
-                    className="max-w-full max-h-full object-contain"
+                    className="w-full h-full object-contain"
                     data-testid="full-view-video"
                   >
                     <source src={fullViewMedia.videoUrl} type="video/mp4" />
@@ -1590,12 +1616,12 @@ export default function GlobalTripFeed() {
                 )}
               </div>
 
-              {/* Right Navigation - Outside image */}
+              {/* Right Navigation - Hidden on mobile, visible on desktop only */}
               {fullViewCarousel && fullViewCarousel.length > 1 && (
-                <div className="flex-shrink-0 px-4">
+                <div className="hidden md:flex flex-shrink-0 px-4">
                   <button
                     onClick={goToFullViewNext}
-                    className="bg-gray-800 text-white p-3 rounded-full hover:bg-gray-700 transition-colors"
+                    className="bg-gray-800/80 text-white p-3 rounded-full hover:bg-gray-700 transition-colors backdrop-blur-sm"
                     data-testid="full-view-next"
                   >
                     <ChevronRight className="w-6 h-6" />
@@ -1604,18 +1630,18 @@ export default function GlobalTripFeed() {
               )}
             </div>
 
-            {/* Thumbnail Navigation - Outside image at bottom */}
+            {/* Thumbnail Navigation - Clean, borderless design */}
             {fullViewCarousel && fullViewCarousel.length > 1 && (
-              <div className="bg-black border-t border-gray-800 p-4 flex-shrink-0">
-                <div className="flex justify-center space-x-2 overflow-x-auto">
+              <div className="bg-black p-2 md:p-4 flex-shrink-0">
+                <div className="flex justify-center gap-1 md:gap-2 overflow-x-auto px-2">
                   {fullViewCarousel.map((photo, index) => (
                     <button
                       key={photo.id}
                       onClick={() => goToFullViewIndex(index)}
-                      className={`flex-shrink-0 w-16 h-16 rounded border-2 transition-all overflow-hidden ${
+                      className={`flex-shrink-0 w-12 h-12 md:w-16 md:h-16 rounded-lg transition-all overflow-hidden ${
                         index === fullViewIndex 
-                          ? 'border-white shadow-lg' 
-                          : 'border-gray-600 hover:border-gray-400'
+                          ? 'ring-2 ring-white shadow-lg scale-110' 
+                          : 'opacity-60 hover:opacity-80'
                       }`}
                       data-testid={`full-view-thumbnail-${index}`}
                     >
