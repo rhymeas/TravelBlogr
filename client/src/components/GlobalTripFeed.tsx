@@ -80,9 +80,15 @@ export default function GlobalTripFeed() {
   const [editCaption, setEditCaption] = useState("");
   const [editLocationId, setEditLocationId] = useState("");
   
+  // Image loading state for full view modal
+  const [imageLoadingStates, setImageLoadingStates] = useState<Record<string, boolean>>({});
+  const [preloadedImages, setPreloadedImages] = useState<Set<string>>(new Set());
+  const [imageTransitioning, setImageTransitioning] = useState(false);
+  
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const imagePreloadRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const { toast } = useToast();
 
   // Save user key to localStorage
@@ -880,27 +886,50 @@ export default function GlobalTripFeed() {
     }
   }, [selectedFiles, showUploadModal]);
 
+  // Trigger preloading when fullViewMedia changes
+  useEffect(() => {
+    if (fullViewMedia && fullViewMedia.imageUrl && fullViewMedia.mediaType !== 'video') {
+      // Mark current image as loading initially
+      handleImageLoadStart(fullViewMedia.id);
+      
+      // Start preloading surrounding images and cleanup after short delays
+      setTimeout(() => {
+        preloadCarouselImages();
+      }, 100);
+      
+      setTimeout(() => {
+        cleanupPreloadedImages();
+      }, 500);
+    }
+  }, [fullViewMedia]);
+
   const goToFullViewNext = () => {
-    if (!fullViewCarousel) return;
+    if (!fullViewCarousel || imageTransitioning) return;
+    setImageTransitioning(true);
     resetZoom();
     const nextIndex = (fullViewIndex + 1) % fullViewCarousel.length;
     setFullViewIndex(nextIndex);
     setFullViewMedia(fullViewCarousel[nextIndex]);
+    setTimeout(() => setImageTransitioning(false), 300);
   };
 
   const goToFullViewPrev = () => {
-    if (!fullViewCarousel) return;
+    if (!fullViewCarousel || imageTransitioning) return;
+    setImageTransitioning(true);
     resetZoom();
     const prevIndex = (fullViewIndex - 1 + fullViewCarousel.length) % fullViewCarousel.length;
     setFullViewIndex(prevIndex);
     setFullViewMedia(fullViewCarousel[prevIndex]);
+    setTimeout(() => setImageTransitioning(false), 300);
   };
 
   const goToFullViewIndex = (index: number) => {
-    if (!fullViewCarousel || index < 0 || index >= fullViewCarousel.length) return;
+    if (!fullViewCarousel || index < 0 || index >= fullViewCarousel.length || imageTransitioning) return;
+    setImageTransitioning(true);
     resetZoom();
     setFullViewIndex(index);
     setFullViewMedia(fullViewCarousel[index]);
+    setTimeout(() => setImageTransitioning(false), 300);
   };
 
   // Zoom utility functions
@@ -927,6 +956,104 @@ export default function GlobalTripFeed() {
     if (zoomScale <= 1.5) {
       setZoomPan({ x: 0, y: 0 });
     }
+  };
+
+  // Image preloading and loading state management
+  const preloadImage = (imageUrl: string, photoId: string) => {
+    if (!imageUrl || preloadedImages.has(photoId)) return;
+    
+    const img = document.createElement('img') as HTMLImageElement;
+    img.onload = () => {
+      setPreloadedImages(prev => new Set(Array.from(prev).concat(photoId)));
+      setImageLoadingStates(prev => ({ ...prev, [photoId]: false }));
+      imagePreloadRef.current.set(photoId, img);
+    };
+    img.onerror = () => {
+      setImageLoadingStates(prev => ({ ...prev, [photoId]: false }));
+    };
+    
+    setImageLoadingStates(prev => ({ ...prev, [photoId]: true }));
+    img.src = imageUrl;
+  };
+
+  const preloadCarouselImages = () => {
+    if (!fullViewCarousel || !fullViewMedia) return;
+    
+    const currentIndex = fullViewCarousel.findIndex(photo => photo.id === fullViewMedia.id);
+    if (currentIndex === -1) return;
+    
+    // Preload next 2 and previous 1 images with priority
+    const indicesToPreload = [
+      currentIndex + 1, // Next image (highest priority)
+      currentIndex - 1, // Previous image
+      currentIndex + 2, // Second next image
+    ];
+    
+    indicesToPreload.forEach((index, priority) => {
+      if (index >= 0 && index < fullViewCarousel.length) {
+        const photo = fullViewCarousel[index];
+        if (photo.imageUrl && photo.mediaType !== 'video') {
+          // Add small delay based on priority to not overwhelm the network
+          setTimeout(() => preloadImage(photo.imageUrl!, photo.id), priority * 100);
+        }
+      }
+    });
+  };
+
+  const handleImageLoadStart = (photoId: string) => {
+    setImageLoadingStates(prev => ({ ...prev, [photoId]: true }));
+  };
+
+  const handleImageLoadComplete = (photoId: string) => {
+    setImageLoadingStates(prev => ({ ...prev, [photoId]: false }));
+    setPreloadedImages(prev => new Set(Array.from(prev).concat(photoId)));
+  };
+
+  const handleImageError = (photoId: string) => {
+    setImageLoadingStates(prev => ({ ...prev, [photoId]: false }));
+  };
+
+  // Cleanup preloaded images to prevent memory leaks
+  const cleanupPreloadedImages = () => {
+    if (!fullViewCarousel || !fullViewMedia) return;
+    
+    const currentIndex = fullViewCarousel.findIndex(photo => photo.id === fullViewMedia.id);
+    if (currentIndex === -1) return;
+    
+    // Keep only nearby images (current, next 2, previous 1)
+    const keepIndexes = [
+      currentIndex - 1,
+      currentIndex,
+      currentIndex + 1,
+      currentIndex + 2
+    ];
+    
+    const photosToKeep = keepIndexes
+      .filter(index => index >= 0 && index < fullViewCarousel.length)
+      .map(index => fullViewCarousel[index].id);
+    
+    // Remove images not in the keep list
+    Array.from(imagePreloadRef.current.keys()).forEach(photoId => {
+      if (!photosToKeep.includes(photoId)) {
+        imagePreloadRef.current.delete(photoId);
+      }
+    });
+    
+    // Update preloaded images set
+    setPreloadedImages(prev => new Set(
+      Array.from(prev).filter(photoId => photosToKeep.includes(photoId))
+    ));
+  };
+
+  // Progressive image loading with blur effect
+  const getProgressiveImageStyle = (photoId: string) => {
+    const isLoading = imageLoadingStates[photoId];
+    const isPreloaded = preloadedImages.has(photoId);
+    
+    return {
+      filter: isLoading && !isPreloaded ? 'blur(2px)' : 'none',
+      transition: 'filter 0.3s ease-out, opacity 0.3s ease-out'
+    };
   };
 
   // Touch event handlers for full view modal swipe and zoom
@@ -1588,31 +1715,57 @@ export default function GlobalTripFeed() {
                     Ihr Browser unterstützt das Video-Element nicht.
                   </video>
                 ) : fullViewMedia.imageUrl && (
-                  <img
-                    src={fullViewMedia.imageUrl}
-                    alt={fullViewMedia.caption || "Reisefoto"}
-                    className="transition-transform duration-200 ease-out"
-                    loading="lazy"
-                    decoding="async"
-                    style={{
-                      maxWidth: zoomScale === 1 ? '100%' : 'none',
-                      maxHeight: zoomScale === 1 ? '100%' : 'none',
-                      width: zoomScale === 1 ? 'auto' : '100vw',
-                      height: zoomScale === 1 ? 'auto' : '100vh',
-                      objectFit: 'contain',
-                      transform: `scale(${zoomScale}) translate(${zoomPan.x / zoomScale}px, ${zoomPan.y / zoomScale}px)`,
-                      cursor: zoomScale > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default'
-                    }}
-                    data-testid="full-view-image"
-                    onWheel={(e) => {
-                      e.preventDefault();
-                      if (e.deltaY < 0) {
-                        handleZoomIn();
-                      } else {
-                        handleZoomOut();
-                      }
-                    }}
-                  />
+                  <div className="relative w-full h-full flex items-center justify-center">
+                    {/* Loading Indicator */}
+                    {imageLoadingStates[fullViewMedia.id] && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="animate-spin rounded-full h-8 w-8 md:h-12 md:w-12 border-2 border-white border-t-transparent"></div>
+                          <div className="text-white text-sm opacity-80">Bild wird geladen...</div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Transition Overlay */}
+                    {imageTransitioning && (
+                      <div className="absolute inset-0 bg-black/30 z-10 transition-opacity duration-300"></div>
+                    )}
+                    
+                    <img
+                      src={fullViewMedia.imageUrl}
+                      alt={fullViewMedia.caption || "Reisefoto"}
+                      className={`transition-all duration-300 ease-out ${
+                        imageTransitioning ? 'opacity-70' : 'opacity-100'
+                      }`}
+                      loading="eager"
+                      fetchPriority="high"
+                      decoding="async"
+                      style={{
+                        maxWidth: zoomScale === 1 ? '100%' : 'none',
+                        maxHeight: zoomScale === 1 ? '100%' : 'none',
+                        width: zoomScale === 1 ? 'auto' : '100vw',
+                        height: zoomScale === 1 ? 'auto' : '100vh',
+                        objectFit: 'contain',
+                        transform: `scale(${zoomScale}) translate(${zoomPan.x / zoomScale}px, ${zoomPan.y / zoomScale}px)`,
+                        cursor: zoomScale > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default',
+                        willChange: zoomScale > 1 ? 'transform' : 'auto',
+                        contain: 'layout style paint',
+                        ...getProgressiveImageStyle(fullViewMedia.id)
+                      }}
+                      data-testid="full-view-image"
+                      onLoad={() => handleImageLoadComplete(fullViewMedia.id)}
+                      onError={() => handleImageError(fullViewMedia.id)}
+                      onLoadStart={() => handleImageLoadStart(fullViewMedia.id)}
+                      onWheel={(e) => {
+                        e.preventDefault();
+                        if (e.deltaY < 0) {
+                          handleZoomIn();
+                        } else {
+                          handleZoomOut();
+                        }
+                      }}
+                    />
+                  </div>
                 )}
               </div>
 
