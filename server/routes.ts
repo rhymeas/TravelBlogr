@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService, objectStorageClient, parseObjectPath } from "./objectStorage";
+import { supabaseStorage } from "./supabaseStorage";
 import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema, insertLocationPingSchema, insertHeroImageSchema, insertScenicContentSchema, scenicContentUpdateSchema, insertCreatorSchema, tripPhotos } from "@shared/schema";
 import { syncExternalData } from "./sync-external-data";
 import { z } from "zod";
@@ -11,6 +12,52 @@ import bcrypt from "bcrypt";
 import multer from "multer";
 import { randomUUID } from "crypto";
 import crypto from "crypto";
+
+// Hybrid file upload function - tries Supabase first, then Google Cloud Storage
+async function uploadFileHybrid(
+  fileBuffer: Buffer,
+  fileName: string,
+  mimeType: string
+): Promise<{ imageUrl: string; objectPath?: string }> {
+  // Try Supabase first (simpler and already connected)
+  if (supabaseStorage.isAvailable()) {
+    try {
+      const { publicUrl, filePath } = await supabaseStorage.uploadFile(
+        fileBuffer,
+        fileName,
+        mimeType,
+        'trip-photos'
+      );
+      return { imageUrl: publicUrl, objectPath: filePath };
+    } catch (error) {
+      console.warn('Supabase upload failed, trying Google Cloud Storage:', error);
+    }
+  }
+
+  // Fallback to Google Cloud Storage
+  if (objectStorageClient) {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const { uploadURL, objectPath } = await objectStorageService.getObjectEntityUploadInfo();
+
+      const uploadResponse = await fetch(uploadURL, {
+        method: 'PUT',
+        body: fileBuffer,
+        headers: { 'Content-Type': mimeType },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Google Cloud Storage upload failed');
+      }
+
+      return { imageUrl: '/placeholder', objectPath };
+    } catch (error) {
+      console.error('Google Cloud Storage upload failed:', error);
+    }
+  }
+
+  throw new Error('No storage backend available. Please configure Supabase or Google Cloud Storage.');
+}
 
 // Configure multer for image uploads (legacy endpoints)
 const upload = multer({
@@ -342,33 +389,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Handle file upload to object storage
+      // Handle file upload using hybrid storage
       try {
-        const objectStorageService = new ObjectStorageService();
-        const { uploadURL, objectPath } = await objectStorageService.getObjectEntityUploadInfo();
-        
-        // Upload file to object storage
-        const uploadResponse = await fetch(uploadURL, {
-          method: 'PUT',
-          body: req.file.buffer,
-          headers: {
-            'Content-Type': req.file.mimetype,
-          },
-        });
+        const { imageUrl, objectPath } = await uploadFileHybrid(
+          req.file.buffer,
+          req.file.originalname,
+          req.file.mimetype
+        );
 
-        if (!uploadResponse.ok) {
-          throw new Error('Upload zu Object Storage fehlgeschlagen');
-        }
-
-        // Store objectPath for permanent access (don't store expiring displayURL)
-        // We'll generate fresh display URLs on GET requests
-
-        // Create trip photo record with objectPath
+        // Create trip photo record
         const tripPhotoData = {
           locationId: req.params.locationId,
-          creatorId: creatorId || null, // Store creator ID for proper attribution
-          objectPath: objectPath, // Store permanent path
-          imageUrl: '/placeholder', // Placeholder - real URL generated on GET
+          creatorId: creatorId || null,
+          objectPath: objectPath || null, // For Google Cloud Storage compatibility
+          imageUrl: imageUrl, // Direct URL for Supabase, placeholder for GCS
           caption: caption || null,
           uploadedBy: uploadedBy || null,
         };
@@ -511,33 +545,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Handle file upload to object storage
+      // Handle file upload using hybrid storage
       try {
-        const objectStorageService = new ObjectStorageService();
-        const { uploadURL, objectPath } = await objectStorageService.getObjectEntityUploadInfo();
-        
-        // Upload file to object storage
-        const uploadResponse = await fetch(uploadURL, {
-          method: 'PUT',
-          body: req.file.buffer,
-          headers: {
-            'Content-Type': req.file.mimetype,
-          },
-        });
+        const { imageUrl, objectPath } = await uploadFileHybrid(
+          req.file.buffer,
+          req.file.originalname,
+          req.file.mimetype
+        );
 
-        if (!uploadResponse.ok) {
-          throw new Error('Upload zu Object Storage fehlgeschlagen');
-        }
-
-        // Store objectPath for permanent access (don't store expiring displayURL)
-        // We'll generate fresh display URLs on GET requests
-
-        // Create trip photo record with objectPath
+        // Create trip photo record
         const tripPhotoData = {
           locationId: locationId || null, // Optional location tag
           creatorId: creatorId || null, // Creator who uploaded the photo
-          objectPath: objectPath, // Store permanent path
-          imageUrl: '/placeholder', // Placeholder - real URL generated on GET
+          objectPath: objectPath || null, // For Google Cloud Storage compatibility
+          imageUrl: imageUrl, // Direct URL for Supabase, placeholder for GCS
           caption: caption || null,
           uploadedBy: uploadedBy || null,
         };
