@@ -11,12 +11,14 @@ import {
 
 // The object storage client is used to interact with the object storage service.
 // Uses Google Cloud Storage authentication via service account credentials
-export const objectStorageClient = new Storage({
-  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || process.env.GCP_PROJECT_ID,
-  credentials: process.env.GOOGLE_SERVICE_ACCOUNT_KEY
-    ? JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY)
-    : undefined,
-});
+export const objectStorageClient = process.env.GOOGLE_CLOUD_PROJECT_ID
+  ? new Storage({
+      projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || process.env.GCP_PROJECT_ID,
+      credentials: process.env.GOOGLE_SERVICE_ACCOUNT_KEY
+        ? JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY)
+        : undefined,
+    })
+  : null; // Disable storage if no credentials provided
 
 export class ObjectNotFoundError extends Error {
   constructor() {
@@ -120,6 +122,10 @@ export class ObjectStorageService {
 
   // Gets the upload URL for an object entity.
   async getObjectEntityUploadURL(): Promise<string> {
+    if (!objectStorageClient) {
+      throw new Error("Object storage not configured. File uploads are disabled.");
+    }
+
     const privateObjectDir = this.getPrivateObjectDir();
     if (!privateObjectDir) {
       throw new Error(
@@ -183,6 +189,10 @@ export class ObjectStorageService {
 
   // Gets the upload URL and object path for an object entity.
   async getObjectEntityUploadInfo(): Promise<{ uploadURL: string; objectPath: string }> {
+    if (!objectStorageClient) {
+      throw new Error("Object storage not configured. File uploads are disabled.");
+    }
+
     const privateObjectDir = this.getPrivateObjectDir();
     if (!privateObjectDir) {
       throw new Error(
@@ -354,6 +364,10 @@ async function signObjectURL({
   method: "GET" | "PUT" | "DELETE" | "HEAD";
   ttlSec: number;
 }): Promise<string> {
+  if (!objectStorageClient) {
+    throw new Error("Object storage not configured. File operations are disabled.");
+  }
+
   try {
     // Acquire semaphore slot before starting requests
     await acquireSlot();
