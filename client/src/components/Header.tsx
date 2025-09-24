@@ -161,22 +161,7 @@ export default function Header() {
           </div>
 
           {/* Mobile Actions */}
-          <div className="md:hidden flex items-center space-x-2">
-            {/* Mobile Live Feed Button */}
-            <Link
-              href="/live-feed"
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors z-[60] relative ${
-                isActive("/live-feed")
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
-              }`}
-              data-testid="mobile-live-feed-button"
-              aria-label={t('liveFeed')}
-            >
-              <Camera className="w-5 h-5" />
-              <span className="text-sm font-medium">{t('liveFeed')}</span>
-            </Link>
-
+          <div className="md:hidden flex items-center">
             {/* Mobile Menu Button */}
             <button
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -258,6 +243,20 @@ export default function Header() {
           </div>
         </div>
       )}
+
+      {/* Absolutely Positioned Mobile Live Feed Button */}
+      <Link
+        href="/live-feed"
+        className={`md:hidden fixed bottom-6 right-6 z-[100] flex items-center justify-center w-14 h-14 rounded-full shadow-lg transition-all duration-200 ${
+          isActive("/live-feed")
+            ? "bg-primary text-primary-foreground"
+            : "bg-white dark:bg-gray-800 text-muted-foreground hover:text-foreground shadow-md hover:shadow-lg border border-gray-200 dark:border-gray-700"
+        }`}
+        data-testid="mobile-live-feed-fab"
+        aria-label={t('liveFeed')}
+      >
+        <Camera className="w-6 h-6" />
+      </Link>
     </header>
   );
 }
