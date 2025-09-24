@@ -15,7 +15,12 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { TripPhoto, Creator, Location } from "@shared/schema";
 
-export default function GlobalTripFeed() {
+interface GlobalTripFeedProps {
+  selectedLocationFilter?: string;
+  sortOption?: string;
+}
+
+export default function GlobalTripFeed({ selectedLocationFilter: propLocationFilter, sortOption: propSortOption }: GlobalTripFeedProps = {}) {
   const [, setLocation] = useLocation();
   
   // Get URL parameters for deep linking
@@ -24,8 +29,18 @@ export default function GlobalTripFeed() {
   const shouldFocus = urlParams.get('focus') === 'first';
   
   // Filter and sort state
-  const [selectedLocationFilter, setSelectedLocationFilter] = useState<string>(filterLocationId || 'all');
-  const [sortOption, setSortOption] = useState<string>(urlParams.get('sortBy') || 'newest');
+  const [selectedLocationFilter, setSelectedLocationFilter] = useState<string>(propLocationFilter || filterLocationId || 'all');
+  const [sortOption, setSortOption] = useState<string>(propSortOption || urlParams.get('sortBy') || 'newest');
+  
+  // Update state when props change
+  useEffect(() => {
+    if (propLocationFilter !== undefined) {
+      setSelectedLocationFilter(propLocationFilter);
+    }
+    if (propSortOption !== undefined) {
+      setSortOption(propSortOption);
+    }
+  }, [propLocationFilter, propSortOption]);
   // Upload state
   const [caption, setCaption] = useState("");
   const [name, setName] = useState("");
@@ -1177,42 +1192,6 @@ export default function GlobalTripFeed() {
         </div>
       </div>
 
-      {/* Filter and Sort Controls */}
-      <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg" data-testid="filter-sort-controls">
-        {/* Location Filter */}
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-muted-foreground" />
-          <Select value={selectedLocationFilter} onValueChange={setSelectedLocationFilter}>
-            <SelectTrigger className="w-40 h-8 text-sm" data-testid="location-filter">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Alle Orte</SelectItem>
-              {locations.map((location) => (
-                <SelectItem key={location.id} value={location.id}>
-                  {location.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Sort Options */}
-        <div className="flex items-center gap-2">
-          <SortAsc className="w-4 h-4 text-muted-foreground" />
-          <Select value={sortOption} onValueChange={setSortOption}>
-            <SelectTrigger className="w-36 h-8 text-sm" data-testid="sort-option">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">Neueste zuerst</SelectItem>
-              <SelectItem value="oldest">Älteste zuerst</SelectItem>
-              <SelectItem value="most-liked">Meist gelikt</SelectItem>
-              <SelectItem value="photo-date">Nach Fotodatum</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
 
       {/* Feed Content */}
       {isLoading ? (

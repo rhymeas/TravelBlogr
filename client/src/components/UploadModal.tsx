@@ -148,9 +148,21 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       return response.json();
     },
     onSuccess: () => {
-      // Invalidate all trip photo queries to refresh feed
-      queryClient.invalidateQueries({ queryKey: ["/api/trip-photos"] });
+      // Invalidate all trip photo queries to refresh feed using comprehensive invalidation
+      queryClient.invalidateQueries({ 
+        predicate: (query) => Array.isArray(query.queryKey) && 
+                              String(query.queryKey[0]).startsWith('/api/trip-photos')
+      });
+      
+      // Also specifically invalidate the paginated endpoint with all variations
       queryClient.invalidateQueries({ queryKey: ["/api/trip-photos/paginated"] });
+      
+      // Force refetch of all trip photo related queries
+      queryClient.refetchQueries({ 
+        predicate: (query) => Array.isArray(query.queryKey) && 
+                              String(query.queryKey[0]).startsWith('/api/trip-photos') 
+      });
+      
       // Auto-redirect to news feed after upload
       setLocation('/live-feed');
     },

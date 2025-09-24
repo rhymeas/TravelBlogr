@@ -9,25 +9,13 @@ import {
   setObjectAclPolicy,
 } from "./objectAcl";
 
-const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
-
 // The object storage client is used to interact with the object storage service.
+// Uses Google Cloud Storage authentication via service account credentials
 export const objectStorageClient = new Storage({
-  credentials: {
-    audience: "replit",
-    subject_token_type: "access_token",
-    token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
-    type: "external_account",
-    credential_source: {
-      url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
-      format: {
-        type: "json",
-        subject_token_field_name: "access_token",
-      },
-    },
-    universe_domain: "googleapis.com",
-  },
-  projectId: "",
+  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || process.env.GCP_PROJECT_ID,
+  credentials: process.env.GOOGLE_SERVICE_ACCOUNT_KEY
+    ? JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY)
+    : undefined,
 });
 
 export class ObjectNotFoundError extends Error {
@@ -328,7 +316,7 @@ export function parseObjectPath(path: string): {
   };
 }
 
-// Semaphore-based rate limiter for concurrent requests to avoid overwhelming the sidecar
+// Semaphore-based rate limiter for concurrent requests to avoid overwhelming the Google Cloud Storage API
 let currentRequests = 0;
 const MAX_CONCURRENT_REQUESTS = 3;
 const requestQueue: Array<{ resolve: () => void; reject: (error: Error) => void }> = [];
@@ -366,81 +354,35 @@ async function signObjectURL({
   method: "GET" | "PUT" | "DELETE" | "HEAD";
   ttlSec: number;
 }): Promise<string> {
-  const request = {
-    bucket_name: bucketName,
-    object_name: objectName,
-    method,
-    expires_at: new Date(Date.now() + ttlSec * 1000).toISOString(),
-  };
-
-  // Retry logic for failed requests
-  const maxRetries = 3;
-  let lastError: Error | undefined;
-
-  // Acquire semaphore slot before starting requests
-  await acquireSlot();
-
   try {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const response = await fetch(
-          `${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(request),
-            // Add timeout to prevent hanging requests
-            signal: AbortSignal.timeout(10000), // 10 second timeout
-          }
-        );
-        
-        if (response.ok) {
-          const { signed_url: signedURL } = await response.json();
-          return signedURL;
-        } else {
-          // Get error details for better debugging
-          const errorText = await response.text();
-          console.error(`Sidecar error details:`, {
-            status: response.status,
-            statusText: response.statusText,
-            headers: Object.fromEntries(response.headers.entries()),
-            body: errorText,
-            requestData: request
-          });
-          
-          lastError = new Error(
-            `Failed to sign object URL, errorcode: ${response.status}, ` +
-            `error: ${errorText}, make sure you're running on Replit`
-          );
-          
-          // Don't retry immediately on auth errors (400-499)
-          if (response.status >= 400 && response.status < 500) {
-            throw lastError;
-          }
-        }
-      } catch (error: any) {
-        lastError = error;
-        
-        // Don't retry on timeout or auth errors
-        if (error.name === 'TimeoutError' || error.name === 'AbortError' ||
-            (error.message && error.message.includes('errorcode: 4'))) {
-          throw error;
-        }
-        
-        // Wait before retrying (exponential backoff)
-        if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
-        }
-      }
+    // Acquire semaphore slot before starting requests
+    await acquireSlot();
+
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+
+    const options = {
+      version: 'v4' as const,
+      action: method.toLowerCase() as 'read' | 'write' | 'delete',
+      expires: Date.now() + ttlSec * 1000,
+    };
+
+    // Map HTTP methods to Google Cloud Storage actions
+    if (method === 'GET' || method === 'HEAD') {
+      options.action = 'read';
+    } else if (method === 'PUT') {
+      options.action = 'write';
+    } else if (method === 'DELETE') {
+      options.action = 'delete';
     }
 
-    throw lastError || new Error('Failed to sign object URL after retries');
+    const [signedUrl] = await file.getSignedUrl(options);
+    return signedUrl;
+  } catch (error: any) {
+    console.error('Error signing object URL:', error);
+    throw new Error(`Failed to sign object URL: ${error.message}`);
   } finally {
     // Always release the semaphore slot
     releaseSlot();
   }
-
-  throw lastError || new Error('Failed to sign object URL after retries');
 }
