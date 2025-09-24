@@ -2,7 +2,6 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService, objectStorageClient, parseObjectPath } from "./objectStorage";
-import { supabaseStorage } from "./supabaseStorage";
 import { insertLocationSchema, insertLocationImageSchema, insertTripPhotoSchema, insertTourSettingsSchema, insertLocationPingSchema, insertHeroImageSchema, insertScenicContentSchema, scenicContentUpdateSchema, insertCreatorSchema, tripPhotos } from "@shared/schema";
 import { syncExternalData } from "./sync-external-data";
 import { z } from "zod";
@@ -13,28 +12,13 @@ import multer from "multer";
 import { randomUUID } from "crypto";
 import crypto from "crypto";
 
-// Hybrid file upload function - tries Supabase first, then Google Cloud Storage
+// File upload function - uses Google Cloud Storage if available
 async function uploadFileHybrid(
   fileBuffer: Buffer,
   fileName: string,
   mimeType: string
 ): Promise<{ imageUrl: string; objectPath?: string }> {
-  // Try Supabase first (simpler and already connected)
-  if (supabaseStorage.isAvailable()) {
-    try {
-      const { publicUrl, filePath } = await supabaseStorage.uploadFile(
-        fileBuffer,
-        fileName,
-        mimeType,
-        'trip-photos'
-      );
-      return { imageUrl: publicUrl, objectPath: filePath };
-    } catch (error) {
-      console.warn('Supabase upload failed, trying Google Cloud Storage:', error);
-    }
-  }
-
-  // Fallback to Google Cloud Storage
+  // Use Google Cloud Storage if configured
   if (objectStorageClient) {
     try {
       const objectStorageService = new ObjectStorageService();
@@ -56,7 +40,7 @@ async function uploadFileHybrid(
     }
   }
 
-  throw new Error('No storage backend available. Please configure Supabase or Google Cloud Storage.');
+  throw new Error('File uploads are disabled. Please configure Google Cloud Storage environment variables.');
 }
 
 // Configure multer for image uploads (legacy endpoints)
