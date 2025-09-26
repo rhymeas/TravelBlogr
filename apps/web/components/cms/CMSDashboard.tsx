@@ -13,7 +13,7 @@ import {
   FileText, Tag, Folder, Image, BarChart3, Settings,
   Globe, Lock, Users, Clock, TrendingUp
 } from 'lucide-react'
-import { NovelEditor } from './NovelEditor'
+// import { NovelEditor } from './NovelEditor' // temporarily disabled for deployment
 import { createClientSupabase } from '@/lib/supabase'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
@@ -242,38 +242,10 @@ export function CMSDashboard({
     post.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
-  if (showEditor) {
-    return (
-      <div className={className}>
-        <div className="mb-4">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setShowEditor(false)
-              setEditingPost(null)
-            }}
-          >
-            ← Back to Posts
-          </Button>
-        </div>
-        
-        <NovelEditor
-          postId={editingPost || undefined}
-          userId={userId}
-          onSave={(post) => {
-            if (editingPost) {
-              setPosts(prev => prev.map(p => p.id === post.id ? post : p))
-            } else {
-              setPosts(prev => [post, ...prev])
-            }
-            setShowEditor(false)
-            setEditingPost(null)
-            loadStats()
-          }}
-        />
-      </div>
-    )
-  }
+  // Editor temporarily disabled to unblock deployment.
+  // if (showEditor) {
+  //   return null
+  // }
 
   return (
     <div className={`space-y-6 ${className}`}>
