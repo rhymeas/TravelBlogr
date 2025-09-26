@@ -92,6 +92,15 @@ const nextConfig = {
   swcMinify: true,
   // Optimize for production
   productionBrowserSourceMaps: false,
+  // Webpack aliases to stub heavy libs until installed
+  webpack: (config) => {
+    config.resolve = config.resolve || {}
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      '@tremor/react': require('path').resolve(__dirname, 'shims/tremor-react.ts'),
+    }
+    return config
+  },
   // Security headers
   async headers() {
     return [
