@@ -98,6 +98,13 @@ const nextConfig = {
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
       '@tremor/react': require('path').resolve(__dirname, 'shims/tremor-react.ts'),
+      'leaflet': require('path').resolve(__dirname, 'shims/leaflet.ts'),
+      'react-leaflet': require('path').resolve(__dirname, 'shims/react-leaflet.ts'),
+      '@turf/turf': require('path').resolve(__dirname, 'shims/turf.ts'),
+      'react-map-gl': require('path').resolve(__dirname, 'shims/react-map-gl.ts'),
+      'mapbox-gl': require('path').resolve(__dirname, 'shims/mapbox-gl.ts'),
+      'leaflet/dist/leaflet.css': require('path').resolve(__dirname, 'shims/empty.css'),
+      'mapbox-gl/dist/mapbox-gl.css': require('path').resolve(__dirname, 'shims/empty.css'),
     }
     return config
   },
