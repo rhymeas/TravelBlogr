@@ -1,0 +1,399 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Airbnb-inspired Design System */
+@layer base {
+  /* Typography - Airbnb Cereal font fallbacks */
+  html {
+    font-family: 'Circular', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Airbnb color palette */
+  :root {
+    --color-rausch: #FF385C;
+    --color-rausch-dark: #E00B41;
+    --color-black: #222222;
+    --color-dark-gray: #717171;
+    --color-gray: #B0B0B0;
+    --color-light-gray: #DDDDDD;
+    --color-background: #FFFFFF;
+    --color-background-secondary: #F7F7F7;
+    --color-border: #DDDDDD;
+    --color-border-light: #EBEBEB;
+
+    /* Spacing system */
+    --spacing-1: 4px;
+    --spacing-2: 8px;
+    --spacing-3: 12px;
+    --spacing-4: 16px;
+    --spacing-5: 20px;
+    --spacing-6: 24px;
+    --spacing-8: 32px;
+    --spacing-10: 40px;
+    --spacing-12: 48px;
+    --spacing-16: 64px;
+    --spacing-20: 80px;
+
+    /* Border radius */
+    --radius-small: 8px;
+    --radius-medium: 12px;
+    --radius-large: 16px;
+    --radius-xl: 24px;
+
+    /* Shadows */
+    --shadow-light: 0 1px 2px rgba(0, 0, 0, 0.08);
+    --shadow-medium: 0 2px 4px rgba(0, 0, 0, 0.12);
+    --shadow-large: 0 6px 16px rgba(0, 0, 0, 0.12);
+    --shadow-xl: 0 8px 28px rgba(0, 0, 0, 0.28);
+  }
+
+  /* Typography scale */
+  .text-display-large {
+    font-size: 3rem;
+    line-height: 3.375rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .text-display-medium {
+    font-size: 2.5rem;
+    line-height: 2.75rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .text-display-small {
+    font-size: 2rem;
+    line-height: 2.25rem;
+    font-weight: 600;
+  }
+
+  .text-title-large {
+    font-size: 1.625rem;
+    line-height: 1.875rem;
+    font-weight: 600;
+  }
+
+  .text-title-medium {
+    font-size: 1.375rem;
+    line-height: 1.625rem;
+    font-weight: 600;
+  }
+
+  .text-title-small {
+    font-size: 1.125rem;
+    line-height: 1.375rem;
+    font-weight: 600;
+  }
+
+  .text-body-large {
+    font-size: 1rem;
+    line-height: 1.375rem;
+    font-weight: 400;
+  }
+
+  .text-body-medium {
+    font-size: 0.875rem;
+    line-height: 1.125rem;
+    font-weight: 400;
+  }
+
+  .text-body-small {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 400;
+  }
+
+  /* Button styles */
+  .btn-primary {
+    background: linear-gradient(to right, #E61E4D 0%, #E31C5F 50%, #D70466 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-small);
+    padding: 14px 24px;
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.25rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  .btn-primary:hover {
+    background: radial-gradient(circle at center, #FF385C 0%, #E61E4D 27.5%, #E31C5F 40%, #D70466 57.5%, #BD1E59 75%, #BD1E59 100%);
+    transform: scale(1.02);
+  }
+
+  .btn-secondary {
+    background: white;
+    color: var(--color-black);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+    padding: 13px 23px;
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.25rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--color-black);
+    box-shadow: var(--shadow-medium);
+  }
+
+  /* Card styles */
+  .card-elevated {
+    background: white;
+    border-radius: var(--radius-medium);
+    box-shadow: var(--shadow-light);
+    transition: all 0.2s ease;
+  }
+
+  .card-elevated:hover {
+    box-shadow: var(--shadow-large);
+    transform: translateY(-2px);
+  }
+
+  /* Input styles */
+  .input-field {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+    padding: 14px 16px;
+    font-size: 1rem;
+    line-height: 1.25rem;
+    transition: all 0.2s ease;
+    background: white;
+  }
+
+  .input-field:focus {
+    outline: none;
+    border-color: var(--color-black);
+    box-shadow: 0 0 0 2px rgba(34, 34, 34, 0.1);
+  }
+
+  .input-field::placeholder {
+    color: var(--color-dark-gray);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-500;
+}
+
+/* Loading animations */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 37%,
+    #f0f0f0 63%
+  );
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.dark .shimmer {
+  background: linear-gradient(
+    90deg,
+    #374151 25%,
+    #4b5563 37%,
+    #374151 63%
+  );
+  background-size: 400px 100%;
+}
+
+/* Map styles */
+.mapboxgl-popup {
+  max-width: 300px;
+}
+
+.mapboxgl-popup-content {
+  @apply rounded-lg shadow-lg border border-gray-200 dark:border-gray-700;
+  @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100;
+}
+
+.mapboxgl-popup-close-button {
+  @apply text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200;
+  font-size: 18px;
+  padding: 8px;
+}
+
+/* Leaflet map styles */
+.leaflet-container {
+  @apply rounded-lg;
+}
+
+.leaflet-popup-content-wrapper {
+  @apply rounded-lg shadow-lg border border-gray-200 dark:border-gray-700;
+  @apply bg-white dark:bg-gray-800;
+}
+
+.leaflet-popup-content {
+  @apply text-gray-900 dark:text-gray-100;
+}
+
+/* Image gallery styles */
+.image-gallery {
+  display: grid;
+  gap: 1rem;
+}
+
+.image-gallery.grid-1 {
+  grid-template-columns: 1fr;
+}
+
+.image-gallery.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.image-gallery.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.image-gallery.grid-4 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.image-gallery.grid-4 .image-item:first-child {
+  grid-column: span 2;
+}
+
+.image-gallery.grid-5 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.image-gallery.grid-5 .image-item:first-child {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+/* Responsive image gallery */
+@media (max-width: 768px) {
+  .image-gallery.grid-2,
+  .image-gallery.grid-3,
+  .image-gallery.grid-4,
+  .image-gallery.grid-5 {
+    grid-template-columns: 1fr;
+  }
+  
+  .image-gallery.grid-4 .image-item:first-child,
+  .image-gallery.grid-5 .image-item:first-child {
+    grid-column: span 1;
+    grid-row: span 1;
+  }
+}
+
+/* Drag and drop styles */
+.dropzone {
+  @apply border-2 border-dashed border-gray-300 dark:border-gray-600;
+  @apply rounded-lg p-8 text-center transition-colors;
+}
+
+.dropzone.active {
+  @apply border-primary-500 bg-primary-50 dark:bg-primary-900/20;
+}
+
+.dropzone.reject {
+  @apply border-red-500 bg-red-50 dark:bg-red-900/20;
+}
+
+/* Typography */
+.prose {
+  @apply max-w-none;
+}
+
+.prose img {
+  @apply rounded-lg shadow-sm;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-primary-500 bg-primary-50 dark:bg-primary-900/20;
+  @apply pl-4 py-2 my-4 italic;
+}
+
+/* Animations */
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Focus styles */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  @apply dark:focus:ring-offset-gray-800;
+}
+
+/* Button variants */
+.btn-primary {
+  @apply bg-primary-600 hover:bg-primary-700 text-white;
+  @apply focus:ring-primary-500 focus:ring-offset-2;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-secondary {
+  @apply bg-gray-200 hover:bg-gray-300 text-gray-900;
+  @apply dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100;
+  @apply focus:ring-gray-500 focus:ring-offset-2;
+}
+
+.btn-ghost {
+  @apply bg-transparent hover:bg-gray-100 text-gray-700;
+  @apply dark:hover:bg-gray-800 dark:text-gray-300;
+  @apply focus:ring-gray-500 focus:ring-offset-2;
+}
