@@ -3,7 +3,15 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@/components/*": ["./components/*"],
+      "@/lib/*": ["./lib/*"],
+      "@/types/*": ["./types/*"],
+      "@/hooks/*": ["./hooks/*"],
+      "@/utils/*": ["./lib/*", "./utils/*"],
+      "@/styles/*": ["./app/*", "./styles/*"],
+      "@/data/*": ["./data/*"],
+      "@/stores/*": ["./stores/*"]
     }
   },
   "include": [
