@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
@@ -122,11 +122,10 @@ export function FeedItem({ activity, isNew = false }: FeedItemProps) {
             )}
             {activity.data.featured_image && (
               <div className="relative h-48 rounded-lg overflow-hidden">
-                <Image
+                <img
                   src={activity.data.featured_image}
                   alt={activity.data.post_title}
-                  fill
-                  className="object-cover"
+                  className="w-full h-full object-cover"
                 />
               </div>
             )}
@@ -199,11 +198,10 @@ export function FeedItem({ activity, isNew = false }: FeedItemProps) {
               <div className="grid grid-cols-2 gap-2">
                 {activity.data.media_urls.slice(0, 4).map((url: string, index: number) => (
                   <div key={index} className="relative h-24 rounded-lg overflow-hidden">
-                    <Image
+                    <img
                       src={url}
                       alt={`Photo ${index + 1}`}
-                      fill
-                      className="object-cover"
+                      className="w-full h-full object-cover"
                     />
                     {index === 3 && activity.data.media_urls.length > 4 && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -240,21 +238,22 @@ export function FeedItem({ activity, isNew = false }: FeedItemProps) {
   }
 
   return (
-    <div className={`card-elevated p-6 transition-all duration-300 ${isNew ? 'ring-2 ring-rausch-500 bg-rausch-50/30' : 'hover:shadow-airbnb-medium'}`}>
-      <div className="flex items-start gap-4">
-        {/* User Avatar */}
-        <Link href={`/users/${activity.user.username}`} className="flex-shrink-0">
-          <Image
-            src={activity.user.avatar_url || '/default-avatar.png'}
-            alt={activity.user.name}
-            width={48}
-            height={48}
-            className="rounded-full shadow-airbnb-light hover:shadow-airbnb-medium transition-all"
-          />
-        </Link>
+    <Card className={`transition-all duration-300 ${isNew ? 'ring-2 ring-rausch-500 bg-rausch-50/30' : 'hover:shadow-airbnb-medium'}`}>
+      <CardHeader className="pb-3">
+        <div className="flex items-start gap-4">
+          {/* User Avatar */}
+          <Link href={`/users/${activity.user.username}`} className="flex-shrink-0">
+            <Image
+              src={activity.user.avatar_url || '/default-avatar.png'}
+              alt={activity.user.name}
+              width={48}
+              height={48}
+              className="rounded-full shadow-airbnb-light hover:shadow-airbnb-medium transition-all"
+            />
+          </Link>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
+          {/* Content */}
+          <div className="flex-1 min-w-0">
           {/* Activity Header */}
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center">
@@ -280,8 +279,7 @@ export function FeedItem({ activity, isNew = false }: FeedItemProps) {
                 <TrendingUp className="h-3 w-3" />
                 New
               </div>
-              )}
-            </div>
+            )}
           </div>
 
           {/* Action Link */}
@@ -292,6 +290,7 @@ export function FeedItem({ activity, isNew = false }: FeedItemProps) {
               </Button>
             </Link>
           )}
+          </div>
         </div>
       </CardHeader>
 

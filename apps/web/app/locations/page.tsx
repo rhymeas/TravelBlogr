@@ -2,9 +2,9 @@ import { Metadata } from 'next'
 import { LocationsGrid } from '@/components/locations/LocationsGrid'
 import { LocationsMap } from '@/components/locations/LocationsMap'
 import { LocationsSearch } from '@/components/locations/LocationsSearch'
-import { createServerSupabase } from '@/lib/supabase'
+import { getAllLocations } from '@/lib/supabase/locations'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
-import { MapPin, Grid, Search } from 'lucide-react'
+import { MapPin, Grid } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Explore Locations | TravelBlogr',
@@ -12,43 +12,14 @@ export const metadata: Metadata = {
 }
 
 export default async function LocationsPage() {
-  const supabase = createServerSupabase()
-  
-  // Get featured locations and popular destinations
-  const { data: locations } = await supabase
-    .from('locations')
-    .select(`
-      *,
-      location_posts!inner (
-        id,
-        title,
-        excerpt,
-        featured_image,
-        published_at,
-        view_count,
-        like_count
-      )
-    `)
-    .eq('is_featured', true)
-    .eq('location_posts.status', 'published')
-    .order('created_at', { ascending: false })
-    .limit(20)
+  // Get all published locations from Supabase
+  const locations = await getAllLocations()
 
-  // Get location categories
-  const { data: categories } = await supabase
-    .from('location_categories')
-    .select('*')
-    .order('name')
-
-  // Get location stats
-  const { data: stats } = await supabase
-    .from('locations')
-    .select('id, country, region')
-
+  // Calculate location stats
   const locationStats = {
-    total: stats?.length || 0,
-    countries: [...new Set(stats?.map(s => s.country))].length || 0,
-    regions: [...new Set(stats?.map(s => s.region))].length || 0
+    total: locations.length,
+    countries: [...new Set(locations.map(l => l.country))].length,
+    regions: [...new Set(locations.map(l => l.region))].length
   }
 
   return (
@@ -86,7 +57,7 @@ export default async function LocationsPage() {
 
       {/* Search */}
       <div className="container mx-auto px-4 py-6">
-        <LocationsSearch categories={categories || []} />
+        <LocationsSearch categories={[]} />
       </div>
 
       {/* Content */}

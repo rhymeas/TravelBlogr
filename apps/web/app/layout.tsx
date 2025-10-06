@@ -1,12 +1,14 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+// import { Inter } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
 import { cn } from '@/lib/utils'
 import './globals.css'
 import { PWAInstallPrompt } from '@/components/pwa/PWAInstallPrompt'
 import { MobileNavigation } from '@/components/mobile/MobileNavigation'
+import { AuthAwareHeader } from '@/components/layout/AuthAwareHeader'
+import { Footer } from '@/components/layout/Footer'
 
-const inter = Inter({ subsets: ['latin'] })
+// const inter = Inter({ subsets: ['latin'] })
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -22,19 +24,19 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'TravelBlogr - Share Your Journey',
+    default: 'TravelBlogr - Share Your Journey, Plan Your Next Adventure',
     template: '%s | TravelBlogr',
   },
-  description: 'Create beautiful travel stories and share them with different audiences - from professional portfolios to intimate family updates.',
-  keywords: ['travel', 'blog', 'journey', 'sharing', 'photography', 'stories'],
+  description: 'Transform your travel experiences into inspiring stories that help fellow travelers plan unforgettable trips. Share detailed timelines and discover your next destination through authentic community experiences.',
+  keywords: ['travel', 'blog', 'journey', 'sharing', 'photography', 'stories', 'planning', 'destinations', 'community'],
   authors: [{ name: 'TravelBlogr Team' }],
   creator: 'TravelBlogr',
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: process.env.NEXT_PUBLIC_APP_URL,
-    title: 'TravelBlogr - Share Your Journey',
-    description: 'Create beautiful travel stories and share them with different audiences',
+    title: 'TravelBlogr - Share Your Journey, Plan Your Next Adventure',
+    description: 'Transform your travel experiences into inspiring stories that help fellow travelers plan unforgettable trips',
     siteName: 'TravelBlogr',
     images: [
       {
@@ -47,8 +49,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'TravelBlogr - Share Your Journey',
-    description: 'Create beautiful travel stories and share them with different audiences',
+    title: 'TravelBlogr - Share Your Journey, Plan Your Next Adventure',
+    description: 'Transform your travel experiences into inspiring stories that help fellow travelers plan unforgettable trips',
     images: ['/og-image.jpg'],
   },
   robots: {
@@ -77,9 +79,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn(inter.className, 'min-h-screen bg-background antialiased')}>
+      <body className={cn('min-h-screen bg-background antialiased')}>
         <div className="relative flex min-h-screen flex-col">
+          <AuthAwareHeader />
           <main className="flex-1">{children}</main>
+          <Footer />
           <MobileNavigation />
         </div>
         <PWAInstallPrompt />

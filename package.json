@@ -15,38 +15,42 @@
     "db:reset": "supabase db reset",
     "db:migrate": "supabase migration up",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "crawler:install": "npm install crawlee playwright cheerio axios",
+    "crawler:setup": "npx playwright install chromium"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "^1.0.2",
+    "@supabase/supabase-js": "^2.38.4",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "date-fns": "^2.30.0",
+    "lucide-react": "^0.294.0",
+    "nanoid": "^5.0.4",
     "next": "14.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "lucide-react": "^0.294.0",
-    "clsx": "^2.0.0",
-    "tailwind-merge": "^2.0.0",
-    "date-fns": "^2.30.0",
     "react-hot-toast": "^2.4.1",
-    "nanoid": "^5.0.4",
+    "react-image-gallery": "^1.4.0",
+    "swiper": "^11.0.5",
     "swr": "^2.2.4",
-    "class-variance-authority": "^0.7.0",
-    "@radix-ui/react-slot": "^1.0.2",
-    "@supabase/supabase-js": "^2.38.4"
+    "tailwind-merge": "^2.0.0",
+    "yet-another-react-lightbox": "^3.25.0"
   },
   "devDependencies": {
-    "typescript": "^5.3.2",
+    "@tailwindcss/aspect-ratio": "^0.4.2",
+    "@tailwindcss/forms": "^0.5.7",
+    "@tailwindcss/typography": "^0.5.10",
     "@types/node": "^20.9.0",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
-
     "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.31",
-    "tailwindcss": "^3.3.5",
-    "@tailwindcss/typography": "^0.5.10",
-    "@tailwindcss/forms": "^0.5.7",
-    "@tailwindcss/aspect-ratio": "^0.4.2",
     "eslint": "^8.54.0",
     "eslint-config-next": "14.0.4",
+    "postcss": "^8.4.31",
     "prettier": "^3.1.0",
-    "prettier-plugin-tailwindcss": "^0.5.7"
+    "prettier-plugin-tailwindcss": "^0.5.7",
+    "tailwindcss": "^3.3.5",
+    "typescript": "^5.3.2"
   }
 }

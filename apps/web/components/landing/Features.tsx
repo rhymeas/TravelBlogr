@@ -1,3 +1,4 @@
+import React from 'react'
 import Link from 'next/link'
 import {
   Users,
@@ -80,16 +81,16 @@ const audienceTypes = [
 
 export function Features() {
   return (
+    <>
     <section className="py-20 sm:py-32 bg-gray-50">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         {/* Section Header */}
         <div className="mx-auto max-w-3xl text-center mb-16">
           <h2 className="text-display-small text-airbnb-black mb-4">
-            Everything you need to share your journey
+            Share Stories That Matter, Plan Trips That Inspire
           </h2>
           <p className="text-body-large text-airbnb-dark-gray leading-relaxed">
-            TravelBlogr combines the best of travel blogging, social sharing, and professional portfolios
-            into one powerful platform. Create once, share everywhere.
+            TravelBlogr bridges the gap between travel sharing and trip planning. Your authentic stories become planning gold for fellow travelers, while their detailed experiences help you discover and plan your next adventure.
           </p>
         </div>
 
@@ -173,5 +174,6 @@ export function Features() {
         </div>
       </div>
     </section>
+    </>
   )
 }

@@ -1,38 +1,95 @@
-import { createClient } from '@supabase/supabase-js'
+// TODO: Install @supabase/supabase-js package
+// import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
-import type { Database } from '../../../infrastructure/database/types'
+// import type { Database } from '../../../infrastructure/database/types'
 
-// Client-side Supabase client
-export const createClientSupabase = () =>
-  createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+// Temporary mock types until Supabase is installed
+type Database = any
 
-// Server-side Supabase client
-export const createServerSupabase = () =>
-  createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+// Temporary mock client until Supabase is installed
+const createMockQueryBuilder = () => {
+  const mockResult = { data: [], error: null }
+  const mockSingleResult = { data: null, error: null }
 
-// Admin client for server actions
-export const supabaseAdmin = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
+  const queryBuilder = {
+    eq: (column: string, value: any) => queryBuilder,
+    neq: (column: string, value: any) => queryBuilder,
+    gt: (column: string, value: any) => queryBuilder,
+    gte: (column: string, value: any) => queryBuilder,
+    lt: (column: string, value: any) => queryBuilder,
+    lte: (column: string, value: any) => queryBuilder,
+    like: (column: string, value: any) => queryBuilder,
+    ilike: (column: string, value: any) => queryBuilder,
+    is: (column: string, value: any) => queryBuilder,
+    in: (column: string, values: any[]) => queryBuilder,
+    not: (column: string, operator: string, value: any) => queryBuilder,
+    or: (filters: string) => queryBuilder,
+    filter: (column: string, operator: string, value: any) => queryBuilder,
+    match: (query: object) => queryBuilder,
+    order: (column: string, options?: any) => queryBuilder,
+    limit: (count: number) => queryBuilder,
+    range: (from: number, to: number) => queryBuilder,
+    single: () => mockSingleResult,
+    maybeSingle: () => mockSingleResult,
+    then: (resolve: any) => resolve(mockResult),
+    data: [],
+    error: null
   }
-)
+
+  return queryBuilder
+}
+
+export const createClientSupabase = () => ({
+  from: (table: string) => ({
+    select: (columns?: string) => createMockQueryBuilder(),
+    insert: (values: any) => createMockQueryBuilder(),
+    update: (values: any) => createMockQueryBuilder(),
+    upsert: (values: any) => createMockQueryBuilder(),
+    delete: () => createMockQueryBuilder()
+  }),
+  auth: {
+    getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+    signInWithPassword: () => Promise.resolve({ data: null, error: null }),
+    signUp: () => Promise.resolve({ data: null, error: null }),
+    signOut: () => Promise.resolve({ error: null })
+  },
+  storage: {
+    from: (bucket: string) => ({
+      upload: (path: string, file: any) => Promise.resolve({ data: null, error: null }),
+      download: (path: string) => Promise.resolve({ data: null, error: null }),
+      remove: (paths: string[]) => Promise.resolve({ data: null, error: null }),
+      getPublicUrl: (path: string) => ({ data: { publicUrl: '' } })
+    })
+  },
+  channel: (name: string) => ({
+    on: (event: string, config: any, callback?: any) => ({
+      on: (event: string, config: any, callback?: any) => ({
+        subscribe: (callback?: any) => ({
+          unsubscribe: () => Promise.resolve({ error: null })
+        })
+      }),
+      subscribe: (callback?: any) => ({
+        unsubscribe: () => Promise.resolve({ error: null })
+      })
+    }),
+    subscribe: (callback?: any) => ({
+      unsubscribe: () => Promise.resolve({ error: null })
+    })
+  }),
+  removeChannel: (channel: any) => Promise.resolve({ error: null })
+})
+
+// Temporary mock server client until Supabase is installed
+export const createServerSupabase = () => createClientSupabase()
+
+// Mock useSupabase hook for client components
+export const useSupabase = () => createClientSupabase()
+
+// Temporary mock admin client until Supabase is installed
+export const supabaseAdmin = createClientSupabase()
 
 // Convenience client for general use
-export const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+export const supabase = createClientSupabase()
 
 // Storage helpers
 export const uploadFile = async (

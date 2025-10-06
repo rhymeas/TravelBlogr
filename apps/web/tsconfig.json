@@ -3,15 +3,35 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@/components/*": ["./components/*"],
-      "@/lib/*": ["./lib/*"],
-      "@/types/*": ["./types/*"],
-      "@/hooks/*": ["./hooks/*"],
-      "@/utils/*": ["./lib/*", "./utils/*"],
-      "@/styles/*": ["./app/*", "./styles/*"],
-      "@/data/*": ["./data/*"],
-      "@/stores/*": ["./stores/*"]
+      "@/*": [
+        "./*"
+      ],
+      "@/components/*": [
+        "./components/*"
+      ],
+      "@/lib/*": [
+        "./lib/*"
+      ],
+      "@/types/*": [
+        "./types/*"
+      ],
+      "@/hooks/*": [
+        "./hooks/*"
+      ],
+      "@/utils/*": [
+        "./lib/*",
+        "./utils/*"
+      ],
+      "@/styles/*": [
+        "./app/*",
+        "./styles/*"
+      ],
+      "@/data/*": [
+        "./data/*"
+      ],
+      "@/stores/*": [
+        "./stores/*"
+      ]
     }
   },
   "include": [
@@ -22,7 +42,7 @@
     "lib/**/*.ts",
     "lib/**/*.tsx",
     "stores/**/*.ts",
-    "stores/**/*.tsx"
+    "stores/**/*.tsx",
+    ".next/types/**/*.ts"
   ]
 }
-

@@ -16,37 +16,36 @@ export function HeroSection() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/60" />
       </div>
 
-      {/* Floating Elements */}
-      <div className="absolute top-20 left-10 w-20 h-20 bg-white/10 rounded-full glass-effect animate-parallax-float" />
-      <div className="absolute bottom-32 right-16 w-16 h-16 bg-white/5 rounded-full glass-effect animate-parallax-float" style={{ animationDelay: '2s' }} />
-      <div className="absolute top-1/3 right-20 w-12 h-12 bg-white/15 rounded-full glass-effect animate-parallax-float" style={{ animationDelay: '4s' }} />
+      {/* Enhanced Floating Elements */}
+      <div className="absolute top-20 left-10 w-20 h-20 bg-white/10 rounded-full glass-premium animate-gentle-float" />
+      <div className="absolute bottom-32 right-16 w-16 h-16 bg-white/5 rounded-full glass-premium animate-gentle-float" style={{ animationDelay: '2s' }} />
+      <div className="absolute top-1/3 right-20 w-12 h-12 bg-white/15 rounded-full glass-premium animate-gentle-float" style={{ animationDelay: '4s' }} />
+      <div className="absolute top-1/2 left-20 w-8 h-8 bg-rose-400/20 rounded-full glass-premium animate-gentle-float" style={{ animationDelay: '6s' }} />
+      <div className="absolute bottom-1/4 left-1/3 w-6 h-6 bg-pink-400/20 rounded-full glass-premium animate-gentle-float" style={{ animationDelay: '8s' }} />
 
       {/* Hero Content */}
       <div className="relative z-10 text-center px-6 max-w-6xl mx-auto">
-        <div className="glass-dark rounded-3xl p-12 md:p-16 animate-fade-in-up">
-          <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6 leading-tight">
-            Wanderlust
-            <span className="block text-gradient">Chronicles</span>
+        <div className="glass-premium rounded-3xl p-12 md:p-16 animate-fade-in-scale">
+          <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-light text-white mb-8 leading-tight tracking-tight">
+            Share with
+            <span className="block text-gradient-elegant font-normal text-shimmer">Intention</span>
           </h1>
           
-          <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Embark on extraordinary journeys through captivating stories, breathtaking photography, 
-            and authentic travel experiences that inspire your next adventure.
+          <p className="text-lg md:text-xl text-white/80 mb-10 max-w-2xl mx-auto leading-relaxed font-light tracking-wide">
+            Curated for mindful travelers who believe every journey deserves to be 
+            shared with purpose and preserved with care.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            <Button 
-              size="lg" 
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg font-semibold rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300"
-            >
-              Start Exploring
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+            <button className="btn-luxury flex items-center gap-2">
+              <span>Start Exploring</span>
+              <ArrowRight className="h-5 w-5 flex-shrink-0" />
+            </button>
             
             <Button 
               variant="outline" 
               size="lg"
-              className="glass-effect text-white border-white/30 hover:bg-white/10 px-8 py-4 text-lg font-semibold rounded-full backdrop-blur-sm"
+              className="backdrop-blur-elegant text-white border-white/30 hover:bg-white/10 px-10 py-4 text-base font-medium rounded-full transition-all duration-300"
             >
               Watch Stories
             </Button>

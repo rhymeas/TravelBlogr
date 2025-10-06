@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import * as turf from '@turf/turf'
-import 'mapbox-gl/dist/mapbox-gl.css'
+// import 'mapbox-gl/dist/mapbox-gl.css' // Using shim instead
 
 interface LocationPoint {
   id: string

@@ -1,90 +1,143 @@
 /** @type {import('next').NextConfig} */
-const withPWA = require('next-pwa')({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
-  runtimeCaching: [
-    {
-      urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'google-fonts',
-        expiration: {
-          maxEntries: 4,
-          maxAgeSeconds: 365 * 24 * 60 * 60 // 365 days
-        }
-      }
-    },
-    {
-      urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'google-fonts-static',
-        expiration: {
-          maxEntries: 4,
-          maxAgeSeconds: 365 * 24 * 60 * 60 // 365 days
-        }
-      }
-    },
-    {
-      urlPattern: /\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i,
-      handler: 'StaleWhileRevalidate',
-      options: {
-        cacheName: 'static-image-assets',
-        expiration: {
-          maxEntries: 64,
-          maxAgeSeconds: 24 * 60 * 60 // 24 hours
-        }
-      }
-    },
-    {
-      urlPattern: /\.(?:js|css)$/i,
-      handler: 'StaleWhileRevalidate',
-      options: {
-        cacheName: 'static-resources',
-        expiration: {
-          maxEntries: 32,
-          maxAgeSeconds: 24 * 60 * 60 // 24 hours
-        }
-      }
-    },
-    {
-      urlPattern: ({ request }) => request.destination === 'document',
-      handler: 'NetworkFirst',
-      options: {
-        cacheName: 'documents',
-        expiration: {
-          maxEntries: 32,
-          maxAgeSeconds: 24 * 60 * 60 // 24 hours
-        }
-      }
-    },
-    {
-      urlPattern: /^\/api\/.*/i,
-      handler: 'NetworkFirst',
-      options: {
-        cacheName: 'api-cache',
-        expiration: {
-          maxEntries: 16,
-          maxAgeSeconds: 5 * 60 // 5 minutes
-        },
-        networkTimeoutSeconds: 10
-      }
-    }
-  ]
-})
+// PWA configuration (disabled for development)
+// const withPWA = require('next-pwa')({
+//   dest: 'public',
+//   register: true,
+//   skipWaiting: true,
+//   disable: process.env.NODE_ENV === 'development'
+// })
 
 const nextConfig = {
   images: {
-    domains: [
-      'localhost',
-      'images.unsplash.com',
-      'plus.unsplash.com',
-      'supabase.co',
-      'xquipbscibwganfvfynv.supabase.co', // Your Supabase project
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'plus.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'source.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'xquipbscibwganfvfynv.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'nchhcxokrzabbkvhzsor.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'upload.wikimedia.org',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.wikimedia.org',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.rawpixel.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.pexels.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.mapbox.com',
+      },
+      // Openverse (aggregates Flickr, Wikimedia, etc.)
+      {
+        protocol: 'https',
+        hostname: '*.flickr.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'live.staticflickr.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'farm*.staticflickr.com',
+      },
+      // Europeana
+      {
+        protocol: 'https',
+        hostname: 'api.europeana.eu',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.europeana.eu',
+      },
+      // Smithsonian
+      {
+        protocol: 'https',
+        hostname: 'ids.si.edu',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.si.edu',
+      },
+      // NYPL
+      {
+        protocol: 'https',
+        hostname: 'images.nypl.org',
+      },
+      {
+        protocol: 'http',
+        hostname: 'images.nypl.org',
+      },
+      // Library of Congress
+      {
+        protocol: 'https',
+        hostname: 'tile.loc.gov',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.loc.gov',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.loc.gov',
+      },
+      // Met Museum
+      {
+        protocol: 'https',
+        hostname: 'images.metmuseum.org',
+      },
+      {
+        protocol: 'https',
+        hostname: 'collectionapi.metmuseum.org',
+      },
+      // StockSnap (free stock photos)
+      {
+        protocol: 'https',
+        hostname: 'cdn.stocksnap.io',
+      },
     ],
     formats: ['image/webp', 'image/avif'],
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   // Enable compression
   compress: true,
@@ -163,4 +216,6 @@ const nextConfig = {
   }
 }
 
-module.exports = withPWA(nextConfig)
+// Export without PWA for now (can be enabled later)
+module.exports = nextConfig
+// module.exports = withPWA(nextConfig)

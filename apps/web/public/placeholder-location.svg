@@ -1,0 +1,6 @@
+<svg width="1200" height="800" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="800" fill="#e5e7eb"/>
+  <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="48" fill="#9ca3af" text-anchor="middle" dominant-baseline="middle">
+    📍 Location Image
+  </text>
+</svg>

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
+// import 'mapbox-gl/dist/mapbox-gl.css' // Using shim instead
 import { MapPin, Navigation, Layers } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 

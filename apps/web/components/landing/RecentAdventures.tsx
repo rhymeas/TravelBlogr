@@ -39,15 +39,15 @@ const blogPosts = [
 
 export function RecentAdventures() {
   return (
-    <section className="py-24 px-6 bg-gradient-to-br from-gray-50 to-slate-100">
+    <section className="section-spacing px-6 bg-gradient-to-br from-gray-50 to-slate-100">
       <div className="max-w-7xl mx-auto">
         {/* Section Header */}
         <div className="text-center mb-16 animate-fade-in-up">
-          <h2 className="font-display text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+          <h2 className="font-display text-4xl md:text-5xl font-light text-gray-900 mb-6 tracking-tight">
             Recent
-            <span className="text-gradient block">Adventures</span>
+            <span className="text-gradient-elegant block font-normal">Adventures</span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto font-light leading-relaxed">
             Latest stories from the road, capturing moments of wonder and discovery
           </p>
         </div>
@@ -56,7 +56,7 @@ export function RecentAdventures() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Featured Post */}
           <div className="lg:col-span-8 animate-fade-in-up">
-            <Card className="group relative overflow-hidden rounded-3xl border-0 shadow-xl hover:shadow-2xl transition-all duration-500 h-full">
+            <Card className="group relative overflow-hidden rounded-2xl border border-rose-100/50 shadow-sm elegant-hover h-full timeline-card">
               <div className="relative h-96 lg:h-[500px]">
                 <img
                   src={blogPosts[0].image}
@@ -69,7 +69,7 @@ export function RecentAdventures() {
                 
                 {/* Category Badge */}
                 <div className="absolute top-6 left-6">
-                  <span className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full text-sm font-semibold">
+                  <span className="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full text-sm font-medium">
                     {blogPosts[0].category}
                   </span>
                 </div>
@@ -87,7 +87,7 @@ export function RecentAdventures() {
                     </div>
                   </div>
                   
-                  <h3 className="font-display text-3xl md:text-4xl font-bold text-white mb-4">
+                  <h3 className="font-display text-3xl md:text-4xl font-light text-white mb-4 tracking-tight">
                     {blogPosts[0].title}
                   </h3>
                   
@@ -95,9 +95,9 @@ export function RecentAdventures() {
                     {blogPosts[0].excerpt}
                   </p>
 
-                  <button className="flex items-center text-white font-semibold group-hover:text-blue-300 transition-colors duration-300">
+                  <button className="flex items-center text-white font-medium group-hover:text-rose-300 transition-colors duration-400">
                     Read Full Story
-                    <ArrowRight className="ml-2 h-4 w-4 transform group-hover:translate-x-1 transition-transform duration-300" />
+                    <ArrowRight className="ml-2 h-4 w-4 transform group-hover:translate-x-1 transition-transform duration-400" />
                   </button>
                 </div>
               </div>
@@ -109,7 +109,7 @@ export function RecentAdventures() {
             {blogPosts.slice(1).map((post, index) => (
               <Card 
                 key={post.id}
-                className="group relative overflow-hidden rounded-2xl border-0 shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in-up"
+                className="group relative overflow-hidden rounded-2xl border border-rose-100/50 shadow-sm elegant-hover animate-fade-in-up timeline-card"
                 style={{ animationDelay: `${(index + 1) * 0.2}s` }}
               >
                 <div className="relative h-48">
@@ -142,7 +142,7 @@ export function RecentAdventures() {
                       </div>
                     </div>
                     
-                    <h3 className="font-display text-xl font-bold text-white mb-2 group-hover:text-blue-300 transition-colors duration-300">
+                    <h3 className="font-display text-xl font-light text-white mb-2 group-hover:text-rose-300 transition-colors duration-400 tracking-tight">
                       {post.title}
                     </h3>
                     
@@ -156,10 +156,10 @@ export function RecentAdventures() {
 
             {/* View All Button */}
             <div className="pt-4 animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
-              <button className="w-full glass-effect rounded-2xl p-6 text-center group hover:bg-white/10 transition-all duration-300">
-                <div className="flex items-center justify-center text-gray-700 font-semibold group-hover:text-blue-600 transition-colors duration-300">
+              <button className="w-full timeline-card rounded-2xl p-6 text-center group hover:bg-white/10 transition-all duration-400">
+                <div className="flex items-center justify-center text-gray-700 font-medium group-hover:text-rose-600 transition-colors duration-400">
                   View All Adventures
-                  <ArrowRight className="ml-2 h-4 w-4 transform group-hover:translate-x-1 transition-transform duration-300" />
+                  <ArrowRight className="ml-2 h-4 w-4 transform group-hover:translate-x-1 transition-transform duration-400" />
                 </div>
               </button>
             </div>

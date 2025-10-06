@@ -83,22 +83,21 @@ export function Hero() {
           {/* Badge */}
           <div className="mb-8 inline-flex items-center rounded-full bg-gray-50 px-4 py-2 text-body-medium text-airbnb-dark-gray border border-gray-200">
             <span className="mr-2">✨</span>
-            Share your travel stories with the world
+            Where shared stories become perfect plans
             <ArrowRight className="ml-2 h-4 w-4" />
           </div>
 
           {/* Main Heading */}
           <h1 className="text-display-large text-airbnb-black mb-6 leading-tight">
-            Your Travel Stories,{' '}
+            Share Your Journey,{' '}
             <span className="bg-gradient-to-r from-rausch-500 to-rausch-700 bg-clip-text text-transparent">
-              Beautifully Shared
+              Plan Your Next Adventure
             </span>
           </h1>
 
           {/* Subheading */}
           <p className="text-body-large text-airbnb-dark-gray mb-10 max-w-2xl mx-auto leading-relaxed">
-            Create stunning travel blogs, share with specific audiences, and keep your memories alive.
-            From family updates to professional portfolios — all in one place.
+            Transform your travel experiences into inspiring stories that help fellow travelers plan unforgettable trips. Share detailed timelines and discover your next destination through authentic community experiences.
           </p>
 
           {/* CTA Buttons */}
@@ -107,14 +106,14 @@ export function Hero() {
               href="/auth/signup"
               className="btn-primary px-8 py-4 text-body-large font-semibold rounded-airbnb-small w-full sm:w-auto hover:scale-105 transition-transform"
             >
-              Start Your Journey
+              Share Your Story
             </Link>
             <Link
-              href="#features"
+              href="/locations"
               className="btn-secondary px-8 py-4 text-body-large font-semibold rounded-airbnb-small w-full sm:w-auto flex items-center justify-center gap-2"
             >
               <Play className="h-4 w-4" />
-              Watch Demo
+              Plan Your Trip
             </Link>
           </div>
 
