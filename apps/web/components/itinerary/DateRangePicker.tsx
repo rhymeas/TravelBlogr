@@ -1,0 +1,181 @@
+'use client'
+
+/**
+ * Airbnb-style Date Range Picker
+ */
+
+import { useState } from 'react'
+import { DayPicker, DateRange } from 'react-day-picker'
+import { format } from 'date-fns'
+import 'react-day-picker/dist/style.css'
+
+interface DateRangePickerProps {
+  startDate?: Date
+  endDate?: Date
+  onSelect: (range: { startDate: Date; endDate: Date } | null) => void
+}
+
+export function DateRangePicker({ startDate, endDate, onSelect }: DateRangePickerProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [range, setRange] = useState<DateRange | undefined>({
+    from: startDate,
+    to: endDate
+  })
+
+  const handleSelect = (selectedRange: DateRange | undefined) => {
+    setRange(selectedRange)
+    // Don't close automatically - wait for user to click "Done"
+    if (selectedRange?.from && selectedRange?.to) {
+      onSelect({
+        startDate: selectedRange.from,
+        endDate: selectedRange.to
+      })
+    }
+  }
+
+  const displayText = range?.from && range?.to
+    ? `${format(range.from, 'MMM d')} - ${format(range.to, 'MMM d, yyyy')}`
+    : 'Select dates'
+
+  return (
+    <div className="relative">
+      {/* Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-4 py-3 text-left border border-gray-300 rounded-xl hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs font-semibold text-gray-700 mb-1">Dates</div>
+            <div className="text-sm text-gray-900">{displayText}</div>
+          </div>
+          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+      </button>
+
+      {/* Calendar Modal */}
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/20 z-40"
+            onClick={() => setIsOpen(false)}
+          />
+          
+          {/* Calendar */}
+          <div className="absolute top-full left-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 p-4">
+            <style jsx global>{`
+              .rdp {
+                --rdp-cell-size: 44px;
+                --rdp-accent-color: #000;
+                --rdp-background-color: #f7f7f7;
+                margin: 0;
+              }
+              .rdp-months {
+                justify-content: center;
+              }
+              .rdp-month {
+                margin: 0;
+              }
+              .rdp-caption {
+                display: flex;
+                justify-content: center;
+                padding: 0 0 1rem 0;
+                font-weight: 600;
+                font-size: 0.95rem;
+              }
+              .rdp-nav {
+                position: absolute;
+                top: 0;
+                width: 100%;
+                display: flex;
+                justify-content: space-between;
+              }
+              .rdp-nav_button {
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s;
+              }
+              .rdp-nav_button:hover {
+                background-color: #f7f7f7;
+              }
+              .rdp-head_cell {
+                font-weight: 600;
+                font-size: 0.75rem;
+                color: #6b7280;
+                text-transform: uppercase;
+              }
+              .rdp-cell {
+                padding: 2px;
+              }
+              .rdp-day {
+                border-radius: 50%;
+                font-size: 0.875rem;
+                transition: all 0.2s;
+              }
+              .rdp-day:hover:not(.rdp-day_selected) {
+                background-color: #f7f7f7;
+              }
+              .rdp-day_selected {
+                background-color: #000 !important;
+                color: white;
+                font-weight: 600;
+              }
+              .rdp-day_range_middle {
+                background-color: #f7f7f7 !important;
+                color: #000;
+                border-radius: 0;
+              }
+              .rdp-day_range_start {
+                border-radius: 50% 0 0 50% !important;
+              }
+              .rdp-day_range_end {
+                border-radius: 0 50% 50% 0 !important;
+              }
+              .rdp-day_disabled {
+                opacity: 0.3;
+              }
+            `}</style>
+            
+            <DayPicker
+              mode="range"
+              selected={range}
+              onSelect={handleSelect}
+              numberOfMonths={2}
+              disabled={{ before: new Date() }}
+              showOutsideDays={false}
+            />
+
+            <div className="flex justify-between items-center pt-4 border-t mt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setRange(undefined)
+                  onSelect(null)
+                }}
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 underline"
+              >
+                Clear dates
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 font-medium text-sm"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+

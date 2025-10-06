@@ -151,7 +151,7 @@ function LocationCard({ location }: { location: Location }) {
 
         {/* Content */}
         <div className="p-6">
-          <div className="mb-2">
+          <div className="mb-4">
             <h3 className="text-title-small text-airbnb-black font-semibold mb-1 group-hover:text-rausch-500 transition-colors">
               {location.name}
             </h3>
@@ -161,47 +161,46 @@ function LocationCard({ location }: { location: Location }) {
             </div>
           </div>
 
-      <CardContent className="pt-0 pb-3">
-        <p className="text-sm text-gray-600 line-clamp-2">
-          {location.description}
-        </p>
+          <p className="text-body-medium text-airbnb-dark-gray line-clamp-2 mb-4">
+            {location.description}
+          </p>
 
-        {/* Latest Post Preview */}
-        {latestPost && (
-          <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <Image
-                src={latestPost.author.avatar_url || '/default-avatar.png'}
-                alt={latestPost.author.name}
-                width={20}
-                height={20}
-                className="rounded-full"
-              />
-              <span className="text-xs text-gray-600">{latestPost.author.name}</span>
-              <span className="text-xs text-gray-400">•</span>
-              <span className="text-xs text-gray-400">
-                {new Date(latestPost.published_at).toLocaleDateString()}
-              </span>
+          {/* Latest Post Preview */}
+          {latestPost && (
+            <div className="mt-3 p-3 bg-gray-50 rounded-airbnb-small">
+              <div className="flex items-center gap-2 mb-2">
+                <Image
+                  src={latestPost.author.avatar_url || '/default-avatar.png'}
+                  alt={latestPost.author.name}
+                  width={20}
+                  height={20}
+                  className="rounded-full"
+                />
+                <span className="text-xs text-gray-600">{latestPost.author.name}</span>
+                <span className="text-xs text-gray-400">•</span>
+                <span className="text-xs text-gray-400">
+                  {new Date(latestPost.published_at).toLocaleDateString()}
+                </span>
+              </div>
+              <h4 className="text-sm font-medium text-gray-900 line-clamp-1">
+                {latestPost.title}
+              </h4>
+              <p className="text-xs text-gray-600 line-clamp-2 mt-1">
+                {latestPost.excerpt}
+              </p>
             </div>
-            <h4 className="text-sm font-medium text-gray-900 line-clamp-1">
-              {latestPost.title}
-            </h4>
-            <p className="text-xs text-gray-600 line-clamp-2 mt-1">
-              {latestPost.excerpt}
-            </p>
-          </div>
-        )}
-      </CardContent>
+          )}
 
-      <CardFooter className="pt-0">
-        <Link href={`/locations/${location.slug}`} className="w-full">
-          <Button className="w-full group-hover:bg-blue-600 transition-colors">
-            Explore Location
-            <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
-        </Link>
-      </CardFooter>
-    </Card>
+          {/* Action Button */}
+          <div className="mt-4">
+            <Button className="w-full group-hover:bg-rausch-500 transition-colors">
+              Explore Location
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Link>
   )
 }
 

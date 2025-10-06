@@ -3,12 +3,12 @@ import { ArrowRight, Check } from 'lucide-react'
 import Link from 'next/link'
 
 const features = [
-  'Unlimited trips and stories',
-  'Audience-specific sharing',
-  'Advanced privacy controls',
-  'Interactive maps and media',
-  'Real-time collaboration',
-  'Analytics and insights',
+  'Share detailed timeline stories',
+  'Plan trips with real recommendations',
+  'Connect with fellow travelers',
+  'Access authentic experiences',
+  'Save and organize trip ideas',
+  'Community-driven discovery',
 ]
 
 export function CTA() {
@@ -17,10 +17,10 @@ export function CTA() {
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Ready to transform how you share your travels?
+            Ready to Share & Discover?
           </h2>
           <p className="mt-6 text-lg leading-8 text-blue-100">
-            Join thousands of travelers who have already discovered the power of audience-specific sharing.
+            Join thousands of travelers sharing authentic experiences and planning amazing trips through our community. Your stories inspire others, their experiences guide your adventures.
           </p>
         </div>
         
@@ -50,18 +50,18 @@ export function CTA() {
                 
                 <div className="space-y-4">
                   <Button asChild size="lg" className="w-full bg-white text-blue-600 hover:bg-gray-100 group">
-                    <Link href="/auth/signup">
-                      Start Your Journey Today
-                      <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    <Link href="/auth/signup" className="flex items-center justify-center gap-2">
+                      <span>Share & Discover Today</span>
+                      <ArrowRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-1" />
                     </Link>
                   </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="lg" 
+
+                  <Button
+                    variant="outline"
+                    size="lg"
                     className="w-full border-white/30 text-white hover:bg-white/10"
                   >
-                    View Live Demo
+                    Explore Stories
                   </Button>
                 </div>
                 

@@ -22,27 +22,27 @@ export function NewsletterSignup() {
   }
 
   return (
-    <section className="py-24 px-6 relative overflow-hidden">
+    <section className="section-spacing px-6 relative overflow-hidden">
       {/* Aurora Background */}
       <div className="absolute inset-0 aurora-bg opacity-20" />
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-purple-900/20" />
 
       <div className="relative z-10 max-w-4xl mx-auto text-center">
-        <div className="glass-effect rounded-3xl p-12 md:p-16 animate-fade-in-up">
+        <div className="glass-premium rounded-3xl p-12 md:p-16 scroll-reveal">
           {!isSubmitted ? (
             <>
               {/* Header */}
               <div className="mb-10">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-rose-500 to-pink-500 rounded-full mb-6">
                   <Mail className="h-8 w-8 text-white" />
                 </div>
                 
-                <h2 className="font-display text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                <h2 className="font-display text-4xl md:text-5xl font-light text-gray-900 mb-6 tracking-tight">
                   Join the
-                  <span className="text-gradient block">Adventure</span>
+                  <span className="text-gradient-elegant block font-normal">Adventure</span>
                 </h2>
                 
-                <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed font-light">
                   Get exclusive travel stories, photography tips, and destination guides 
                   delivered straight to your inbox. No spam, just pure wanderlust.
                 </p>
@@ -62,10 +62,10 @@ export function NewsletterSignup() {
                     />
                   </div>
                   
-                  <Button
+                  <button
                     type="submit"
                     disabled={isLoading}
-                    className="h-14 px-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full font-semibold shadow-lg transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:transform-none"
+                    className="btn-luxury h-14 px-8 disabled:opacity-50 disabled:transform-none"
                   >
                     {isLoading ? (
                       <div className="flex items-center">
@@ -78,23 +78,23 @@ export function NewsletterSignup() {
                         <Send className="ml-2 h-5 w-5" />
                       </div>
                     )}
-                  </Button>
+                  </button>
                 </div>
               </form>
 
-              {/* Trust Indicators */}
+              {/* Enhanced Trust Indicators */}
               <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-gray-500">
-                <div className="flex items-center">
+                <div className="flex items-center glass-premium px-3 py-2 rounded-full">
                   <Check className="h-4 w-4 text-green-500 mr-2" />
-                  <span>No spam, ever</span>
+                  <span className="font-light">No spam, ever</span>
                 </div>
-                <div className="flex items-center">
+                <div className="flex items-center glass-premium px-3 py-2 rounded-full">
                   <Check className="h-4 w-4 text-green-500 mr-2" />
-                  <span>Unsubscribe anytime</span>
+                  <span className="font-light">Unsubscribe anytime</span>
                 </div>
-                <div className="flex items-center">
+                <div className="flex items-center glass-premium px-3 py-2 rounded-full">
                   <Check className="h-4 w-4 text-green-500 mr-2" />
-                  <span>5,000+ happy subscribers</span>
+                  <span className="font-light">5,000+ happy subscribers</span>
                 </div>
               </div>
             </>
@@ -105,12 +105,12 @@ export function NewsletterSignup() {
                 <Check className="h-8 w-8 text-white" />
               </div>
               
-              <h2 className="font-display text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+              <h2 className="font-display text-4xl md:text-5xl font-light text-gray-900 mb-6 tracking-tight">
                 Welcome to the
-                <span className="text-gradient block">Journey!</span>
+                <span className="text-gradient-elegant block font-normal">Journey!</span>
               </h2>
               
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed mb-8">
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed mb-8 font-light">
                 Thank you for subscribing! Check your inbox for a welcome message and 
                 get ready for amazing travel stories and exclusive content.
               </p>

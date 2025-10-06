@@ -6,6 +6,12 @@
   "installCommand": "npm install",
   "builds": [
     { "src": "apps/web/next.config.js", "use": "@vercel/next" }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/sync-weather",
+      "schedule": "0 */6 * * *"
+    }
   ]
 }
 

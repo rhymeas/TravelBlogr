@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import * as turf from '@turf/turf'
-import 'leaflet/dist/leaflet.css'
+// import 'leaflet/dist/leaflet.css' // Using shim instead
 
 // Fix for default markers in react-leaflet
 delete (Icon.Default.prototype as any)._getIconUrl

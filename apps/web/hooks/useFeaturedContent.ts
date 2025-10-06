@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import useSWR from 'swr'
+// import useSWR from 'swr' // Temporarily disabled until SWR is properly installed
 
 // Types for featured content
 export interface FeaturedTrip {
@@ -139,16 +139,42 @@ const fetcher = (url: string) => fetch(url).then(res => res.json())
 
 // Custom hook for featured content
 export function useFeaturedContent() {
-  const { data, error, isLoading, mutate } = useSWR<FeaturedContentResponse>(
-    '/api/featured',
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-      refreshInterval: 5 * 60 * 1000, // Refresh every 5 minutes
-      dedupingInterval: 2 * 60 * 1000, // Dedupe requests for 2 minutes
+  const [data, setData] = useState<FeaturedContentResponse | undefined>(undefined)
+  const [error, setError] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/featured')
+        if (!response.ok) throw new Error('Failed to fetch')
+        const result = await response.json()
+        setData(result)
+        setError(null)
+      } catch (err) {
+        setError(err)
+      } finally {
+        setIsLoading(false)
+      }
     }
-  )
+
+    fetchData()
+  }, [])
+
+  const mutate = () => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/api/featured')
+        if (!response.ok) throw new Error('Failed to fetch')
+        const result = await response.json()
+        setData(result)
+      } catch (err) {
+        setError(err)
+      }
+    }
+    fetchData()
+  }
 
   return {
     data,
@@ -174,16 +200,42 @@ export interface LandingStats {
 }
 
 export function useLandingStats() {
-  const { data, error, isLoading, mutate } = useSWR<LandingStats>(
-    '/api/stats/landing',
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-      refreshInterval: 5 * 60 * 1000, // Refresh every 5 minutes
-      dedupingInterval: 2 * 60 * 1000, // Dedupe requests for 2 minutes
+  const [data, setData] = useState<LandingStats | undefined>(undefined)
+  const [error, setError] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/stats/landing')
+        if (!response.ok) throw new Error('Failed to fetch')
+        const result = await response.json()
+        setData(result)
+        setError(null)
+      } catch (err) {
+        setError(err)
+      } finally {
+        setIsLoading(false)
+      }
     }
-  )
+
+    fetchData()
+  }, [])
+
+  const mutate = () => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/api/stats/landing')
+        if (!response.ok) throw new Error('Failed to fetch')
+        const result = await response.json()
+        setData(result)
+      } catch (err) {
+        setError(err)
+      }
+    }
+    fetchData()
+  }
 
   return {
     stats: data,
@@ -195,15 +247,42 @@ export function useLandingStats() {
 
 // Custom hook for CMS featured content management (admin only)
 export function useCMSFeaturedContent() {
-  const { data, error, isLoading, mutate } = useSWR(
-    '/api/cms/featured',
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-      refreshInterval: 10 * 60 * 1000, // Refresh every 10 minutes
+  const [data, setData] = useState<any>(undefined)
+  const [error, setError] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/cms/featured')
+        if (!response.ok) throw new Error('Failed to fetch')
+        const result = await response.json()
+        setData(result)
+        setError(null)
+      } catch (err) {
+        setError(err)
+      } finally {
+        setIsLoading(false)
+      }
     }
-  )
+
+    fetchData()
+  }, [])
+
+  const mutate = () => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/api/cms/featured')
+        if (!response.ok) throw new Error('Failed to fetch')
+        const result = await response.json()
+        setData(result)
+      } catch (err) {
+        setError(err)
+      }
+    }
+    fetchData()
+  }
 
   const updateFeaturedStatus = async (postId: string, action: 'feature' | 'unfeature') => {
     try {

@@ -12,7 +12,7 @@ import Map, {
 } from 'react-map-gl'
 import type { MapRef, ViewState } from 'react-map-gl'
 import { MapPin, Navigation } from 'lucide-react'
-import 'mapbox-gl/dist/mapbox-gl.css'
+// import 'mapbox-gl/dist/mapbox-gl.css' // Using shim instead
 
 interface Location {
   id: string

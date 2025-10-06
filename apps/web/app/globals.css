@@ -1,8 +1,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap');
+@import 'maplibre-gl/dist/maplibre-gl.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom utilities */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
 
 /* Modern Travel Blog Design System */
 @layer base {
@@ -15,11 +27,11 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Modern travel blog color palette */
+  /* Elegant rose/pink color palette */
   :root {
-    --color-primary: #2563EB;
-    --color-secondary: #7C3AED;
-    --color-accent: #F59E0B;
+    --color-primary: #f43f5e;
+    --color-secondary: #ec4899;
+    --color-accent: #f59e0b;
     --color-black: #1F2937;
     --color-dark-gray: #4B5563;
     --color-gray: #9CA3AF;
@@ -29,6 +41,12 @@
     --color-border: #E5E7EB;
     --color-border-light: #F3F4F6;
     --color-success: #10B981;
+    --color-rose-50: #fff1f2;
+    --color-pink-50: #fdf2f8;
+    --color-rose-100: #ffe4e6;
+    --color-pink-100: #fce7f3;
+    --color-rose-200: #fecdd3;
+    --color-pink-200: #fbcfe8;
 
     /* Spacing system */
     --spacing-1: 4px;
@@ -234,10 +252,10 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-gray-200;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-white text-gray-900;
   }
 }
 
@@ -344,6 +362,180 @@
   background-clip: text;
 }
 
+.text-gradient-elegant {
+  background: linear-gradient(135deg, #f43f5e 0%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Elegant design utilities */
+.bg-elegant {
+  background: linear-gradient(135deg, var(--color-rose-50) 0%, var(--color-pink-50) 100%);
+}
+
+.text-refined {
+  font-weight: 300;
+  letter-spacing: 0.025em;
+  line-height: 1.6;
+}
+
+.section-spacing {
+  padding: 6rem 0 8rem 0;
+}
+
+.elegant-hover {
+  transition: all 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.elegant-hover:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 20px 40px rgba(244, 63, 94, 0.15);
+}
+
+.backdrop-blur-elegant {
+  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.timeline-line {
+  background: linear-gradient(to bottom, #f43f5e, #ec4899, #f43f5e);
+}
+
+.timeline-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(244, 63, 94, 0.1);
+}
+
+/* Enhanced animations */
+@keyframes gentleFloat {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-8px) rotate(1deg); }
+  66% { transform: translateY(-4px) rotate(-1deg); }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes textShimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.animate-gentle-float {
+  animation: gentleFloat 8s ease-in-out infinite;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.6s ease-out;
+}
+
+.text-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(244, 63, 94, 0.4), transparent);
+  background-size: 200% 100%;
+  animation: textShimmer 3s ease-in-out infinite;
+}
+
+/* Scroll-triggered animations */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scroll-reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Enhanced glassmorphism */
+.glass-premium {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(244, 63, 94, 0.1);
+}
+
+/* Luxury card effects */
+.luxury-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(244, 63, 94, 0.1);
+  box-shadow: 
+    0 4px 20px rgba(244, 63, 94, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.luxury-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 
+    0 20px 40px rgba(244, 63, 94, 0.15),
+    0 8px 16px rgba(0, 0, 0, 0.1);
+  border-color: rgba(244, 63, 94, 0.2);
+}
+
+/* Sophisticated button styles */
+.btn-luxury {
+  background: linear-gradient(135deg, #f43f5e 0%, #ec4899 100%);
+  border: none;
+  border-radius: 50px;
+  padding: 16px 32px;
+  font-weight: 500;
+  font-size: 1rem;
+  color: white;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-luxury::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s;
+}
+
+.btn-luxury:hover::before {
+  left: 100%;
+}
+
+.btn-luxury:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 12px 24px rgba(244, 63, 94, 0.3);
+}
+
+/* Premium typography */
+.text-luxury {
+  background: linear-gradient(135deg, #1f2937 0%, #4b5563 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+}
+
+/* Elegant dividers */
+.divider-elegant {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(244, 63, 94, 0.3), transparent);
+  margin: 3rem 0;
+}
+
 /* Gradient backgrounds */
 .gradient-bg {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -372,4 +564,50 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--foreground));
+}
+
+/* MapLibre GL Custom Popup Styles */
+.maplibregl-popup-content {
+  padding: 0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  overflow: hidden !important;
+}
+
+.maplibregl-popup-close-button {
+  font-size: 22px !important;
+  padding: 8px 10px !important;
+  color: #6b7280 !important;
+  right: 6px !important;
+  top: 6px !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+}
+
+.maplibregl-popup-close-button:hover {
+  background-color: #f3f4f6 !important;
+  color: #1f2937 !important;
+  transform: scale(1.1) !important;
+}
+
+.maplibregl-popup-tip {
+  border-top-color: white !important;
+}
+
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: white !important;
+}
+
+.maplibregl-popup-anchor-top .maplibregl-popup-tip {
+  border-bottom-color: white !important;
+}
+
+/* Location marker styles */
+.location-marker {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Cluster marker */
+.cluster-marker {
+  font-family: 'Inter', sans-serif;
 }

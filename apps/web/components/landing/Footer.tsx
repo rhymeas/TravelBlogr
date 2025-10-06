@@ -38,11 +38,11 @@ export function Footer() {
           {/* Brand Section */}
           <div className="lg:col-span-1">
             <div className="mb-6">
-              <h3 className="font-display text-2xl font-bold mb-4">
+              <h3 className="font-display text-2xl font-light mb-4 tracking-tight">
                 Wanderlust
-                <span className="text-gradient block">Chronicles</span>
+                <span className="text-gradient-elegant block font-normal">Chronicles</span>
               </h3>
-              <p className="text-gray-400 leading-relaxed">
+              <p className="text-gray-400 leading-relaxed font-light">
                 Inspiring wanderlust through authentic stories, breathtaking photography, 
                 and genuine travel experiences from around the world.
               </p>
@@ -50,8 +50,8 @@ export function Footer() {
 
             {/* Location */}
             <div className="flex items-center text-gray-400 mb-6">
-              <MapPin className="h-4 w-4 mr-2 text-blue-400" />
-              <span className="text-sm">Currently exploring Southeast Asia</span>
+              <MapPin className="h-4 w-4 mr-2 text-rose-400" />
+              <span className="text-sm font-light">Currently exploring Southeast Asia</span>
             </div>
 
             {/* Social Links */}
@@ -71,7 +71,7 @@ export function Footer() {
 
           {/* Explore Links */}
           <div>
-            <h4 className="font-semibold text-lg mb-6">Explore</h4>
+            <h4 className="font-medium text-lg mb-6">Explore</h4>
             <ul className="space-y-3">
               {footerLinks.explore.map((link) => (
                 <li key={link.name}>
@@ -88,7 +88,7 @@ export function Footer() {
 
           {/* Connect Links */}
           <div>
-            <h4 className="font-semibold text-lg mb-6">Connect</h4>
+            <h4 className="font-medium text-lg mb-6">Connect</h4>
             <ul className="space-y-3">
               {footerLinks.connect.map((link) => (
                 <li key={link.name}>
@@ -105,8 +105,8 @@ export function Footer() {
 
           {/* Newsletter Signup */}
           <div>
-            <h4 className="font-semibold text-lg mb-6">Stay Updated</h4>
-            <p className="text-gray-400 text-sm mb-4">
+            <h4 className="font-medium text-lg mb-6">Stay Updated</h4>
+            <p className="text-gray-400 text-sm mb-4 font-light">
               Get the latest travel stories and photography tips delivered to your inbox.
             </p>
             <div className="flex">
@@ -115,7 +115,7 @@ export function Footer() {
                 placeholder="Your email"
                 className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-l-lg focus:outline-none focus:border-blue-500 text-sm"
               />
-              <button className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-r-lg transition-all duration-300 transform hover:scale-105">
+              <button className="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 rounded-r-lg transition-all duration-300 transform hover:scale-[1.02]">
                 <Mail className="h-4 w-4" />
               </button>
             </div>
@@ -149,7 +149,7 @@ export function Footer() {
       </div>
 
       {/* Decorative Elements */}
-      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600" />
+      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600" />
     </footer>
   )
 }
