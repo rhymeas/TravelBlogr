@@ -5,9 +5,10 @@
  */
 
 import React, { useState } from 'react'
-import { X, ChevronDown, ChevronRight, MapPin, Calendar, DollarSign, Utensils, Compass, ArrowRight, Hotel, Coffee } from 'lucide-react'
+import { X, ChevronDown, ChevronRight, MapPin, Calendar, DollarSign, Utensils, Compass, ArrowRight, Hotel, Coffee, Car, Train, Plane } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import Image from 'next/image'
+import { formatLocationDisplay } from '@/lib/utils/locationFormatter'
 
 interface ItineraryModalProps {
   itinerary: any
@@ -70,7 +71,7 @@ export function ItineraryModal({ itinerary, onClose }: ItineraryModalProps) {
       {/* Modal - Fixed height with internal scroll */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl h-[90vh] flex flex-col overflow-hidden"
+          className="relative bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
             {/* Close Button - Top Right Corner */}
@@ -85,37 +86,45 @@ export function ItineraryModal({ itinerary, onClose }: ItineraryModalProps) {
             {/* Scrollable Content Area */}
             <div className="flex-1 overflow-y-auto">
               {/* Header - Title */}
-              <div className="bg-white px-24 py-6 pt-8">
-                <div className="pr-24 mb-6">
-                  <h2 className="text-2xl font-semibold text-airbnb-black mb-3">
+              <div className="bg-white px-24 py-4 pt-6">
+                <div className="pr-24 mb-4">
+                  <h2 className="text-xl font-semibold text-airbnb-black mb-2">
                     {itinerary.title}
                   </h2>
-                  <p className="text-base text-airbnb-dark-gray leading-relaxed max-w-3xl">
+                  <p className="text-sm text-airbnb-dark-gray leading-relaxed max-w-3xl">
                     {itinerary.summary}
                   </p>
                 </div>
 
                 {/* Journey Route */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  {locationGroups.map((group: any, index: number) => (
-                    <React.Fragment key={index}>
-                      <div className="flex items-center gap-2 px-4 py-2.5 bg-teal-50 border border-teal-200 rounded-lg">
-                        <MapPin className="h-4 w-4 text-teal-600" />
-                        <span className="font-semibold text-airbnb-black">{group.location}</span>
-                        <span className="text-sm text-teal-700 font-medium">
-                          {group.days.length}d
-                        </span>
-                      </div>
-                      {index < locationGroups.length - 1 && (
-                        <ArrowRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                      )}
-                    </React.Fragment>
-                  ))}
+                  {locationGroups.map((group: any, index: number) => {
+                    const formatted = formatLocationDisplay(group.location)
+                    return (
+                      <React.Fragment key={index}>
+                        <div className="flex items-center gap-2 px-4 py-2.5 bg-teal-50 border border-teal-200 rounded-lg">
+                          <MapPin className="h-4 w-4 text-teal-600" />
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-airbnb-black">{formatted.main}</span>
+                            {formatted.secondary && (
+                              <span className="text-xs text-gray-500">({formatted.secondary})</span>
+                            )}
+                          </div>
+                          <span className="text-sm text-teal-700 font-medium">
+                            {group.days.length}d
+                          </span>
+                        </div>
+                        {index < locationGroups.length - 1 && (
+                          <ArrowRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                        )}
+                      </React.Fragment>
+                    )
+                  })}
                 </div>
               </div>
 
               {/* Stats - Sticky within scroll container */}
-              <div className="sticky top-0 bg-white border-y border-gray-200 px-24 py-4 z-10 shadow-sm">
+              <div className="sticky top-0 bg-blue-50 border-y border-blue-100 px-24 py-3 z-10 shadow-sm">
               <div className="grid grid-cols-4 gap-4">
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2 text-airbnb-gray mb-1">
@@ -172,6 +181,7 @@ export function ItineraryModal({ itinerary, onClose }: ItineraryModalProps) {
                     )
                     const activities = group.days.flatMap((d: any) => d.items.filter((i: any) => i.type === 'activity'))
                     const restaurants = group.days.flatMap((d: any) => d.items.filter((i: any) => i.type === 'meal'))
+                    const formatted = formatLocationDisplay(group.location)
 
                     return (
                       <div key={groupIndex} className="relative pl-20">
@@ -192,9 +202,14 @@ export function ItineraryModal({ itinerary, onClose }: ItineraryModalProps) {
                               <div className="flex-1">
                                 <div className="flex items-center justify-between mb-3">
                                   <div className="flex items-center gap-3">
-                                    <h3 className="text-2xl font-semibold text-airbnb-black">
-                                      {group.location}
-                                    </h3>
+                                    <div>
+                                      <h3 className="text-2xl font-semibold text-airbnb-black">
+                                        {formatted.main}
+                                      </h3>
+                                      {formatted.secondary && (
+                                        <p className="text-sm text-gray-500 mt-0.5">{formatted.secondary}</p>
+                                      )}
+                                    </div>
                                     <span className="px-3 py-1 bg-teal-50 text-teal-700 rounded-full text-sm font-medium">
                                       {group.days.length} {group.days.length === 1 ? 'day' : 'days'}
                                     </span>
@@ -240,9 +255,10 @@ export function ItineraryModal({ itinerary, onClose }: ItineraryModalProps) {
                                 <div className="absolute left-5 top-5 bottom-5 w-0.5 border-l-2 border-dotted border-gray-400"></div>
 
                                 {group.days.map((day: any, dayIndex: number) => {
-                                  // Separate activities and meals
-                                  const dayActivities = day.items.filter((item: any) => item.type === 'activity' || item.type === 'travel')
+                                  // Separate activities, meals, and travel
+                                  const dayActivities = day.items.filter((item: any) => item.type === 'activity')
                                   const dayMeals = day.items.filter((item: any) => item.type === 'meal')
+                                  const dayTravel = day.items.filter((item: any) => item.type === 'travel')
 
                                   return (
                                     <div key={dayIndex} className={`relative ${dayIndex > 0 ? 'mt-6 pt-6' : ''}`}>
@@ -253,20 +269,51 @@ export function ItineraryModal({ itinerary, onClose }: ItineraryModalProps) {
                                       <div className="absolute left-7 top-5 w-5 border-t-2 border-dotted border-gray-400"></div>
 
                                       <div className="pl-12">
-                                        <div className="flex items-center justify-between mb-5">
-                                          <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-airbnb-black text-white rounded-full flex items-center justify-center font-semibold text-sm shadow-sm">
-                                              {day.day}
+                                        {/* Only show day header if location has multiple days */}
+                                        {group.days.length > 1 && (
+                                          <div className="flex items-center justify-between mb-5">
+                                            <div className="flex items-center gap-3">
+                                              <div className="w-10 h-10 bg-airbnb-black text-white rounded-full flex items-center justify-center font-semibold text-sm shadow-sm">
+                                                {day.day}
+                                              </div>
+                                              <div>
+                                                <p className="font-semibold text-airbnb-black">Day {day.day}</p>
+                                              </div>
                                             </div>
-                                            <div>
-                                              <p className="font-semibold text-airbnb-black">Day {day.day}</p>
+                                            <div className="flex items-center gap-2 text-sm text-airbnb-gray pr-4">
+                                              <Calendar className="h-4 w-4" />
+                                              <span>{day.date}</span>
                                             </div>
                                           </div>
-                                          <div className="flex items-center gap-2 text-sm text-airbnb-gray pr-4">
-                                            <Calendar className="h-4 w-4" />
-                                            <span>{day.date}</span>
-                                          </div>
-                                        </div>
+                                        )}
+
+                                    {/* Travel Section - Only show if NOT a pure travel day */}
+                                    {/* Pure travel days already show route in location header */}
+                                    {dayTravel.length > 0 && day.type !== 'travel' && (
+                                      <div className="mb-5">
+                                        {dayTravel.map((item: any, itemIndex: number) => {
+                                          // Extract from/to from description or title
+                                          const travelMatch = item.description?.match(/from (.+?) to (.+?)[.]/i)
+                                          const fromLoc = travelMatch?.[1] || 'Start'
+                                          const toLoc = travelMatch?.[2] || 'Destination'
+
+                                          // Determine travel icon based on duration or description
+                                          const TravelIcon = item.duration > 4 ? Plane : item.duration > 2 ? Train : Car
+
+                                          return (
+                                            <div key={itemIndex} className="flex items-center gap-3 py-2">
+                                              <TravelIcon className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                                              <div className="flex-1 flex items-center gap-2 text-sm">
+                                                <span className="font-medium text-gray-700">{fromLoc}</span>
+                                                <ArrowRight className="h-4 w-4 text-gray-400" />
+                                                <span className="font-medium text-gray-700">{toLoc}</span>
+                                              </div>
+                                              <span className="text-xs text-gray-500">{item.duration}h</span>
+                                            </div>
+                                          )
+                                        })}
+                                      </div>
+                                    )}
 
                                     {/* Activities Section */}
                                     {dayActivities.length > 0 && (
@@ -387,23 +434,33 @@ export function ItineraryModal({ itinerary, onClose }: ItineraryModalProps) {
             </div>
 
             {/* Footer - Fixed at bottom */}
-            <div className="flex-shrink-0 bg-white border-t border-gray-200 px-24 py-6 flex items-center justify-between shadow-[0_-8px_16px_-4px_rgba(0,0,0,0.12)]">
+            <div className="flex-shrink-0 bg-white border-t border-gray-200 px-24 py-4 flex items-center justify-between shadow-[0_-8px_16px_-4px_rgba(0,0,0,0.12)]">
               <div className="text-sm text-airbnb-gray font-medium">
                 Generated {new Date(itinerary.createdAt).toLocaleDateString()}
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-3">
                 <Button
                   variant="outline"
                   onClick={onClose}
-                  className="px-8 py-3 text-base font-medium border-2 hover:bg-gray-50"
+                  className="px-6 py-3 text-base font-medium border-2 hover:bg-gray-50"
                 >
                   Back to Planning
                 </Button>
                 <Button
+                  variant="outline"
                   onClick={() => window.print()}
-                  className="bg-rausch-500 hover:bg-rausch-600 text-white px-8 py-3 text-base font-medium shadow-md hover:shadow-lg transition-shadow"
+                  className="px-6 py-3 text-base font-medium border-2 hover:bg-gray-50"
                 >
                   Download PDF
+                </Button>
+                <Button
+                  onClick={() => {
+                    // TODO: Check auth, then save trip
+                    console.log('Use this trip')
+                  }}
+                  className="bg-rausch-500 hover:bg-rausch-600 text-white px-8 py-3 text-base font-medium shadow-md hover:shadow-lg transition-shadow"
+                >
+                  Use This Trip
                 </Button>
               </div>
             </div>

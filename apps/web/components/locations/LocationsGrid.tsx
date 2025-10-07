@@ -6,9 +6,10 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/Card'
-import { 
-  MapPin, Star, Eye, Heart, Calendar, 
-  Users, Camera, Clock, ArrowRight 
+import { OptimizedImage } from '@/components/ui/OptimizedImage'
+import {
+  MapPin, Star, Eye, Heart, Calendar,
+  Users, Camera, Clock, ArrowRight
 } from 'lucide-react'
 
 interface Location {
@@ -110,10 +111,11 @@ function LocationCard({ location }: { location: Location }) {
       <div className="card-elevated hover:shadow-airbnb-large transition-all duration-300 overflow-hidden">
         {/* Featured Image */}
         <div className="relative aspect-[4/3] overflow-hidden">
-          <Image
+          <OptimizedImage
             src={location.featured_image || '/placeholder-location.jpg'}
             alt={location.name}
             fill
+            preset="card"
             className="object-cover group-hover:scale-105 transition-transform duration-500"
           />
 
@@ -212,10 +214,11 @@ function LocationListItem({ location }: { location: Location }) {
       <div className="flex">
         {/* Image */}
         <div className="relative w-48 h-32 flex-shrink-0">
-          <Image
+          <OptimizedImage
             src={location.featured_image || '/placeholder-location.jpg'}
             alt={location.name}
             fill
+            preset="thumbnail"
             className="object-cover rounded-l-lg"
           />
           

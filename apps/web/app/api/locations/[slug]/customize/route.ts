@@ -2,16 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase'
 
 /**
- * GET /api/locations/[locationId]/customize
+ * GET /api/locations/[slug]/customize
  * Get user's customization for a location
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { locationId: string } }
+  { params }: { params: { slug: string } }
 ) {
   try {
     const supabase = createServerSupabase()
-    
+
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -23,7 +23,7 @@ export async function GET(
       .from('user_locations')
       .select('*')
       .eq('user_id', user.id)
-      .eq('location_id', params.locationId)
+      .eq('location_id', params.slug)
       .maybeSingle()
 
     if (error) {
@@ -39,12 +39,12 @@ export async function GET(
 }
 
 /**
- * POST /api/locations/[locationId]/customize
+ * POST /api/locations/[slug]/customize
  * Create or update user's customization for a location
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { locationId: string } }
+  { params }: { params: { slug: string } }
 ) {
   try {
     const supabase = createServerSupabase()
@@ -81,7 +81,7 @@ export async function POST(
     const { data: location, error: locationError } = await supabase
       .from('locations')
       .select('id')
-      .eq('id', params.locationId)
+      .eq('id', params.slug)
       .single()
 
     if (locationError || !location) {
@@ -93,7 +93,7 @@ export async function POST(
       .from('user_locations')
       .upsert({
         user_id: user.id,
-        location_id: params.locationId,
+        location_id: params.slug,
         personal_notes: personalNotes,
         user_rating: userRating,
         is_wishlisted: isWishlisted ?? false,
@@ -118,7 +118,7 @@ export async function POST(
     if (isVisited) {
       await supabase.rpc('increment', {
         table_name: 'locations',
-        row_id: params.locationId,
+        row_id: params.slug,
         column_name: 'visit_count'
       })
     }
@@ -131,12 +131,12 @@ export async function POST(
 }
 
 /**
- * PATCH /api/locations/[locationId]/customize
+ * PATCH /api/locations/[slug]/customize
  * Partially update user's customization
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { locationId: string } }
+  { params }: { params: { slug: string } }
 ) {
   try {
     const supabase = createServerSupabase()
@@ -178,7 +178,7 @@ export async function PATCH(
       .from('user_locations')
       .update(updateData)
       .eq('user_id', user.id)
-      .eq('location_id', params.locationId)
+      .eq('location_id', params.slug)
       .select()
       .single()
 
@@ -195,16 +195,16 @@ export async function PATCH(
 }
 
 /**
- * DELETE /api/locations/[locationId]/customize
+ * DELETE /api/locations/[slug]/customize
  * Delete user's customization for a location
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { locationId: string } }
+  { params }: { params: { slug: string } }
 ) {
   try {
     const supabase = createServerSupabase()
-    
+
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -216,7 +216,7 @@ export async function DELETE(
       .from('user_locations')
       .delete()
       .eq('user_id', user.id)
-      .eq('location_id', params.locationId)
+      .eq('location_id', params.slug)
 
     if (deleteError) {
       console.error('Error deleting user location:', deleteError)

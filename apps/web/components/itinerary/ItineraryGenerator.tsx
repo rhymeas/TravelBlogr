@@ -12,6 +12,7 @@ import { LocationInput } from './LocationInput'
 import { DateRangePicker } from './DateRangePicker'
 import { TravelTimeSlider } from './TravelTimeSlider'
 import { ItineraryModal } from './ItineraryModal'
+import { RoutePreview } from './RoutePreview'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 
 export function ItineraryGenerator() {
@@ -19,11 +20,12 @@ export function ItineraryGenerator() {
   const [itinerary, setItinerary] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [ctaBottomOffset, setCtaBottomOffset] = useState(24) // 24px = bottom-6
+  const [resolvedLocations, setResolvedLocations] = useState<any[]>([])
 
-  // Multi-location state
+  // Multi-location state with resolved names
   const [locations, setLocations] = useState([
-    { id: '1', value: '' },
-    { id: '2', value: '' }
+    { id: '1', value: '', resolvedName: '' },
+    { id: '2', value: '', resolvedName: '' }
   ])
 
   // Date range state
@@ -94,13 +96,15 @@ export function ItineraryGenerator() {
     setItinerary(null)
 
     try {
-      // For now, use first and last location (API doesn't support multi-stop yet)
+      // Send all locations including stops
       const from = filledLocations[0].value
       const to = filledLocations[filledLocations.length - 1].value
+      const stops = filledLocations.slice(1, -1).map(loc => loc.value) // Middle locations
 
       const requestBody: any = {
         from,
         to,
+        stops, // Include all middle stops
         startDate: dateRange.startDate.toISOString().split('T')[0],
         endDate: dateRange.endDate.toISOString().split('T')[0],
         interests: formData.interests.split(',').map(i => i.trim()),
@@ -122,6 +126,7 @@ export function ItineraryGenerator() {
 
       if (data.success) {
         setItinerary(data.data)
+        setResolvedLocations(data.resolvedLocations || [])
       } else {
         // Show helpful error message
         let errorMsg = data.error || 'Failed to generate itinerary'
@@ -146,6 +151,13 @@ export function ItineraryGenerator() {
         <p className="text-gray-600">AI-powered itinerary in seconds</p>
       </div>
 
+      {/* Error Message - Above form */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+          <p className="text-red-800">{error}</p>
+        </div>
+      )}
+
       {/* Form - Separated Sections */}
       <div className="space-y-4 mb-6 pb-24">
         {/* Where to? */}
@@ -155,6 +167,13 @@ export function ItineraryGenerator() {
             locations={locations}
             onChange={setLocations}
           />
+
+          {/* Show route preview if we have resolved locations */}
+          {resolvedLocations.length > 0 && (
+            <div className="mt-4">
+              <RoutePreview locations={resolvedLocations} />
+            </div>
+          )}
         </div>
 
         {/* When? */}
@@ -229,13 +248,6 @@ export function ItineraryGenerator() {
         </div>
 
       </div>
-
-      {/* Error */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
-          <p className="text-red-800">{error}</p>
-        </div>
-      )}
 
       {/* Floating Sticky CTA Button */}
       <div

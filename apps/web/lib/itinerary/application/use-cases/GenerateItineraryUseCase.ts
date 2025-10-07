@@ -10,18 +10,27 @@ import { RouteCalculatorService } from '../services/RouteCalculatorService'
 import { GroqAIService } from '../services/GroqAIService'
 
 export interface GenerateItineraryCommand {
-  from: string // location slug
-  to: string // location slug
+  from: string // location slug or name
+  to: string // location slug or name
+  stops?: string[] // optional middle stops (slugs or names)
   startDate: string // ISO date
   endDate: string // ISO date
   interests?: string[]
   budget?: 'budget' | 'moderate' | 'luxury'
 }
 
+export interface ResolvedLocation {
+  userInput: string
+  resolvedName: string
+  country?: string
+  region?: string
+}
+
 export interface GenerateItineraryResult {
   success: boolean
   itinerary?: Itinerary
   error?: string
+  resolvedLocations?: ResolvedLocation[]
 }
 
 export class GenerateItineraryUseCase {
@@ -45,12 +54,12 @@ export class GenerateItineraryUseCase {
       // 1. Validate command
       this.validateCommand(command)
 
-      // 2. Calculate route and find stops
+      // 2. Calculate route with user-specified stops
       console.log('🛣️ Calculating route...')
-      const routeInfo = await this.routeCalculator.calculateRoute(
+      const routeInfo = await this.routeCalculator.calculateRouteWithStops(
         command.from,
         command.to,
-        3 // max 3 stops
+        command.stops || []
       )
 
       // 3. Calculate total days
@@ -68,11 +77,16 @@ export class GenerateItineraryUseCase {
         }
       }
 
-      const minDaysNeeded = 2 + routeInfo.stops.length + routeInfo.calculateTravelDays()
+      // Calculate minimum days: 1 day per location + travel days
+      // More lenient: allow short trips if distance is small
+      const travelDays = routeInfo.calculateTravelDays()
+      const numLocations = 2 + routeInfo.stops.length // from + to + stops
+      const minDaysNeeded = Math.max(2, numLocations + travelDays)
+
       if (totalDays < minDaysNeeded) {
         return {
           success: false,
-          error: `This route requires at least ${minDaysNeeded} days. Please extend your trip or choose closer locations.`
+          error: `This route requires at least ${minDaysNeeded} days (${numLocations} locations + ${travelDays} travel days). Please extend your trip or choose closer locations.`
         }
       }
 
@@ -119,11 +133,29 @@ export class GenerateItineraryUseCase {
         tips: aiResult.tips
       })
 
+      // 8. Build resolved locations list for transparency
+      const resolvedLocations: ResolvedLocation[] = [
+        {
+          userInput: command.from,
+          resolvedName: routeInfo.fromLocation
+        },
+        ...routeInfo.stops.map((stop, index) => ({
+          userInput: command.stops?.[index] || stop.name,
+          resolvedName: stop.name
+        })),
+        {
+          userInput: command.to,
+          resolvedName: routeInfo.toLocation
+        }
+      ]
+
       console.log('✅ Itinerary generated successfully!')
+      console.log('📍 Resolved locations:', resolvedLocations)
 
       return {
         success: true,
-        itinerary
+        itinerary,
+        resolvedLocations
       }
 
     } catch (error) {

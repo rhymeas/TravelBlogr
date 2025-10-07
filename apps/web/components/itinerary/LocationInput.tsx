@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Multi-location input with add/remove functionality
+ * Multi-location input with drag-and-drop reordering
  * A → B → C style
  */
 
@@ -19,6 +19,9 @@ interface LocationInputProps {
 }
 
 export function LocationInput({ locations, onChange }: LocationInputProps) {
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+
   const addLocation = () => {
     onChange([
       ...locations,
@@ -34,18 +37,71 @@ export function LocationInput({ locations, onChange }: LocationInputProps) {
 
   const updateLocation = (id: string, value: string) => {
     onChange(
-      locations.map(loc => 
+      locations.map(loc =>
         loc.id === id ? { ...loc, value } : loc
       )
     )
   }
 
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index)
+  }
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    setDragOverIndex(index)
+  }
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault()
+
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null)
+      setDragOverIndex(null)
+      return
+    }
+
+    const newLocations = [...locations]
+    const [draggedItem] = newLocations.splice(draggedIndex, 1)
+    newLocations.splice(dropIndex, 0, draggedItem)
+
+    onChange(newLocations)
+    setDraggedIndex(null)
+    setDragOverIndex(null)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null)
+    setDragOverIndex(null)
+  }
+
   return (
     <div className="space-y-3">
       {locations.map((location, index) => (
-        <div key={location.id} className="relative">
+        <div
+          key={location.id}
+          className="relative"
+          draggable
+          onDragStart={() => handleDragStart(index)}
+          onDragOver={(e) => handleDragOver(e, index)}
+          onDrop={(e) => handleDrop(e, index)}
+          onDragEnd={handleDragEnd}
+        >
           {/* Location Input */}
-          <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-3 transition-all ${
+            draggedIndex === index ? 'opacity-50 scale-95' : ''
+          } ${
+            dragOverIndex === index && draggedIndex !== index
+              ? 'border-2 border-dashed border-blue-400 rounded-lg p-2 -m-2'
+              : ''
+          }`}>
+            {/* Drag Handle */}
+            <div className="flex-shrink-0 cursor-grab active:cursor-grabbing">
+              <svg className="w-5 h-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+              </svg>
+            </div>
+
             {/* Icon */}
             <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
               {index === 0 ? (
@@ -94,7 +150,7 @@ export function LocationInput({ locations, onChange }: LocationInputProps) {
 
           {/* Connecting Line */}
           {index < locations.length - 1 && (
-            <div className="absolute left-5 top-10 w-0.5 h-6 bg-gray-200" />
+            <div className="absolute left-8 top-10 w-0.5 h-6 bg-gray-200" />
           )}
         </div>
       ))}

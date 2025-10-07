@@ -117,9 +117,25 @@ export class LocationDiscoveryService {
       .eq('slug', slug)
       .maybeSingle()
 
-    if (data) return data
+    if (data) {
+      console.log(`✅ Found exact slug match in DB: ${data.name}`)
+      return data
+    }
 
-    // Try name match
+    // Try exact name match (case-insensitive)
+    const { data: exactNameData } = await this.supabase
+      .from('locations')
+      .select('slug, name, country, latitude, longitude, description, featured_image')
+      .ilike('name', query)
+      .limit(1)
+      .maybeSingle()
+
+    if (exactNameData) {
+      console.log(`✅ Found exact name match in DB: ${exactNameData.name}`)
+      return exactNameData
+    }
+
+    // Try partial name match as last resort
     const { data: nameData, error: nameError } = await this.supabase
       .from('locations')
       .select('slug, name, country, latitude, longitude, description, featured_image')
@@ -127,7 +143,10 @@ export class LocationDiscoveryService {
       .limit(1)
       .maybeSingle()
 
-    if (nameData) return nameData
+    if (nameData) {
+      console.log(`✅ Found partial name match in DB: ${nameData.name}`)
+      return nameData
+    }
 
     return null
   }
@@ -136,24 +155,16 @@ export class LocationDiscoveryService {
    * Search GeoNames API for location
    * Free API, requires username (free registration at geonames.org)
    * Falls back to Nominatim (OSM) if GeoNames fails
+   *
+   * IMPORTANT: Nominatim (OSM) is more accurate for regions, parks, and non-city locations
+   * So we try Nominatim FIRST for better results
    */
   private async searchGeoNames(query: string): Promise<GeoNamesResult | null> {
     try {
-      // Try GeoNames first (20,000 requests/day)
-      const username = process.env.GEONAMES_USERNAME || 'demo'
-      const geoNamesUrl = `http://api.geonames.org/searchJSON?q=${encodeURIComponent(query)}&maxRows=1&username=${username}&featureClass=P&orderby=population`
-
-      const geoNamesResponse = await fetch(geoNamesUrl)
-      const geoNamesData = await geoNamesResponse.json()
-
-      if (geoNamesData.geonames && geoNamesData.geonames.length > 0) {
-        console.log(`✅ GeoNames found: ${geoNamesData.geonames[0].name}`)
-        return geoNamesData.geonames[0]
-      }
-
-      // Fallback to Nominatim (OSM) - 1 request/sec limit
-      console.log(`🔄 Falling back to Nominatim for: ${query}`)
-      const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1`
+      // Try Nominatim FIRST (OSM) - it's better for regions, parks, and specific places
+      // 1 request/sec limit, but more accurate
+      console.log(`🔍 Searching Nominatim (OSM) for: ${query}`)
+      const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=3&addressdetails=1`
 
       const nominatimResponse = await fetch(nominatimUrl, {
         headers: {
@@ -163,19 +174,74 @@ export class LocationDiscoveryService {
       const nominatimData = await nominatimResponse.json()
 
       if (nominatimData && nominatimData.length > 0) {
-        const place = nominatimData[0]
-        console.log(`✅ Nominatim found: ${place.display_name}`)
+        // Try to find the best match from Nominatim results
+        let bestMatch = nominatimData[0]
+
+        // Prefer exact name matches or specific place types
+        for (const place of nominatimData) {
+          const displayName = place.display_name.toLowerCase()
+          const queryLower = query.toLowerCase()
+
+          // Check if this is a better match
+          if (
+            place.name?.toLowerCase() === queryLower || // Exact name match
+            displayName.includes('national park') || // National parks
+            displayName.includes('regional district') || // Regional districts
+            place.type === 'administrative' || // Administrative regions
+            place.type === 'national_park' // Parks
+          ) {
+            bestMatch = place
+            break
+          }
+        }
+
+        console.log(`✅ Nominatim found: ${bestMatch.display_name} (type: ${bestMatch.type})`)
+
+        // Use the most appropriate name
+        const name = bestMatch.name ||
+                    bestMatch.address?.city ||
+                    bestMatch.address?.town ||
+                    bestMatch.address?.village ||
+                    bestMatch.address?.county ||
+                    bestMatch.address?.state ||
+                    query
 
         // Convert Nominatim format to GeoNames format
         return {
-          geonameId: parseInt(place.place_id),
-          name: place.address?.city || place.address?.town || place.address?.village || place.name,
-          lat: place.lat,
-          lng: place.lon,
-          countryName: place.address?.country || 'Unknown',
-          adminName1: place.address?.state || place.address?.region,
+          geonameId: parseInt(bestMatch.place_id),
+          name: name,
+          lat: bestMatch.lat,
+          lng: bestMatch.lon,
+          countryName: bestMatch.address?.country || 'Unknown',
+          adminName1: bestMatch.address?.state || bestMatch.address?.region,
           population: 0
         }
+      }
+
+      // Fallback to GeoNames if Nominatim fails
+      console.log(`🔄 Falling back to GeoNames for: ${query}`)
+      const username = process.env.GEONAMES_USERNAME || 'demo'
+      const geoNamesUrl = `http://api.geonames.org/searchJSON?q=${encodeURIComponent(query)}&maxRows=5&username=${username}&isNameRequired=true`
+
+      const geoNamesResponse = await fetch(geoNamesUrl)
+      const geoNamesData = await geoNamesResponse.json()
+
+      // If we got results, try to find the best match
+      if (geoNamesData.geonames && geoNamesData.geonames.length > 0) {
+        // Prefer exact name matches
+        const exactMatch = geoNamesData.geonames.find((g: any) =>
+          g.name.toLowerCase() === query.toLowerCase() ||
+          g.toponymName?.toLowerCase() === query.toLowerCase()
+        )
+
+        if (exactMatch) {
+          console.log(`✅ GeoNames exact match: ${exactMatch.name} (${exactMatch.fcodeName})`)
+          return exactMatch
+        }
+
+        // Otherwise take the first result
+        console.log(`✅ GeoNames found: ${geoNamesData.geonames[0].name} (${geoNamesData.geonames[0].fcodeName})`)
+        return geoNamesData.geonames[0]
       }
 
       console.log(`❌ Location not found in any API: ${query}`)
