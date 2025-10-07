@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import { 
-  Heart, 
-  Bookmark, 
-  Plus, 
-  Check, 
-  StickyNote, 
+import { useState, useEffect } from 'react'
+import {
+  Heart,
+  Bookmark,
+  Plus,
+  Check,
+  StickyNote,
   Star,
   MapPin,
   Calendar
@@ -22,9 +22,9 @@ interface AuthenticatedLocationActionsProps {
   locationName: string
 }
 
-export function AuthenticatedLocationActions({ 
-  locationId, 
-  locationName 
+export function AuthenticatedLocationActions({
+  locationId,
+  locationName
 }: AuthenticatedLocationActionsProps) {
   const { isAuthenticated } = useAuth()
   const [isWishlisted, setIsWishlisted] = useState(false)
@@ -33,6 +33,8 @@ export function AuthenticatedLocationActions({
   const [notes, setNotes] = useState('')
   const [userRating, setUserRating] = useState(0)
   const [showTripSelector, setShowTripSelector] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
   // Mock user trips for demo
   const userTrips = [
@@ -41,28 +43,103 @@ export function AuthenticatedLocationActions({
     { id: '3', title: 'Food Tour Asia', status: 'published' }
   ]
 
+  // Load user's customization on mount
+  useEffect(() => {
+    if (isAuthenticated && locationId) {
+      loadCustomization()
+    }
+  }, [isAuthenticated, locationId])
+
+  const loadCustomization = async () => {
+    try {
+      const response = await fetch(`/api/locations/${locationId}/customize`)
+      const data = await response.json()
+
+      if (response.ok && data.customization) {
+        const custom = data.customization
+        setIsWishlisted(custom.is_wishlisted || false)
+        setIsVisited(custom.is_visited || false)
+        setNotes(custom.personal_notes || '')
+        setUserRating(custom.user_rating || 0)
+      }
+    } catch (error) {
+      console.error('Error loading customization:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const saveCustomization = async (updates: any) => {
+    setSaving(true)
+    try {
+      const response = await fetch(`/api/locations/${locationId}/customize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save')
+      }
+
+      return true
+    } catch (error) {
+      console.error('Error saving customization:', error)
+      toast.error('Failed to save changes')
+      return false
+    } finally {
+      setSaving(false)
+    }
+  }
+
   if (!isAuthenticated) {
     return null
   }
 
-  const handleWishlist = () => {
-    setIsWishlisted(!isWishlisted)
-    toast.success(isWishlisted ? 'Removed from wishlist' : 'Added to wishlist')
+  const handleWishlist = async () => {
+    const newValue = !isWishlisted
+    setIsWishlisted(newValue)
+
+    const success = await saveCustomization({ isWishlisted: newValue })
+    if (success) {
+      toast.success(newValue ? 'Added to wishlist' : 'Removed from wishlist')
+    } else {
+      setIsWishlisted(!newValue) // Revert on failure
+    }
   }
 
-  const handleVisited = () => {
-    setIsVisited(!isVisited)
-    toast.success(isVisited ? 'Marked as not visited' : 'Marked as visited')
+  const handleVisited = async () => {
+    const newValue = !isVisited
+    setIsVisited(newValue)
+
+    const success = await saveCustomization({
+      isVisited: newValue,
+      visitDate: newValue ? new Date().toISOString() : null
+    })
+
+    if (success) {
+      toast.success(newValue ? 'Marked as visited' : 'Marked as not visited')
+    } else {
+      setIsVisited(!newValue) // Revert on failure
+    }
   }
 
-  const handleSaveNotes = () => {
-    toast.success('Notes saved successfully')
-    setShowNotes(false)
+  const handleSaveNotes = async () => {
+    const success = await saveCustomization({ personalNotes: notes })
+    if (success) {
+      toast.success('Notes saved successfully')
+      setShowNotes(false)
+    }
   }
 
-  const handleRating = (rating: number) => {
+  const handleRating = async (rating: number) => {
     setUserRating(rating)
-    toast.success(`Rated ${rating} stars`)
+    const success = await saveCustomization({ userRating: rating })
+    if (success) {
+      toast.success(`Rated ${rating} stars`)
+    } else {
+      setUserRating(0) // Revert on failure
+    }
   }
 
   const handleAddToTrip = (tripId: string, tripTitle: string) => {

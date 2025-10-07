@@ -150,11 +150,9 @@ export default async function SubdomainPage({ params, searchParams }: SubdomainP
 
   // Verify password if provided
   if (requiresPassword && providedPassword) {
-    // TODO: Install bcryptjs package for password verification
-    // const bcrypt = await import('bcryptjs')
-    // const isValidPassword = await bcrypt.compare(providedPassword, shareLink.settings.passwordHash)
-    const isValidPassword = providedPassword === 'demo' // Temporary demo password
-    
+    const bcrypt = await import('bcryptjs')
+    const isValidPassword = await bcrypt.compare(providedPassword, shareLink.settings.passwordHash)
+
     if (!isValidPassword) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">

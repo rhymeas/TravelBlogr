@@ -10,6 +10,7 @@ import {
 import { FeedPost as FeedPostType } from '@/lib/data/feedData'
 import { Button } from '@/components/ui/Button'
 import toast from 'react-hot-toast'
+import { PostCommentsModal } from './PostCommentsModal'
 
 interface FeedPostProps {
   post: FeedPostType
@@ -26,6 +27,7 @@ export function FeedPost({ post, onLike, onBookmark, onComment, showFollowButton
   const [showLikeAnimation, setShowLikeAnimation] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isFollowing, setIsFollowing] = useState(false)
+  const [showCommentsModal, setShowCommentsModal] = useState(false)
 
   const handleLike = () => {
     setIsLiked(!isLiked)
@@ -203,8 +205,11 @@ export function FeedPost({ post, onLike, onBookmark, onComment, showFollowButton
                 className={`w-6 h-6 ${isLiked ? 'text-red-500 fill-current' : 'text-gray-700'}`}
               />
             </button>
-            <button 
-              onClick={() => onComment?.(post.id)}
+            <button
+              onClick={() => {
+                setShowCommentsModal(true)
+                onComment?.(post.id)
+              }}
               className="hover:scale-110 transition-transform"
             >
               <MessageCircle className="w-6 h-6 text-gray-700" />
@@ -236,8 +241,11 @@ export function FeedPost({ post, onLike, onBookmark, onComment, showFollowButton
 
         {/* Comments */}
         {post.comments > 0 && (
-          <button 
-            onClick={() => onComment?.(post.id)}
+          <button
+            onClick={() => {
+              setShowCommentsModal(true)
+              onComment?.(post.id)
+            }}
             className="text-sm text-gray-500 mb-2 hover:text-gray-700"
           >
             View all {post.comments} comments
@@ -250,6 +258,16 @@ export function FeedPost({ post, onLike, onBookmark, onComment, showFollowButton
           <span>{post.timeAgo}</span>
         </div>
       </div>
+
+      {/* Comments Modal */}
+      <PostCommentsModal
+        postId={post.id}
+        postOwnerId={post.user.id}
+        postCaption={post.caption}
+        postAuthor={post.user.username}
+        isOpen={showCommentsModal}
+        onClose={() => setShowCommentsModal(false)}
+      />
     </article>
   )
 }
