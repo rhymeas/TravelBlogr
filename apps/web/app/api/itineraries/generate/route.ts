@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
     const result = await useCase.execute({
       from: body.from,
       to: body.to,
+      stops: body.stops || [], // Include stops if provided
       startDate: body.startDate,
       endDate: body.endDate,
       interests: body.interests || [],
@@ -65,6 +66,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: result.itinerary?.toJSON(),
+      resolvedLocations: result.resolvedLocations || [],
       meta: {
         generationTimeMs: generationTime,
         generatedAt: new Date().toISOString()

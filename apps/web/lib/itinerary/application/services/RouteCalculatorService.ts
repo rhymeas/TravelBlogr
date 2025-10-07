@@ -15,7 +15,69 @@ export class RouteCalculatorService {
   }
 
   /**
-   * Calculate route from origin to destination
+   * Calculate route with user-specified stops
+   */
+  async calculateRouteWithStops(
+    fromSlug: string,
+    toSlug: string,
+    stopSlugs: string[]
+  ): Promise<RouteInfo> {
+    console.log(`🛣️ Calculating route: ${fromSlug} → ${stopSlugs.join(' → ')} → ${toSlug}`)
+
+    // 1. Find or create all locations
+    const [fromLocation, toLocation, ...stopLocations] = await Promise.all([
+      this.discoveryService.findOrCreateLocation(fromSlug),
+      this.discoveryService.findOrCreateLocation(toSlug),
+      ...stopSlugs.map(slug => this.discoveryService.findOrCreateLocation(slug))
+    ])
+
+    if (!fromLocation) {
+      throw new Error(`Could not find or create origin location: ${fromSlug}`)
+    }
+
+    if (!toLocation) {
+      throw new Error(`Could not find or create destination location: ${toSlug}`)
+    }
+
+    // Filter out any null stops
+    const validStops = stopLocations.filter(loc => loc !== null)
+
+    console.log(`✅ Locations resolved: ${fromLocation.name} → ${validStops.map(s => s!.name).join(' → ')} → ${toLocation.name}`)
+
+    // 2. Calculate total distance through all stops
+    const allLocations = [fromLocation, ...validStops, toLocation]
+    let totalDistance = 0
+
+    for (let i = 0; i < allLocations.length - 1; i++) {
+      const dist = this.locationRepo.calculateDistance(
+        { latitude: allLocations[i]!.latitude, longitude: allLocations[i]!.longitude },
+        { latitude: allLocations[i + 1]!.latitude, longitude: allLocations[i + 1]!.longitude }
+      )
+      totalDistance += dist
+    }
+
+    // 3. Convert stops to StopLocation format
+    const stops: StopLocation[] = validStops.map(stop => ({
+      name: stop!.name,
+      slug: stop!.slug,
+      latitude: stop!.latitude,
+      longitude: stop!.longitude
+    }))
+
+    // 4. Estimate travel duration (average 60 km/h)
+    const estimatedDuration = totalDistance / 60
+
+    return new RouteInfo(
+      fromLocation.name,
+      toLocation.name,
+      totalDistance,
+      estimatedDuration,
+      stops
+    )
+  }
+
+  /**
+   * Calculate route from origin to destination (legacy - auto-finds stops)
    * Now supports ANY location - will auto-create if not in database
    */
   async calculateRoute(
