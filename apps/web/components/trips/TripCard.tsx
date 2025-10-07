@@ -3,21 +3,23 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
-import { 
-  MapPin, 
-  Calendar, 
-  Share2, 
-  MoreVertical, 
-  Edit, 
-  Trash2, 
+import {
+  MapPin,
+  Calendar,
+  Share2,
+  MoreVertical,
+  Edit,
+  Trash2,
   Eye,
   Users,
   Globe,
   Heart,
-  Briefcase
+  Briefcase,
+  Copy
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardFooter } from '@/components/ui/Card'
+import { DuplicateTripButton } from './DuplicateTripButton'
 
 interface Trip {
   id: string
@@ -43,6 +45,9 @@ interface TripCardProps {
 export function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
   const [showMenu, setShowMenu] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false)
+  const [isDuplicating, setIsDuplicating] = useState(false)
+  const [newTitle, setNewTitle] = useState(`${trip.title} (Copy)`)
 
   const statusColors = {
     draft: 'bg-yellow-100 text-yellow-800',
@@ -74,6 +79,38 @@ export function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
       alert('Failed to delete trip')
     } finally {
       setIsDeleting(false)
+    }
+  }
+
+  const handleDuplicate = async () => {
+    if (!newTitle.trim()) {
+      alert('Please enter a title for the duplicated trip')
+      return
+    }
+
+    setIsDuplicating(true)
+    try {
+      const response = await fetch(`/api/trips/${trip.id}/duplicate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ newTitle: newTitle.trim() })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to duplicate trip')
+      }
+
+      setShowDuplicateModal(false)
+      window.location.reload() // Refresh to show new trip
+    } catch (error) {
+      console.error('Error duplicating trip:', error)
+      alert(error instanceof Error ? error.message : 'Failed to duplicate trip')
+    } finally {
+      setIsDuplicating(false)
     }
   }
 
@@ -143,6 +180,16 @@ export function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Trip
                   </Link>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false)
+                      setShowDuplicateModal(true)
+                    }}
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Duplicate Trip
+                  </button>
                   <button
                     onClick={() => {
                       setShowMenu(false)
@@ -230,6 +277,61 @@ export function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
           className="fixed inset-0 z-0"
           onClick={() => setShowMenu(false)}
         />
+      )}
+
+      {/* Duplicate Modal */}
+      {showDuplicateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              Duplicate Trip
+            </h2>
+
+            <p className="text-gray-600 mb-4">
+              This will create a copy of "{trip.title}" in your account.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="newTitle" className="block text-sm font-medium text-gray-700 mb-1">
+                  New Trip Title
+                </label>
+                <input
+                  id="newTitle"
+                  type="text"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="Enter title for duplicated trip"
+                  disabled={isDuplicating}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDuplicateModal(false)}
+                  disabled={isDuplicating}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleDuplicate}
+                  disabled={isDuplicating || !newTitle.trim()}
+                >
+                  {isDuplicating ? (
+                    <>Duplicating...</>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Duplicate
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </Card>
   )

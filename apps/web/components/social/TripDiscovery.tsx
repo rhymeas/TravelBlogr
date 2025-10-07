@@ -12,6 +12,7 @@ import { formatDistanceToNow } from 'date-fns'
 import Fuse from 'fuse.js'
 import { useInView } from 'react-intersection-observer'
 import toast from 'react-hot-toast'
+import { DuplicateTripButton } from '@/components/trips/DuplicateTripButton'
 
 interface Trip {
   id: string
@@ -533,13 +534,22 @@ export function TripDiscovery({ currentUserId, className = '' }: TripDiscoveryPr
                       </span>
                     </div>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewTrip(trip.id)}
-                    >
-                      View Trip
-                    </Button>
+                    <div className="flex gap-2">
+                      <DuplicateTripButton
+                        tripId={trip.id}
+                        tripTitle={trip.title}
+                        variant="outline"
+                        size="sm"
+                        showIcon={false}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewTrip(trip.id)}
+                      >
+                        View Trip
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>

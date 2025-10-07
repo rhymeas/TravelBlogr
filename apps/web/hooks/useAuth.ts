@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientSupabase } from '@/lib/supabase'
 import type { User, Session } from '@supabase/supabase-js'
+import { autoMigrateOnLogin } from '@/lib/services/guestMigrationService'
 
 interface Profile {
   id: string
@@ -151,6 +152,15 @@ export const useAuth = () => {
       })
 
       console.log('Authentication state updated successfully')
+
+      // Auto-migrate guest trips if any exist
+      try {
+        await autoMigrateOnLogin(mockUser.id)
+      } catch (migrationError) {
+        console.error('Guest trip migration failed:', migrationError)
+        // Don't fail the login if migration fails
+      }
+
       return { success: true, data: { user: mockUser, session: mockSession } }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'An error occurred'

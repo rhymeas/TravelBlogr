@@ -5,6 +5,7 @@ import { MapPin, Calendar, Share2, Download, Heart, Eye } from 'lucide-react'
 import { TripMap } from '@/components/maps/TripMap'
 import { Button } from '@/components/ui/Button'
 import { formatDistanceToNow } from 'date-fns'
+import { TripCommentSection } from '@/components/comments/TripCommentSection'
 
 interface SharedTripViewProps {
   shareLink: any
@@ -349,6 +350,18 @@ export function SharedTripView({ shareLink, trip, subdomain }: SharedTripViewPro
           </div>
         </div>
       </main>
+
+      {/* Comments Section */}
+      {settings.showComments !== false && (
+        <section className="max-w-4xl mx-auto px-4 py-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Comments</h2>
+          <TripCommentSection
+            tripId={trip.id}
+            tripOwnerId={trip.user_id}
+            className="bg-white rounded-lg shadow-sm p-6"
+          />
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="bg-gray-50 border-t mt-12">
