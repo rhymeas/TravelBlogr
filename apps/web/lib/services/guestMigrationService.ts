@@ -88,18 +88,18 @@ export async function migrateGuestTrips(
         continue
       }
 
-      // If trip has itinerary data, save it
-      if (guestTrip.itinerary && newTrip) {
-        const { error: itineraryError } = await supabase
-          .from('trip_itinerary')
+      // If trip has plan data, save it
+      if (guestTrip.plan && newTrip) {
+        const { error: planError } = await supabase
+          .from('trip_plan')
           .insert({
             trip_id: newTrip.id,
             user_id: userId,
-            itinerary_data: guestTrip.itinerary,
+            plan_data: guestTrip.plan,
           })
 
-        if (itineraryError) {
-          console.warn(`⚠️  Could not save itinerary for "${guestTrip.title}"`)
+        if (planError) {
+          console.warn(`⚠️  Could not save plan for "${guestTrip.title}"`)
         }
       }
 

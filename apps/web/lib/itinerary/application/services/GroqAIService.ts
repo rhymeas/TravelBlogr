@@ -1,10 +1,10 @@
 /**
  * Application Service: GroqAIService
- * Handles AI-powered itinerary generation using Groq
+ * Handles AI-powered plan generation using Groq
  */
 
 import Groq from 'groq-sdk'
-import { ItineraryDay } from '../../domain/entities/Itinerary'
+import { planDay } from '../../domain/entities/plan'
 
 export interface AIGenerationContext {
   fromLocation: string
@@ -26,7 +26,7 @@ export interface AIGenerationContext {
 export interface AIGenerationResult {
   title: string
   summary: string
-  days: ItineraryDay[]
+  days: planDay[]
   totalCostEstimate: number
   tips: string[]
 }
@@ -42,9 +42,9 @@ export class GroqAIService {
   }
 
   /**
-   * Generate itinerary using Groq AI with retry logic
+   * Generate plan using Groq AI with retry logic
    */
-  async generateItinerary(
+  async generateplan(
     context: AIGenerationContext,
     startDate: string
   ): Promise<AIGenerationResult> {
@@ -66,11 +66,11 @@ export class GroqAIService {
       }
     }
 
-    throw lastError || new Error('Failed to generate itinerary after retries')
+    throw lastError || new Error('Failed to generate plan after retries')
   }
 
   /**
-   * Single attempt to generate itinerary
+   * Single attempt to generate plan
    */
   private async attemptGeneration(
     context: AIGenerationContext,
@@ -163,7 +163,7 @@ Be specific with times and durations. Consider travel time between activities.`
       if (!result.totalCostEstimate) result.totalCostEstimate = 0
       if (!result.tips || !Array.isArray(result.tips)) result.tips = []
 
-      console.log(`✅ Validated itinerary: ${result.days.length} days, ${result.days.reduce((sum: number, d: any) => sum + (d.items?.length || 0), 0)} items`)
+      console.log(`✅ Validated plan: ${result.days.length} days, ${result.days.reduce((sum: number, d: any) => sum + (d.items?.length || 0), 0)} items`)
 
       return result as AIGenerationResult
 
@@ -190,7 +190,7 @@ Be specific with times and durations. Consider travel time between activities.`
       ? context.interests.join(', ') 
       : 'general sightseeing'
 
-    return `Create a ${context.totalDays}-day travel itinerary from ${context.fromLocation} to ${context.toLocation}.
+    return `Create a ${context.totalDays}-day travel plan from ${context.fromLocation} to ${context.toLocation}.
 
 ROUTE INFORMATION:
 - Distance: ${Math.round(context.routeDistance)} km
@@ -277,7 +277,7 @@ IMPORTANT:
 - Don't schedule more than 8-9 hours of activities per day
 - Leave buffer time for rest and spontaneous exploration
 
-Generate the itinerary now:`
+Generate the plan now:`
   }
 }
 

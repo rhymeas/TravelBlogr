@@ -1,15 +1,18 @@
 /**
- * Application Use Case: GenerateItineraryUseCase
- * Orchestrates the itinerary generation process
+ * Application Use Case: GenerateplanUseCase
+ * Orchestrates the plan generation process
  * Follows Clean Architecture principles
+ *
+ * Features intelligent database-backed caching to reduce Groq API calls
  */
 
-import { Itinerary } from '../../domain/entities/Itinerary'
+import { plan as Plan } from '../../domain/entities/Itinerary'
 import { LocationRepository } from '../../infrastructure/repositories/LocationRepository'
 import { RouteCalculatorService } from '../services/RouteCalculatorService'
 import { GroqAIService } from '../services/GroqAIService'
+import { cachedItineraryRepository, CacheKey } from '../../infrastructure/repositories/CachedItineraryRepository'
 
-export interface GenerateItineraryCommand {
+export interface GenerateplanCommand {
   from: string // location slug or name
   to: string // location slug or name
   stops?: string[] // optional middle stops (slugs or names)
@@ -17,6 +20,7 @@ export interface GenerateItineraryCommand {
   endDate: string // ISO date
   interests?: string[]
   budget?: 'budget' | 'moderate' | 'luxury'
+  forceRefresh?: boolean // Force regeneration, bypass cache
 }
 
 export interface ResolvedLocation {
@@ -26,14 +30,15 @@ export interface ResolvedLocation {
   region?: string
 }
 
-export interface GenerateItineraryResult {
+export interface GenerateplanResult {
   success: boolean
-  itinerary?: Itinerary
+  plan?: Plan
   error?: string
   resolvedLocations?: ResolvedLocation[]
+  locationImages?: Record<string, string> // Map of location name to featured image URL
 }
 
-export class GenerateItineraryUseCase {
+export class GenerateplanUseCase {
   private locationRepo: LocationRepository
   private routeCalculator: RouteCalculatorService
   private aiService: GroqAIService
@@ -47,9 +52,9 @@ export class GenerateItineraryUseCase {
   /**
    * Execute the use case
    */
-  async execute(command: GenerateItineraryCommand): Promise<GenerateItineraryResult> {
+  async execute(command: GenerateplanCommand): Promise<GenerateplanResult> {
     try {
-      console.log('🚀 Starting itinerary generation:', command)
+      console.log('🚀 Starting plan generation:', command)
 
       // 1. Validate command
       this.validateCommand(command)
@@ -81,16 +86,81 @@ export class GenerateItineraryUseCase {
       // More lenient: allow short trips if distance is small
       const travelDays = routeInfo.calculateTravelDays()
       const numLocations = 2 + routeInfo.stops.length // from + to + stops
-      const minDaysNeeded = Math.max(2, numLocations + travelDays)
+      // Removed restrictive validation - users should be free to plan trips of any duration
+      // The AI will adapt the itinerary to fit the available time
 
-      if (totalDays < minDaysNeeded) {
-        return {
-          success: false,
-          error: `This route requires at least ${minDaysNeeded} days (${numLocations} locations + ${travelDays} travel days). Please extend your trip or choose closer locations.`
+      // 5. Check cache (unless force refresh requested)
+      if (!command.forceRefresh) {
+        const cacheParams: CacheKey = {
+          fromLocation: routeInfo.fromLocation,
+          toLocation: routeInfo.toLocation,
+          stops: routeInfo.stops.map(s => s.name),
+          totalDays,
+          interests: command.interests || [],
+          budget: command.budget || 'moderate'
         }
+
+        // Try exact match first
+        console.log('🔍 Checking cache for exact match...')
+        let cachedPlan = await cachedItineraryRepository.findByExactMatch(cacheParams)
+
+        // If no exact match, try similar plans
+        if (!cachedPlan) {
+          console.log('🔍 Checking cache for similar plans...')
+          cachedPlan = await cachedItineraryRepository.findSimilar(cacheParams)
+        }
+
+        // If cache hit, return cached plan
+        if (cachedPlan) {
+          console.log(`⚡ Cache hit! Returning cached plan (used ${cachedPlan.usageCount} times)`)
+
+          // Create Plan entity from cached data
+          const plan = Plan.create({
+            title: cachedPlan.planData.title,
+            summary: cachedPlan.planData.summary,
+            days: cachedPlan.planData.days,
+            totalCostEstimate: cachedPlan.planData.totalCostEstimate,
+            tips: cachedPlan.planData.tips
+          })
+
+          // Fetch location images even for cached plans
+          console.log('🖼️ Fetching location images for cached plan...')
+          const locationImages = await this.locationRepo.getLocationImages([
+            routeInfo.fromLocation,
+            ...routeInfo.stops.map(s => s.name),
+            routeInfo.toLocation
+          ])
+
+          // Build resolved locations
+          const resolvedLocations: ResolvedLocation[] = [
+            {
+              userInput: command.from,
+              resolvedName: routeInfo.fromLocation
+            },
+            ...routeInfo.stops.map((stop, index) => ({
+              userInput: command.stops?.[index] || stop.name,
+              resolvedName: stop.name
+            })),
+            {
+              userInput: command.to,
+              resolvedName: routeInfo.toLocation
+            }
+          ]
+
+          return {
+            success: true,
+            plan,
+            resolvedLocations,
+            locationImages
+          }
+        }
+
+        console.log('❌ Cache miss - generating new plan with AI')
+      } else {
+        console.log('🔄 Force refresh requested - bypassing cache')
       }
 
-      // 5. Fetch location data (activities & restaurants)
+      // 6. Fetch location data (activities & restaurants)
       console.log('📊 Fetching location data...')
       const locationSlugs = [
         command.from,
@@ -107,9 +177,9 @@ export class GenerateItineraryUseCase {
         }
       }
 
-      // 6. Generate itinerary using AI
-      console.log('🤖 Generating itinerary with AI...')
-      const aiResult = await this.aiService.generateItinerary(
+      // 7. Generate plan using AI
+      console.log('🤖 Generating plan with AI...')
+      const aiResult = await this.aiService.generateplan(
         {
           fromLocation: routeInfo.fromLocation,
           toLocation: routeInfo.toLocation,
@@ -124,8 +194,8 @@ export class GenerateItineraryUseCase {
         command.startDate
       )
 
-      // 7. Create domain entity
-      const itinerary = Itinerary.create({
+      // 8. Create domain entity
+      const plan = Plan.create({
         title: aiResult.title,
         summary: aiResult.summary,
         days: aiResult.days,
@@ -133,7 +203,37 @@ export class GenerateItineraryUseCase {
         tips: aiResult.tips
       })
 
-      // 8. Build resolved locations list for transparency
+      // 9. Save to cache for future reuse
+      console.log('💾 Saving plan to cache...')
+      const cacheParams: CacheKey = {
+        fromLocation: routeInfo.fromLocation,
+        toLocation: routeInfo.toLocation,
+        stops: routeInfo.stops.map(s => s.name),
+        totalDays,
+        interests: command.interests || [],
+        budget: command.budget || 'moderate'
+      }
+
+      await cachedItineraryRepository.save(cacheParams, {
+        title: aiResult.title,
+        summary: aiResult.summary,
+        days: aiResult.days,
+        totalCostEstimate: aiResult.totalCostEstimate,
+        tips: aiResult.tips
+      }).catch(error => {
+        // Don't fail the request if caching fails
+        console.error('⚠️ Failed to cache plan:', error)
+      })
+
+      // 10. Fetch location images from database
+      console.log('🖼️ Fetching location images...')
+      const locationImages = await this.locationRepo.getLocationImages([
+        routeInfo.fromLocation,
+        ...routeInfo.stops.map(s => s.name),
+        routeInfo.toLocation
+      ])
+
+      // 11. Build resolved locations list for transparency
       const resolvedLocations: ResolvedLocation[] = [
         {
           userInput: command.from,
@@ -149,17 +249,19 @@ export class GenerateItineraryUseCase {
         }
       ]
 
-      console.log('✅ Itinerary generated successfully!')
+      console.log('✅ plan generated successfully!')
       console.log('📍 Resolved locations:', resolvedLocations)
+      console.log(`🖼️ Fetched ${Object.keys(locationImages).length} location images`)
 
       return {
         success: true,
-        itinerary,
-        resolvedLocations
+        plan,
+        resolvedLocations,
+        locationImages
       }
 
     } catch (error) {
-      console.error('❌ Error generating itinerary:', error)
+      console.error('❌ Error generating plan:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -170,7 +272,7 @@ export class GenerateItineraryUseCase {
   /**
    * Validate command input
    */
-  private validateCommand(command: GenerateItineraryCommand): void {
+  private validateCommand(command: GenerateplanCommand): void {
     if (!command.from || !command.to) {
       throw new Error('Origin and destination are required')
     }

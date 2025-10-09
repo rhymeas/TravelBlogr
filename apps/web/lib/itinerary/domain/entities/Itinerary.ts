@@ -1,9 +1,9 @@
 /**
- * Domain Entity: Itinerary
- * Represents a complete travel itinerary
+ * Domain Entity: plan
+ * Represents a complete travel plan
  */
 
-export interface ItineraryItem {
+export interface planItem {
   time: string
   title: string
   type: 'activity' | 'meal' | 'travel'
@@ -20,12 +20,12 @@ export interface ItineraryItem {
   }
 }
 
-export interface ItineraryDay {
+export interface planDay {
   day: number
   date: string
   location: string
   type: 'stay' | 'travel'
-  items: ItineraryItem[]
+  items: planItem[]
   travelInfo?: {
     from: string
     to: string
@@ -35,12 +35,12 @@ export interface ItineraryDay {
   }
 }
 
-export class Itinerary {
+export class plan {
   constructor(
     public readonly id: string,
     public readonly title: string,
     public readonly summary: string,
-    public readonly days: ItineraryDay[],
+    public readonly days: planDay[],
     public readonly totalCostEstimate: number,
     public readonly tips: string[],
     public readonly createdAt: Date = new Date()
@@ -50,10 +50,10 @@ export class Itinerary {
 
   private validate(): void {
     if (!this.title || this.title.trim().length === 0) {
-      throw new Error('Itinerary title is required')
+      throw new Error('plan title is required')
     }
     if (this.days.length === 0) {
-      throw new Error('Itinerary must have at least one day')
+      throw new Error('plan must have at least one day')
     }
     if (this.totalCostEstimate < 0) {
       throw new Error('Total cost cannot be negative')
@@ -172,11 +172,11 @@ export class Itinerary {
   static create(data: {
     title: string
     summary: string
-    days: ItineraryDay[]
+    days: planDay[]
     totalCostEstimate: number
     tips: string[]
-  }): Itinerary {
-    return new Itinerary(
+  }): plan {
+    return new plan(
       crypto.randomUUID(),
       data.title,
       data.summary,

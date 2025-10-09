@@ -264,7 +264,7 @@ export async function fixActivityDescriptions(locationId: string, locationName: 
     } else if (category === 'park') {
       description = `Relax and unwind at ${name}, a beautiful green space perfect for walks and outdoor activities.`
     } else {
-      description = `Discover ${name}, a notable ${category} in ${locationName}. Worth adding to your itinerary.`
+      description = `Discover ${name}, a notable ${category} in ${locationName}. Worth adding to your plan.`
     }
     
     return {

@@ -1,5 +1,5 @@
 /**
- * Simple, Fast, Free Itinerary Generator
+ * Simple, Fast, Free plan Generator
  * No expensive AI needed - uses rule-based logic + your existing data
  */
 
@@ -10,7 +10,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export interface ItineraryRequest {
+export interface planRequest {
   from: string // Location name or slug
   to: string
   startDate: string
@@ -31,12 +31,12 @@ export interface DayPlan {
   travelInfo?: TravelInfo
 }
 
-export class SimpleItineraryGenerator {
+export class SimpleplanGenerator {
   /**
-   * Generate complete itinerary - FAST and FREE!
+   * Generate complete plan - FAST and FREE!
    */
-  async generate(request: ItineraryRequest): Promise<DayPlan[]> {
-    console.log('🚀 Generating itinerary:', request)
+  async generate(request: planRequest): Promise<DayPlan[]> {
+    console.log('🚀 Generating plan:', request)
 
     // 1. Get location data
     const fromLocation = await this.getLocation(request.from)
@@ -68,14 +68,14 @@ export class SimpleItineraryGenerator {
     console.log('📊 Day allocation:', allocation)
 
     // 5. Generate daily plans
-    const itinerary: DayPlan[] = []
+    const plan: DayPlan[] = []
     let currentDay = 1
     let currentDate = new Date(request.startDate)
 
     for (const alloc of allocation) {
       if (alloc.type === 'travel') {
         // Travel day
-        itinerary.push({
+        plan.push({
           day: currentDay,
           date: currentDate.toISOString().split('T')[0],
           location: `${alloc.from} → ${alloc.to}`,
@@ -109,7 +109,7 @@ export class SimpleItineraryGenerator {
             1
           )
 
-          itinerary.push({
+          plan.push({
             day: currentDay,
             date: currentDate.toISOString().split('T')[0],
             location: alloc.location,
@@ -125,8 +125,8 @@ export class SimpleItineraryGenerator {
       }
     }
 
-    console.log('✅ Itinerary generated!')
-    return itinerary
+    console.log('✅ plan generated!')
+    return plan
   }
 
   /**

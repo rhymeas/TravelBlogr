@@ -1,12 +1,12 @@
 -- ============================================================================
--- ITINERARY PLANNER SCHEMA EXTENSIONS
--- Extends existing TravelBlogr schema for AI-powered itinerary planning
+-- plan PLANNER SCHEMA EXTENSIONS
+-- Extends existing TravelBlogr schema for AI-powered plan planning
 -- ============================================================================
 
 -- ============================================================================
--- 1. ITINERARY TEMPLATES (Pre-built itineraries by AI or experts)
+-- 1. plan TEMPLATES (Pre-built itineraries by AI or experts)
 -- ============================================================================
-CREATE TABLE itinerary_templates (
+CREATE TABLE plan_templates (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     location_id UUID REFERENCES locations(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE itinerary_templates (
     difficulty VARCHAR(20) CHECK (difficulty IN ('easy', 'moderate', 'challenging')),
     budget_level VARCHAR(20) CHECK (budget_level IN ('budget', 'moderate', 'luxury')),
     tags TEXT[] DEFAULT '{}', -- ['family-friendly', 'adventure', 'cultural']
-    template_data JSONB NOT NULL, -- Full itinerary structure
+    template_data JSONB NOT NULL, -- Full plan structure
     created_by UUID REFERENCES users(id),
     is_ai_generated BOOLEAN DEFAULT FALSE,
     usage_count INTEGER DEFAULT 0,
@@ -63,9 +63,9 @@ CREATE TABLE ai_generation_logs (
 );
 
 -- ============================================================================
--- 4. ITINERARY OPTIMIZATION REQUESTS (Queue for background processing)
+-- 4. plan OPTIMIZATION REQUESTS (Queue for background processing)
 -- ============================================================================
-CREATE TABLE itinerary_optimization_queue (
+CREATE TABLE plan_optimization_queue (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     trip_id UUID NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id),
@@ -80,16 +80,16 @@ CREATE TABLE itinerary_optimization_queue (
 );
 
 -- ============================================================================
--- 5. EXTEND EXISTING trip_itinerary TABLE
+-- 5. EXTEND EXISTING trip_plan TABLE
 -- ============================================================================
-ALTER TABLE trip_itinerary ADD COLUMN IF NOT EXISTS activity_id UUID REFERENCES activities(id);
-ALTER TABLE trip_itinerary ADD COLUMN IF NOT EXISTS restaurant_id UUID REFERENCES restaurants(id);
-ALTER TABLE trip_itinerary ADD COLUMN IF NOT EXISTS transport_mode VARCHAR(20);
-ALTER TABLE trip_itinerary ADD COLUMN IF NOT EXISTS route_data JSONB; -- Cached route info
-ALTER TABLE trip_itinerary ADD COLUMN IF NOT EXISTS booking_url TEXT;
-ALTER TABLE trip_itinerary ADD COLUMN IF NOT EXISTS booking_status VARCHAR(20);
-ALTER TABLE trip_itinerary ADD COLUMN IF NOT EXISTS ai_generated BOOLEAN DEFAULT FALSE;
-ALTER TABLE trip_itinerary ADD COLUMN IF NOT EXISTS optimization_score DECIMAL(3, 2);
+ALTER TABLE trip_plan ADD COLUMN IF NOT EXISTS activity_id UUID REFERENCES activities(id);
+ALTER TABLE trip_plan ADD COLUMN IF NOT EXISTS restaurant_id UUID REFERENCES restaurants(id);
+ALTER TABLE trip_plan ADD COLUMN IF NOT EXISTS transport_mode VARCHAR(20);
+ALTER TABLE trip_plan ADD COLUMN IF NOT EXISTS route_data JSONB; -- Cached route info
+ALTER TABLE trip_plan ADD COLUMN IF NOT EXISTS booking_url TEXT;
+ALTER TABLE trip_plan ADD COLUMN IF NOT EXISTS booking_status VARCHAR(20);
+ALTER TABLE trip_plan ADD COLUMN IF NOT EXISTS ai_generated BOOLEAN DEFAULT FALSE;
+ALTER TABLE trip_plan ADD COLUMN IF NOT EXISTS optimization_score DECIMAL(3, 2);
 
 -- ============================================================================
 -- 6. LOCATION CONNECTIVITY (Pre-compute transit/routing between locations)
@@ -126,9 +126,9 @@ CREATE TABLE user_travel_preferences (
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
-CREATE INDEX idx_itinerary_templates_location ON itinerary_templates(location_id);
-CREATE INDEX idx_itinerary_templates_duration ON itinerary_templates(duration_days);
-CREATE INDEX idx_itinerary_templates_tags ON itinerary_templates USING GIN(tags);
+CREATE INDEX idx_plan_templates_location ON plan_templates(location_id);
+CREATE INDEX idx_plan_templates_duration ON plan_templates(duration_days);
+CREATE INDEX idx_plan_templates_tags ON plan_templates USING GIN(tags);
 
 CREATE INDEX idx_routing_cache_expires ON routing_cache(expires_at);
 
@@ -136,11 +136,11 @@ CREATE INDEX idx_ai_logs_user ON ai_generation_logs(user_id);
 CREATE INDEX idx_ai_logs_trip ON ai_generation_logs(trip_id);
 CREATE INDEX idx_ai_logs_created ON ai_generation_logs(created_at);
 
-CREATE INDEX idx_optimization_queue_status ON itinerary_optimization_queue(status);
-CREATE INDEX idx_optimization_queue_trip ON itinerary_optimization_queue(trip_id);
+CREATE INDEX idx_optimization_queue_status ON plan_optimization_queue(status);
+CREATE INDEX idx_optimization_queue_trip ON plan_optimization_queue(trip_id);
 
-CREATE INDEX idx_trip_itinerary_activity ON trip_itinerary(activity_id);
-CREATE INDEX idx_trip_itinerary_restaurant ON trip_itinerary(restaurant_id);
+CREATE INDEX idx_trip_plan_activity ON trip_plan(activity_id);
+CREATE INDEX idx_trip_plan_restaurant ON trip_plan(restaurant_id);
 
 CREATE INDEX idx_location_connectivity_from ON location_connectivity(from_location_id);
 CREATE INDEX idx_location_connectivity_to ON location_connectivity(to_location_id);
@@ -149,13 +149,13 @@ CREATE INDEX idx_location_connectivity_to ON location_connectivity(to_location_i
 -- RLS POLICIES
 -- ============================================================================
 
--- Itinerary templates (public read, admin write)
-ALTER TABLE itinerary_templates ENABLE ROW LEVEL SECURITY;
+-- plan templates (public read, admin write)
+ALTER TABLE plan_templates ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Anyone can view published templates" ON itinerary_templates
+CREATE POLICY "Anyone can view published templates" ON plan_templates
     FOR SELECT USING (true);
 
-CREATE POLICY "Users can create templates" ON itinerary_templates
+CREATE POLICY "Users can create templates" ON plan_templates
     FOR INSERT WITH CHECK (auth.uid() = created_by);
 
 -- AI generation logs (users can only see their own)
@@ -171,9 +171,9 @@ CREATE POLICY "Users can manage their own preferences" ON user_travel_preference
     FOR ALL USING (auth.uid() = user_id);
 
 -- Optimization queue (users can only see their own)
-ALTER TABLE itinerary_optimization_queue ENABLE ROW LEVEL SECURITY;
+ALTER TABLE plan_optimization_queue ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own optimization requests" ON itinerary_optimization_queue
+CREATE POLICY "Users can view their own optimization requests" ON plan_optimization_queue
     FOR SELECT USING (auth.uid() = user_id);
 
 -- ============================================================================
@@ -188,8 +188,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to calculate itinerary optimization score
-CREATE OR REPLACE FUNCTION calculate_itinerary_score(trip_id_param UUID)
+-- Function to calculate plan optimization score
+CREATE OR REPLACE FUNCTION calculate_plan_score(trip_id_param UUID)
 RETURNS DECIMAL AS $$
 DECLARE
     score DECIMAL := 0;
@@ -199,7 +199,7 @@ DECLARE
 BEGIN
     SELECT COUNT(*), COUNT(*) FILTER (WHERE completed = true)
     INTO total_items, completed_items
-    FROM trip_itinerary
+    FROM trip_plan
     WHERE trip_id = trip_id_param;
     
     IF total_items > 0 THEN
@@ -215,7 +215,7 @@ $$ LANGUAGE plpgsql;
 -- ============================================================================
 
 -- Insert sample template for Tokyo
-INSERT INTO itinerary_templates (
+INSERT INTO plan_templates (
     location_id,
     name,
     description,

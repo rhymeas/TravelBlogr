@@ -109,6 +109,7 @@ async function fetchWikipediaImage(searchTerm: string): Promise<string | null> {
 /**
  * Pexels API Image Search
  * FREE - Unlimited requests - Requires API key
+ * Enhanced with quality filtering and better search terms
  */
 async function fetchPexelsImage(searchTerm: string): Promise<string | null> {
   const apiKey = process.env.PEXELS_API_KEY
@@ -118,8 +119,9 @@ async function fetchPexelsImage(searchTerm: string): Promise<string | null> {
   }
 
   try {
+    // Fetch more results to filter for quality
     const response = await fetch(
-      `https://api.pexels.com/v1/search?query=${encodeURIComponent(searchTerm)}&per_page=1`,
+      `https://api.pexels.com/v1/search?query=${encodeURIComponent(searchTerm)}&per_page=10&orientation=landscape`,
       {
         headers: {
           'Authorization': apiKey
@@ -131,9 +133,24 @@ async function fetchPexelsImage(searchTerm: string): Promise<string | null> {
 
     const data = await response.json()
 
-    if (data.photos?.[0]?.src?.large) {
-      console.log(`✅ Pexels: Found image for "${searchTerm}"`)
-      return data.photos[0].src.large
+    if (data.photos && data.photos.length > 0) {
+      // Filter for high-quality, relevant images
+      // Prefer images with higher width (better quality)
+      // Avoid images that are too narrow or too square
+      const qualityPhotos = data.photos.filter((photo: any) => {
+        const width = photo.width
+        const height = photo.height
+        const aspectRatio = width / height
+
+        // Prefer landscape images (aspect ratio between 1.3 and 2.5)
+        // Minimum width of 1920px for quality
+        return width >= 1920 && aspectRatio >= 1.3 && aspectRatio <= 2.5
+      })
+
+      const selectedPhoto = qualityPhotos[0] || data.photos[0]
+
+      console.log(`✅ Pexels: Found image for "${searchTerm}" (${selectedPhoto.width}x${selectedPhoto.height})`)
+      return selectedPhoto.src.large2x || selectedPhoto.src.large
     }
 
     return null
@@ -146,6 +163,7 @@ async function fetchPexelsImage(searchTerm: string): Promise<string | null> {
 /**
  * Unsplash API Image Search
  * FREE - 50 requests/hour - Requires API key
+ * Enhanced with quality filtering
  */
 async function fetchUnsplashImage(searchTerm: string): Promise<string | null> {
   const apiKey = process.env.UNSPLASH_ACCESS_KEY
@@ -155,8 +173,9 @@ async function fetchUnsplashImage(searchTerm: string): Promise<string | null> {
   }
 
   try {
+    // Fetch more results and use orientation filter
     const response = await fetch(
-      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchTerm)}&per_page=1`,
+      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchTerm)}&per_page=10&orientation=landscape`,
       {
         headers: {
           'Authorization': `Client-ID ${apiKey}`
@@ -168,9 +187,14 @@ async function fetchUnsplashImage(searchTerm: string): Promise<string | null> {
 
     const data = await response.json()
 
-    if (data.results?.[0]?.urls?.regular) {
-      console.log(`✅ Unsplash: Found image for "${searchTerm}"`)
-      return data.results[0].urls.regular
+    if (data.results && data.results.length > 0) {
+      // Filter for high-quality images
+      // Prefer images with more likes (better quality/relevance)
+      const sortedResults = data.results.sort((a: any, b: any) => b.likes - a.likes)
+      const selectedImage = sortedResults[0]
+
+      console.log(`✅ Unsplash: Found image for "${searchTerm}" (${selectedImage.likes} likes)`)
+      return selectedImage.urls.regular
     }
 
     return null
@@ -273,18 +297,35 @@ export async function fetchLocationImage(
 
   console.log(`🔍 Fetching image for location: "${locationName}"`)
 
+  // Try multiple search terms in order of specificity
+  const searchTerms = [
+    `${locationName} cityscape skyline`,
+    `${locationName} city center architecture`,
+    `${locationName} landmark famous building`,
+    `${locationName} aerial view city`,
+    `${locationName} travel destination`
+  ]
+
+  let imageUrl: string | null = null
+
   // 2. Try Pexels (unlimited, best quality, requires key)
-  let imageUrl = await fetchPexelsImage(`${locationName} travel destination`)
-  if (imageUrl) {
-    imageCache.set(cacheKey, { url: imageUrl, timestamp: Date.now() })
-    return imageUrl
+  for (const term of searchTerms) {
+    imageUrl = await fetchPexelsImage(term)
+    if (imageUrl) {
+      console.log(`✅ Found image with search term: "${term}"`)
+      imageCache.set(cacheKey, { url: imageUrl, timestamp: Date.now() })
+      return imageUrl
+    }
   }
 
   // 3. Try Unsplash API (50/hour, high quality, requires key)
-  imageUrl = await fetchUnsplashImage(`${locationName} travel`)
-  if (imageUrl) {
-    imageCache.set(cacheKey, { url: imageUrl, timestamp: Date.now() })
-    return imageUrl
+  for (const term of searchTerms) {
+    imageUrl = await fetchUnsplashImage(term)
+    if (imageUrl) {
+      console.log(`✅ Found image with search term: "${term}"`)
+      imageCache.set(cacheKey, { url: imageUrl, timestamp: Date.now() })
+      return imageUrl
+    }
   }
 
   // 4. Try Wikimedia Commons (unlimited, free)

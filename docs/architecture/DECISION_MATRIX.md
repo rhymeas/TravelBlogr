@@ -1,4 +1,4 @@
-# 🎯 Itinerary Planner: Technology Decision Matrix
+# 🎯 plan Planner: Technology Decision Matrix
 
 ## Executive Decision Summary
 
@@ -116,7 +116,7 @@ docker run -d -p 5000:5000 -v $(pwd):/data osrm/osrm-backend osrm-routed --algor
 - ❌ Costs money ($0.0015/1k tokens)
 - ❌ Requires API key
 
-**Cost per itinerary**: ~$0.05-$0.15
+**Cost per plan**: ~$0.05-$0.15
 **Monthly cost (1000 itineraries)**: ~$100
 
 ---
@@ -131,7 +131,7 @@ docker run -d -p 5000:5000 -v $(pwd):/data osrm/osrm-backend osrm-routed --algor
 - ❌ Slower than GPT-3.5
 - ❌ Less popular (fewer examples)
 
-**Cost per itinerary**: ~$0.02-$0.08
+**Cost per plan**: ~$0.02-$0.08
 **Monthly cost (1000 itineraries)**: ~$50
 
 ---
@@ -307,23 +307,23 @@ function nearestNeighbor(items: Item[], start: Location): Item[] {
 ## Success Criteria
 
 ### Week 2 (MVP)
-- [ ] Generate basic 3-day itinerary in <10 seconds
+- [ ] Generate basic 3-day plan in <10 seconds
 - [ ] Route optimization works for 10 items
 - [ ] Caching reduces repeat requests by 80%
-- [ ] Cost per itinerary < $0.20
+- [ ] Cost per plan < $0.20
 
 ### Month 3 (Production)
 - [ ] 100+ itineraries generated
 - [ ] User satisfaction > 4/5 stars
 - [ ] 50%+ of generated itineraries are used
-- [ ] Cost per itinerary < $0.10
+- [ ] Cost per plan < $0.10
 
 ### Month 6 (Scale)
 - [ ] 1000+ itineraries/month
 - [ ] Multi-city support
 - [ ] Real-time transit updates
 - [ ] Export to PDF/Google Maps
-- [ ] Cost per itinerary < $0.05
+- [ ] Cost per plan < $0.05
 
 ---
 

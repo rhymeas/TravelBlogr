@@ -92,7 +92,7 @@ npm install react-day-picker date-fns
 3. `TravelTimeSlider.tsx` - Custom range slider
 
 ### Updated Components
-- `ItineraryGenerator.tsx` - Integrated all new components
+- `planGenerator.tsx` - Integrated all new components
 
 ---
 
@@ -130,7 +130,7 @@ const [travelHours, setTravelHours] = useState(5)
 3. **Budget slider** instead of dropdown
 4. **Interest tags** with visual chips
 5. **Save preferences** for returning users
-6. **Share itinerary** button
+6. **Share plan** button
 7. **Export to PDF/Calendar**
 
 ### Performance

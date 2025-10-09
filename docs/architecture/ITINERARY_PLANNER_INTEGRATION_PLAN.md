@@ -1,8 +1,8 @@
-# 🗺️ AI-Powered Itinerary Planner Integration Plan
+# 🗺️ AI-Powered plan Planner Integration Plan
 
 ## Executive Summary
 
-**Goal**: Integrate intelligent, AI-powered itinerary planning into TravelBlogr that:
+**Goal**: Integrate intelligent, AI-powered plan planning into TravelBlogr that:
 - Leverages existing location/activity/restaurant data
 - Uses open-source routing tools (OpenTripPlanner, OSM)
 - Provides AI-powered recommendations (LLM-based)
@@ -15,7 +15,7 @@
 
 ### ✅ What We Have
 1. **Database Schema**:
-   - `trip_itinerary` table (basic structure)
+   - `trip_plan` table (basic structure)
    - `locations`, `activities`, `restaurants` with rich data
    - `trip_expenses`, `trip_collaborators`
    - User authentication & RLS policies
@@ -84,16 +84,16 @@
 ### **Phase 1: Foundation** (Week 1-2)
 
 #### 1.1 Database Schema
-- ✅ Run `itinerary-planner-schema.sql`
-- Add new tables: `itinerary_templates`, `routing_cache`, `ai_generation_logs`
-- Extend `trip_itinerary` with routing/AI fields
+- ✅ Run `plan-planner-schema.sql`
+- Add new tables: `plan_templates`, `routing_cache`, `ai_generation_logs`
+- Extend `trip_plan` with routing/AI fields
 
 #### 1.2 Core Services Setup
 ```typescript
-// packages/core/application/services/ItineraryService.ts
-interface ItineraryService {
-  generateItinerary(params: GenerateParams): Promise<Itinerary>
-  optimizeRoute(items: ItineraryItem[]): Promise<ItineraryItem[]>
+// packages/core/application/services/planService.ts
+interface planService {
+  generateplan(params: GenerateParams): Promise<plan>
+  optimizeRoute(items: planItem[]): Promise<planItem[]>
   calculateTravelTime(from: Location, to: Location, mode: TransportMode): Promise<Duration>
 }
 ```
@@ -114,15 +114,15 @@ interface ItineraryService {
 
 #### 2.1 AI Recommendation Engine
 ```typescript
-// services/ai-planner/AIItineraryGenerator.ts
-class AIItineraryGenerator {
+// services/ai-planner/AIplanGenerator.ts
+class AIplanGenerator {
   async generate(params: {
     location: Location
     duration: number // days
     budget: BudgetLevel
     interests: string[]
     pace: 'relaxed' | 'moderate' | 'fast'
-  }): Promise<Itinerary> {
+  }): Promise<plan> {
     // 1. Fetch relevant activities/restaurants from DB
     const activities = await this.fetchActivities(params)
     
@@ -133,25 +133,25 @@ class AIItineraryGenerator {
     const aiResponse = await this.callLLM(prompt)
     
     // 4. Parse & validate response
-    const itinerary = this.parseAIResponse(aiResponse)
+    const plan = this.parseAIResponse(aiResponse)
     
     // 5. Optimize routes
-    return await this.optimizeRoutes(itinerary)
+    return await this.optimizeRoutes(plan)
   }
 }
 ```
 
 #### 2.2 LLM Provider Options
 **Free/Cheap Options**:
-1. **OpenAI GPT-3.5-turbo**: $0.0015/1K tokens (~$0.10 per itinerary)
+1. **OpenAI GPT-3.5-turbo**: $0.0015/1K tokens (~$0.10 per plan)
 2. **Anthropic Claude Haiku**: $0.25/1M tokens
 3. **Self-hosted Llama 3**: Free (requires GPU)
 4. **Groq API**: Free tier available
 
 **Prompt Engineering**:
 ```typescript
-const ITINERARY_PROMPT = `
-You are a travel planning expert. Generate a ${duration}-day itinerary for ${location}.
+const plan_PROMPT = `
+You are a travel planning expert. Generate a ${duration}-day plan for ${location}.
 
 Available Activities:
 ${activities.map(a => `- ${a.name}: ${a.description} (${a.duration}, ${a.cost})`).join('\n')}
@@ -190,10 +190,10 @@ class RouteOptimizer {
    * For small sets (<20 items), can use exact algorithms
    */
   async optimizeVisitOrder(
-    items: ItineraryItem[],
+    items: planItem[],
     startLocation: Coordinates,
     constraints: TimeConstraints
-  ): Promise<ItineraryItem[]> {
+  ): Promise<planItem[]> {
     // 1. Build distance matrix
     const matrix = await this.buildDistanceMatrix(items)
     
@@ -204,7 +204,7 @@ class RouteOptimizer {
     return this.validateTimeConstraints(optimizedOrder, constraints)
   }
   
-  private async buildDistanceMatrix(items: ItineraryItem[]): Promise<number[][]> {
+  private async buildDistanceMatrix(items: planItem[]): Promise<number[][]> {
     // Check cache first
     const cached = await this.routingCache.get(items)
     if (cached) return cached
@@ -243,7 +243,7 @@ class RouteOptimizer {
 
 #### 4.1 Admin Interface
 **Features**:
-- Create/edit itinerary templates
+- Create/edit plan templates
 - Approve AI-generated itineraries
 - Manage routing cache
 - View analytics (popular routes, generation stats)
@@ -263,7 +263,7 @@ class RouteOptimizer {
 <TemplateBuilder
   location={location}
   onSave={async (template) => {
-    await supabase.from('itinerary_templates').insert(template)
+    await supabase.from('plan_templates').insert(template)
   }}
 />
 ```
@@ -272,10 +272,10 @@ class RouteOptimizer {
 
 ### **Phase 5: User-Facing Features** (Week 7-8)
 
-#### 5.1 Itinerary Generator UI
+#### 5.1 plan Generator UI
 ```typescript
 // apps/web/app/trips/[tripId]/generate/page.tsx
-<ItineraryGenerator
+<planGenerator
   trip={trip}
   onGenerate={async (params) => {
     const result = await fetch('/api/itineraries/generate', {
@@ -297,9 +297,9 @@ class RouteOptimizer {
 
 #### 5.2 Smart Suggestions
 ```typescript
-// Real-time suggestions as user builds itinerary
+// Real-time suggestions as user builds plan
 <SmartSuggestions
-  currentItinerary={itinerary}
+  currentplan={plan}
   suggestions={[
     {
       type: 'nearby_activity',
@@ -322,7 +322,7 @@ class RouteOptimizer {
 
 ```typescript
 // POST /api/itineraries/generate
-// Generate AI-powered itinerary
+// Generate AI-powered plan
 {
   "location_id": "uuid",
   "duration_days": 3,
@@ -332,7 +332,7 @@ class RouteOptimizer {
 }
 
 // POST /api/itineraries/optimize
-// Optimize existing itinerary
+// Optimize existing plan
 {
   "trip_id": "uuid",
   "optimization_type": "route" | "time" | "cost"
@@ -354,11 +354,11 @@ class RouteOptimizer {
 ### **Background Jobs**
 
 ```typescript
-// services/workers/itinerary-optimizer.ts
+// services/workers/plan-optimizer.ts
 // Process optimization queue
 setInterval(async () => {
   const pending = await supabase
-    .from('itinerary_optimization_queue')
+    .from('plan_optimization_queue')
     .select('*')
     .eq('status', 'pending')
     .limit(10)
@@ -393,7 +393,7 @@ setInterval(async () => {
 
 1. **Generation Quality**:
    - User satisfaction score (1-5 stars)
-   - Itinerary completion rate
+   - plan completion rate
    - Edit frequency (lower = better AI)
 
 2. **Performance**:
@@ -439,7 +439,7 @@ setInterval(async () => {
 ## 📚 Next Steps
 
 1. **Review & Approve** this plan
-2. **Run database migrations** (`itinerary-planner-schema.sql`)
+2. **Run database migrations** (`plan-planner-schema.sql`)
 3. **Set up OpenTripPlanner** (Docker)
 4. **Implement AI service** (start with OpenAI)
 5. **Build MVP UI** (generation form + results)

@@ -9,33 +9,33 @@
 
 ## 📋 Executive Summary
 
-This milestone marks the completion of the **AI-Powered Itinerary Planner** with a modern, user-friendly interface featuring floating CTAs, smart form validation, and seamless UX. The application now provides a complete travel planning experience from location discovery to detailed itinerary generation.
+This milestone marks the completion of the **AI-Powered plan Planner** with a modern, user-friendly interface featuring floating CTAs, smart form validation, and seamless UX. The application now provides a complete travel planning experience from location discovery to detailed plan generation.
 
 ---
 
 ## 🎨 Major Features Completed
 
-### 1. **AI-Powered Itinerary Generator**
+### 1. **AI-Powered plan Generator**
 - ✅ Multi-location route planning (A → B → C)
 - ✅ Groq AI integration (`llama-3.3-70b-versatile`)
 - ✅ Smart location discovery with GeoNames + Nominatim fallback
 - ✅ Automatic route calculation
-- ✅ Day-by-day itinerary with activities and meals
+- ✅ Day-by-day plan with activities and meals
 - ✅ Cost estimation per item and total
 - ✅ Travel pace customization (optional)
 
 **Files:**
 - `apps/web/app/plan/page.tsx`
-- `apps/web/components/itinerary/ItineraryGenerator.tsx`
-- `apps/web/lib/itinerary/application/use-cases/GenerateItineraryUseCase.ts`
-- `apps/web/lib/itinerary/application/services/GroqAIService.ts`
+- `apps/web/components/plan/planGenerator.tsx`
+- `apps/web/lib/plan/application/use-cases/GenerateplanUseCase.ts`
+- `apps/web/lib/plan/application/services/GroqAIService.ts`
 
 ---
 
 ### 2. **Floating Sticky CTA with Smart Validation**
 - ✅ 800px white container with rounded corners
 - ✅ Stays above footer when scrolling (smooth transition)
-- ✅ Dual buttons: gray "Back to Top" + red "Generate Itinerary"
+- ✅ Dual buttons: gray "Back to Top" + red "Generate plan"
 - ✅ Red button disabled/grayed when form incomplete
 - ✅ Real-time form validation (locations + dates)
 - ✅ Dynamic bottom offset based on footer position
@@ -70,12 +70,12 @@ useEffect(() => {
 - ✅ Support for custom location input
 
 **Files:**
-- `apps/web/components/itinerary/LocationAutocomplete.tsx`
-- `apps/web/components/itinerary/LocationInput.tsx`
+- `apps/web/components/plan/LocationAutocomplete.tsx`
+- `apps/web/components/plan/LocationInput.tsx`
 
 ---
 
-### 4. **Itinerary Results Modal**
+### 4. **plan Results Modal**
 - ✅ Fixed height modal (90vh) with internal scrolling
 - ✅ Stats bar becomes sticky at top when scrolling
 - ✅ Footer CTAs always visible at bottom
@@ -110,7 +110,7 @@ useEffect(() => {
 ```
 
 **Files:**
-- `apps/web/components/itinerary/ItineraryModal.tsx`
+- `apps/web/components/plan/planModal.tsx`
 
 ---
 
@@ -122,7 +122,7 @@ useEffect(() => {
 - ✅ Responsive design
 
 **Files:**
-- `apps/web/components/itinerary/DateRangePicker.tsx`
+- `apps/web/components/plan/DateRangePicker.tsx`
 
 ---
 
@@ -133,7 +133,7 @@ useEffect(() => {
 - ✅ Only sent to API if user expands and sets value
 
 **Files:**
-- `apps/web/components/itinerary/TravelTimeSlider.tsx`
+- `apps/web/components/plan/TravelTimeSlider.tsx`
 
 ---
 
@@ -141,12 +141,12 @@ useEffect(() => {
 
 ### Clean Architecture (DDD)
 ```
-lib/itinerary/
+lib/plan/
 ├── domain/
-│   ├── entities/Itinerary.ts
+│   ├── entities/plan.ts
 │   └── value-objects/RouteInfo.ts
 ├── application/
-│   ├── use-cases/GenerateItineraryUseCase.ts
+│   ├── use-cases/GenerateplanUseCase.ts
 │   └── services/
 │       ├── GroqAIService.ts
 │       └── RouteCalculatorService.ts
@@ -206,7 +206,7 @@ lib/itinerary/
 
 ## 📊 Performance Metrics
 
-- **Itinerary Generation:** ~3-5 seconds
+- **plan Generation:** ~3-5 seconds
 - **Location Search:** <100ms (client-side)
 - **Modal Rendering:** <50ms
 - **Page Load:** <2 seconds
@@ -222,9 +222,9 @@ lib/itinerary/
 3. ⚠️ Bounding box query error (UUID validation) - non-blocking
 
 ### Future Improvements
-- [ ] Add itinerary save/export functionality
+- [ ] Add plan save/export functionality
 - [ ] User authentication for saved itineraries
-- [ ] Share itinerary via link
+- [ ] Share plan via link
 - [ ] Print-optimized PDF generation
 - [ ] Multi-language support
 - [ ] Offline mode with service workers
@@ -234,7 +234,7 @@ lib/itinerary/
 
 ## 📝 API Endpoints
 
-### Itinerary Generation
+### plan Generation
 ```
 POST /api/itineraries/generate
 Body: {
@@ -286,10 +286,10 @@ npm run start
 
 ## 📚 Documentation
 
-- ✅ `docs/ITINERARY_SETUP.md` - Setup guide
+- ✅ `docs/plan_SETUP.md` - Setup guide
 - ✅ `docs/AUTOCOMPLETE_FEATURE.md` - Location autocomplete
-- ✅ `docs/architecture/SIMPLE_ITINERARY_SYSTEM.md` - Architecture
-- ✅ `lib/itinerary/README.md` - Domain model documentation
+- ✅ `docs/architecture/SIMPLE_plan_SYSTEM.md` - Architecture
+- ✅ `lib/plan/README.md` - Domain model documentation
 
 ---
 
@@ -319,7 +319,7 @@ For future versions, follow this upgrade path:
 
 ### v1.2.0 (Planned)
 - PDF export with custom branding
-- Email itinerary feature
+- Email plan feature
 - Calendar integration
 
 ### v2.0.0 (Future)

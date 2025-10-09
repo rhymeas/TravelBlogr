@@ -1,9 +1,10 @@
-import { Metadata } from 'next'
-import { notFound } from 'next/navigation'
-import { createServerSupabase } from '@/lib/supabase'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
 import { TripHeader } from '@/components/trips/TripHeader'
 import { PostsList } from '@/components/posts/PostsList'
-import { TripMap } from '@/components/maps/TripMap'
 import { TripStats } from '@/components/trips/TripStats'
 import { ShareLinkManager } from '@/components/share/ShareLinkManager'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
@@ -14,53 +15,70 @@ interface TripDetailsPageProps {
   }
 }
 
-export async function generateMetadata({ params }: TripDetailsPageProps): Promise<Metadata> {
-  const supabase = createServerSupabase()
-  
-  const { data: trip } = await supabase
-    .from('trips')
-    .select('title, description')
-    .eq('id', params.tripId)
-    .single()
+export default function TripDetailsPage({ params }: TripDetailsPageProps) {
+  const { user, isLoading, isAuthenticated } = useAuth()
+  const router = useRouter()
+  const [trip, setTrip] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
-  return {
-    title: trip ? `${trip.title} | TravelBlogr` : 'Trip Not Found | TravelBlogr',
-    description: trip?.description || 'Manage your travel story'
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/auth/signin')
+    }
+  }, [isAuthenticated, isLoading])
+
+  useEffect(() => {
+    if (user) {
+      fetchTrip()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, params.tripId])
+
+  const fetchTrip = async () => {
+    try {
+      const response = await fetch(`/api/trips/${params.tripId}`)
+      const data = await response.json()
+
+      if (data.trip) {
+        setTrip(data.trip)
+      }
+    } catch (error) {
+      console.error('Error fetching trip:', error)
+    } finally {
+      setLoading(false)
+    }
   }
-}
 
-export default async function TripDetailsPage({ params }: TripDetailsPageProps) {
-  const supabase = createServerSupabase()
-  
-  // Get current user
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
-    notFound()
+  if (isLoading || loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="animate-pulse space-y-6">
+          <div className="h-64 bg-gray-200 rounded-lg"></div>
+          <div className="h-32 bg-gray-200 rounded-lg"></div>
+        </div>
+      </div>
+    )
   }
 
-  // Get trip with posts and share links
-  const { data: trip, error } = await supabase
-    .from('trips')
-    .select(`
-      *,
-      posts (
-        *
-      ),
-      share_links (
-        id,
-        subdomain,
-        title,
-        view_count,
-        is_active,
-        created_at
-      )
-    `)
-    .eq('id', params.tripId)
-    .eq('user_id', user.id)
-    .single()
+  if (!isAuthenticated || !user) {
+    return null // Will redirect
+  }
 
-  if (error || !trip) {
-    notFound()
+  if (!trip) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Trip not found</h2>
+          <p className="text-gray-600 mb-6">The trip you're looking for doesn't exist or you don't have access to it.</p>
+          <button
+            onClick={() => router.push('/dashboard/trips')}
+            className="text-blue-600 hover:text-blue-800"
+          >
+            Back to My Trips
+          </button>
+        </div>
+      </div>
+    )
   }
 
   // Extract locations from posts for map
@@ -143,18 +161,18 @@ export default async function TripDetailsPage({ params }: TripDetailsPageProps) 
                 {/* Trip Stats */}
                 <TripStats trip={trip} />
 
-                {/* Quick Map */}
-                {locations.length > 0 && (
+                {/* Quick Map - Disabled until Mapbox is configured */}
+                {/* {locations.length > 0 && (
                   <div className="bg-white rounded-lg shadow p-6">
                     <h3 className="text-lg font-semibold mb-4">Journey Map</h3>
-                    <TripMap 
+                    <TripMap
                       locations={locations}
                       showRoute={true}
                       height="200px"
                       interactive={false}
                     />
                   </div>
-                )}
+                )} */}
 
                 {/* Share Links Summary */}
                 {trip.share_links && trip.share_links.length > 0 && (
@@ -186,24 +204,15 @@ export default async function TripDetailsPage({ params }: TripDetailsPageProps) 
             </div>
           </TabsContent>
 
-          {/* Map Tab */}
+          {/* Map Tab - Disabled until Mapbox is configured */}
           <TabsContent value="map">
             <div className="bg-white rounded-lg shadow p-6">
-              {locations.length > 0 ? (
-                <TripMap 
-                  locations={locations}
-                  showRoute={true}
-                  height="600px"
-                  interactive={true}
-                />
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">No locations added yet</p>
-                  <p className="text-sm text-gray-400 mt-2">
-                    Add locations to your posts to see them on the map
-                  </p>
-                </div>
-              )}
+              <div className="text-center py-12">
+                <p className="text-gray-500">Map feature coming soon</p>
+                <p className="text-sm text-gray-400 mt-2">
+                  Configure Mapbox to enable interactive maps
+                </p>
+              </div>
             </div>
           </TabsContent>
 

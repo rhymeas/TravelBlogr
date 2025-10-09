@@ -1,6 +1,5 @@
 'use client'
 
-import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { AuthAwareHeader } from '@/components/layout/AuthAwareHeader'
 import { LocationFilters } from '@/components/feed/LocationFilters'

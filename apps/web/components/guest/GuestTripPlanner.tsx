@@ -123,7 +123,7 @@ export function GuestTripPlanner() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Plan Your Trip</h1>
               <p className="text-gray-600 mt-2">
-                Create your travel itinerary with AI assistance
+                Create your travel plan with AI assistance
               </p>
             </div>
             <div className="text-right">

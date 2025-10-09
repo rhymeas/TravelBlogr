@@ -2,31 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Calendar, MapPin, Users, Loader2 } from 'lucide-react'
+import { Label } from '@/components/ui/Label'
+import { DateRangePicker } from '@/components/itinerary/DateRangePicker'
+import { MapPin, Loader2, Sparkles, Wand2, ArrowRight, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
-
-const createTripSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(100, 'Title must be less than 100 characters'),
-  description: z.string().optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-}).refine((data) => {
-  if (data.startDate && data.endDate) {
-    return new Date(data.startDate) <= new Date(data.endDate)
-  }
-  return true
-}, {
-  message: "End date must be after start date",
-  path: ["endDate"],
-})
-
-type CreateTripFormData = z.infer<typeof createTripSchema>
+import Link from 'next/link'
 
 interface CreateTripFormProps {
   onSuccess?: (trip: any) => void
@@ -35,27 +17,97 @@ interface CreateTripFormProps {
 
 export function CreateTripForm({ onSuccess, onCancel }: CreateTripFormProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [aiLoading, setAiLoading] = useState<'title' | 'description' | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset
-  } = useForm<CreateTripFormData>({
-    resolver: zodResolver(createTripSchema)
-  })
+  // Form state
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [dateRange, setDateRange] = useState<{ startDate: Date; endDate: Date } | null>(null)
 
-  const onSubmit = async (data: CreateTripFormData) => {
+  const generateAITitle = async () => {
+    if (!dateRange) {
+      toast.error('Please select dates first')
+      return
+    }
+
+    setAiLoading('title')
+    try {
+      const response = await fetch('/api/ai/generate-title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startDate: dateRange.startDate.toISOString(),
+          endDate: dateRange.endDate.toISOString(),
+          description
+        })
+      })
+
+      const data = await response.json()
+      if (data.title) {
+        setTitle(data.title)
+        toast.success('AI generated title!')
+      }
+    } catch (error) {
+      toast.error('Failed to generate title')
+    } finally {
+      setAiLoading(null)
+    }
+  }
+
+  const generateAIDescription = async () => {
+    if (!title) {
+      toast.error('Please enter a title first')
+      return
+    }
+
+    setAiLoading('description')
+    try {
+      const response = await fetch('/api/ai/generate-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          startDate: dateRange?.startDate.toISOString(),
+          endDate: dateRange?.endDate.toISOString()
+        })
+      })
+
+      const data = await response.json()
+      if (data.description) {
+        setDescription(data.description)
+        toast.success('AI generated description!')
+      }
+    } catch (error) {
+      toast.error('Failed to generate description')
+    } finally {
+      setAiLoading(null)
+    }
+  }
+
+  const handleSubmit = async () => {
+    // Validation
+    if (!title.trim()) {
+      setError('Please enter a trip title')
+      return
+    }
+
     setIsLoading(true)
-    
+    setError(null)
+
     try {
       const response = await fetch('/api/trips', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim() || undefined,
+          startDate: dateRange?.startDate.toISOString(),
+          endDate: dateRange?.endDate.toISOString()
+        }),
       })
 
       if (!response.ok) {
@@ -64,18 +116,18 @@ export function CreateTripForm({ onSuccess, onCancel }: CreateTripFormProps) {
       }
 
       const result = await response.json()
-      
+
       toast.success('Trip created successfully!')
-      reset()
-      
+
       if (onSuccess) {
         onSuccess(result.trip)
       } else {
         router.push(`/dashboard/trips/${result.trip.id}`)
       }
-      
+
     } catch (error) {
       console.error('Error creating trip:', error)
+      setError(error instanceof Error ? error.message : 'Failed to create trip')
       toast.error(error instanceof Error ? error.message : 'Failed to create trip')
     } finally {
       setIsLoading(false)
@@ -83,125 +135,190 @@ export function CreateTripForm({ onSuccess, onCancel }: CreateTripFormProps) {
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MapPin className="h-5 w-5 text-blue-600" />
-          Create New Trip
-        </CardTitle>
-        <CardDescription>
-          Start documenting your journey and share it with different audiences
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Title */}
-          <div className="space-y-2">
-            <label htmlFor="title" className="text-sm font-medium text-gray-700">
-              Trip Title *
-            </label>
-            <Input
-              id="title"
-              placeholder="e.g., Summer Adventure in Japan"
-              {...register('title')}
-              className={errors.title ? 'border-red-500' : ''}
-            />
-            {errors.title && (
-              <p className="text-sm text-red-600">{errors.title.message}</p>
-            )}
-          </div>
+    <div className="max-w-3xl mx-auto">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-semibold">Create your trip</h1>
+      </div>
 
-          {/* Description */}
-          <div className="space-y-2">
-            <label htmlFor="description" className="text-sm font-medium text-gray-700">
-              Description
-            </label>
-            <textarea
-              id="description"
-              rows={3}
-              placeholder="Tell us about your trip..."
-              {...register('description')}
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
-
-          {/* Date Range */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="startDate" className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                Start Date
-              </label>
-              <Input
-                id="startDate"
-                type="date"
-                {...register('startDate')}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label htmlFor="endDate" className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                End Date
-              </label>
-              <Input
-                id="endDate"
-                type="date"
-                {...register('endDate')}
-                className={errors.endDate ? 'border-red-500' : ''}
-              />
-              {errors.endDate && (
-                <p className="text-sm text-red-600">{errors.endDate.message}</p>
-              )}
+      {/* AI Itinerary Banner - Slim */}
+      <div className="bg-gradient-to-r from-rausch-500 to-kazan-500 rounded-2xl p-4 text-white mb-3 shadow-sm">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 flex-1">
+            <Sparkles className="h-5 w-5 flex-shrink-0" />
+            <div>
+              <h3 className="text-sm font-semibold">Want AI to plan your entire trip?</h3>
+              <p className="text-white/90 text-xs">
+                Get a complete day-by-day itinerary with activities, restaurants, and travel times.
+              </p>
             </div>
           </div>
-
-          {/* Info Box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <Users className="h-5 w-5 text-blue-600 mt-0.5" />
-              <div>
-                <h4 className="text-sm font-medium text-blue-900">Audience-Specific Sharing</h4>
-                <p className="text-sm text-blue-700 mt-1">
-                  After creating your trip, you'll get unique share links for family, friends, 
-                  and professional networks - each showing different content and privacy levels.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-4">
+          <Link href="/plan">
             <Button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1 sm:flex-none"
+              variant="outline"
+              className="bg-white text-rausch-500 hover:bg-white/90 border-0 font-medium text-sm px-4 py-2 h-auto flex-shrink-0"
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating Trip...
-                </>
-              ) : (
-                'Create Trip'
-              )}
+              <Wand2 className="h-3.5 w-3.5 mr-1.5" />
+              Use AI Planner
+              <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
             </Button>
-            
-            {onCancel && (
+          </Link>
+        </div>
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-3">
+          <p className="text-red-800 text-sm">{error}</p>
+        </div>
+      )}
+
+      {/* Form - Separated Sections (matching /plan layout) */}
+      <div className="space-y-3 mb-6 pb-24">
+        {/* Section 1: Dates */}
+        <div className="bg-white rounded-2xl shadow-sm border p-5">
+          <h3 className="text-base font-semibold mb-3">When are you traveling?</h3>
+          <DateRangePicker
+            startDate={dateRange?.startDate}
+            endDate={dateRange?.endDate}
+            onSelect={setDateRange}
+          />
+        </div>
+
+        {/* Section 2: Trip Details */}
+        <div className="bg-white rounded-2xl shadow-sm border p-5">
+          <h3 className="text-base font-semibold mb-4">Trip details</h3>
+
+          <div className="space-y-4">
+            {/* Title with AI Help */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium text-gray-700">Trip title *</Label>
+                <button
+                  type="button"
+                  onClick={generateAITitle}
+                  disabled={aiLoading === 'title' || !dateRange}
+                  className="text-xs font-medium text-rausch-500 hover:text-rausch-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                >
+                  {aiLoading === 'title' ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3 w-3" />
+                      AI suggest
+                    </>
+                  )}
+                </button>
+              </div>
+              <Input
+                placeholder="e.g., Summer Adventure in Japan"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="border-gray-300 focus:border-black focus:ring-black"
+              />
+            </div>
+
+            {/* Description with AI Help */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium text-gray-700">Description (optional)</Label>
+                <button
+                  type="button"
+                  onClick={generateAIDescription}
+                  disabled={aiLoading === 'description' || !title}
+                  className="text-xs font-medium text-rausch-500 hover:text-rausch-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                >
+                  {aiLoading === 'description' ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3 w-3" />
+                      AI suggest
+                    </>
+                  )}
+                </button>
+              </div>
+              <textarea
+                rows={3}
+                placeholder="Tell us about your trip... or let AI write it for you!"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="flex w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent resize-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Info Box */}
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-5 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="bg-blue-500 rounded-lg p-2 flex-shrink-0">
+              <Users className="h-5 w-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                Audience-Specific Sharing
+              </h4>
+              <p className="text-sm text-gray-700 leading-relaxed">
+                After creating your trip, you'll get unique share links for <strong>family</strong>, <strong>friends</strong>,
+                and <strong>professional</strong> networks - each showing different content and privacy levels.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Floating CTA (matching /plan style exactly) */}
+      <div className="fixed left-0 right-0 z-40 px-6 pointer-events-none" style={{ bottom: '24px' }}>
+        <div className="max-w-[800px] mx-auto">
+          <div className="bg-white rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-gray-200 py-4 pl-6 pr-6 pointer-events-auto flex items-center justify-between gap-4">
+            {/* Secondary Gray CTA */}
+            {onCancel ? (
               <Button
-                type="button"
-                variant="outline"
                 onClick={onCancel}
+                variant="outline"
                 disabled={isLoading}
-                className="flex-1 sm:flex-none"
+                className="px-6 py-3 text-gray-700 border-gray-300 hover:bg-gray-50 rounded-xl font-medium"
               >
                 Cancel
               </Button>
+            ) : (
+              <Button
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                variant="outline"
+                className="px-6 py-3 text-gray-700 border-gray-300 hover:bg-gray-50 rounded-xl font-medium"
+              >
+                Back to Top
+              </Button>
             )}
+
+            {/* Primary Red CTA */}
+            <Button
+              onClick={handleSubmit}
+              disabled={isLoading || !title.trim()}
+              className="bg-rausch-500 hover:bg-rausch-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 px-6 rounded-xl text-base font-semibold shadow-lg hover:shadow-xl disabled:shadow-none transition-all"
+            >
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-3">
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating trip...
+                </span>
+              ) : (
+                'Create trip'
+              )}
+            </Button>
           </div>
-        </form>
-      </CardContent>
-    </Card>
+        </div>
+      </div>
+    </div>
   )
 }

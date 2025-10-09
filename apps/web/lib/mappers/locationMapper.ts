@@ -16,6 +16,20 @@ export function mapSupabaseLocationToFrontend(
     activities?: SupabaseActivity[]
   }
 ): Location {
+  // Build images array with featured_image ALWAYS first
+  // Filter out placeholder images from gallery
+  const featuredImage = supabaseData.featured_image || '/placeholder-location.svg'
+  const galleryImages = (supabaseData.gallery_images || [])
+    .filter(img =>
+      img &&
+      !img.includes('picsum.photos') && // Remove placeholder images
+      !img.includes('placeholder') &&
+      img !== featuredImage // Don't duplicate featured image
+    )
+
+  // Always start with featured image, then add real gallery images
+  const images = [featuredImage, ...galleryImages]
+
   return {
     id: supabaseData.id,
     name: supabaseData.name,
@@ -23,14 +37,12 @@ export function mapSupabaseLocationToFrontend(
     country: supabaseData.country,
     region: supabaseData.region,
     description: supabaseData.description || `Discover ${supabaseData.name}`,
-    featured_image: supabaseData.featured_image || '/placeholder-location.svg',
+    featured_image: featuredImage,
     rating: supabaseData.rating || 0,
     visit_count: supabaseData.visit_count || 0,
     is_featured: supabaseData.is_featured || false,
     created_at: formatDate(supabaseData.created_at),
-    images: supabaseData.gallery_images || [
-      supabaseData.featured_image || '/placeholder-location.svg'
-    ],
+    images: images,
     posts: [], // User posts - separate feature
     activities: mapActivities(supabaseData.activities || []),
     restaurants: mapRestaurants(supabaseData.restaurants || []),

@@ -102,7 +102,7 @@ This is **NOT** template code - it's a **sophisticated, enterprise-grade applica
 - **Social Features**: Following, likes, comments, activity feeds
 - **Share Link System**: Audience-specific sharing with analytics
 - **Media Management**: Advanced upload, compression, galleries
-- **Trip Planning**: Itinerary and budget tracking
+- **Trip Planning**: plan and budget tracking
 - **Real-time Notifications**: Push notifications and in-app alerts
 
 ### **📊 Performance & Security**

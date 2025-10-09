@@ -293,7 +293,7 @@ INSERT INTO trips (
    - Create `/guest/trips/[id]/page.tsx`
    - Show full trip details
    - Allow editing
-   - Generate AI itinerary
+   - Generate AI plan
 
 2. **Export Guest Trips**
    - Add "Export as JSON" button

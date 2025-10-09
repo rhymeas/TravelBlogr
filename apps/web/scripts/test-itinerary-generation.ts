@@ -4,8 +4,8 @@ import { resolve } from 'path';
 // Load environment variables
 config({ path: resolve(process.cwd(), '.env.local') });
 
-async function testItineraryGeneration() {
-  console.log('\n🧪 Testing Itinerary Generation API\n');
+async function testplanGeneration() {
+  console.log('\n🧪 Testing plan Generation API\n');
   console.log('=' .repeat(60));
 
   const testRequest = {
@@ -32,11 +32,11 @@ async function testItineraryGeneration() {
     const data = await response.json();
 
     if (response.ok) {
-      console.log('✅ SUCCESS! Itinerary generated!\n');
-      console.log('📋 Title:', data.itinerary?.title);
-      console.log('📝 Summary:', data.itinerary?.summary?.substring(0, 100) + '...');
-      console.log('📅 Days:', data.itinerary?.days?.length);
-      console.log('💰 Cost:', data.itinerary?.totalCostEstimate);
+      console.log('✅ SUCCESS! plan generated!\n');
+      console.log('📋 Title:', data.plan?.title);
+      console.log('📝 Summary:', data.plan?.summary?.substring(0, 100) + '...');
+      console.log('📅 Days:', data.plan?.days?.length);
+      console.log('💰 Cost:', data.plan?.totalCostEstimate);
       console.log('\n🎉 Groq AI is working perfectly!\n');
     } else {
       console.log('❌ ERROR:', response.status, response.statusText);
@@ -58,5 +58,5 @@ async function testItineraryGeneration() {
   }
 }
 
-testItineraryGeneration();
+testplanGeneration();
 

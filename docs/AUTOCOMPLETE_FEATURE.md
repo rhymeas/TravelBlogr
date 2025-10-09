@@ -124,7 +124,7 @@ Returns:
 ### **Before (Error):**
 ```
 User types: "sunshine coast"
-Clicks: Generate Itinerary
+Clicks: Generate plan
 Error: "Destination location not found: sunshine coast"
 ❌ Frustrating!
 ```
@@ -135,7 +135,7 @@ User types: "van"
 Sees dropdown: "Vancouver"
 Clicks: Vancouver
 Input fills: "vancouver"
-Clicks: Generate Itinerary
+Clicks: Generate plan
 ✅ Works perfectly!
 ```
 
@@ -182,7 +182,7 @@ Visit: **http://localhost:3000/plan**
 5. Input fills with "paris"
 6. Repeat for destination
 7. Select dates and preferences
-8. Generate itinerary!
+8. Generate plan!
 
 ---
 

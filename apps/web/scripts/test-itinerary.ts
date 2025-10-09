@@ -1,6 +1,6 @@
 /**
- * Test Script: Itinerary Generation
- * Run: npx tsx scripts/test-itinerary.ts
+ * Test Script: plan Generation
+ * Run: npx tsx scripts/test-plan.ts
  */
 
 import { config } from 'dotenv'
@@ -9,12 +9,12 @@ import { resolve } from 'path'
 // Load environment variables
 config({ path: resolve(__dirname, '../.env.local') })
 
-import { GenerateItineraryUseCase } from '../lib/itinerary/application/use-cases/GenerateItineraryUseCase'
+import { GenerateplanUseCase } from '../lib/plan/application/use-cases/GenerateplanUseCase'
 
-async function testItineraryGeneration() {
-  console.log('🧪 Testing Itinerary Generation\n')
+async function testplanGeneration() {
+  console.log('🧪 Testing plan Generation\n')
 
-  const useCase = new GenerateItineraryUseCase()
+  const useCase = new GenerateplanUseCase()
 
   // Test case: Paris to Rome (use future dates)
   const today = new Date()
@@ -34,7 +34,7 @@ async function testItineraryGeneration() {
 
   console.log('📋 Test Input:')
   console.log(JSON.stringify(command, null, 2))
-  console.log('\n⏳ Generating itinerary...\n')
+  console.log('\n⏳ Generating plan...\n')
 
   const startTime = Date.now()
 
@@ -43,22 +43,22 @@ async function testItineraryGeneration() {
 
     const duration = Date.now() - startTime
 
-    if (result.success && result.itinerary) {
+    if (result.success && result.plan) {
       console.log('✅ SUCCESS!\n')
       console.log('📊 Results:')
       console.log(`   Generation time: ${duration}ms`)
-      console.log(`   Title: ${result.itinerary.title}`)
-      console.log(`   Total days: ${result.itinerary.getTotalDays()}`)
-      console.log(`   Stay days: ${result.itinerary.getStayDays()}`)
-      console.log(`   Travel days: ${result.itinerary.getTravelDays()}`)
-      console.log(`   Locations: ${result.itinerary.getLocations().join(', ')}`)
-      console.log(`   Activities: ${result.itinerary.getTotalActivities()}`)
-      console.log(`   Meals: ${result.itinerary.getTotalMeals()}`)
-      console.log(`   Estimated cost: $${result.itinerary.totalCostEstimate}`)
-      console.log(`   Cost per day: $${Math.round(result.itinerary.getAverageCostPerDay())}`)
+      console.log(`   Title: ${result.plan.title}`)
+      console.log(`   Total days: ${result.plan.getTotalDays()}`)
+      console.log(`   Stay days: ${result.plan.getStayDays()}`)
+      console.log(`   Travel days: ${result.plan.getTravelDays()}`)
+      console.log(`   Locations: ${result.plan.getLocations().join(', ')}`)
+      console.log(`   Activities: ${result.plan.getTotalActivities()}`)
+      console.log(`   Meals: ${result.plan.getTotalMeals()}`)
+      console.log(`   Estimated cost: $${result.plan.totalCostEstimate}`)
+      console.log(`   Cost per day: $${Math.round(result.plan.getAverageCostPerDay())}`)
       console.log('\n📅 Day-by-day breakdown:')
       
-      result.itinerary.days.forEach(day => {
+      result.plan.days.forEach(day => {
         console.log(`\n   Day ${day.day} (${day.date}) - ${day.location} [${day.type}]`)
         console.log(`   ${day.items.length} items scheduled`)
         day.items.slice(0, 3).forEach(item => {
@@ -70,7 +70,7 @@ async function testItineraryGeneration() {
       })
 
       console.log('\n💡 Tips:')
-      result.itinerary.tips.forEach((tip, i) => {
+      result.plan.tips.forEach((tip, i) => {
         console.log(`   ${i + 1}. ${tip}`)
       })
 
@@ -88,7 +88,7 @@ async function testItineraryGeneration() {
 }
 
 // Run test
-testItineraryGeneration()
+testplanGeneration()
   .then(() => process.exit(0))
   .catch(error => {
     console.error('Fatal error:', error)

@@ -17,6 +17,9 @@ import { SignUpPrompt } from '../auth/SignUpPrompt'
 import { useAuth } from '@/hooks/useAuth'
 import { SimpleLocationMap } from '@/components/maps/SimpleLocationMap'
 import { LocationImageGallery } from './LocationImageGallery'
+import { LocationRating } from './LocationRating'
+import { LocationViewTracker } from './LocationViewTracker'
+import { LocationCommentSection } from './LocationCommentSection'
 
 interface LocationDetailTemplateProps {
   location: Location
@@ -28,6 +31,9 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
 
   return (
     <main>
+      {/* View Tracker - Invisible pixel */}
+      <LocationViewTracker locationSlug={location.slug} />
+
       {/* Breadcrumb */}
       <div className="mx-auto max-w-7xl px-6 lg:px-8 py-4">
         <nav className="flex items-center gap-2 text-body-small text-airbnb-gray">
@@ -50,18 +56,24 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
             <h1 className="text-display-medium font-bold text-airbnb-black mb-2">
               {location.name}
             </h1>
-            <div className="flex items-center gap-4 text-body-medium text-airbnb-dark-gray">
-              <div className="flex items-center gap-1">
-                <Star className="h-4 w-4 fill-current text-yellow-400" />
-                <span className="font-semibold">{location.rating}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Eye className="h-4 w-4" />
-                <span>{location.visit_count.toLocaleString()} visits</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <MapPin className="h-4 w-4" />
-                <span>{location.region}, {location.country}</span>
+            <div className="flex flex-col gap-3">
+              {/* Star Rating Component */}
+              <LocationRating
+                locationSlug={location.slug}
+                initialRating={location.rating || 0}
+                initialRatingCount={location.rating_count || 0}
+              />
+
+              {/* Location Info */}
+              <div className="flex items-center gap-4 text-body-medium text-airbnb-dark-gray">
+                <div className="flex items-center gap-1">
+                  <Eye className="h-4 w-4" />
+                  <span>{(location.view_count || 0).toLocaleString()} views</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  <span>{location.region}, {location.country}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -196,6 +208,16 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
                   </div>
                 ))}
               </div>
+            </Card>
+
+            {/* Community Comments Section */}
+            <Card className="card-elevated p-6 mb-8">
+              <h2 className="text-title-medium font-semibold text-airbnb-black mb-6">
+                Community Discussion
+              </h2>
+              <LocationCommentSection
+                locationSlug={location.slug}
+              />
             </Card>
           </div>
 

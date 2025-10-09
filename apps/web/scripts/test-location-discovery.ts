@@ -4,7 +4,7 @@ import { resolve } from 'path';
 // Load environment variables
 config({ path: resolve(process.cwd(), '.env.local') });
 
-import { LocationDiscoveryService } from '../lib/itinerary/infrastructure/services/LocationDiscoveryService';
+import { LocationDiscoveryService } from '../lib/plan/infrastructure/services/LocationDiscoveryService';
 
 async function testLocationDiscovery() {
   const service = new LocationDiscoveryService();

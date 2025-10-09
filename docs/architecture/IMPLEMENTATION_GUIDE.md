@@ -1,8 +1,8 @@
-# 🛠️ Itinerary Planner Implementation Guide
+# 🛠️ plan Planner Implementation Guide
 
 ## Quick Start: Build MVP in 2 Weeks
 
-This guide provides step-by-step instructions to implement the AI-powered itinerary planner.
+This guide provides step-by-step instructions to implement the AI-powered plan planner.
 
 ---
 
@@ -16,16 +16,16 @@ This guide provides step-by-step instructions to implement the AI-powered itiner
 psql $DATABASE_URL
 
 # Run the schema
-\i docs/architecture/itinerary-planner-schema.sql
+\i docs/architecture/plan-planner-schema.sql
 
 # Verify tables created
-\dt itinerary_*
+\dt plan_*
 ```
 
 **2. Seed Sample Data**
 ```sql
 -- Add sample template for testing
-INSERT INTO itinerary_templates (
+INSERT INTO plan_templates (
     location_id,
     name,
     duration_days,
@@ -163,7 +163,7 @@ export class RoutingService {
 
 **2. Create AI Generator Service**
 ```typescript
-// services/ai-planner/AIItineraryGenerator.ts
+// services/ai-planner/AIplanGenerator.ts
 import OpenAI from 'openai'
 
 export interface GenerateParams {
@@ -174,7 +174,7 @@ export interface GenerateParams {
   pace: 'relaxed' | 'moderate' | 'fast'
 }
 
-export class AIItineraryGenerator {
+export class AIplanGenerator {
   private openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
   })
@@ -206,17 +206,17 @@ export class AIItineraryGenerator {
     })
 
     // 4. Parse response
-    const itinerary = JSON.parse(response.choices[0].message.content!)
+    const plan = JSON.parse(response.choices[0].message.content!)
 
     // 5. Log generation
     await this.logGeneration(params, response)
 
-    return itinerary
+    return plan
   }
 
   private buildPrompt(location: any, activities: any[], restaurants: any[], params: GenerateParams): string {
     return `
-Generate a ${params.durationDays}-day itinerary for ${location.name}.
+Generate a ${params.durationDays}-day plan for ${location.name}.
 
 LOCATION INFO:
 - Best time to visit: ${location.best_time_to_visit}
@@ -252,7 +252,7 @@ CONSTRAINTS:
 
 OUTPUT FORMAT (JSON):
 {
-  "title": "Itinerary title",
+  "title": "plan title",
   "summary": "Brief overview",
   "days": [
     {
@@ -277,7 +277,7 @@ OUTPUT FORMAT (JSON):
   "tips": ["Tip 1", "Tip 2"]
 }
 
-Generate a realistic, well-paced itinerary that maximizes the experience while respecting the constraints.
+Generate a realistic, well-paced plan that maximizes the experience while respecting the constraints.
 `
   }
 }
@@ -289,7 +289,7 @@ Generate a realistic, well-paced itinerary that maximizes the experience while r
 ```typescript
 // apps/web/app/api/itineraries/generate/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { AIItineraryGenerator } from '@/services/ai-planner/AIItineraryGenerator'
+import { AIplanGenerator } from '@/services/ai-planner/AIplanGenerator'
 import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
@@ -306,8 +306,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate
-    const generator = new AIItineraryGenerator()
-    const itinerary = await generator.generate({
+    const generator = new AIplanGenerator()
+    const plan = await generator.generate({
       locationId,
       durationDays,
       budget: budget || 'moderate',
@@ -317,13 +317,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: itinerary
+      data: plan
     })
 
   } catch (error) {
     console.error('Generation error:', error)
     return NextResponse.json(
-      { error: 'Failed to generate itinerary' },
+      { error: 'Failed to generate plan' },
       { status: 500 }
     )
   }
@@ -375,7 +375,7 @@ export default function GeneratePage({ params }: { params: { tripId: string } })
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Generate Itinerary</h1>
+      <h1 className="text-3xl font-bold mb-6">Generate plan</h1>
 
       {/* Configuration Form */}
       <div className="space-y-4 mb-8">
@@ -424,13 +424,13 @@ export default function GeneratePage({ params }: { params: { tripId: string } })
         </div>
 
         <Button onClick={handleGenerate} disabled={loading}>
-          {loading ? 'Generating...' : 'Generate Itinerary'}
+          {loading ? 'Generating...' : 'Generate plan'}
         </Button>
       </div>
 
       {/* Results */}
       {result && (
-        <ItineraryPreview itinerary={result} />
+        <planPreview plan={result} />
       )}
     </div>
   )
@@ -440,8 +440,8 @@ export default function GeneratePage({ params }: { params: { tripId: string } })
 ### Day 8-10: Testing & Refinement
 
 **Test Cases**:
-1. Generate 3-day Tokyo itinerary
-2. Generate 7-day Paris itinerary with "museums" interest
+1. Generate 3-day Tokyo plan
+2. Generate 7-day Paris plan with "museums" interest
 3. Generate budget vs luxury comparison
 4. Test route optimization
 5. Test caching (should be faster 2nd time)

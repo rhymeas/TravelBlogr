@@ -408,7 +408,7 @@ export async function POST(request: NextRequest) {
               } else if (category === 'park') {
                 description = `Relax and unwind at ${name}, a beautiful green space perfect for walks and outdoor activities.`
               } else {
-                description = `Discover ${name}, a notable ${category} in ${locationName}. Worth adding to your itinerary.`
+                description = `Discover ${name}, a notable ${category} in ${locationName}. Worth adding to your plan.`
               }
             }
 
@@ -460,8 +460,8 @@ export async function POST(request: NextRequest) {
       // Fetch gallery images - 20 high-quality images
       let galleryImages = await fetchLocationGalleryHighQuality(locationName, 20)
 
-      // If we got less than 4 images, try with different search terms
-      if (galleryImages.length < 4) {
+      // If we got less than 10 images, try with different search terms
+      if (galleryImages.length < 10) {
         console.log(`⚠️ Only ${galleryImages.length} images found, trying alternative searches...`)
 
         const alternativeSearches = [
@@ -474,20 +474,20 @@ export async function POST(request: NextRequest) {
         ]
 
         for (const searchTerm of alternativeSearches) {
-          if (galleryImages.length >= 6) break
+          if (galleryImages.length >= 20) break
 
-          const additionalImages = await fetchLocationGallery(searchTerm, 2)
+          const additionalImages = await fetchLocationGallery(searchTerm, 5)
           galleryImages.push(...additionalImages.filter(img => !galleryImages.includes(img)))
         }
       }
 
-      // Ensure minimum 4 images (use placeholder if needed)
-      while (galleryImages.length < 4) {
+      // Ensure minimum 10 images (use placeholder if needed)
+      while (galleryImages.length < 10) {
         galleryImages.push('/placeholder-location.svg')
       }
 
-      // Limit to 6 images maximum
-      galleryImages = galleryImages.slice(0, 6)
+      // Limit to 20 images maximum
+      galleryImages = galleryImages.slice(0, 20)
 
       // Update location with images
       await supabase

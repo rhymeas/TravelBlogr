@@ -50,6 +50,37 @@ export interface RestaurantData {
 }
 
 export class LocationRepository {
+  private slugify(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+  }
+
+  /**
+   * Get location images for multiple locations
+   */
+  async getLocationImages(locationNames: string[]): Promise<Record<string, string>> {
+    const supabase = getSupabaseClient()
+    const images: Record<string, string> = {}
+
+    for (const name of locationNames) {
+      const slug = this.slugify(name)
+      const { data } = await supabase
+        .from('locations')
+        .select('featured_image')
+        .eq('slug', slug)
+        .single()
+
+      if (data?.featured_image) {
+        images[name] = data.featured_image
+      }
+    }
+
+    console.log(`🖼️ Fetched ${Object.keys(images).length}/${locationNames.length} location images`)
+    return images
+  }
+
   /**
    * Get location by slug
    */
@@ -59,7 +90,7 @@ export class LocationRepository {
       .from('locations')
       .select('id, name, slug, country, region, latitude, longitude, rating, description')
       .eq('slug', slug)
-      // Note: Not filtering by is_published for itinerary generation
+      // Note: Not filtering by is_published for plan generation
       .single()
 
     if (error) {
@@ -91,7 +122,7 @@ export class LocationRepository {
         )
       `)
       .eq('slug', slug)
-      // Note: Not filtering by is_published for itinerary generation
+      // Note: Not filtering by is_published for plan generation
       .single()
 
     if (error) {
@@ -138,7 +169,7 @@ export class LocationRepository {
       .lte('latitude', maxLat)
       .gte('longitude', minLng)
       .lte('longitude', maxLng)
-      // Note: Not filtering by is_published for itinerary generation
+      // Note: Not filtering by is_published for plan generation
       .order('rating', { ascending: false })
       .limit(10)
 
