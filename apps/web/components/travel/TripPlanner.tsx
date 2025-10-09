@@ -13,7 +13,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { format, addDays, differenceInDays } from 'date-fns'
 import toast from 'react-hot-toast'
 
-interface ItineraryItem {
+interface planItem {
   id: string
   day: number
   time: string
@@ -42,12 +42,12 @@ export function TripPlanner({
   endDate,
   className = ''
 }: TripPlannerProps) {
-  const [itinerary, setItinerary] = useState<ItineraryItem[]>([])
+  const [plan, setplan] = useState<planItem[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [selectedDay, setSelectedDay] = useState(1)
   const [showAddForm, setShowAddForm] = useState(false)
-  const [newItem, setNewItem] = useState<Partial<ItineraryItem>>({
+  const [newItem, setNewItem] = useState<Partial<planItem>>({
     type: 'activity',
     time: '09:00'
   })
@@ -59,15 +59,15 @@ export function TripPlanner({
     : 7
 
   useEffect(() => {
-    loadItinerary()
+    loadplan()
   }, [tripId])
 
-  const loadItinerary = async () => {
+  const loadplan = async () => {
     try {
       setLoading(true)
       
       const { data, error } = await supabase
-        .from('trip_itinerary')
+        .from('trip_plan')
         .select('*')
         .eq('trip_id', tripId)
         .order('day', { ascending: true })
@@ -75,31 +75,31 @@ export function TripPlanner({
 
       if (error) throw error
 
-      setItinerary(data || [])
+      setplan(data || [])
     } catch (error) {
-      console.error('Error loading itinerary:', error)
-      toast.error('Failed to load itinerary')
+      console.error('Error loading plan:', error)
+      toast.error('Failed to load plan')
     } finally {
       setLoading(false)
     }
   }
 
-  const saveItinerary = async () => {
+  const saveplan = async () => {
     try {
       setSaving(true)
 
       // Delete existing items
       await supabase
-        .from('trip_itinerary')
+        .from('trip_plan')
         .delete()
         .eq('trip_id', tripId)
 
       // Insert updated items
-      if (itinerary.length > 0) {
+      if (plan.length > 0) {
         const { error } = await supabase
-          .from('trip_itinerary')
+          .from('trip_plan')
           .insert(
-            itinerary.map(item => ({
+            plan.map(item => ({
               ...item,
               trip_id: tripId,
               user_id: userId
@@ -109,10 +109,10 @@ export function TripPlanner({
         if (error) throw error
       }
 
-      toast.success('Itinerary saved successfully')
+      toast.success('plan saved successfully')
     } catch (error) {
-      console.error('Error saving itinerary:', error)
-      toast.error('Failed to save itinerary')
+      console.error('Error saving plan:', error)
+      toast.error('Failed to save plan')
     } finally {
       setSaving(false)
     }
@@ -124,7 +124,7 @@ export function TripPlanner({
       return
     }
 
-    const item: ItineraryItem = {
+    const item: planItem = {
       id: `item-${Date.now()}`,
       day: selectedDay,
       time: newItem.time || '09:00',
@@ -138,7 +138,7 @@ export function TripPlanner({
       completed: false
     }
 
-    setItinerary(prev => [...prev, item].sort((a, b) => {
+    setplan(prev => [...prev, item].sort((a, b) => {
       if (a.day !== b.day) return a.day - b.day
       return a.time.localeCompare(b.time)
     }))
@@ -148,11 +148,11 @@ export function TripPlanner({
   }
 
   const removeItem = (id: string) => {
-    setItinerary(prev => prev.filter(item => item.id !== id))
+    setplan(prev => prev.filter(item => item.id !== id))
   }
 
   const toggleCompleted = (id: string) => {
-    setItinerary(prev => prev.map(item => 
+    setplan(prev => prev.map(item => 
       item.id === id ? { ...item, completed: !item.completed } : item
     ))
   }
@@ -160,11 +160,11 @@ export function TripPlanner({
   const onDragEnd = (result: any) => {
     if (!result.destination) return
 
-    const items = Array.from(itinerary)
+    const items = Array.from(plan)
     const [reorderedItem] = items.splice(result.source.index, 1)
     items.splice(result.destination.index, 0, reorderedItem)
 
-    setItinerary(items)
+    setplan(items)
   }
 
   const getTypeIcon = (type: string) => {
@@ -195,7 +195,7 @@ export function TripPlanner({
     }
   }
 
-  const dayItems = itinerary.filter(item => item.day === selectedDay)
+  const dayItems = plan.filter(item => item.day === selectedDay)
 
   if (loading) {
     return (
@@ -218,7 +218,7 @@ export function TripPlanner({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Trip Planner</h2>
-          <p className="text-gray-600">Plan your daily itinerary and activities</p>
+          <p className="text-gray-600">Plan your daily plan and activities</p>
         </div>
         
         <div className="flex gap-2">
@@ -231,7 +231,7 @@ export function TripPlanner({
           </Button>
           
           <Button
-            onClick={saveItinerary}
+            onClick={saveplan}
             disabled={saving}
             variant="outline"
           >
@@ -244,7 +244,7 @@ export function TripPlanner({
       <div className="flex gap-2 overflow-x-auto pb-2">
         {Array.from({ length: tripDays }, (_, i) => i + 1).map(day => {
           const date = startDate ? addDays(new Date(startDate), day - 1) : null
-          const dayItems = itinerary.filter(item => item.day === day)
+          const dayItems = plan.filter(item => item.day === day)
           
           return (
             <button
@@ -355,7 +355,7 @@ export function TripPlanner({
         </Card>
       )}
 
-      {/* Itinerary Items */}
+      {/* plan Items */}
       <div className="space-y-4">
         {dayItems.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
@@ -369,7 +369,7 @@ export function TripPlanner({
           </div>
         ) : (
           <DragDropContext onDragEnd={onDragEnd}>
-            <Droppable droppableId="itinerary">
+            <Droppable droppableId="plan">
               {(provided) => (
                 <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-3">
                   {dayItems.map((item, index) => (

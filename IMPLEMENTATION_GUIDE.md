@@ -9,7 +9,7 @@
 
 **Features:**
 - ✅ No authentication required
-- ✅ Trip content (title, description, itinerary, photos, map)
+- ✅ Trip content (title, description, plan, photos, map)
 - ✅ OpenGraph meta tags for social sharing
 - ✅ "Edit Trip" button (owner only) → redirects to CMS
 - ✅ Trip-specific live feed
@@ -249,7 +249,7 @@ export default async function sitemap() {
 **Features:**
 - Edit trip metadata
 - Manage locations
-- Reorder itinerary
+- Reorder plan
 - Upload photos
 - Auto-save
 

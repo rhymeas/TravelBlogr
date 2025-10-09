@@ -18,8 +18,8 @@ export default async function LocationsPage() {
   // Calculate location stats
   const locationStats = {
     total: locations.length,
-    countries: [...new Set(locations.map(l => l.country))].length,
-    regions: [...new Set(locations.map(l => l.region))].length
+    countries: [...new Set(locations.map(l => l.country).filter(Boolean))].length,
+    regions: [...new Set(locations.map(l => l.region).filter(Boolean))].length
   }
 
   return (

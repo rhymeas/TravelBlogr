@@ -161,7 +161,7 @@ const nextConfig = {
     }
     return config
   },
-  // Security headers
+  // Security headers + Performance headers
   async headers() {
     return [
       {
@@ -182,6 +182,26 @@ const nextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()'
+          }
+        ]
+      },
+      // Aggressive caching for optimized images
+      {
+        source: '/_next/image(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
+      },
+      // Cache static assets
+      {
+        source: '/images/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
           }
         ]
       },

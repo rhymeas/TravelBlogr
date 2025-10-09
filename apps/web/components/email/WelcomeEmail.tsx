@@ -61,7 +61,7 @@ export const WelcomeEmail = ({
             <Text style={featureIcon}>🗺️</Text>
             <div>
               <Text style={featureTitle}>Interactive Trip Planning</Text>
-              <Text style={featureDescription}>Plan your itinerary with drag-and-drop scheduling and budget tracking</Text>
+              <Text style={featureDescription}>Plan your plan with drag-and-drop scheduling and budget tracking</Text>
             </div>
           </div>
 

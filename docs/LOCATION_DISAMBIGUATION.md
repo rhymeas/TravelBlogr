@@ -179,10 +179,10 @@ const handleLocationSelect = (locationName: string) => {
 //          /locations/sunshine-coast-canada
 ```
 
-### 3. Itinerary Generation
+### 3. plan Generation
 ```tsx
-// When generating itinerary
-const generateItinerary = async (locations: string[]) => {
+// When generating plan
+const generateplan = async (locations: string[]) => {
   // 1. Resolve each location to specific lat/lng
   const resolvedLocations = await Promise.all(
     locations.map(loc => resolveLocation(loc))

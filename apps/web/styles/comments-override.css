@@ -1,0 +1,291 @@
+/* Custom styling for react-comments-section to match TravelBlogr design system */
+
+/* Main container */
+.comments-section {
+  font-family: inherit !important;
+}
+
+/* Comment input area */
+.comments-section .inputBox {
+  background: #FFFFFF !important;
+  border: 1px solid #DDDDDD !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  margin-bottom: 24px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+
+.comments-section .inputBox textarea {
+  border: 1px solid #DDDDDD !important;
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+  color: #222222 !important;
+  font-family: inherit !important;
+  resize: vertical !important;
+  min-height: 80px !important;
+}
+
+.comments-section .inputBox textarea:focus {
+  outline: none !important;
+  border-color: #FF385C !important;
+  box-shadow: 0 0 0 2px rgba(255, 56, 92, 0.1) !important;
+}
+
+.comments-section .inputBox textarea::placeholder {
+  color: #717171 !important;
+}
+
+/* Submit button */
+.comments-section .postBtn,
+.comments-section .cancelBtn,
+.comments-section .replyBtn {
+  border-radius: 8px !important;
+  padding: 10px 20px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+.comments-section .postBtn {
+  background: linear-gradient(to right, #E61E4D 0%, #E31C5F 50%, #D70466 100%) !important;
+  color: white !important;
+}
+
+.comments-section .postBtn:hover {
+  background: linear-gradient(to right, #D01346 0%, #C9195B 50%, #C00461 100%) !important;
+  transform: scale(1.02) !important;
+}
+
+.comments-section .cancelBtn {
+  background: #FFFFFF !important;
+  color: #222222 !important;
+  border: 1px solid #DDDDDD !important;
+}
+
+.comments-section .cancelBtn:hover {
+  background: #F7F7F7 !important;
+  border-color: #B0B0B0 !important;
+}
+
+/* Individual comment */
+.comments-section .comment {
+  background: #F7F7F7 !important;
+  border: none !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  margin-bottom: 16px !important;
+}
+
+.comments-section .comment .userInfo {
+  margin-bottom: 12px !important;
+}
+
+.comments-section .comment .userInfo .commentsTwo {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #222222 !important;
+}
+
+.comments-section .comment .userInfo .commentsTwo span {
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  color: #717171 !important;
+  margin-left: 8px !important;
+}
+
+.comments-section .comment .commentText {
+  font-size: 15px !important;
+  line-height: 1.6 !important;
+  color: #484848 !important;
+  margin-bottom: 12px !important;
+  word-wrap: break-word !important;
+}
+
+/* Avatar */
+.comments-section .userImg {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  margin-right: 12px !important;
+}
+
+/* Action buttons (edit, delete, reply) */
+.comments-section .comment .actions {
+  display: flex !important;
+  gap: 12px !important;
+  margin-top: 8px !important;
+}
+
+.comments-section .comment .actions button,
+.comments-section .comment .actions span {
+  font-size: 13px !important;
+  color: #717171 !important;
+  background: none !important;
+  border: none !important;
+  padding: 4px 8px !important;
+  cursor: pointer !important;
+  transition: color 0.2s ease !important;
+  font-weight: 500 !important;
+}
+
+.comments-section .comment .actions button:hover,
+.comments-section .comment .actions span:hover {
+  color: #222222 !important;
+}
+
+.comments-section .comment .actions .deleteBtn:hover {
+  color: #C13515 !important;
+}
+
+/* Reply section */
+.comments-section .replyCont {
+  margin-left: 52px !important;
+  margin-top: 12px !important;
+  padding-left: 16px !important;
+  border-left: 2px solid #DDDDDD !important;
+}
+
+.comments-section .replyCont .comment {
+  background: #FFFFFF !important;
+  border: 1px solid #EBEBEB !important;
+}
+
+/* Login prompt */
+.comments-section .loginBtn {
+  background: linear-gradient(to right, #E61E4D 0%, #E31C5F 50%, #D70466 100%) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 12px 24px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.comments-section .loginBtn:hover {
+  background: linear-gradient(to right, #D01346 0%, #C9195B 50%, #C00461 100%) !important;
+  transform: scale(1.02) !important;
+}
+
+/* No comments message */
+.comments-section .noComments {
+  text-align: center !important;
+  padding: 48px 24px !important;
+  color: #717171 !important;
+}
+
+.comments-section .noComments h3 {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: #484848 !important;
+  margin-bottom: 8px !important;
+}
+
+.comments-section .noComments p {
+  font-size: 14px !important;
+  color: #717171 !important;
+}
+
+/* Edit mode */
+.comments-section .editBox {
+  background: #FFFFFF !important;
+  border: 1px solid #DDDDDD !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+}
+
+.comments-section .editBox textarea {
+  border: 1px solid #DDDDDD !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+  font-size: 15px !important;
+  width: 100% !important;
+  font-family: inherit !important;
+}
+
+.comments-section .editBox textarea:focus {
+  outline: none !important;
+  border-color: #FF385C !important;
+  box-shadow: 0 0 0 2px rgba(255, 56, 92, 0.1) !important;
+}
+
+/* Character count */
+.comments-section .charCount {
+  font-size: 12px !important;
+  color: #717171 !important;
+  text-align: right !important;
+  margin-top: 4px !important;
+}
+
+/* Scrollbar styling */
+.comments-section ::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+.comments-section ::-webkit-scrollbar-track {
+  background: #F7F7F7 !important;
+  border-radius: 4px !important;
+}
+
+.comments-section ::-webkit-scrollbar-thumb {
+  background: #DDDDDD !important;
+  border-radius: 4px !important;
+}
+
+.comments-section ::-webkit-scrollbar-thumb:hover {
+  background: #B0B0B0 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .comments-section .replyCont {
+    margin-left: 24px !important;
+    padding-left: 12px !important;
+  }
+  
+  .comments-section .userImg {
+    width: 32px !important;
+    height: 32px !important;
+  }
+  
+  .comments-section .comment {
+    padding: 12px !important;
+  }
+}
+
+/* Loading state */
+.comments-section .loading {
+  text-align: center !important;
+  padding: 24px !important;
+  color: #717171 !important;
+}
+
+/* Error state */
+.comments-section .error {
+  background: #FFF5F5 !important;
+  border: 1px solid #FED7D7 !important;
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  color: #C53030 !important;
+  font-size: 14px !important;
+  margin-bottom: 16px !important;
+}
+
+/* Success message */
+.comments-section .success {
+  background: #F0FFF4 !important;
+  border: 1px solid #9AE6B4 !important;
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  color: #22543D !important;
+  font-size: 14px !important;
+  margin-bottom: 16px !important;
+}
+

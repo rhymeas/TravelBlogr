@@ -1,5 +1,5 @@
 /**
- * Itinerary Planner Page
+ * Plan Planner Page
  * /plan
  */
 

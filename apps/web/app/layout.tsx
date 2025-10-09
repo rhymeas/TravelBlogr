@@ -3,10 +3,13 @@ import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'react-hot-toast'
 import { cn } from '@/lib/utils'
 import './globals.css'
+import './nprogress.css'
 import { PWAInstallPrompt } from '@/components/pwa/PWAInstallPrompt'
 import { MobileNavigation } from '@/components/mobile/MobileNavigation'
 import { AuthAwareHeader } from '@/components/layout/AuthAwareHeader'
 import { Footer } from '@/components/layout/Footer'
+import { ProgressBar } from '@/components/ui/ProgressBar'
+import { ImagePreconnect } from '@/components/performance/ImagePreconnect'
 
 // const inter = Inter({ subsets: ['latin'] })
 
@@ -79,7 +82,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <ImagePreconnect />
+      </head>
       <body className={cn('min-h-screen bg-background antialiased')}>
+        <ProgressBar />
         <div className="relative flex min-h-screen flex-col">
           <AuthAwareHeader />
           <main className="flex-1">{children}</main>

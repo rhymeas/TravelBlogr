@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Minimalist Airbnb-style Itinerary Generator
+ * Minimalist Airbnb-style plan Generator
  */
 
 import { useState, useEffect, useRef } from 'react'
@@ -11,16 +11,17 @@ import { Label } from '@/components/ui/Label'
 import { LocationInput } from './LocationInput'
 import { DateRangePicker } from './DateRangePicker'
 import { TravelTimeSlider } from './TravelTimeSlider'
-import { ItineraryModal } from './ItineraryModal'
+import { planModal as PlanModal } from './ItineraryModal'
 import { RoutePreview } from './RoutePreview'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 
 export function ItineraryGenerator() {
   const [loading, setLoading] = useState(false)
-  const [itinerary, setItinerary] = useState<any>(null)
+  const [plan, setPlan] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [ctaBottomOffset, setCtaBottomOffset] = useState(24) // 24px = bottom-6
   const [resolvedLocations, setResolvedLocations] = useState<any[]>([])
+  const [locationImages, setLocationImages] = useState<Record<string, string>>({})
 
   // Multi-location state with resolved names
   const [locations, setLocations] = useState([
@@ -93,7 +94,7 @@ export function ItineraryGenerator() {
 
     setLoading(true)
     setError(null)
-    setItinerary(null)
+    setPlan(null)
 
     try {
       // Send all locations including stops
@@ -125,18 +126,19 @@ export function ItineraryGenerator() {
       const data = await response.json()
 
       if (data.success) {
-        setItinerary(data.data)
+        setPlan(data.data)
         setResolvedLocations(data.resolvedLocations || [])
+        setLocationImages(data.locationImages || {})
       } else {
         // Show helpful error message
-        let errorMsg = data.error || 'Failed to generate itinerary'
+        let errorMsg = data.error || 'Failed to generate plan'
         if (errorMsg.includes('not found')) {
           errorMsg += '. Please use the autocomplete dropdown to select a valid location.'
         }
         setError(errorMsg)
       }
     } catch (err) {
-      console.error('Error generating itinerary:', err)
+      console.error('Error generating plan:', err)
       setError('Network error. Please try again.')
     } finally {
       setLoading(false)
@@ -145,24 +147,23 @@ export function ItineraryGenerator() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-semibold mb-2">Plan your trip</h1>
-        <p className="text-gray-600">AI-powered itinerary in seconds</p>
+      {/* Header - Compact */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-semibold">Plan your trip</h1>
       </div>
 
       {/* Error Message - Above form */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
           <p className="text-red-800">{error}</p>
         </div>
       )}
 
       {/* Form - Separated Sections */}
-      <div className="space-y-4 mb-6 pb-24">
+      <div className="space-y-3 mb-6 pb-24">
         {/* Where to? */}
-        <div className="bg-white rounded-2xl shadow-sm border p-6">
-          <h3 className="text-lg font-semibold mb-4">Where to?</h3>
+        <div className="bg-white rounded-2xl shadow-sm border p-5">
+          <h3 className="text-base font-semibold mb-3">Where to?</h3>
           <LocationInput
             locations={locations}
             onChange={setLocations}
@@ -176,51 +177,18 @@ export function ItineraryGenerator() {
           )}
         </div>
 
-        {/* When? */}
-        <div className="bg-white rounded-2xl shadow-sm border p-6">
-          <h3 className="text-lg font-semibold mb-4">When?</h3>
-          <DateRangePicker
-            startDate={dateRange?.startDate}
-            endDate={dateRange?.endDate}
-            onSelect={setDateRange}
-          />
-        </div>
-
-        {/* Travel pace - Optional & Collapsible */}
-        <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setShowTravelPace(!showTravelPace)}
-            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold">Travel pace</h3>
-              <span className="text-xs text-gray-500 font-normal">(Optional)</span>
-            </div>
-            {showTravelPace ? (
-              <ChevronUp className="h-5 w-5 text-gray-400" />
-            ) : (
-              <ChevronDown className="h-5 w-5 text-gray-400" />
-            )}
-          </button>
-
-          {showTravelPace && (
-            <div className="px-6 pb-6 border-t border-gray-100">
-              <p className="text-sm text-gray-600 mb-4 mt-4">
-                How many hours per day do you want to spend on activities?
-              </p>
-              <TravelTimeSlider
-                value={travelHoursPerDay || 5}
-                onChange={setTravelHoursPerDay}
+        {/* Compact 2-Row Layout: Dates, Interests, Budget, Travel Pace */}
+        <div className="bg-white rounded-2xl shadow-sm border p-5">
+          {/* Row 1: Dates + Interests */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <div>
+              <Label className="mb-2 block text-sm font-medium text-gray-700">Dates</Label>
+              <DateRangePicker
+                startDate={dateRange?.startDate}
+                endDate={dateRange?.endDate}
+                onSelect={setDateRange}
               />
             </div>
-          )}
-        </div>
-
-        {/* Interests & Budget */}
-        <div className="bg-white rounded-2xl shadow-sm border p-6">
-          <h3 className="text-lg font-semibold mb-4">Preferences</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="interests" className="mb-2 block text-sm font-medium text-gray-700">Interests</Label>
               <Input
@@ -231,6 +199,10 @@ export function ItineraryGenerator() {
                 className="border-gray-300 focus:border-black focus:ring-black"
               />
             </div>
+          </div>
+
+          {/* Row 2: Budget + Travel Pace */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label htmlFor="budget" className="mb-2 block text-sm font-medium text-gray-700">Budget</Label>
               <select
@@ -243,6 +215,33 @@ export function ItineraryGenerator() {
                 <option value="moderate">Moderate</option>
                 <option value="luxury">Luxury</option>
               </select>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium text-gray-700">Travel pace</Label>
+                <button
+                  type="button"
+                  onClick={() => setShowTravelPace(!showTravelPace)}
+                  className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                >
+                  {showTravelPace ? 'Hide' : 'Optional'}
+                  {showTravelPace ? (
+                    <ChevronUp className="h-3 w-3" />
+                  ) : (
+                    <ChevronDown className="h-3 w-3" />
+                  )}
+                </button>
+              </div>
+              {showTravelPace ? (
+                <TravelTimeSlider
+                  value={travelHoursPerDay || 5}
+                  onChange={setTravelHoursPerDay}
+                />
+              ) : (
+                <div className="px-3 py-2 border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-500">
+                  Click "Optional" to set
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -277,21 +276,22 @@ export function ItineraryGenerator() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Generating your itinerary...
+                  Generating your plan...
                 </span>
               ) : (
-                'Generate Itinerary'
+                'Generate plan'
               )}
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Results Modal */}
-      {itinerary && (
-        <ItineraryModal
-          itinerary={itinerary}
-          onClose={() => setItinerary(null)}
+      {/* Results Modal - Modern Timeline Design */}
+      {plan && (
+        <PlanModal
+          plan={plan}
+          locationImages={locationImages}
+          onClose={() => setPlan(null)}
         />
       )}
     </div>

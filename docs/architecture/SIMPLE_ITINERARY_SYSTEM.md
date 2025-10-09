@@ -1,4 +1,4 @@
-# 🚀 Simple, Fast, Free Itinerary System
+# 🚀 Simple, Fast, Free plan System
 
 ## Core Concept: Rule-Based Intelligence + Your Existing Data
 
@@ -28,7 +28,7 @@ Day 5 (Kyoto): Arashiyama Bamboo → Nijo Castle → Departure
 Use **OpenStreetMap Nominatim** (free geocoding) + simple distance calculation:
 
 ```typescript
-// services/itinerary/SimpleRoutePlanner.ts
+// services/plan/SimpleRoutePlanner.ts
 export class SimpleRoutePlanner {
   async planRoute(from: string, to: string, days: number) {
     // 1. Get coordinates for start/end
@@ -106,7 +106,7 @@ export class SimpleRoutePlanner {
 ### **Step 2: Daily Activities (Rule-Based)**
 
 ```typescript
-// services/itinerary/ActivitySelector.ts
+// services/plan/ActivitySelector.ts
 export class ActivitySelector {
   async selectActivities(
     locationId: string,
@@ -191,7 +191,7 @@ export class ActivitySelector {
 ### **Step 3: Meal Planning (Simple)**
 
 ```typescript
-// services/itinerary/MealPlanner.ts
+// services/plan/MealPlanner.ts
 export class MealPlanner {
   async planMeals(locationId: string, budget: string, days: number) {
     const { data: restaurants } = await supabase
@@ -360,9 +360,9 @@ export class HuggingFaceService {
 ### **90% Rule-Based + 10% AI**
 
 ```typescript
-// services/itinerary/HybridItineraryGenerator.ts
-export class HybridItineraryGenerator {
-  async generate(params: ItineraryParams) {
+// services/plan/HybridplanGenerator.ts
+export class HybridplanGenerator {
+  async generate(params: planParams) {
     // 1. RULE-BASED: Plan route and allocate days (FAST, FREE)
     const route = await this.routePlanner.planRoute(
       params.from,
@@ -371,7 +371,7 @@ export class HybridItineraryGenerator {
     )
 
     // 2. RULE-BASED: Select activities for each location (FAST, FREE)
-    const itinerary = []
+    const plan = []
     for (const stop of route) {
       const activities = await this.activitySelector.selectActivities(
         stop.locationId,
@@ -386,7 +386,7 @@ export class HybridItineraryGenerator {
         stop.days
       )
 
-      itinerary.push({
+      plan.push({
         location: stop.location,
         days: stop.days,
         activities,
@@ -396,17 +396,17 @@ export class HybridItineraryGenerator {
 
     // 3. AI (OPTIONAL): Add descriptions and tips (SLOW, COSTS MONEY)
     if (params.useAI) {
-      itinerary = await this.enhanceWithAI(itinerary)
+      plan = await this.enhanceWithAI(plan)
     }
 
-    return itinerary
+    return plan
   }
 
-  private async enhanceWithAI(itinerary: any) {
+  private async enhanceWithAI(plan: any) {
     // Use Groq (free) or Ollama (local) for descriptions
     const groq = new GroqService()
     
-    for (const day of itinerary) {
+    for (const day of plan) {
       const prompt = `Write a brief, engaging description for this day:
 Location: ${day.location}
 Activities: ${day.activities.map(a => a.name).join(', ')}
@@ -416,7 +416,7 @@ Keep it under 50 words.`
       day.description = await groq.generate(prompt)
     }
 
-    return itinerary
+    return plan
   }
 }
 ```
@@ -425,7 +425,7 @@ Keep it under 50 words.`
 
 ## 💰 **Cost Comparison**
 
-| Approach | Cost per Itinerary | Speed | Quality |
+| Approach | Cost per plan | Speed | Quality |
 |----------|-------------------|-------|---------|
 | **Rule-Based Only** | $0 | <1 sec | Good |
 | **Rule-Based + Ollama** | $0 | 2-3 sec | Great |
@@ -470,7 +470,7 @@ Your original question covered:
    - Share link
 
 7. **Offline Mode**
-   - Download itinerary
+   - Download plan
    - Works without internet
 
 ---

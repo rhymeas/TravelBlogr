@@ -1,4 +1,4 @@
-# 🆓 Free AI Stack for Itinerary Planning
+# 🆓 Free AI Stack for plan Planning
 
 ## Architecture Overview
 
@@ -15,7 +15,7 @@
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
 │           LLM GENERATION (Groq/HF - FREE)                    │
-│  Generate itinerary using retrieved context                  │
+│  Generate plan using retrieved context                  │
 └─────────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -273,7 +273,7 @@ export class SemanticSearch {
 import Groq from 'groq-sdk'
 import { SemanticSearch } from '@/lib/search/semantic-search'
 
-export class GroqItineraryGenerator {
+export class GroqplanGenerator {
   private groq = new Groq({
     apiKey: process.env.GROQ_API_KEY! // FREE tier!
   })
@@ -325,7 +325,7 @@ export class GroqItineraryGenerator {
   }
 
   private buildPrompt(params: any, activities: any[], restaurants: any[]) {
-    return `Generate a ${params.days}-day itinerary for ${params.locationName}.
+    return `Generate a ${params.days}-day plan for ${params.locationName}.
 
 RELEVANT ACTIVITIES (semantic search results):
 ${activities.slice(0, 15).map((a, i) => `
@@ -353,7 +353,7 @@ CONSTRAINTS:
 
 OUTPUT (JSON):
 {
-  "title": "Itinerary title",
+  "title": "plan title",
   "days": [
     {
       "day": 1,
@@ -373,7 +373,7 @@ OUTPUT (JSON):
   "tips": ["Tip 1", "Tip 2"]
 }
 
-Generate a realistic itinerary using ONLY the activities and restaurants listed above.`
+Generate a realistic plan using ONLY the activities and restaurants listed above.`
   }
 }
 ```
@@ -385,7 +385,7 @@ Generate a realistic itinerary using ONLY the activities and restaurants listed 
 ```typescript
 // app/api/itineraries/generate/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { GroqItineraryGenerator } from '@/lib/ai/groq-generator'
+import { GroqplanGenerator } from '@/lib/ai/groq-generator'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -416,11 +416,11 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // 2. Generate new itinerary
-    const generator = new GroqItineraryGenerator()
+    // 2. Generate new plan
+    const generator = new GroqplanGenerator()
     const startTime = Date.now()
     
-    const itinerary = await generator.generate({
+    const plan = await generator.generate({
       locationId,
       locationName: body.locationName,
       days,
@@ -436,14 +436,14 @@ export async function POST(request: NextRequest) {
       constraints: { locationId, days, interests, budget },
       model_used: 'groq-llama-3.1-8b',
       generation_time_ms: generationTime,
-      result_data: itinerary
+      result_data: plan
     })
 
     console.log(`✅ Generated in ${generationTime}ms`)
 
     return NextResponse.json({
       success: true,
-      data: itinerary,
+      data: plan,
       cached: false,
       generationTime
     })
@@ -451,7 +451,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Generation error:', error)
     return NextResponse.json(
-      { error: 'Failed to generate itinerary' },
+      { error: 'Failed to generate plan' },
       { status: 500 }
     )
   }

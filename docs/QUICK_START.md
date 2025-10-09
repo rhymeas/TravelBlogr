@@ -1,4 +1,4 @@
-# ✅ Itinerary Generator - Ready to Test!
+# ✅ plan Generator - Ready to Test!
 
 ## 🎉 What's Done
 
@@ -31,10 +31,10 @@ GROQ_API_KEY=gsk_your_actual_key_here
 ### Backend Test
 ```bash
 cd apps/web
-npx tsx scripts/test-itinerary.ts
+npx tsx scripts/test-plan.ts
 ```
 
-Should generate a complete itinerary in ~2 seconds.
+Should generate a complete plan in ~2 seconds.
 
 ### Frontend Test
 
@@ -49,7 +49,7 @@ Fill in:
 - Interests: `art, food, history`
 - Budget: `moderate`
 
-Click "Generate Itinerary" → Get results in 1-2 seconds!
+Click "Generate plan" → Get results in 1-2 seconds!
 
 ## 📍 Available Locations
 
@@ -77,7 +77,7 @@ Use these location slugs:
 
 - **Free**: 14,400 requests/day
 - **Supports**: ~10,000 users
-- **Speed**: 1-2 seconds per itinerary
+- **Speed**: 1-2 seconds per plan
 
 ## 🐛 Troubleshooting
 
@@ -94,23 +94,23 @@ Use these location slugs:
 
 ```
 apps/web/
-├── lib/itinerary/                    # Backend (Clean Architecture)
+├── lib/plan/                    # Backend (Clean Architecture)
 │   ├── domain/                       # Entities & Value Objects
 │   ├── application/                  # Use Cases & Services
 │   └── infrastructure/               # Repositories
-├── components/itinerary/             # Frontend
-│   └── ItineraryGenerator.tsx       # Main UI component
+├── components/plan/             # Frontend
+│   └── planGenerator.tsx       # Main UI component
 ├── app/
 │   ├── plan/page.tsx                # /plan page
 │   └── api/itineraries/generate/    # API endpoint
 └── scripts/
-    └── test-itinerary.ts            # Test script
+    └── test-plan.ts            # Test script
 ```
 
 ## ✨ Next Steps
 
 1. Add your Groq API key
 2. Visit http://localhost:3000/plan
-3. Generate your first itinerary!
+3. Generate your first plan!
 4. (Optional) Add caching, export features, etc.
 

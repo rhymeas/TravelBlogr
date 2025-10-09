@@ -1,19 +1,19 @@
 /**
- * API Route: Generate Itinerary
+ * API Route: Generate plan
  * POST /api/itineraries/generate
  * 
  * Presentation layer - handles HTTP requests/responses
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { GenerateItineraryUseCase } from '@/lib/itinerary/application/use-cases/GenerateItineraryUseCase'
+import { GenerateplanUseCase } from '@/lib/itinerary/application/use-cases/GenerateItineraryUseCase'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**
  * POST /api/itineraries/generate
- * Generate a new itinerary
+ * Generate a new plan
  */
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Execute use case
-    const useCase = new GenerateItineraryUseCase()
+    const useCase = new GenerateplanUseCase()
     const result = await useCase.execute({
       from: body.from,
       to: body.to,
@@ -65,8 +65,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: result.itinerary?.toJSON(),
+      data: result.plan?.toJSON(),
       resolvedLocations: result.resolvedLocations || [],
+      locationImages: result.locationImages || {},
       meta: {
         generationTimeMs: generationTime,
         generatedAt: new Date().toISOString()
@@ -95,7 +96,7 @@ export async function GET() {
   return NextResponse.json({
     endpoint: '/api/itineraries/generate',
     method: 'POST',
-    description: 'Generate a travel itinerary using AI',
+    description: 'Generate a travel plan using AI',
     requestBody: {
       from: 'string (required) - Origin location slug (e.g., "tokyo")',
       to: 'string (required) - Destination location slug (e.g., "kyoto")',

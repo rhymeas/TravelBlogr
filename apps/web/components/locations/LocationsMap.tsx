@@ -45,9 +45,33 @@ export function LocationsMap({
     if (!mapContainer.current || map.current) return
 
     try {
+      // Initialize map with OpenStreetMap tiles via CARTO
       map.current = new maplibregl.Map({
         container: mapContainer.current,
-        style: 'https://demotiles.maplibre.org/style.json',
+        style: {
+          version: 8,
+          sources: {
+            'osm': {
+              type: 'raster',
+              tiles: [
+                'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
+              ],
+              tileSize: 256,
+              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            }
+          },
+          layers: [
+            {
+              id: 'osm',
+              type: 'raster',
+              source: 'osm',
+              minzoom: 0,
+              maxzoom: 22
+            }
+          ]
+        },
         center: [0, 20],
         zoom: 2,
         antialias: true
@@ -172,16 +196,87 @@ export function LocationsMap({
           const location = cluster.location
           if (!location.latitude || !location.longitude) return
 
-          // Create custom marker element
+          // Create modern custom marker element
           const el = document.createElement('div')
-          el.className = 'location-marker'
-          el.innerHTML = '📍'
-          el.style.cssText = `
-            font-size: 32px;
+          el.className = 'location-marker-modern'
+
+          // Create pin structure
+          const pinContainer = document.createElement('div')
+          pinContainer.style.cssText = `
+            position: relative;
+            width: 40px;
+            height: 50px;
             cursor: pointer;
             user-select: none;
-            line-height: 1;
+            transition: transform 0.2s ease;
           `
+
+          // Pin head (circle with image)
+          const pinHead = document.createElement('div')
+          pinHead.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #FF385C 0%, #E31C5F 100%);
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 4px 12px rgba(255, 56, 92, 0.4), 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+          `
+
+          // Location icon or image
+          if (location.featured_image || location.image_url) {
+            const img = document.createElement('img')
+            img.src = location.featured_image || location.image_url || ''
+            img.style.cssText = `
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+            `
+            pinHead.appendChild(img)
+          } else {
+            pinHead.innerHTML = `
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+              </svg>
+            `
+          }
+
+          // Pin tail (teardrop bottom)
+          const pinTail = document.createElement('div')
+          pinTail.style.cssText = `
+            position: absolute;
+            top: 32px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 12px solid #E31C5F;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+          `
+
+          pinContainer.appendChild(pinHead)
+          pinContainer.appendChild(pinTail)
+          el.appendChild(pinContainer)
+
+          // Hover effect
+          el.addEventListener('mouseenter', () => {
+            pinContainer.style.transform = 'scale(1.15)'
+            pinHead.style.boxShadow = '0 6px 16px rgba(255, 56, 92, 0.5), 0 3px 6px rgba(0, 0, 0, 0.15)'
+          })
+
+          el.addEventListener('mouseleave', () => {
+            pinContainer.style.transform = 'scale(1)'
+            pinHead.style.boxShadow = '0 4px 12px rgba(255, 56, 92, 0.4), 0 2px 4px rgba(0, 0, 0, 0.1)'
+          })
 
           const marker = new maplibregl.Marker({
             element: el,
@@ -197,27 +292,86 @@ export function LocationsMap({
 
           markers.current.push(marker)
         } else {
-          // Cluster marker
-          const size = Math.min(60, 40 + cluster.count * 2)
+          // Modern cluster marker
+          const size = Math.min(70, 45 + cluster.count * 2)
           const el = document.createElement('div')
-          el.className = 'cluster-marker'
-          el.style.cssText = `
-            background: linear-gradient(135deg, #f43f5e 0%, #ec4899 100%);
+          el.className = 'cluster-marker-modern'
+
+          // Outer pulse ring
+          const pulseRing = document.createElement('div')
+          pulseRing.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: ${size + 20}px;
+            height: ${size + 20}px;
+            border-radius: 50%;
+            background: rgba(255, 56, 92, 0.2);
+            animation: pulse 2s ease-in-out infinite;
+          `
+
+          // Main cluster circle
+          const clusterCircle = document.createElement('div')
+          clusterCircle.style.cssText = `
+            position: relative;
+            background: linear-gradient(135deg, #FF385C 0%, #E31C5F 100%);
             color: white;
             border-radius: 50%;
             width: ${size}px;
             height: ${size}px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            font-size: ${Math.min(20, 14 + Math.floor(cluster.count / 2))}px;
+            font-weight: 700;
             cursor: pointer;
             border: 4px solid white;
-            box-shadow: 0 4px 12px rgba(244, 63, 94, 0.5);
+            box-shadow: 0 6px 20px rgba(255, 56, 92, 0.4), 0 3px 8px rgba(0, 0, 0, 0.15);
             user-select: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
           `
-          el.textContent = cluster.count.toString()
+
+          // Count number
+          const countText = document.createElement('div')
+          countText.style.cssText = `
+            font-size: ${Math.min(24, 16 + Math.floor(cluster.count / 2))}px;
+            line-height: 1;
+          `
+          countText.textContent = cluster.count.toString()
+
+          // Label
+          const labelText = document.createElement('div')
+          labelText.style.cssText = `
+            font-size: 10px;
+            font-weight: 500;
+            opacity: 0.9;
+            margin-top: 2px;
+          `
+          labelText.textContent = 'locations'
+
+          clusterCircle.appendChild(countText)
+          clusterCircle.appendChild(labelText)
+
+          el.appendChild(pulseRing)
+          el.appendChild(clusterCircle)
+
+          el.style.cssText = `
+            position: relative;
+            width: ${size + 20}px;
+            height: ${size + 20}px;
+          `
+
+          // Hover effect
+          el.addEventListener('mouseenter', () => {
+            clusterCircle.style.transform = 'scale(1.1)'
+            clusterCircle.style.boxShadow = '0 8px 24px rgba(255, 56, 92, 0.5), 0 4px 12px rgba(0, 0, 0, 0.2)'
+          })
+
+          el.addEventListener('mouseleave', () => {
+            clusterCircle.style.transform = 'scale(1)'
+            clusterCircle.style.boxShadow = '0 6px 20px rgba(255, 56, 92, 0.4), 0 3px 8px rgba(0, 0, 0, 0.15)'
+          })
 
           const popupContent = `
             <div class="p-3">

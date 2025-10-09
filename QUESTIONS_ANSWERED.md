@@ -65,7 +65,7 @@ A public-facing, read-only page accessible at:
 
 **Features:**
 - ✅ No authentication required
-- ✅ Trip content (title, description, itinerary, photos, map)
+- ✅ Trip content (title, description, plan, photos, map)
 - ✅ SEO optimization
 - ✅ OpenGraph meta tags
 - ✅ "Edit Trip" button (owner only) → redirects to CMS

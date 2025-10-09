@@ -415,6 +415,16 @@
   66% { transform: translateY(-4px) rotate(-1deg); }
 }
 
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: gradientShift 10s ease infinite;
+}
+
 @keyframes fadeInScale {
   from {
     opacity: 0;
@@ -459,10 +469,10 @@
 
 /* Enhanced glassmorphism */
 .glass-premium {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(25px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px rgba(244, 63, 94, 0.1);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
 /* Luxury card effects */
@@ -602,12 +612,24 @@
   border-bottom-color: white !important;
 }
 
-/* Location marker styles */
-.location-marker {
+/* Modern Location Marker Styles */
+.location-marker-modern {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
-/* Cluster marker */
-.cluster-marker {
+/* Modern Cluster Marker */
+.cluster-marker-modern {
   font-family: 'Inter', sans-serif;
+}
+
+/* Pulse animation for cluster markers */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
 }

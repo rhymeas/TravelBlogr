@@ -3,7 +3,7 @@ import { GuestTripPlanner } from '@/components/guest/GuestTripPlanner'
 
 export const metadata: Metadata = {
   title: 'Plan Your Trip | TravelBlogr',
-  description: 'Create your travel itinerary with AI assistance. No sign-up required.',
+  description: 'Create your travel plan with AI assistance. No sign-up required.',
   robots: 'noindex', // Don't index guest pages
 }
 

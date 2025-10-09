@@ -60,64 +60,79 @@ export function DateRangePicker({ startDate, endDate, onSelect }: DateRangePicke
       {isOpen && (
         <>
           {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-black/20 z-40"
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
             onClick={() => setIsOpen(false)}
           />
-          
-          {/* Calendar */}
-          <div className="absolute top-full left-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 p-4">
+
+          {/* Calendar - Centered on Screen */}
+          <div className="fixed top-1/2 left-1/2 bg-white rounded-2xl shadow-2xl border border-gray-200 z-[110] p-3" style={{ width: 'fit-content', minWidth: '650px', maxWidth: '750px', transform: 'translate(-50%, -50%) scale(0.9)' }}>
             <style jsx global>{`
               .rdp {
-                --rdp-cell-size: 44px;
+                --rdp-cell-size: 28px;
                 --rdp-accent-color: #000;
                 --rdp-background-color: #f7f7f7;
                 margin: 0;
               }
               .rdp-months {
+                display: flex !important;
+                flex-direction: row !important;
                 justify-content: center;
+                gap: 1.25rem;
+                flex-wrap: nowrap !important;
               }
               .rdp-month {
                 margin: 0;
               }
               .rdp-caption {
                 display: flex;
-                justify-content: center;
-                padding: 0 0 1rem 0;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0 0 0.5rem 0;
                 font-weight: 600;
-                font-size: 0.95rem;
+                font-size: 0.8rem;
+                position: relative;
+              }
+              .rdp-caption_label {
+                text-align: center;
+                flex: 1;
+                padding: 0 0.5rem;
               }
               .rdp-nav {
-                position: absolute;
-                top: 0;
-                width: 100%;
-                display: flex;
-                justify-content: space-between;
+                display: contents;
               }
               .rdp-nav_button {
-                width: 32px;
-                height: 32px;
+                width: 24px;
+                height: 24px;
                 border-radius: 50%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 transition: all 0.2s;
+                flex-shrink: 0;
+                background: transparent;
+                border: none;
+                cursor: pointer;
               }
               .rdp-nav_button:hover {
                 background-color: #f7f7f7;
               }
+              .rdp-nav_button svg {
+                width: 12px;
+                height: 12px;
+              }
               .rdp-head_cell {
                 font-weight: 600;
-                font-size: 0.75rem;
+                font-size: 0.65rem;
                 color: #6b7280;
                 text-transform: uppercase;
               }
               .rdp-cell {
-                padding: 2px;
+                padding: 1.5px;
               }
               .rdp-day {
                 border-radius: 50%;
-                font-size: 0.875rem;
+                font-size: 0.75rem;
                 transition: all 0.2s;
               }
               .rdp-day:hover:not(.rdp-day_selected) {
@@ -153,21 +168,21 @@ export function DateRangePicker({ startDate, endDate, onSelect }: DateRangePicke
               showOutsideDays={false}
             />
 
-            <div className="flex justify-between items-center pt-4 border-t mt-4">
+            <div className="flex justify-between items-center pt-2 border-t mt-2">
               <button
                 type="button"
                 onClick={() => {
                   setRange(undefined)
                   onSelect(null)
                 }}
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 underline"
+                className="text-xs font-medium text-gray-600 hover:text-gray-900 underline"
               >
                 Clear dates
               </button>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 font-medium text-sm"
+                className="px-4 py-1.5 bg-black text-white rounded-lg hover:bg-gray-800 font-medium text-xs"
               >
                 Done
               </button>

@@ -23,7 +23,7 @@ export interface GuestTrip {
   destinations: string[]
   interests?: string[]
   budget?: 'budget' | 'moderate' | 'luxury'
-  itinerary?: any // Generated itinerary data
+  plan?: any // Generated plan data
   createdAt: string
   updatedAt: string
 }

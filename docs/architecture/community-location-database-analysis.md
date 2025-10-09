@@ -64,7 +64,7 @@ CREATE TABLE locations (
 
 ### 2. Automatic Reuse ✅ **FULLY IMPLEMENTED**
 
-**Implementation:** `apps/web/lib/itinerary/infrastructure/services/LocationDiscoveryService.ts`
+**Implementation:** `apps/web/lib/plan/infrastructure/services/LocationDiscoveryService.ts`
 
 **Three-Tier Lookup System:**
 

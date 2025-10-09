@@ -19,11 +19,12 @@ interface Location {
   country: string
   region: string
   description: string
-  featured_image: string
-  rating: number
+  featured_image?: string
+  gallery_images?: string[]
+  rating?: number
   visit_count: number
   is_featured: boolean
-  location_posts: Array<{
+  location_posts?: Array<{
     id: string
     title: string
     excerpt: string
@@ -91,9 +92,9 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
         </div>
       )}
 
-      {/* List View */}
+      {/* List View - 2 Column Layout */}
       {viewMode === 'list' && (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {locations.map((location) => (
             <LocationListItem key={location.id} location={location} />
           ))}
@@ -146,7 +147,7 @@ function LocationCard({ location }: { location: Location }) {
             </div>
             <div className="bg-black/70 backdrop-blur-sm text-white text-body-small px-2 py-1 rounded-airbnb-small flex items-center gap-1">
               <Camera className="h-3 w-3" />
-              {location.location_posts?.length || 0}
+              {location.gallery_images?.length || 0}
             </div>
           </div>
         </div>
@@ -212,8 +213,8 @@ function LocationListItem({ location }: { location: Location }) {
   return (
     <Card className="hover:shadow-md transition-shadow duration-200">
       <div className="flex">
-        {/* Image */}
-        <div className="relative w-48 h-32 flex-shrink-0">
+        {/* Image - Reduced from w-48 to w-32 */}
+        <div className="relative w-32 h-24 flex-shrink-0">
           <OptimizedImage
             src={location.featured_image || '/placeholder-location.jpg'}
             alt={location.name}
@@ -221,81 +222,70 @@ function LocationListItem({ location }: { location: Location }) {
             preset="thumbnail"
             className="object-cover rounded-l-lg"
           />
-          
+
           {location.is_featured && (
-            <Badge className="absolute top-2 left-2 bg-yellow-100 text-yellow-800">
+            <Badge className="absolute top-2 left-2 bg-yellow-100 text-yellow-800 text-xs">
               Featured
             </Badge>
           )}
         </div>
 
-        {/* Content */}
-        <div className="flex-1 p-6">
-          <div className="flex items-start justify-between mb-2">
-            <div>
-              <h3 className="text-xl font-semibold text-gray-900 hover:text-blue-600 transition-colors">
+        {/* Content - Reduced padding */}
+        <div className="flex-1 p-4">
+          <div className="flex items-start justify-between mb-1">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors truncate">
                 <Link href={`/locations/${location.slug}`}>
                   {location.name}
                 </Link>
               </h3>
-              <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
-                <MapPin className="h-4 w-4" />
-                <span>{location.region}, {location.country}</span>
+              <div className="flex items-center gap-1 text-xs text-gray-600">
+                <MapPin className="h-3 w-3" />
+                <span className="truncate">{location.region}, {location.country}</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 text-sm text-gray-500">
+            <div className="flex items-center gap-2 text-xs text-gray-500 ml-2">
               {location.rating && (
                 <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                   <span>{location.rating}</span>
                 </div>
               )}
               <div className="flex items-center gap-1">
-                <Eye className="h-4 w-4" />
+                <Eye className="h-3 w-3" />
                 <span>{location.visit_count}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Camera className="h-4 w-4" />
-                <span>{location.location_posts?.length || 0}</span>
+                <Camera className="h-3 w-3" />
+                <span>{location.gallery_images?.length || 0}</span>
               </div>
             </div>
           </div>
 
-          <p className="text-gray-600 line-clamp-2 mb-3">
+          <p className="text-gray-600 text-sm line-clamp-2 mb-2">
             {location.description}
           </p>
 
-          {/* Latest Post */}
+          {/* Latest Post - Compact */}
           {latestPost && (
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-2 p-2 bg-gray-50 rounded text-xs">
               <Image
                 src={latestPost.author.avatar_url || '/default-avatar.png'}
                 alt={latestPost.author.name}
-                width={32}
-                height={32}
+                width={24}
+                height={24}
                 className="rounded-full"
               />
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-medium text-gray-900 line-clamp-1">
+                <span className="text-gray-900 font-medium truncate block">
                   {latestPost.title}
-                </h4>
-                <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                  <span>by {latestPost.author.name}</span>
-                  <span>•</span>
-                  <span>{new Date(latestPost.published_at).toLocaleDateString()}</span>
-                  <span>•</span>
-                  <div className="flex items-center gap-1">
-                    <Heart className="h-3 w-3" />
-                    <span>{latestPost.like_count}</span>
-                  </div>
-                </div>
+                </span>
               </div>
-              <Link href={`/locations/${location.slug}`}>
-                <Button size="sm" variant="outline">
-                  Read More
-                </Button>
-              </Link>
+              <div className="flex items-center gap-1 text-gray-500">
+                <Heart className="h-3 w-3" />
+                <span>{latestPost.like_count}</span>
+              </div>
             </div>
           )}
         </div>

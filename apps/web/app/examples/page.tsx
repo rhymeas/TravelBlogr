@@ -62,7 +62,7 @@ const examples = [
     location: 'Iceland',
     duration: '14 days',
     image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTAwNDR8MHwxfHNlYXJjaHwxfHxpY2VsYW5kJTIwbm9ydGhlcm4lMjBsaWdodHN8ZW58MHwwfHx8MTcwOTg1OTI1OXww&ixlib=rb-4.1.0&q=85&w=800',
-    description: 'Complete Ring Road itinerary with Northern Lights photography tips, hot spring locations, and weather-dependent backup plans.',
+    description: 'Complete Ring Road plan with Northern Lights photography tips, hot spring locations, and weather-dependent backup plans.',
     stats: { views: 9800, likes: 1450, shares: 287 },
     tags: ['Photography', 'Nature', 'Northern Lights', 'Road Trip'],
     featured: false,

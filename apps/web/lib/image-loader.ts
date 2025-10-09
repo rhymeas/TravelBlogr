@@ -111,19 +111,48 @@ export function preloadImage(src: string, width: number = 800) {
 
 /**
  * Get responsive image sizes for different breakpoints
+ * Optimized for TravelBlogr's grid layouts
  */
-export function getResponsiveSizes(type: 'card' | 'hero' | 'thumbnail' | 'full'): string {
+export function getResponsiveSizes(type: 'card' | 'hero' | 'thumbnail' | 'full' | 'gallery'): string {
   switch (type) {
-    case 'card':
-      return '(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw'
-    case 'hero':
-      return '100vw'
     case 'thumbnail':
-      return '(max-width: 768px) 50vw, 200px'
+      // Small thumbnails (location cards, list view)
+      return '(max-width: 640px) 100px, (max-width: 1024px) 150px, 200px'
+    case 'card':
+      // Medium cards (location grid, 3-column layout)
+      return '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw'
+    case 'gallery':
+      // Gallery images (masonry/grid, 3-4 columns)
+      return '(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw'
+    case 'hero':
+      // Hero/featured images (full width)
+      return '100vw'
     case 'full':
-      return '(max-width: 768px) 100vw, (max-width: 1024px) 80vw, 1200px'
+      // Full-width content images
+      return '(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 1200px'
     default:
       return '100vw'
+  }
+}
+
+/**
+ * Get optimal image widths for srcset based on preset
+ * Used for responsive image loading
+ */
+export function getOptimalWidths(type: 'card' | 'hero' | 'thumbnail' | 'full' | 'gallery'): number[] {
+  switch (type) {
+    case 'thumbnail':
+      return [100, 150, 200, 300] // Small sizes
+    case 'card':
+      return [320, 480, 768, 1024, 1280] // Medium sizes
+    case 'gallery':
+      return [320, 480, 640, 960] // Gallery sizes
+    case 'hero':
+      return [640, 960, 1280, 1920, 2560] // Large sizes
+    case 'full':
+      return [640, 960, 1280, 1920] // Content sizes
+    default:
+      return [640, 960, 1280]
   }
 }
 

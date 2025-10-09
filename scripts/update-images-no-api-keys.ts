@@ -19,7 +19,7 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 // Fetch high-res from Wikimedia
-async function fetchWikimediaHighRes(searchTerm: string): Promise<string | null> {
+async function fetchWikimediaHighRes(searchTerm: string): Promise<{ url: string; title: string } | null> {
   try {
     const response = await fetch(
       `https://commons.wikimedia.org/w/api.php?` +
@@ -30,6 +30,12 @@ async function fetchWikimediaHighRes(searchTerm: string): Promise<string | null>
     if (!data.query?.search?.[0]) return null
 
     const pageTitle = data.query.search[0].title
+
+    // Filter by title first
+    if (shouldFilterImage('', pageTitle)) {
+      return null
+    }
+
     const imageResponse = await fetch(
       `https://commons.wikimedia.org/w/api.php?` +
       `action=query&titles=${encodeURIComponent(pageTitle)}&prop=imageinfo&iiprop=url|size&iiurlwidth=2000&format=json&origin=*`
@@ -41,14 +47,23 @@ async function fetchWikimediaHighRes(searchTerm: string): Promise<string | null>
 
     const page = Object.values(pages)[0] as any
     const imageInfo = page?.imageinfo?.[0]
-    return imageInfo?.thumburl || imageInfo?.url || null
+    const url = imageInfo?.thumburl || imageInfo?.url
+
+    if (!url) return null
+
+    // Filter by URL
+    if (shouldFilterImage(url, pageTitle)) {
+      return null
+    }
+
+    return { url, title: pageTitle }
   } catch {
     return null
   }
 }
 
 // Fetch from Wikipedia
-async function fetchWikipediaHighRes(searchTerm: string): Promise<string | null> {
+async function fetchWikipediaHighRes(searchTerm: string): Promise<{ url: string; title: string } | null> {
   try {
     const response = await fetch(
       `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(searchTerm)}`
@@ -56,36 +71,72 @@ async function fetchWikipediaHighRes(searchTerm: string): Promise<string | null>
     if (!response.ok) return null
     const data = await response.json()
 
+    let url: string | null = null
     if (data.originalimage?.source) {
-      return data.originalimage.source
+      url = data.originalimage.source
+    } else if (data.thumbnail?.source) {
+      url = data.thumbnail.source.replace(/\/\d+px-/, '/2000px-')
     }
-    if (data.thumbnail?.source) {
-      return data.thumbnail.source.replace(/\/\d+px-/, '/2000px-')
+
+    if (!url) return null
+
+    // Filter by URL and title
+    if (shouldFilterImage(url, data.title || searchTerm)) {
+      return null
     }
-    return null
+
+    return { url, title: data.title || searchTerm }
   } catch {
     return null
   }
 }
 
-// Generate search terms
+// Check if image URL suggests it might be black & white, statue, or car
+function shouldFilterImage(url: string, title: string = ''): boolean {
+  const lowerUrl = url.toLowerCase()
+  const lowerTitle = title.toLowerCase()
+  const combined = lowerUrl + ' ' + lowerTitle
+
+  // Filter out black & white indicators
+  const bwKeywords = ['black_and_white', 'b&w', 'bw_', 'monochrome', 'grayscale']
+  if (bwKeywords.some(kw => combined.includes(kw))) {
+    console.log(`  ⚠️ Filtered (B&W): ${title || url.substring(0, 50)}`)
+    return true
+  }
+
+  // Filter out statues, sculptures, monuments (close-ups)
+  const statueKeywords = ['statue', 'sculpture', 'monument', 'memorial', 'bust_of']
+  if (statueKeywords.some(kw => combined.includes(kw))) {
+    console.log(`  ⚠️ Filtered (Statue): ${title || url.substring(0, 50)}`)
+    return true
+  }
+
+  // Filter out cars, vehicles
+  const vehicleKeywords = ['car', 'taxi', 'vehicle', 'automobile', 'traffic']
+  if (vehicleKeywords.some(kw => combined.includes(kw))) {
+    console.log(`  ⚠️ Filtered (Vehicle): ${title || url.substring(0, 50)}`)
+    return true
+  }
+
+  return false
+}
+
+// Generate search terms - focus on colorful cityscapes
 function generateSearchTerms(locationName: string): string[] {
   return [
-    locationName,
     `${locationName} cityscape`,
     `${locationName} skyline`,
     `${locationName} aerial view`,
-    `${locationName} landmark`,
-    `${locationName} architecture`,
     `${locationName} panorama`,
-    `${locationName} city center`,
-    `${locationName} downtown`,
-    `${locationName} historic district`,
-    `${locationName} famous buildings`,
-    `${locationName} tourist attractions`,
-    `${locationName} monuments`,
     `${locationName} city view`,
-    `${locationName} urban landscape`
+    `${locationName} downtown`,
+    `${locationName} old town`,
+    `${locationName} architecture`,
+    `${locationName} buildings`,
+    `${locationName} street view`,
+    `${locationName} urban landscape`,
+    `${locationName} city center`,
+    locationName
   ]
 }
 
@@ -94,22 +145,22 @@ async function fetchGallery(locationName: string, count: number = 20): Promise<s
   const allImages: string[] = []
   const searchTerms = generateSearchTerms(locationName)
 
-  console.log(`🔍 Searching Wikimedia & Wikipedia...`)
+  console.log(`🔍 Searching Wikimedia & Wikipedia (filtering B&W, statues, cars)...`)
 
   for (const term of searchTerms) {
     if (allImages.length >= count) break
 
     // Try Wikimedia
-    const wikiImage = await fetchWikimediaHighRes(term)
-    if (wikiImage && !allImages.includes(wikiImage)) {
-      allImages.push(wikiImage)
+    const wikiResult = await fetchWikimediaHighRes(term)
+    if (wikiResult && !allImages.includes(wikiResult.url)) {
+      allImages.push(wikiResult.url)
       console.log(`  ✅ Found: ${term}`)
     }
 
     // Try Wikipedia
-    const wpImage = await fetchWikipediaHighRes(term)
-    if (wpImage && !allImages.includes(wpImage)) {
-      allImages.push(wpImage)
+    const wpResult = await fetchWikipediaHighRes(term)
+    if (wpResult && !allImages.includes(wpResult.url)) {
+      allImages.push(wpResult.url)
       console.log(`  ✅ Found: ${term}`)
     }
 
@@ -146,8 +197,9 @@ async function updateAllLocations() {
     try {
       // Fetch featured image
       console.log(`🖼️ Fetching featured image...`)
-      const featuredImage = await fetchWikipediaHighRes(location.name) || 
-                           await fetchWikimediaHighRes(`${location.name} cityscape`) ||
+      const featuredResult = await fetchWikipediaHighRes(location.name) ||
+                           await fetchWikimediaHighRes(`${location.name} cityscape`)
+      const featuredImage = featuredResult?.url ||
                            '/placeholder-location.svg'
       
       if (featuredImage !== '/placeholder-location.svg') {

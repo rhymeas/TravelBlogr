@@ -28,7 +28,7 @@ User types: "Sunshine Coast, BC"
 2. Search GeoNames API → Found!
 3. Get coordinates, country, etc.
 4. Create location in database
-5. Continue with itinerary
+5. Continue with plan
 ```
 
 ### **Step 3: Auto-Create Location Page**
@@ -135,7 +135,7 @@ When a new location is created, the system automatically:
 1. Type ANY location name
 2. System finds it automatically
 3. Creates location page if needed
-4. Generates itinerary
+4. Generates plan
 ```
 
 ### **For Developers:**
@@ -240,7 +240,7 @@ Creates location with:
     ↓
 Fetches activities from OpenTripMap
     ↓
-Generates itinerary
+Generates plan
 ```
 
 ### **Example 2: Small Town**
@@ -254,7 +254,7 @@ Creates location + fetches nearby:
 - Lake Louise
 - Hot springs
     ↓
-Generates mountain itinerary
+Generates mountain plan
 ```
 
 ---
@@ -290,7 +290,7 @@ If GeoNames can't find it:
 If APIs are down:
 - Falls back to basic info
 - Creates minimal location
-- Still generates itinerary
+- Still generates plan
 ```
 
 ---

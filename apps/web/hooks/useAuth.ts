@@ -73,16 +73,29 @@ export const useAuth = () => {
   }
 
   useEffect(() => {
-    // Get initial session
+    // Get initial session from localStorage
     const getInitialSession = async () => {
       try {
-        // For now, simulate no session since Supabase is not fully configured
-        setState(prev => ({ ...prev, loading: false }))
+        // Check if there's a stored session
+        const storedSession = localStorage.getItem('mock_auth_session')
+        if (storedSession) {
+          const { user, profile, session } = JSON.parse(storedSession)
+          setState({
+            user,
+            profile,
+            session,
+            loading: false,
+            error: null,
+          })
+        } else {
+          setState(prev => ({ ...prev, loading: false }))
+        }
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
+        console.error('Error loading session:', error)
+        setState(prev => ({
+          ...prev,
           error: error instanceof Error ? error.message : 'An error occurred',
-          loading: false 
+          loading: false
         }))
       }
     }
@@ -143,13 +156,22 @@ export const useAuth = () => {
       const profile = await fetchProfile(mockUser.id, email)
       console.log('Profile fetched:', profile)
 
-      setState({
+      const authState = {
         user: mockUser,
         profile,
         session: mockSession,
         loading: false,
         error: null,
-      })
+      }
+
+      setState(authState)
+
+      // Store session in localStorage for persistence
+      localStorage.setItem('mock_auth_session', JSON.stringify({
+        user: mockUser,
+        profile,
+        session: mockSession
+      }))
 
       console.log('Authentication state updated successfully')
 
@@ -197,8 +219,11 @@ export const useAuth = () => {
 
   const signOut = async () => {
     setState(prev => ({ ...prev, loading: true }))
-    
+
     try {
+      // Clear localStorage
+      localStorage.removeItem('mock_auth_session')
+
       setState({
         user: null,
         profile: null,

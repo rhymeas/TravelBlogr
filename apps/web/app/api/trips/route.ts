@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase'
-import { container } from '../../../../infrastructure/container/Container'
-import { CreateTripUseCase } from '../../../../packages/core/application/use-cases/CreateTripUseCase'
-import { TYPES } from '../../../../packages/core/application/types'
 import { nanoid } from 'nanoid'
 
 // GET /api/trips - Get user's trips
@@ -72,41 +69,41 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
 
-    // Use our domain use case for business logic
-    const createTripUseCase = container.get<CreateTripUseCase>(TYPES.CreateTripUseCase)
-    
-    const result = await createTripUseCase.execute({
-      userId: user.id,
-      title: title.trim(),
-      description: description?.trim(),
-      startDate,
-      endDate
-    })
+    // Create slug from title
+    const slug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      + '-' + nanoid(8)
 
-    if (result.isFailure) {
-      return NextResponse.json({ error: result.error }, { status: 400 })
+    // Create trip in database
+    const { data: trip, error } = await supabase
+      .from('trips')
+      .insert({
+        user_id: user.id,
+        title: title.trim(),
+        description: description?.trim(),
+        slug,
+        status: 'draft',
+        start_date: startDate,
+        end_date: endDate,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating trip:', error)
+      return NextResponse.json({ error: 'Failed to create trip' }, { status: 500 })
     }
 
-    const trip = result.getValue().trip
-
-    // Generate default share links using Supabase's convenience
-    const shareLinks = await generateShareLinks(trip.id.toString(), user.id)
+    // Generate default share links
+    const shareLinks = await generateShareLinks(trip.id, user.id)
 
     // Return the created trip with share links
     return NextResponse.json({
-      trip: {
-        id: trip.id.toString(),
-        title: trip.title.value,
-        description: trip.description,
-        slug: trip.slug.value,
-        status: trip.status.value,
-        dateRange: trip.dateRange ? {
-          startDate: trip.dateRange.startDate.toISOString(),
-          endDate: trip.dateRange.endDate.toISOString()
-        } : null,
-        createdAt: trip.createdAt.toISOString(),
-        updatedAt: trip.updatedAt.toISOString()
-      },
+      trip,
       shareLinks
     }, { status: 201 })
 

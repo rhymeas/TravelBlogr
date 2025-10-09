@@ -350,8 +350,8 @@ CREATE POLICY "Users can comment on accessible content" ON comments
         )
     );
 
--- Trip itinerary table (for trip planning)
-CREATE TABLE trip_itinerary (
+-- Trip plan table (for trip planning)
+CREATE TABLE trip_plan (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     trip_id UUID NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -397,9 +397,9 @@ CREATE TABLE trip_collaborators (
 );
 
 -- Indexes for new tables
-CREATE INDEX idx_trip_itinerary_trip ON trip_itinerary(trip_id);
-CREATE INDEX idx_trip_itinerary_day ON trip_itinerary(day);
-CREATE INDEX idx_trip_itinerary_time ON trip_itinerary(time);
+CREATE INDEX idx_trip_plan_trip ON trip_plan(trip_id);
+CREATE INDEX idx_trip_plan_day ON trip_plan(day);
+CREATE INDEX idx_trip_plan_time ON trip_plan(time);
 
 CREATE INDEX idx_trip_expenses_trip ON trip_expenses(trip_id);
 CREATE INDEX idx_trip_expenses_date ON trip_expenses(date);
@@ -410,34 +410,34 @@ CREATE INDEX idx_trip_collaborators_user ON trip_collaborators(user_id);
 
 -- RLS Policies for new tables
 
--- Trip itinerary policies
-ALTER TABLE trip_itinerary ENABLE ROW LEVEL SECURITY;
+-- Trip plan policies
+ALTER TABLE trip_plan ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view itinerary for accessible trips" ON trip_itinerary
+CREATE POLICY "Users can view plan for accessible trips" ON trip_plan
     FOR SELECT USING (
         EXISTS (
             SELECT 1 FROM trips
-            WHERE trips.id = trip_itinerary.trip_id
+            WHERE trips.id = trip_plan.trip_id
             AND (trips.user_id = auth.uid() OR trips.is_public = true)
         ) OR
         EXISTS (
             SELECT 1 FROM trip_collaborators
-            WHERE trip_collaborators.trip_id = trip_itinerary.trip_id
+            WHERE trip_collaborators.trip_id = trip_plan.trip_id
             AND trip_collaborators.user_id = auth.uid()
             AND trip_collaborators.accepted_at IS NOT NULL
         )
     );
 
-CREATE POLICY "Users can manage itinerary for their trips" ON trip_itinerary
+CREATE POLICY "Users can manage plan for their trips" ON trip_plan
     FOR ALL USING (
         EXISTS (
             SELECT 1 FROM trips
-            WHERE trips.id = trip_itinerary.trip_id
+            WHERE trips.id = trip_plan.trip_id
             AND trips.user_id = auth.uid()
         ) OR
         EXISTS (
             SELECT 1 FROM trip_collaborators
-            WHERE trip_collaborators.trip_id = trip_itinerary.trip_id
+            WHERE trip_collaborators.trip_id = trip_plan.trip_id
             AND trip_collaborators.user_id = auth.uid()
             AND trip_collaborators.role IN ('owner', 'editor')
             AND trip_collaborators.accepted_at IS NOT NULL

@@ -1,23 +1,31 @@
-import { Metadata } from 'next'
-import { Suspense } from 'react'
-import { createServerSupabase } from '@/lib/supabase'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
 import { TripsDashboard } from '@/components/trips/TripsDashboard'
 import { TripsDashboardSkeleton } from '@/components/trips/TripsDashboardSkeleton'
 
-export const metadata: Metadata = {
-  title: 'My Trips | TravelBlogr',
-  description: 'Manage your travel stories and share them with different audiences',
-}
+export default function TripsPage() {
+  const { user, isLoading, isAuthenticated } = useAuth()
+  const router = useRouter()
 
-export default async function TripsPage() {
-  const supabase = createServerSupabase()
-  
-  // Check authentication
-  const { data: { user }, error } = await supabase.auth.getUser()
-  
-  if (error || !user) {
-    redirect('/auth/signin')
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/auth/signin')
+    }
+  }, [isAuthenticated, isLoading])
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <TripsDashboardSkeleton />
+      </div>
+    )
+  }
+
+  if (!isAuthenticated || !user) {
+    return null // Will redirect
   }
 
   return (
@@ -29,9 +37,7 @@ export default async function TripsPage() {
         </p>
       </div>
 
-      <Suspense fallback={<TripsDashboardSkeleton />}>
-        <TripsDashboard userId={user.id} />
-      </Suspense>
+      <TripsDashboard userId={user.id} />
     </div>
   )
 }

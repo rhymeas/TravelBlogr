@@ -1,4 +1,4 @@
-# 🗺️ Itinerary Generator Setup
+# 🗺️ plan Generator Setup
 
 ## Quick Start (5 minutes)
 
@@ -15,10 +15,10 @@ GROQ_API_KEY=gsk_your_key_here
 ### 3. Test Backend
 ```bash
 cd apps/web
-npx tsx scripts/test-itinerary.ts
+npx tsx scripts/test-plan.ts
 ```
 
-Should generate itinerary in ~2 seconds.
+Should generate plan in ~2 seconds.
 
 ### 4. Test Frontend
 ```bash
@@ -34,8 +34,8 @@ Visit: http://localhost:3000/plan
 ### Frontend
 - Visit `/plan`
 - Fill in: from, to, dates, interests
-- Click "Generate Itinerary"
-- Get AI-powered itinerary in 1-2 seconds
+- Click "Generate plan"
+- Get AI-powered plan in 1-2 seconds
 
 ### API
 ```bash

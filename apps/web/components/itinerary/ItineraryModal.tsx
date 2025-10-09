@@ -1,25 +1,37 @@
 'use client'
 
 /**
- * Journey Timeline Modal - Airbnb-style with location cards
+ * Modern Trip Planning Modal - Timeline Design
+ * Based on the European Adventure design with location tabs and journey summary
  */
 
-import React, { useState } from 'react'
-import { X, ChevronDown, ChevronRight, MapPin, Calendar, DollarSign, Utensils, Compass, ArrowRight, Hotel, Coffee, Car, Train, Plane } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import Image from 'next/image'
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { X, MapPin, Calendar, DollarSign, Utensils, Compass, Plus, Share2, Download, Save, PlaneTakeoff } from 'lucide-react'
 import { formatLocationDisplay } from '@/lib/utils/locationFormatter'
+import Image from 'next/image'
+import { useAuth } from '@/hooks/useAuth'
+import { SignUpPrompt } from '@/components/auth/SignUpPrompt'
+import { useRouter } from 'next/navigation'
 
-interface ItineraryModalProps {
-  itinerary: any
+interface planModalProps {
+  plan: any
+  locationImages?: Record<string, string>
   onClose: () => void
 }
 
-export function ItineraryModal({ itinerary, onClose }: ItineraryModalProps) {
-  const [expandedLocations, setExpandedLocations] = useState<Set<string>>(new Set())
+export function planModal({ plan, locationImages: propLocationImages, onClose }: planModalProps) {
+  const [activeLocationIndex, setActiveLocationIndex] = useState(0)
+  const [addedActivities, setAddedActivities] = useState<Set<string>>(new Set())
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [moreExperiences, setMoreExperiences] = useState<any[]>([])
+  const [showMoreExperiences, setShowMoreExperiences] = useState(false)
+  const [showSignUpPrompt, setShowSignUpPrompt] = useState(false)
+  const { isAuthenticated } = useAuth()
+  const router = useRouter()
 
   // Prevent body scroll when modal is open
-  React.useEffect(() => {
+  useEffect(() => {
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = 'unset'
@@ -27,7 +39,7 @@ export function ItineraryModal({ itinerary, onClose }: ItineraryModalProps) {
   }, [])
 
   // Group days by location
-  const locationGroups = itinerary.days.reduce((groups: any[], day: any) => {
+  const locationGroups = plan.days.reduce((groups: any[], day: any) => {
     const lastGroup = groups[groups.length - 1]
     if (lastGroup && lastGroup.location === day.location) {
       lastGroup.days.push(day)
@@ -43,430 +55,597 @@ export function ItineraryModal({ itinerary, onClose }: ItineraryModalProps) {
     return groups
   }, [])
 
-  const toggleLocation = (location: string) => {
-    const newExpanded = new Set(expandedLocations)
-    if (newExpanded.has(location)) {
-      newExpanded.delete(location)
-    } else {
-      newExpanded.add(location)
-    }
-    setExpandedLocations(newExpanded)
-  }
-
-  // Calculate actual total cost from all items
-  const actualTotalCost = itinerary.days.reduce((total: number, day: any) => {
+  // Calculate totals
+  const totalCost = plan.days.reduce((total: number, day: any) => {
     return total + day.items.reduce((dayTotal: number, item: any) => {
       return dayTotal + (item.costEstimate || 0)
     }, 0)
   }, 0)
 
+  const totalActivities = plan.stats?.totalActivities ||
+    plan.days.reduce((total: number, day: any) =>
+      total + day.items.filter((item: any) => item.type === 'activity').length, 0)
+
+  const totalMeals = plan.stats?.totalMeals ||
+    plan.days.reduce((total: number, day: any) =>
+      total + day.items.filter((item: any) => item.type === 'meal').length, 0)
+
+  // Get highlights per location
+  const getLocationHighlights = (group: any) => {
+    const activities = group.days.flatMap((day: any) =>
+      day.items.filter((item: any) => item.type === 'activity')
+    )
+    return activities.slice(0, 3) // Top 3 activities
+  }
+
+  const currentLocation = locationGroups[activeLocationIndex]
+  const highlights = currentLocation ? getLocationHighlights(currentLocation) : []
+
+  // Format dates
+  const formatDateRange = (start: string, end: string) => {
+    const startDate = new Date(start)
+    const endDate = new Date(end)
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
+
+    if (start === end) {
+      return startDate.toLocaleDateString('en-US', options)
+    }
+    return `${startDate.toLocaleDateString('en-US', options)} - ${endDate.toLocaleDateString('en-US', options)}`
+  }
+
+  // Get icon for location type
+  const getLocationIcon = (location: string) => {
+    const lower = location.toLowerCase()
+    if (lower.includes('paris')) return '🗼'
+    if (lower.includes('venice')) return '🚤'
+    if (lower.includes('rome')) return '🏛️'
+    if (lower.includes('london')) return '🎡'
+    if (lower.includes('tokyo')) return '🗾'
+    if (lower.includes('new york')) return '🗽'
+    return '📍'
+  }
+
+  // Add activity to trip
+  const handleAddToTrip = (activity: any) => {
+    const activityId = `${activity.title}-${activity.time}`
+    setAddedActivities(prev => new Set(prev).add(activityId))
+    // TODO: Implement actual trip saving to database
+    console.log('Added to trip:', activity)
+  }
+
+  // Check if activity is added
+  const isActivityAdded = (activity: any) => {
+    const activityId = `${activity.title}-${activity.time}`
+    return addedActivities.has(activityId)
+  }
+
+  // Load more experiences from Groq AI
+  const handleLoadMoreExperiences = async () => {
+    if (loadingMore || !currentLocation) return
+
+    setLoadingMore(true)
+    try {
+      const existingActivities = currentLocation.days.flatMap((day: any) =>
+        day.items.filter((item: any) => item.type === 'activity').map((item: any) => item.title)
+      )
+
+      const response = await fetch('/api/itineraries/more-experiences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: currentLocation.location,
+          interests: plan.interests || [],
+          budget: plan.budget || 'moderate',
+          existingActivities
+        })
+      })
+
+      const data = await response.json()
+      if (data.success && data.data) {
+        setMoreExperiences(data.data)
+        setShowMoreExperiences(true)
+      } else {
+        console.error('Failed to load more experiences:', data.error)
+      }
+    } catch (error) {
+      console.error('Error loading more experiences:', error)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
+  // Export as PDF
+  const handleExportPDF = async () => {
+    try {
+      const response = await fetch('/api/itineraries/export-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan })
+      })
+
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${plan.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.html`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      }
+    } catch (error) {
+      console.error('Error exporting PDF:', error)
+    }
+  }
+
+  // Create trip - requires authentication
+  const handleCreateTrip = async () => {
+    if (!isAuthenticated) {
+      setShowSignUpPrompt(true)
+      return
+    }
+
+    // TODO: Implement trip creation in Supabase
+    console.log('Creating trip:', plan)
+    router.push('/dashboard/trips/new')
+  }
+
+  // Plan another trip
+  const handlePlanAnother = () => {
+    onClose()
+    // Scroll to top of page where the planner is
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   return (
     <>
-      {/* Backdrop with blur */}
-      <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 transition-opacity"
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
         onClick={onClose}
       />
 
-      {/* Modal - Fixed height with internal scroll */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div
-          className="relative bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden"
+      {/* Modal */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.2 }}
+          className="relative w-full max-w-5xl max-h-[calc(100vh-48px)] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
-            {/* Close Button - Top Right Corner */}
-            <button
-              onClick={onClose}
-              className="absolute top-6 right-6 z-20 flex items-center gap-2 px-4 py-2 hover:bg-gray-100 rounded-full transition-colors group"
-            >
-              <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">Close</span>
-              <X className="h-5 w-5 text-gray-500 group-hover:text-gray-700" />
-            </button>
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+          >
+            <X className="h-4 w-4 text-gray-600" />
+          </button>
 
-            {/* Scrollable Content Area */}
-            <div className="flex-1 overflow-y-auto">
-              {/* Header - Title */}
-              <div className="bg-white px-24 py-4 pt-6">
-                <div className="pr-24 mb-4">
-                  <h2 className="text-xl font-semibold text-airbnb-black mb-2">
-                    {itinerary.title}
-                  </h2>
-                  <p className="text-sm text-airbnb-dark-gray leading-relaxed max-w-3xl">
-                    {itinerary.summary}
-                  </p>
-                </div>
+          {/* Header with Title and Timeline */}
+          <div className="bg-gradient-to-br from-gray-50 to-white px-12 pt-6 pb-5 border-b border-gray-200">
+            {/* Title */}
+            <h1 className="text-2xl font-bold text-gray-900 mb-5 pr-12">
+              {plan.title}
+            </h1>
 
-                {/* Journey Route */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  {locationGroups.map((group: any, index: number) => {
-                    const formatted = formatLocationDisplay(group.location)
-                    return (
-                      <React.Fragment key={index}>
-                        <div className="flex items-center gap-2 px-4 py-2.5 bg-teal-50 border border-teal-200 rounded-lg">
-                          <MapPin className="h-4 w-4 text-teal-600" />
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-airbnb-black">{formatted.main}</span>
-                            {formatted.secondary && (
-                              <span className="text-xs text-gray-500">({formatted.secondary})</span>
-                            )}
-                          </div>
-                          <span className="text-sm text-teal-700 font-medium">
-                            {group.days.length}d
-                          </span>
-                        </div>
-                        {index < locationGroups.length - 1 && (
-                          <ArrowRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                        )}
-                      </React.Fragment>
-                    )
-                  })}
-                </div>
-              </div>
+            {/* Minimal Dot Timeline */}
+            <div className="relative flex items-center justify-between max-w-5xl mx-auto">
+              {/* Connecting Line */}
+              <div className="absolute top-3.5 left-0 right-0 h-0.5 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200" style={{ zIndex: 0 }} />
 
-              {/* Stats - Sticky within scroll container */}
-              <div className="sticky top-0 bg-blue-50 border-y border-blue-100 px-24 py-3 z-10 shadow-sm">
-              <div className="grid grid-cols-4 gap-4">
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2 text-airbnb-gray mb-1">
-                    <Calendar className="h-4 w-4" />
-                    <span className="text-xs uppercase tracking-wide">Duration</span>
-                  </div>
-                  <span className="text-lg font-semibold text-airbnb-black">
-                    {itinerary.stats.totalDays} days
-                  </span>
-                </div>
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2 text-airbnb-gray mb-1">
-                    <Compass className="h-4 w-4" />
-                    <span className="text-xs uppercase tracking-wide">Activities</span>
-                  </div>
-                  <span className="text-lg font-semibold text-airbnb-black">
-                    {itinerary.stats.totalActivities}
-                  </span>
-                </div>
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2 text-airbnb-gray mb-1">
-                    <Utensils className="h-4 w-4" />
-                    <span className="text-xs uppercase tracking-wide">Meals</span>
-                  </div>
-                  <span className="text-lg font-semibold text-airbnb-black">
-                    {itinerary.stats.totalMeals}
-                  </span>
-                </div>
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2 text-airbnb-gray mb-1">
-                    <DollarSign className="h-4 w-4" />
-                    <span className="text-xs uppercase tracking-wide">Estimated Cost</span>
-                  </div>
-                  <span className="text-lg font-semibold text-airbnb-black">
-                    ${actualTotalCost.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </div>
+              {/* Progress Line */}
+              <div
+                className="absolute top-3.5 left-0 h-0.5 bg-gradient-to-r from-teal-400 to-teal-500 transition-all duration-700 ease-out"
+                style={{
+                  width: `${(activeLocationIndex / locationGroups.length) * 100}%`,
+                  zIndex: 1
+                }}
+              />
 
-            {/* Content */}
-            <div className="px-24 py-8">
-              {/* Timeline with Location Cards */}
-              <div className="relative">
-                {/* Timeline Line */}
-                <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-teal-200"></div>
+              {/* Location Steps */}
+              {locationGroups.map((group: any, index: number) => {
+                const formatted = formatLocationDisplay(group.location)
+                const isActive = index === activeLocationIndex
+                const isPast = index < activeLocationIndex
 
-                {/* Location Groups */}
-                <div className="space-y-8">
-                  {locationGroups.map((group: any, groupIndex: number) => {
-                    const isExpanded = expandedLocations.has(group.location)
-                    const groupCost = group.days.reduce((sum: number, day: any) =>
-                      sum + day.items.reduce((daySum: number, item: any) => daySum + (item.costEstimate || 0), 0), 0
-                    )
-                    const activities = group.days.flatMap((d: any) => d.items.filter((i: any) => i.type === 'activity'))
-                    const restaurants = group.days.flatMap((d: any) => d.items.filter((i: any) => i.type === 'meal'))
-                    const formatted = formatLocationDisplay(group.location)
-
-                    return (
-                      <div key={groupIndex} className="relative pl-20">
-                        {/* Timeline Dot */}
-                        <div className="absolute left-6 top-6 w-6 h-6 bg-teal-400 rounded-full border-4 border-white shadow-sm z-10"></div>
-
-                        {/* Horizontal Dotted Line from Timeline to Card */}
-                        <div className="absolute left-9 top-9 w-11 border-t-2 border-dotted border-teal-300"></div>
-
-                        {/* Location Card - Airbnb Style */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all">
-                          {/* Card Header - Clickable */}
-                          <button
-                            onClick={() => toggleLocation(group.location)}
-                            className="w-full p-6 text-left hover:bg-gray-50 transition-colors"
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center justify-between mb-3">
-                                  <div className="flex items-center gap-3">
-                                    <div>
-                                      <h3 className="text-2xl font-semibold text-airbnb-black">
-                                        {formatted.main}
-                                      </h3>
-                                      {formatted.secondary && (
-                                        <p className="text-sm text-gray-500 mt-0.5">{formatted.secondary}</p>
-                                      )}
-                                    </div>
-                                    <span className="px-3 py-1 bg-teal-50 text-teal-700 rounded-full text-sm font-medium">
-                                      {group.days.length} {group.days.length === 1 ? 'day' : 'days'}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-sm text-airbnb-gray pr-8">
-                                    <Calendar className="h-4 w-4" />
-                                    <span>{group.startDate}</span>
-                                    {group.startDate !== group.endDate && (
-                                      <>
-                                        <span>→</span>
-                                        <span>{group.endDate}</span>
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-6 text-sm">
-                                  <div className="flex items-center gap-2 text-airbnb-gray">
-                                    <Compass className="h-4 w-4 text-blue-500" />
-                                    <span>{activities.length} activities</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-airbnb-gray">
-                                    <Utensils className="h-4 w-4 text-orange-500" />
-                                    <span>{restaurants.length} meals</span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <DollarSign className="h-4 w-4 text-green-500" />
-                                    <span className="font-medium text-airbnb-black">${groupCost}</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <ChevronDown
-                                className={`h-5 w-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                              />
-                            </div>
-                          </button>
-
-                          {/* Expanded Content */}
-                          {isExpanded && (
-                            <div className="border-t border-gray-100 p-6 bg-gray-50">
-                              {/* Inner Timeline Container */}
-                              <div className="relative">
-                                {/* Vertical Dotted Timeline Line for Days */}
-                                <div className="absolute left-5 top-5 bottom-5 w-0.5 border-l-2 border-dotted border-gray-400"></div>
-
-                                {group.days.map((day: any, dayIndex: number) => {
-                                  // Separate activities, meals, and travel
-                                  const dayActivities = day.items.filter((item: any) => item.type === 'activity')
-                                  const dayMeals = day.items.filter((item: any) => item.type === 'meal')
-                                  const dayTravel = day.items.filter((item: any) => item.type === 'travel')
-
-                                  return (
-                                    <div key={dayIndex} className={`relative ${dayIndex > 0 ? 'mt-6 pt-6' : ''}`}>
-                                      {/* Day Timeline Dot */}
-                                      <div className="absolute left-3 top-3 w-4 h-4 bg-white border-2 border-gray-400 rounded-full z-10"></div>
-
-                                      {/* Horizontal Dotted Line from Day Timeline to Content */}
-                                      <div className="absolute left-7 top-5 w-5 border-t-2 border-dotted border-gray-400"></div>
-
-                                      <div className="pl-12">
-                                        {/* Only show day header if location has multiple days */}
-                                        {group.days.length > 1 && (
-                                          <div className="flex items-center justify-between mb-5">
-                                            <div className="flex items-center gap-3">
-                                              <div className="w-10 h-10 bg-airbnb-black text-white rounded-full flex items-center justify-center font-semibold text-sm shadow-sm">
-                                                {day.day}
-                                              </div>
-                                              <div>
-                                                <p className="font-semibold text-airbnb-black">Day {day.day}</p>
-                                              </div>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-airbnb-gray pr-4">
-                                              <Calendar className="h-4 w-4" />
-                                              <span>{day.date}</span>
-                                            </div>
-                                          </div>
-                                        )}
-
-                                    {/* Travel Section - Only show if NOT a pure travel day */}
-                                    {/* Pure travel days already show route in location header */}
-                                    {dayTravel.length > 0 && day.type !== 'travel' && (
-                                      <div className="mb-5">
-                                        {dayTravel.map((item: any, itemIndex: number) => {
-                                          // Extract from/to from description or title
-                                          const travelMatch = item.description?.match(/from (.+?) to (.+?)[.]/i)
-                                          const fromLoc = travelMatch?.[1] || 'Start'
-                                          const toLoc = travelMatch?.[2] || 'Destination'
-
-                                          // Determine travel icon based on duration or description
-                                          const TravelIcon = item.duration > 4 ? Plane : item.duration > 2 ? Train : Car
-
-                                          return (
-                                            <div key={itemIndex} className="flex items-center gap-3 py-2">
-                                              <TravelIcon className="h-5 w-5 text-gray-500 flex-shrink-0" />
-                                              <div className="flex-1 flex items-center gap-2 text-sm">
-                                                <span className="font-medium text-gray-700">{fromLoc}</span>
-                                                <ArrowRight className="h-4 w-4 text-gray-400" />
-                                                <span className="font-medium text-gray-700">{toLoc}</span>
-                                              </div>
-                                              <span className="text-xs text-gray-500">{item.duration}h</span>
-                                            </div>
-                                          )
-                                        })}
-                                      </div>
-                                    )}
-
-                                    {/* Activities Section */}
-                                    {dayActivities.length > 0 && (
-                                      <div className="mb-5">
-                                        <div className="flex items-center gap-2 mb-3">
-                                          <Compass className="h-4 w-4 text-blue-600" />
-                                          <h4 className="text-sm font-semibold text-airbnb-black uppercase tracking-wide">
-                                            Activities & Sightseeing
-                                          </h4>
-                                        </div>
-                                        <div className="space-y-3">
-                                          {dayActivities.map((item: any, itemIndex: number) => (
-                                            <div key={itemIndex} className="bg-white rounded-xl p-4 shadow-sm border border-blue-100 hover:border-blue-200 transition-colors">
-                                              <div className="flex gap-3">
-                                                <div className="flex-shrink-0 text-sm font-semibold text-blue-600 w-14">
-                                                  {item.time}
-                                                </div>
-                                                <div className="flex-1">
-                                                  <h5 className="font-semibold text-airbnb-black mb-1.5">
-                                                    {item.title}
-                                                  </h5>
-                                                  <p className="text-sm text-airbnb-dark-gray leading-relaxed mb-2">
-                                                    {item.description}
-                                                  </p>
-                                                  <div className="flex items-center gap-3 text-xs text-airbnb-gray">
-                                                    <span className="flex items-center gap-1">
-                                                      <span className="w-1 h-1 bg-blue-400 rounded-full"></span>
-                                                      {item.duration}h
-                                                    </span>
-                                                    {item.costEstimate > 0 && (
-                                                      <span className="flex items-center gap-1 font-medium text-airbnb-black">
-                                                        <span className="w-1 h-1 bg-green-400 rounded-full"></span>
-                                                        ${item.costEstimate}
-                                                      </span>
-                                                    )}
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* Meals Section */}
-                                    {dayMeals.length > 0 && (
-                                      <div>
-                                        <div className="flex items-center gap-2 mb-3">
-                                          <Utensils className="h-4 w-4 text-orange-600" />
-                                          <h4 className="text-sm font-semibold text-airbnb-black uppercase tracking-wide">
-                                            Dining & Restaurants
-                                          </h4>
-                                        </div>
-                                        <div className="space-y-3">
-                                          {dayMeals.map((item: any, itemIndex: number) => (
-                                            <div key={itemIndex} className="bg-white rounded-xl p-4 shadow-sm border border-orange-100 hover:border-orange-200 transition-colors">
-                                              <div className="flex gap-3">
-                                                <div className="flex-shrink-0 text-sm font-semibold text-orange-600 w-14">
-                                                  {item.time}
-                                                </div>
-                                                <div className="flex-1">
-                                                  <h5 className="font-semibold text-airbnb-black mb-1.5">
-                                                    {item.title}
-                                                  </h5>
-                                                  <p className="text-sm text-airbnb-dark-gray leading-relaxed mb-2">
-                                                    {item.description}
-                                                  </p>
-                                                  <div className="flex items-center gap-3 text-xs text-airbnb-gray">
-                                                    <span className="flex items-center gap-1">
-                                                      <span className="w-1 h-1 bg-orange-400 rounded-full"></span>
-                                                      {item.duration}h
-                                                    </span>
-                                                    {item.costEstimate > 0 && (
-                                                      <span className="flex items-center gap-1 font-medium text-airbnb-black">
-                                                        <span className="w-1 h-1 bg-green-400 rounded-full"></span>
-                                                        ${item.costEstimate}
-                                                      </span>
-                                                    )}
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                      </div>
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                return (
+                  <button
+                    key={index}
+                    onClick={() => setActiveLocationIndex(index)}
+                    className="relative flex flex-col items-center gap-1.5 group z-10 transition-all"
+                    style={{ flex: 1 }}
+                  >
+                    {/* Outer Dot */}
+                    <div className={`
+                      w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300
+                      ${isActive
+                        ? 'bg-gradient-to-br from-teal-400 to-teal-600 shadow-lg shadow-teal-500/30 scale-110'
+                        : isPast
+                        ? 'bg-gradient-to-br from-teal-300 to-teal-500 shadow-sm'
+                        : 'bg-white border-2 border-gray-300 group-hover:border-gray-400'
+                      }
+                    `}>
+                      {/* Inner Dot with Day Count */}
+                      <div className={`
+                        w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold transition-all
+                        ${isActive || isPast
+                          ? 'bg-white text-teal-600'
+                          : 'bg-gray-200 text-gray-500 group-hover:bg-gray-300'
+                        }
+                      `}>
+                        {group.days.length}
                       </div>
-                    )
-                  })}
-                </div>
-              </div>
+                    </div>
 
-              {/* Tips */}
-              {itinerary.tips && itinerary.tips.length > 0 && (
-                <div className="mt-8 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200/50 p-6">
-                  <h3 className="text-sm font-semibold text-airbnb-black mb-4 uppercase tracking-wide">
-                    Travel Tips
-                  </h3>
-                  <ul className="space-y-3">
-                    {itinerary.tips.map((tip: string, idx: number) => (
-                      <li key={idx} className="text-sm text-amber-800 leading-relaxed flex gap-3">
-                        <span className="text-amber-500 font-bold flex-shrink-0">•</span>
-                        <span>{tip}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-            </div>
+                    {/* Location Name */}
+                    <div className={`
+                      text-xs font-bold transition-all duration-200
+                      ${isActive ? 'text-gray-900' : 'text-gray-600 group-hover:text-gray-800'}
+                    `}>
+                      {formatted.main}
+                    </div>
 
-            {/* Footer - Fixed at bottom */}
-            <div className="flex-shrink-0 bg-white border-t border-gray-200 px-24 py-4 flex items-center justify-between shadow-[0_-8px_16px_-4px_rgba(0,0,0,0.12)]">
-              <div className="text-sm text-airbnb-gray font-medium">
-                Generated {new Date(itinerary.createdAt).toLocaleDateString()}
-              </div>
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={onClose}
-                  className="px-6 py-3 text-base font-medium border-2 hover:bg-gray-50"
-                >
-                  Back to Planning
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => window.print()}
-                  className="px-6 py-3 text-base font-medium border-2 hover:bg-gray-50"
-                >
-                  Download PDF
-                </Button>
-                <Button
-                  onClick={() => {
-                    // TODO: Check auth, then save trip
-                    console.log('Use this trip')
-                  }}
-                  className="bg-rausch-500 hover:bg-rausch-600 text-white px-8 py-3 text-base font-medium shadow-md hover:shadow-lg transition-shadow"
-                >
-                  Use This Trip
-                </Button>
-              </div>
+                    {/* Date Range */}
+                    <div className="text-[10px] text-gray-400 font-medium">
+                      {formatDateRange(group.startDate, group.endDate).replace(' - ', '-')}
+                    </div>
+                  </button>
+                )
+              })}
+
+              {/* Final Review Step */}
+              <button
+                onClick={() => setActiveLocationIndex(locationGroups.length)}
+                className="relative flex flex-col items-center gap-1.5 group z-10 transition-all"
+                style={{ flex: 1 }}
+              >
+                {/* Outer Dot */}
+                <div className={`
+                  w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300
+                  ${activeLocationIndex === locationGroups.length
+                    ? 'bg-gradient-to-br from-teal-400 to-teal-600 shadow-lg shadow-teal-500/30 scale-110'
+                    : activeLocationIndex > locationGroups.length
+                    ? 'bg-gradient-to-br from-teal-300 to-teal-500 shadow-sm'
+                    : 'bg-white border-2 border-gray-300 group-hover:border-gray-400'
+                  }
+                `}>
+                  {/* Inner Dot with Checkmark */}
+                  <div className={`
+                    w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold transition-all
+                    ${activeLocationIndex >= locationGroups.length
+                      ? 'bg-white text-teal-600'
+                      : 'bg-gray-200 text-gray-500 group-hover:bg-gray-300'
+                    }
+                  `}>
+                    ✓
+                  </div>
+                </div>
+
+                {/* Label */}
+                <div className={`
+                  text-xs font-bold transition-all duration-200
+                  ${activeLocationIndex === locationGroups.length ? 'text-gray-900' : 'text-gray-600 group-hover:text-gray-800'}
+                `}>
+                  Review
+                </div>
+              </button>
             </div>
           </div>
-        </div>
+
+          {/* Content Area */}
+          <div className="bg-white px-12 py-8 flex-1 overflow-y-auto">
+            <AnimatePresence mode="wait">
+              {activeLocationIndex < locationGroups.length ? (
+                <motion.div
+                  key={activeLocationIndex}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-5"
+                >
+                  {/* Left: Location Card */}
+                  <div className="space-y-4">
+                    {/* Hero Image */}
+                    <div className="relative h-52 rounded-xl overflow-hidden">
+                      <Image
+                        src={propLocationImages?.[currentLocation.location] || '/placeholder-location.jpg'}
+                        alt={currentLocation.location}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    </div>
+
+                    {/* Location Info */}
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900 mb-1">
+                        Welcome to {formatLocationDisplay(currentLocation.location).main}
+                      </h2>
+                      <p className="text-sm text-gray-600 mb-2 leading-relaxed">
+                        Your adventure begins in the City of Lights! Spend {currentLocation.days.length} magical day{currentLocation.days.length > 1 ? 's' : ''} exploring its history and romance.
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {formatDateRange(currentLocation.startDate, currentLocation.endDate)}
+                      </p>
+                    </div>
+
+                    {/* Activities */}
+                    <div className="space-y-2">
+                      {highlights.map((activity: any, idx: number) => (
+                        <div key={idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                          {activity.image && (
+                            <div className="relative w-14 h-14 rounded-md overflow-hidden flex-shrink-0">
+                              <Image
+                                src={activity.image}
+                                alt={activity.title}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm text-gray-900 mb-0.5">{activity.title}</h3>
+                            <p className="text-xs text-gray-600">
+                              Duration: {activity.duration}h, Price: {activity.costEstimate ? `$${activity.costEstimate}` : 'Included'}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleAddToTrip(activity)}
+                            disabled={isActivityAdded(activity)}
+                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
+                              isActivityAdded(activity)
+                                ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                                : 'bg-teal-500 text-white hover:bg-teal-600'
+                            }`}
+                          >
+                            {isActivityAdded(activity) ? '✓ Added' : '+ Add to Trip'}
+                          </button>
+                        </div>
+                      ))}
+
+                      {/* More Experiences */}
+                      <button
+                        onClick={handleLoadMoreExperiences}
+                        disabled={loadingMore}
+                        className="w-full py-2 text-sm text-gray-600 hover:text-gray-900 font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {loadingMore ? (
+                          <>
+                            <span className="animate-spin">⏳</span>
+                            Loading...
+                          </>
+                        ) : (
+                          <>
+                            More {formatLocationDisplay(currentLocation.location).main} Experiences
+                            <span className="text-lg">⋮</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Show More Experiences */}
+                      {showMoreExperiences && moreExperiences.length > 0 && (
+                        <div className="mt-4 space-y-2 border-t pt-4">
+                          <h4 className="text-sm font-semibold text-gray-900 mb-2">✨ More Experiences</h4>
+                          {moreExperiences.map((activity: any, idx: number) => (
+                            <div key={idx} className="flex items-center gap-3 p-3 bg-teal-50 rounded-lg hover:bg-teal-100 transition-colors">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-sm text-gray-900 mb-0.5">{activity.title}</h3>
+                                <p className="text-xs text-gray-600 mb-1">{activity.description}</p>
+                                <p className="text-xs text-gray-600">
+                                  Duration: {activity.duration}h, Price: ${activity.costEstimate || 0}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => handleAddToTrip(activity)}
+                                disabled={isActivityAdded(activity)}
+                                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
+                                  isActivityAdded(activity)
+                                    ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                                    : 'bg-teal-500 text-white hover:bg-teal-600'
+                                }`}
+                              >
+                                {isActivityAdded(activity) ? '✓ Added' : '+ Add'}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right: Journey Summary */}
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">My Journey So Far</h3>
+
+                      <div className="space-y-2.5">
+                        <div className="text-sm text-gray-700">
+                          {plan.stats?.totalDays || plan.days.length} Days ({formatDateRange(plan.days[0]?.date, plan.days[plan.days.length - 1]?.date)})
+                        </div>
+
+                        <div className="text-sm text-gray-700">
+                          {locationGroups.length} Locations
+                        </div>
+
+                        <div className="text-sm text-gray-700">
+                          {totalActivities} Activities
+                        </div>
+
+                        <div className="text-sm text-gray-700">
+                          {totalMeals} Meals
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 mt-2 border-t border-gray-200">
+                          <span className="text-sm font-semibold text-gray-900">Total Estimated Cost:</span>
+                          <span className="text-xl font-bold text-teal-600">${totalCost}</span>
+                        </div>
+                      </div>
+
+                      {/* Location Highlights */}
+                      <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
+                        {locationGroups.map((group: any, idx: number) => {
+                          const formatted = formatLocationDisplay(group.location)
+                          const locationActivities = group.days.flatMap((day: any) =>
+                            day.items.filter((item: any) => item.type === 'activity')
+                          )
+                          const topActivity = locationActivities[0]
+
+                          return (
+                            <div key={idx} className="text-xs leading-relaxed">
+                              <span className="font-medium text-gray-900">{formatted.main}:</span>
+                              <span className="text-gray-600 ml-1">
+                                {topActivity?.title || 'Exploring'}
+                                {locationActivities.length > 1 && `, +${locationActivities.length - 1} more`}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      {/* Next Location Button */}
+                      {activeLocationIndex < locationGroups.length - 1 && (
+                        <button
+                          onClick={() => setActiveLocationIndex(activeLocationIndex + 1)}
+                          className="w-full mt-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 hover:border-gray-400 transition-colors"
+                        >
+                          Proceed to {formatLocationDisplay(locationGroups[activeLocationIndex + 1].location).main}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              ) : (
+                /* Final Review Screen */
+                <motion.div
+                  key="final-review"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-center py-8"
+                >
+                  <h2 className="text-2xl font-bold text-gray-900 mb-3">Your Journey Awaits!</h2>
+                  <p className="text-sm text-gray-600 mb-6 max-w-2xl mx-auto">
+                    You've planned an amazing {plan.stats?.totalDays || plan.days.length}-day adventure across {locationGroups.length} incredible destinations.
+                  </p>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto mb-8">
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <Calendar className="h-6 w-6 text-teal-500 mx-auto mb-1.5" />
+                      <div className="text-xl font-bold text-gray-900">{plan.stats?.totalDays || plan.days.length}</div>
+                      <div className="text-xs text-gray-600">Days</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <MapPin className="h-6 w-6 text-teal-500 mx-auto mb-1.5" />
+                      <div className="text-xl font-bold text-gray-900">{locationGroups.length}</div>
+                      <div className="text-xs text-gray-600">Locations</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <Compass className="h-6 w-6 text-teal-500 mx-auto mb-1.5" />
+                      <div className="text-xl font-bold text-gray-900">{totalActivities}</div>
+                      <div className="text-xs text-gray-600">Activities</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <DollarSign className="h-6 w-6 text-teal-500 mx-auto mb-1.5" />
+                      <div className="text-xl font-bold text-gray-900">${totalCost}</div>
+                      <div className="text-xs text-gray-600">Total Cost</div>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-gray-600 mb-6">Ready to embark on your adventure?</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="bg-white border-t border-gray-200 px-12 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({
+                      title: plan.title,
+                      text: plan.summary,
+                      url: window.location.href
+                    })
+                  } else {
+                    navigator.clipboard.writeText(window.location.href)
+                    alert('Link copied to clipboard!')
+                  }
+                }}
+                className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-colors flex items-center gap-1"
+              >
+                <Share2 className="h-4 w-4" />
+                Share
+              </button>
+              <button
+                onClick={handleExportPDF}
+                className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-colors flex items-center gap-1"
+              >
+                <Download className="h-4 w-4" />
+                Export Plan
+              </button>
+              <button
+                onClick={handlePlanAnother}
+                className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-colors flex items-center gap-1"
+              >
+                <PlaneTakeoff className="h-4 w-4" />
+                Plan Another Trip
+              </button>
+            </div>
+            <button
+              onClick={handleCreateTrip}
+              className="px-5 py-2 bg-teal-500 text-white rounded-lg text-sm font-semibold hover:bg-teal-600 transition-colors shadow-lg flex items-center gap-2"
+            >
+              <Save className="h-4 w-4" />
+              {isAuthenticated ? 'Create Trip' : 'Sign Up to Save'}
+            </button>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Sign Up Prompt Modal */}
+      <AnimatePresence>
+        {showSignUpPrompt && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
+              onClick={() => setShowSignUpPrompt(false)}
+            />
+
+            {/* Sign Up Prompt */}
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="relative max-w-md w-full"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={() => setShowSignUpPrompt(false)}
+                  className="absolute -top-2 -right-2 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-lg hover:bg-gray-100 transition-colors"
+                >
+                  <X className="h-4 w-4 text-gray-600" />
+                </button>
+                <SignUpPrompt context="interaction" trigger="save trip" />
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   )
 }
-

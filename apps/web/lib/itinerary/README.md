@@ -1,22 +1,22 @@
-# 🗺️ Itinerary Generation System
+# 🗺️ plan Generation System
 
-AI-powered travel itinerary generator using **Groq** (free, fast) and **Clean Architecture** principles.
+AI-powered travel plan generator using **Groq** (free, fast) and **Clean Architecture** principles.
 
 ## 🏗️ Architecture
 
 Following **Domain-Driven Design (DDD)** and **Clean Architecture**:
 
 ```
-lib/itinerary/
+lib/plan/
 ├── domain/                          # Business logic (pure, no dependencies)
 │   ├── entities/
-│   │   └── Itinerary.ts            # Core business entity
+│   │   └── plan.ts            # Core business entity
 │   └── value-objects/
 │       └── RouteInfo.ts            # Immutable value object
 │
 ├── application/                     # Use cases & services
 │   ├── use-cases/
-│   │   └── GenerateItineraryUseCase.ts  # Main orchestrator
+│   │   └── GenerateplanUseCase.ts  # Main orchestrator
 │   └── services/
 │       ├── RouteCalculatorService.ts    # Route calculation logic
 │       └── GroqAIService.ts             # AI integration
@@ -58,7 +58,7 @@ npm install groq-sdk
 ### 3. Test It
 
 ```bash
-npx tsx scripts/test-itinerary.ts
+npx tsx scripts/test-plan.ts
 ```
 
 ## 🔌 API Usage
@@ -133,9 +133,9 @@ POST /api/itineraries/generate
 ### Using the Use Case Directly
 
 ```typescript
-import { GenerateItineraryUseCase } from '@/lib/itinerary/application/use-cases/GenerateItineraryUseCase'
+import { GenerateplanUseCase } from '@/lib/plan/application/use-cases/GenerateplanUseCase'
 
-const useCase = new GenerateItineraryUseCase()
+const useCase = new GenerateplanUseCase()
 
 const result = await useCase.execute({
   from: 'tokyo',
@@ -147,7 +147,7 @@ const result = await useCase.execute({
 })
 
 if (result.success) {
-  console.log(result.itinerary.toJSON())
+  console.log(result.plan.toJSON())
 }
 ```
 
@@ -175,13 +175,13 @@ const data = await response.json()
 ### Unit Tests (TODO)
 
 ```bash
-npm test lib/itinerary
+npm test lib/plan
 ```
 
 ### Integration Test
 
 ```bash
-npx tsx scripts/test-itinerary.ts
+npx tsx scripts/test-plan.ts
 ```
 
 ## 📊 Performance
@@ -208,7 +208,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 **Max stops along route**:
 ```typescript
-// In GenerateItineraryUseCase.ts
+// In GenerateplanUseCase.ts
 const routeInfo = await this.routeCalculator.calculateRoute(
   command.from,
   command.to,
@@ -273,7 +273,7 @@ When you exceed 10,000 users:
 ## 🎯 Next Steps
 
 1. ✅ **Add caching**: Cache similar requests
-2. ✅ **Add frontend UI**: Build itinerary generator page
+2. ✅ **Add frontend UI**: Build plan generator page
 3. ✅ **Add user preferences**: Save user interests
 4. ✅ **Add export**: PDF, Google Maps, etc.
 5. ✅ **Add booking links**: Hotels, activities
