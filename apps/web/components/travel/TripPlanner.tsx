@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/Textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
-import { Calendar, MapPin, Clock, Plus, X, DragHandleDots2Icon, Plane, Car, Train, Ship } from 'lucide-react'
+import { Calendar, MapPin, Clock, Plus, X, GripVertical, Plane, Car, Train, Ship } from 'lucide-react'
 import { createClientSupabase } from '@/lib/supabase'
 import { DragDropContext, Droppable, Draggable, DroppableProvided, DraggableProvided, DraggableStateSnapshot } from '@hello-pangea/dnd'
 import { format, addDays, differenceInDays } from 'date-fns'
@@ -389,7 +389,7 @@ export function TripPlanner({
                               {...provided.dragHandleProps}
                               className="mt-1 text-gray-400 hover:text-gray-600 cursor-grab"
                             >
-                              <DragHandleDots2Icon className="h-5 w-5" />
+                              <GripVertical className="h-5 w-5" />
                             </div>
 
                             <div className="flex-1">

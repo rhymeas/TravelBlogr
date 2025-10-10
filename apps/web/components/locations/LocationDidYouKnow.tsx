@@ -2,7 +2,7 @@
 
 import { Info } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
-import { LocationDidYouKnow } from '@/lib/data/locationsData'
+import { type LocationDidYouKnow } from '@/lib/data/locationsData'
 
 interface LocationDidYouKnowProps {
   locationSlug?: string
