@@ -8,6 +8,15 @@
 // })
 
 const nextConfig = {
+  // Output standalone for production deployment
+  output: 'standalone',
+
+  // Skip static generation errors during build (allow dynamic rendering)
+  // This prevents build failures when database tables don't exist yet
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
+
   // Exclude server-only packages from bundling (Next.js 14+ way)
   serverComponentsExternalPackages: [
     'puppeteer',

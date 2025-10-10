@@ -5,6 +5,8 @@ import { LocationDetailTemplate } from '@/components/locations/LocationDetailTem
 
 // Allow dynamic params for newly created locations (not in generateStaticParams)
 export const dynamicParams = true
+// Force dynamic rendering to prevent SSR issues with client components
+export const dynamic = 'force-dynamic'
 
 interface LocationPageProps {
   params: {

@@ -1,5 +1,8 @@
 'use client'
 
+// Force dynamic rendering for admin pages
+export const dynamic = 'force-dynamic'
+
 import { useState } from 'react'
 
 export default function BulkUpdateImagesPage() {

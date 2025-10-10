@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   description: 'Administrative dashboard for managing users, content, and platform analytics.',
 }
 
+// Force dynamic rendering for admin pages
+export const dynamic = 'force-dynamic'
+
 // Temporary minimal admin page to unblock production build.
 // Full admin UI will be restored after dependencies are added.
 export default async function AdminPage() {

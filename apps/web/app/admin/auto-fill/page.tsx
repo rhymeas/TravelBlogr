@@ -1,5 +1,8 @@
 'use client'
 
+// Force dynamic rendering for admin pages
+export const dynamic = 'force-dynamic'
+
 /**
  * Admin: Auto-Fill Location Content
  *
