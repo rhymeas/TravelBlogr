@@ -1,0 +1,28 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Navigate to web app directory
+cd apps/web
+
+# 1. Type checking
+echo "📝 Checking TypeScript types..."
+npm run type-check
+if [ $? -ne 0 ]; then
+  echo "❌ TypeScript type check failed!"
+  echo "💡 Fix type errors before committing"
+  exit 1
+fi
+
+# 2. Linting
+echo "🧹 Running ESLint..."
+npm run lint
+if [ $? -ne 0 ]; then
+  echo "❌ Linting failed!"
+  echo "💡 Fix linting errors before committing"
+  exit 1
+fi
+
+echo "✅ All pre-commit checks passed!"
+exit 0

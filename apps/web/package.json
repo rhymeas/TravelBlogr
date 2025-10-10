@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --watch --noEmit",
+    "pre-deploy": "npm run type-check && npm run lint && npm run build",
+    "prepare": "cd ../.. && husky install"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.0.2",
@@ -41,6 +44,8 @@
     "autoprefixer": "^10.4.16",
     "eslint": "^8.54.0",
     "eslint-config-next": "14.0.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.3",
     "postcss": "^8.4.31",
     "prettier": "^3.1.0",
     "prettier-plugin-tailwindcss": "^0.5.7",
