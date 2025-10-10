@@ -11,7 +11,7 @@ interface DuplicateTripButtonProps {
   tripId: string
   tripTitle: string
   variant?: 'default' | 'outline' | 'ghost'
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'default' | 'sm' | 'lg' | 'icon'
   showIcon?: boolean
   onSuccess?: (newTripId: string) => void
   className?: string

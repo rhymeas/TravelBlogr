@@ -302,8 +302,8 @@ export function SharedTripView({ shareLink, trip, subdomain }: SharedTripViewPro
                 {/* Social Links */}
                 {customization.socialLinks && (
                   <div className="flex gap-2 mt-4">
-                    {Object.entries(customization.socialLinks).map(([platform, url]) => 
-                      url && (
+                    {Object.entries(customization.socialLinks).map(([platform, url]) =>
+                      url ? (
                         <a
                           key={platform}
                           href={url as string}
@@ -313,7 +313,7 @@ export function SharedTripView({ shareLink, trip, subdomain }: SharedTripViewPro
                         >
                           {platform}
                         </a>
-                      )
+                      ) : null
                     )}
                   </div>
                 )}
