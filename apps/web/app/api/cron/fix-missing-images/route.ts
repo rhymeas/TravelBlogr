@@ -13,19 +13,18 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerSupabase } from '@/lib/supabase'
 import { fetchLocationImage, fetchLocationGallery } from '@/lib/services/robustImageService'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 export const maxDuration = 300 // 5 minutes max execution
 
 export async function GET(request: NextRequest) {
   try {
+    // Initialize Supabase client at runtime (not build time)
+    const supabase = createServerSupabase()
+
     console.log('🔧 [CRON] Starting automated image fix job...')
 
     // Verify cron secret for security (optional but recommended)

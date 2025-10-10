@@ -4,11 +4,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerSupabase } from '@/lib/supabase'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const supabase = createClient(supabaseUrl, supabaseKey)
+// Force dynamic rendering for admin routes
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 interface CreateLocationRequest {
   name: string
@@ -22,6 +22,9 @@ interface CreateLocationRequest {
 
 export async function POST(request: NextRequest) {
   try {
+    // Initialize Supabase client at runtime (not build time)
+    const supabase = createServerSupabase()
+
     const body: CreateLocationRequest = await request.json()
     const { name, slug, latitude, longitude, country, region, description } = body
 
@@ -75,6 +78,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    // Initialize Supabase client at runtime (not build time)
+    const supabase = createServerSupabase()
+
     const { data, error } = await supabase
       .from('locations')
       .select('*')

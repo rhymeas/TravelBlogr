@@ -6,19 +6,22 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerSupabase } from '@/lib/supabase'
 import { fetchLocationImage, fetchLocationGallery } from '@/lib/services/robustImageService'
 import {
   fetchLocationImageHighQuality,
   fetchLocationGalleryHighQuality
 } from '@/lib/services/enhancedImageService'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+// Force dynamic rendering for admin routes
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
+    // Initialize Supabase client at runtime (not build time)
+    const supabase = createServerSupabase()
+
     const body = await request.json()
     const { locationSlug } = body
 
@@ -100,6 +103,9 @@ export async function POST(request: NextRequest) {
 // GET endpoint to check current images
 export async function GET(request: NextRequest) {
   try {
+    // Initialize Supabase client at runtime (not build time)
+    const supabase = createServerSupabase()
+
     const { searchParams } = new URL(request.url)
     const locationSlug = searchParams.get('slug')
 

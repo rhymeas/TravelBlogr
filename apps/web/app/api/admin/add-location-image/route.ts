@@ -4,17 +4,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerSupabase } from '@/lib/supabase'
 
+// Force dynamic rendering for admin routes
+export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 export async function POST(request: NextRequest) {
   try {
+    // Initialize Supabase client at runtime (not build time)
+    const supabase = createServerSupabase()
+
     const body = await request.json()
     const { locationSlug, imageUrl, source, platform } = body
 
