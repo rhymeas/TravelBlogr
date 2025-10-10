@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { EnhancedMediaUpload } from './EnhancedMediaUpload'
 import { MediaGallery } from './MediaGallery'
-import { Search, Filter, Grid, List, Image, Video, FileText, Trash2, Download, Share2 } from 'lucide-react'
+import { Search, Filter, Grid, List, Image, Video, FileText, Trash2, Download, Share2, Upload } from 'lucide-react'
 import { createClientSupabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 
