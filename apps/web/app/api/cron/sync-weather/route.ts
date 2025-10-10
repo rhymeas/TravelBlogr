@@ -4,7 +4,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { syncAllLocationsWeather } from '@/../../services/content-crawler/clients/weatherClient'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,6 +23,9 @@ export async function GET(request: NextRequest) {
 
     console.log('🌤️  Starting weather sync cron job...')
     const startTime = Date.now()
+
+    // Dynamic import to avoid bundling heavy dependencies during build
+    const { syncAllLocationsWeather } = await import('@/../../services/content-crawler/clients/weatherClient')
 
     const result = await syncAllLocationsWeather()
 

@@ -4,8 +4,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { crawlAndSaveRestaurants } from '@/../../services/content-crawler/crawlers/restaurantCrawler'
-import { syncWeatherForLocation } from '@/../../services/content-crawler/clients/weatherClient'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -51,6 +49,9 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      // Dynamic import to avoid bundling Puppeteer/Crawlee during build
+      const { crawlAndSaveRestaurants } = await import('@/../../services/content-crawler/crawlers/restaurantCrawler')
+
       const result = await crawlAndSaveRestaurants(
         body.locationId,
         body.urls
@@ -72,6 +73,9 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         )
       }
+
+      // Dynamic import to avoid bundling heavy dependencies during build
+      const { syncWeatherForLocation } = await import('@/../../services/content-crawler/clients/weatherClient')
 
       const result = await syncWeatherForLocation(
         body.locationId,
