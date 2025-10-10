@@ -118,42 +118,94 @@ export default function HomePage() {
     <div className="min-h-screen bg-white">
 
       <main>
-        {/* Hero Section - Airbnb Style */}
-        <section className="relative bg-white">
-          <div className="mx-auto max-w-7xl px-6 lg:px-8 py-12 lg:py-20">
-            <div className="text-center">
-              <h1 className="text-4xl lg:text-6xl font-bold text-airbnb-black mb-6 leading-tight">
-                Share Your Journey,
-                <br />
-                <span className="text-rausch-500">Plan Your Next Adventure</span>
-              </h1>
-              <p className="text-xl text-airbnb-dark-gray mb-8 max-w-2xl mx-auto">
-                Transform your travel experiences into inspiring stories that help fellow travelers plan unforgettable trips. Share detailed timelines with accommodations, restaurants, and activities—then discover your next destination through authentic community experiences.
-              </p>
+        {/* Hero Section - Airbnb Style with Image Background */}
+        <section className="relative h-[600px] lg:h-[700px]">
+          {/* Hero Image */}
+          <div className="absolute inset-0">
+            <Image
+              src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&h=1080&fit=crop&crop=entropy"
+              alt="Beautiful travel destination"
+              fill
+              className="object-cover"
+              priority
+            />
+            {/* Gradient overlay for better text readability */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/30"></div>
+          </div>
 
-              {/* Public Destination Search */}
-              <div className="max-w-2xl mx-auto mb-8">
-                <PublicDestinationSearch
-                  placeholder="Where do you want to go? Search destinations..."
-                  showTrending={true}
-                />
-              </div>
+          {/* Search Card Overlay */}
+          <div className="relative h-full flex items-center">
+            <div className="mx-auto max-w-7xl px-6 lg:px-8 w-full">
+              <div className="max-w-md">
+                {/* White Card */}
+                <div className="bg-white rounded-2xl shadow-2xl p-8">
+                  <h1 className="text-3xl font-bold text-airbnb-black mb-2">
+                    Share Your Journey,
+                    <br />
+                    Plan Your Next Adventure
+                  </h1>
+                  <p className="text-sm text-airbnb-gray mb-6">
+                    Transform your travel experiences into inspiring stories that help fellow travelers plan unforgettable trips.
+                  </p>
 
-              {/* Quick Stats */}
-              <div className="flex items-center justify-center gap-8 text-sm text-airbnb-gray">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  <span>2,500+ destinations</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  <span>50K+ travelers</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Star className="h-4 w-4" />
-                  <span>4.9 rating</span>
+                  {/* Public Destination Search - Original Functionality */}
+                  <div className="mb-4">
+                    <PublicDestinationSearch
+                      placeholder="Where do you want to go? Search destinations..."
+                      showTrending={true}
+                    />
+                  </div>
+
+                  {/* Quick Stats */}
+                  <div className="flex items-center justify-between text-xs text-airbnb-gray pt-4 border-t border-gray-200">
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      <span>2,500+ destinations</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      <span>50K+ travelers</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Star className="h-3 w-3" />
+                      <span>4.9 rating</span>
+                    </div>
+                  </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Feature Cards - Below Hero */}
+        <section className="py-16 bg-white">
+          <div className="mx-auto max-w-7xl px-6 lg:px-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                {
+                  icon: <Calendar className="h-6 w-6" />,
+                  title: "Keep it flexible",
+                  description: "Homes with flexible cancellation make it easy to rethink your booking if your plans change."
+                },
+                {
+                  icon: <Star className="h-6 w-6" />,
+                  title: "Get the amenities you want",
+                  description: "Hot tubs, pools, BBQs—discover dozens of great extras that fit your needs."
+                },
+                {
+                  icon: <Heart className="h-6 w-6" />,
+                  title: "Read real reviews",
+                  description: "Find homes you'll love based on the great experiences of people who've stayed there."
+                }
+              ].map((feature, index) => (
+                <div key={index} className="text-center">
+                  <div className="flex justify-center mb-4">
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-lg font-semibold text-airbnb-black mb-2">{feature.title}</h3>
+                  <p className="text-sm text-airbnb-gray">{feature.description}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>

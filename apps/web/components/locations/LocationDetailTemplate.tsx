@@ -1,6 +1,8 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { SmartImage as Image } from '@/components/ui/SmartImage'
 import { Star, Heart, Eye, MapPin, Calendar, Users, Share2, Bookmark } from 'lucide-react'
 import { Location } from '@/lib/data/locationsData'
@@ -19,18 +21,94 @@ import { SimpleLocationMap } from '@/components/maps/SimpleLocationMap'
 import { LocationImageGallery } from './LocationImageGallery'
 import { LocationRating } from './LocationRating'
 import { LocationViewTracker } from './LocationViewTracker'
-import { LocationCommentSection } from './LocationCommentSection'
+
+// Dynamic import to avoid SSR issues with emoji-picker-react
+const LocationCommentSection = dynamic(
+  () => import('./LocationCommentSection'),
+  {
+    ssr: false,
+    loading: () => <div className="text-center py-8 text-gray-500">Loading comments...</div>
+  }
+)
 
 interface LocationDetailTemplateProps {
   location: Location
   relatedLocations: Location[]
 }
 
+// Sleek loading skeleton component
+function LocationDetailSkeleton() {
+  return (
+    <main className="animate-in fade-in duration-300">
+      {/* Breadcrumb skeleton */}
+      <div className="mx-auto max-w-7xl px-6 lg:px-8 py-4">
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+          <span className="text-gray-300">›</span>
+          <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+          <span className="text-gray-300">›</span>
+          <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+        </div>
+      </div>
+
+      {/* Title skeleton */}
+      <div className="mx-auto max-w-7xl px-6 lg:px-8 mb-6">
+        <div className="h-10 w-64 bg-gray-200 rounded animate-pulse mb-4" />
+        <div className="flex items-center gap-4">
+          <div className="h-5 w-32 bg-gray-200 rounded animate-pulse" />
+          <div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
+        </div>
+      </div>
+
+      {/* Image gallery skeleton */}
+      <div className="mx-auto max-w-7xl px-6 lg:px-8 mb-8">
+        <div className="grid grid-cols-4 gap-2 h-96 bg-gray-200 rounded-xl animate-pulse" />
+      </div>
+
+      {/* Content skeleton */}
+      <div className="mx-auto max-w-7xl px-6 lg:px-8 mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-4">
+            <div className="h-6 w-48 bg-gray-200 rounded animate-pulse" />
+            <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+            <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+            <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
+          </div>
+          <div className="space-y-4">
+            <div className="h-64 bg-gray-200 rounded-xl animate-pulse" />
+          </div>
+        </div>
+      </div>
+
+      {/* Loading indicator */}
+      <div className="fixed bottom-8 right-8 bg-white rounded-full shadow-lg px-4 py-2 flex items-center gap-2 border border-gray-200">
+        <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+        <span className="text-sm text-gray-600">Loading location...</span>
+      </div>
+    </main>
+  )
+}
+
 export function LocationDetailTemplate({ location, relatedLocations }: LocationDetailTemplateProps) {
   const { isAuthenticated } = useAuth()
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Simulate content loading - show skeleton briefly for smooth transition
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Show loading skeleton while content is loading
+  if (isLoading) {
+    return <LocationDetailSkeleton />
+  }
 
   return (
-    <main>
+    <main className="animate-in fade-in duration-500">
       {/* View Tracker - Invisible pixel */}
       <LocationViewTracker locationSlug={location.slug} />
 
@@ -72,7 +150,9 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
                 </div>
                 <div className="flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
-                  <span>{location.region}, {location.country}</span>
+                  <span>
+                    {location.region && `${location.region}, `}{location.country}
+                  </span>
                 </div>
               </div>
             </div>

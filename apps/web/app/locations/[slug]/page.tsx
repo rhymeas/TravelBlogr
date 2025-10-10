@@ -3,6 +3,9 @@ import { getLocationBySlug, getLocationsByCountry, getAllLocationSlugs } from '@
 import { mapSupabaseLocationToFrontend, mapSupabaseLocationsToFrontend } from '@/lib/mappers/locationMapper'
 import { LocationDetailTemplate } from '@/components/locations/LocationDetailTemplate'
 
+// Allow dynamic params for newly created locations (not in generateStaticParams)
+export const dynamicParams = true
+
 interface LocationPageProps {
   params: {
     slug: string

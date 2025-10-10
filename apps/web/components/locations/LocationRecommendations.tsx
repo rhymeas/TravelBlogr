@@ -84,7 +84,9 @@ export function LocationRecommendations({
                 
                 <div className="flex items-center gap-1 text-airbnb-gray text-body-medium mb-3">
                   <MapPin className="h-4 w-4" />
-                  <span>{location.region}, {location.country}</span>
+                  <span>
+                    {location.region && `${location.region}, `}{location.country}
+                  </span>
                 </div>
 
                 <p className="text-body-small text-airbnb-dark-gray mb-4 line-clamp-2">

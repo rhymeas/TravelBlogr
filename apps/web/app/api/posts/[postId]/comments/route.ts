@@ -44,7 +44,7 @@ export async function GET(
         content,
         created_at,
         updated_at,
-        user:users!user_id (
+        user:profiles!user_id (
           id,
           full_name,
           username,
@@ -56,7 +56,7 @@ export async function GET(
           content,
           created_at,
           updated_at,
-          user:users!user_id (
+          user:profiles!user_id (
             id,
             full_name,
             username,
@@ -159,7 +159,7 @@ export async function POST(
         user_id,
         content,
         created_at,
-        user:users!user_id (
+        user:profiles!user_id (
           id,
           full_name,
           username,

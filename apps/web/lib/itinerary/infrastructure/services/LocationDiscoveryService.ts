@@ -5,6 +5,8 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { fetchLocationImage, fetchLocationGallery } from '@/lib/services/robustImageService'
+import { translateLocationName, getDisplayName, hasNonLatinCharacters } from '@/lib/services/translationService'
+import { getRegionFallback } from '@/lib/services/countryMetadataService'
 
 interface GeoNamesResult {
   geonameId: number
@@ -42,15 +44,29 @@ export class LocationDiscoveryService {
   }
 
   /**
-   * Find or create a location
-   * 1. Check in-memory cache first (fastest)
-   * 2. Check database
-   * 3. If not found, search GeoNames/Nominatim
-   * 4. Create location in database
-   * 5. Cache the result
+   * Find or create a location WITH AI-PROVIDED METADATA (PROFESSIONAL INTEGRATION)
+   * This is the PRIMARY method - uses AI metadata as the authoritative source
+   *
+   * Flow:
+   * 1. Check cache/database
+   * 2. Use AI metadata as PRIMARY source
+   * 3. Validate with geocoding APIs
+   * 4. Enrich with country metadata service
+   * 5. Create complete, accurate location
    */
-  async findOrCreateLocation(locationQuery: string): Promise<LocationData | null> {
-    console.log(`🔍 Finding or creating location: ${locationQuery}`)
+  async findOrCreateLocationWithMetadata(
+    locationQuery: string,
+    aiMetadata?: {
+      name: string
+      country: string
+      region: string
+      continent: string
+    }
+  ): Promise<LocationData | null> {
+    console.log(`🔍 [PROFESSIONAL] Finding or creating location: ${locationQuery}`)
+    if (aiMetadata) {
+      console.log(`🤖 AI provided metadata:`, aiMetadata)
+    }
 
     // 1. Check in-memory cache first
     const cacheKey = this.slugify(locationQuery)
@@ -68,22 +84,30 @@ export class LocationDiscoveryService {
       return existing
     }
 
-    // 3. Search GeoNames/Nominatim APIs
-    console.log(`🌐 Searching GeoNames for: ${locationQuery}`)
+    // 3. Search GeoNames/Nominatim APIs for coordinates and validation
+    console.log(`🌐 Validating with geocoding APIs: ${locationQuery}`)
     const geoData = await this.searchGeoNames(locationQuery)
     if (!geoData) {
-      console.log(`❌ Location not found: ${locationQuery}`)
+      console.log(`❌ Location not found in geocoding APIs: ${locationQuery}`)
       return null
     }
 
-    // 4. Create location in database
-    console.log(`📝 Creating new location: ${geoData.name}`)
-    const created = await this.createLocation(geoData)
+    // 4. Create location with AI metadata as PRIMARY source
+    console.log(`📝 Creating location with AI metadata + geocoding validation`)
+    const created = await this.createLocationWithMetadata(geoData, locationQuery, aiMetadata)
 
     // 5. Cache the result
     this.setCache(cacheKey, created)
 
     return created
+  }
+
+  /**
+   * LEGACY METHOD - Find or create a location WITHOUT AI metadata
+   * Use findOrCreateLocationWithMetadata() instead when AI metadata is available
+   */
+  async findOrCreateLocation(locationQuery: string): Promise<LocationData | null> {
+    return this.findOrCreateLocationWithMetadata(locationQuery, undefined)
   }
 
   /**
@@ -219,14 +243,14 @@ export class LocationDiscoveryService {
                     name
 
         // Extract region with comprehensive fallback strategy
-        // Priority: state > region > province > county > district > ISO code
+        // Priority: state > region > province > county > district > ISO code > null
         const region = bestMatch.address?.state ||
                       bestMatch.address?.region ||
                       bestMatch.address?.province ||
                       bestMatch.address?.county ||
                       bestMatch.address?.district ||
                       bestMatch.address?.['ISO3166-2-lvl4']?.split('-')[1] || // Extract region from ISO code (e.g., "CA-BC" -> "BC")
-                      'Unknown Region' // Always provide a fallback
+                      null // No hardcoded fallback - will use country metadata service
 
         const country = bestMatch.address?.country || 'Unknown'
 
@@ -278,14 +302,99 @@ export class LocationDiscoveryService {
   }
 
   /**
-   * Create location in database
+   * PROFESSIONAL INTEGRATION: Create location with AI metadata + geocoding validation
+   * @param geoData - Geocoding data from API (for coordinates)
+   * @param userInput - Original user input
+   * @param aiMetadata - AI-provided metadata (PRIMARY source for region/continent)
    */
-  private async createLocation(geoData: GeoNamesResult): Promise<LocationData> {
-    const slug = this.slugify(geoData.name)
+  private async createLocationWithMetadata(
+    geoData: GeoNamesResult,
+    userInput?: string,
+    aiMetadata?: {
+      name: string
+      country: string
+      region: string
+      continent: string
+    }
+  ): Promise<LocationData> {
+    // TRANSLATE ALL LOCATION FIELDS TO ENGLISH
+    console.log(`🌐 Translating location data: ${geoData.name}${userInput ? ` (user input: ${userInput})` : ''}`)
+
+    // Translate name - PREFER USER INPUT if provided
+    const nameToTranslate = userInput || geoData.name
+    const nameTranslation = await translateLocationName(nameToTranslate)
+    const displayName = getDisplayName(nameTranslation.original, nameTranslation.translated)
+
+    console.log(`✅ Using display name: "${displayName}" (from ${userInput ? 'user input' : 'geocoding API'})`)
+
+    // PROFESSIONAL INTEGRATION: Use AI metadata as PRIMARY source
+    let translatedCountry: string
+    let translatedRegion: string
+    let continent: string | undefined
+
+    if (aiMetadata) {
+      console.log(`🤖 [PRIMARY SOURCE] Using AI metadata for location hierarchy`)
+      translatedCountry = aiMetadata.country
+      translatedRegion = aiMetadata.region
+      continent = aiMetadata.continent
+
+      console.log(`✅ AI metadata applied:`, {
+        country: translatedCountry,
+        region: translatedRegion,
+        continent: continent
+      })
+    } else {
+      // FALLBACK: Use geocoding + country metadata service
+      console.log(`⚠️ No AI metadata - using geocoding + country metadata service`)
+
+      // Translate country from geocoding
+      translatedCountry = geoData.countryName
+      if (hasNonLatinCharacters(geoData.countryName)) {
+        const countryTranslation = await translateLocationName(geoData.countryName)
+        translatedCountry = getDisplayName(countryTranslation.original, countryTranslation.translated)
+      }
+
+      // Translate region (state/province) with smart fallback
+      const region = geoData.adminName1 || geoData.adminName2 || ''
+      translatedRegion = region
+
+      if (region && hasNonLatinCharacters(region)) {
+        const regionTranslation = await translateLocationName(region)
+        translatedRegion = getDisplayName(regionTranslation.original, regionTranslation.translated)
+      } else if (!region) {
+        // No region data - use country metadata service for smart fallback
+        console.log(`🌍 No region data for ${displayName}, fetching from country metadata...`)
+        const regionFallback = await getRegionFallback(translatedCountry)
+        if (regionFallback) {
+          translatedRegion = regionFallback
+          console.log(`✅ Using subregion as fallback: ${regionFallback}`)
+        }
+      }
+
+      // Get continent from country metadata service
+      const countryMetadata = await import('@/lib/services/countryMetadataService').then(m => m.getCountryMetadata(translatedCountry))
+      continent = countryMetadata?.continent
+    }
+
+    console.log(`✅ Final location hierarchy:`, {
+      name: displayName,
+      region: translatedRegion,
+      country: translatedCountry,
+      continent: continent || 'N/A'
+    })
+
+    // Use translated name for slug generation
+    const nameForSlug = nameTranslation.translated || geoData.name
+    let slug = this.slugify(nameForSlug)
+
+    // Fallback: If slug is empty (e.g., for non-Latin characters), use coordinates
+    if (!slug || slug.length === 0) {
+      slug = `loc-${geoData.lat}-${geoData.lng}`.replace(/\./g, '-')
+      console.log(`⚠️ Generated coordinate-based slug for ${geoData.name}: ${slug}`)
+    }
 
     // AUTOMATED IMAGE FETCHING WITH VALIDATION & RETRY
-    // This ensures NO location is saved without images
-    console.log(`🖼️ [AUTO-FETCH] Starting automated image validation for: ${geoData.name}`)
+    console.log(`🖼️ [AUTO-FETCH] Starting automated image validation for: ${displayName}`)
     const imageResult = await this.fetchImagesWithRetry(geoData)
     const featuredImage = imageResult.featuredImage
     const galleryImages = imageResult.galleryImages
@@ -295,32 +404,65 @@ export class LocationDiscoveryService {
       galleryCount: galleryImages.length
     })
 
-    // Build 3-level hierarchy for display
-    const region = geoData.adminName1 || geoData.adminName2 || ''
+    // Generate rich AI description
+    console.log(`📝 Generating AI description for ${displayName}...`)
+    const aiDescription = await this.generateLocationDescription(displayName, translatedCountry, translatedRegion)
+    const description = aiDescription || `${displayName} is a city in ${translatedCountry}${translatedRegion ? `, ${translatedRegion}` : ''}.`
 
     const locationData: LocationData = {
       slug,
-      name: geoData.name,
-      country: geoData.countryName,
-      region: region, // Add region/state level
+      name: displayName,
+      country: translatedCountry,
+      region: translatedRegion || null,
       latitude: parseFloat(geoData.lat),
       longitude: parseFloat(geoData.lng),
-      description: `${geoData.name} is a city in ${geoData.countryName}${region ? `, ${region}` : ''}.`,
+      description,
       featured_image: featuredImage
     }
 
-    // Insert into database with images and 3-level hierarchy
-    const { data, error } = await this.supabase
+    // Continue with database insertion...
+    return this.insertLocationToDatabase(locationData, galleryImages, continent)
+  }
+
+  /**
+   * LEGACY METHOD: Create location without AI metadata
+   */
+  private async createLocation(geoData: GeoNamesResult, userInput?: string): Promise<LocationData> {
+    return this.createLocationWithMetadata(geoData, userInput, undefined)
+  }
+
+  /**
+   * Insert location to database (extracted for reuse)
+   */
+  private async insertLocationToDatabase(
+    locationData: LocationData,
+    galleryImages: string[],
+    continent?: string
+  ): Promise<LocationData> {
+    // Check if location already exists (might have been created in a race condition)
+    const { data: existing } = await this.supabase
+      .from('locations')
+      .select('id, slug, name')
+      .eq('slug', locationData.slug)
+      .maybeSingle()
+
+    if (existing) {
+      console.log(`✅ Location already exists: ${existing.name} (${existing.slug})`)
+      return locationData
+    }
+
+    // Insert into database with all metadata
+    const { data, error} = await this.supabase
       .from('locations')
       .insert({
         slug: locationData.slug,
         name: locationData.name,
         country: locationData.country,
-        region: region || null, // Store region/state
+        region: locationData.region,
         latitude: locationData.latitude,
         longitude: locationData.longitude,
         description: locationData.description,
-        featured_image: featuredImage,
+        featured_image: locationData.featured_image,
         gallery_images: galleryImages,
         is_published: true,
         created_at: new Date().toISOString()
@@ -329,7 +471,20 @@ export class LocationDiscoveryService {
       .single()
 
     if (error) {
-      console.error('Error creating location:', error)
+      console.error(`❌ Error creating location "${locationData.name}" (${locationData.slug}):`, error)
+      // If it's a duplicate key error, try to fetch the existing location
+      if (error.code === '23505') {
+        const { data: duplicate } = await this.supabase
+          .from('locations')
+          .select('id, slug, name')
+          .eq('slug', locationData.slug)
+          .maybeSingle()
+
+        if (duplicate) {
+          console.log(`✅ Found duplicate location: ${duplicate.name} (${duplicate.slug})`)
+          return locationData
+        }
+      }
       // Return data anyway even if insert fails
       return locationData
     }
@@ -366,43 +521,141 @@ export class LocationDiscoveryService {
     ])
 
     if (restaurants.length > 0) {
+      // Translate restaurant names
+      const translatedRestaurants = await Promise.all(
+        restaurants.map(async (r) => {
+          const nameTranslation = await translateLocationName(r.name)
+          const translatedName = getDisplayName(nameTranslation.original, nameTranslation.translated)
+          return {
+            location_id: locationId,
+            name: translatedName,
+            cuisine_type: r.cuisine || 'International',
+            price_range: r.price_range || '$$',
+            address: r.address,
+            latitude: r.latitude,
+            longitude: r.longitude,
+            source: 'openstreetmap',
+            is_verified: false
+          }
+        })
+      )
+
       const { error } = await this.supabase
         .from('restaurants')
-        .insert(restaurants.map(r => ({
-          location_id: locationId,
-          name: r.name,
-          cuisine_type: r.cuisine || 'International',
-          price_range: r.price_range || '$$',
-          address: r.address,
-          latitude: r.latitude,
-          longitude: r.longitude,
-          source: 'openstreetmap',
-          is_verified: false
-        })))
+        .insert(translatedRestaurants)
 
       if (!error) {
-        console.log(`✅ Auto-populated ${restaurants.length} restaurants`)
+        console.log(`✅ Auto-populated ${restaurants.length} restaurants (translated)`)
       }
     }
 
     if (activities.length > 0) {
-      const { error} = await this.supabase
+      // Translate activity names and descriptions
+      const translatedActivities = await Promise.all(
+        activities.map(async (a) => {
+          const nameTranslation = await translateLocationName(a.name)
+          const translatedName = getDisplayName(nameTranslation.original, nameTranslation.translated)
+
+          let translatedDescription = a.description
+          if (a.description && hasNonLatinCharacters(a.description)) {
+            const descTranslation = await translateLocationName(a.description)
+            translatedDescription = getDisplayName(descTranslation.original, descTranslation.translated)
+          }
+
+          return {
+            location_id: locationId,
+            name: translatedName,
+            description: translatedDescription,
+            category: a.category || 'attraction',
+            address: a.address,
+            latitude: a.latitude,
+            longitude: a.longitude,
+            source: 'openstreetmap',
+            is_verified: false
+          }
+        })
+      )
+
+      const { error } = await this.supabase
         .from('activities')
-        .insert(activities.map(a => ({
-          location_id: locationId,
-          name: a.name,
-          description: a.description,
-          category: a.category || 'attraction',
-          address: a.address,
-          latitude: a.latitude,
-          longitude: a.longitude,
-          source: 'openstreetmap',
-          is_verified: false
-        })))
+        .insert(translatedActivities)
 
       if (!error) {
-        console.log(`✅ Auto-populated ${activities.length} activities`)
+        console.log(`✅ Auto-populated ${activities.length} activities (translated)`)
       }
+    }
+  }
+
+  /**
+   * Generate rich AI description for a location
+   */
+  private async generateLocationDescription(
+    locationName: string,
+    country: string,
+    region: string | null
+  ): Promise<string | null> {
+    try {
+      const groqApiKey = process.env.GROQ_API_KEY
+      if (!groqApiKey) {
+        console.log('⚠️ GROQ_API_KEY not found in environment variables')
+        console.log('   Add GROQ_API_KEY to .env.local to enable AI descriptions')
+        console.log('   Get your key at: https://console.groq.com/keys')
+        return null
+      }
+
+      const locationContext = region
+        ? `${locationName}, ${region}, ${country}`
+        : `${locationName}, ${country}`
+
+      const prompt = `Write a compelling 2-3 sentence description for ${locationContext}.
+
+IMPORTANT: Include specific details about:
+- Main attractions, landmarks, or natural features (mountains, lakes, waterfalls, parks, resorts)
+- Popular activities (hiking, skiing, water sports, wildlife viewing, etc.)
+- What makes this place unique or special
+- Why travelers should visit
+
+For example, if it's Clearwater, BC, mention Wells Gray Provincial Park, Helmcken Falls, Trophy Mountain, wilderness activities, etc.
+
+Keep it informative, engaging, and specific. Write in English only.`
+
+      // Use environment variable for model selection (default: llama-3.3-70b-versatile)
+      const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
+
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${groqApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+          max_tokens: 200
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.log(`⚠️ Groq API error (${response.status}):`, errorText)
+        console.log('   Check your API key at: https://console.groq.com/keys')
+        console.log('   Using basic description instead')
+        return null
+      }
+
+      const data = await response.json()
+      const description = data.choices?.[0]?.message?.content?.trim()
+
+      if (description) {
+        console.log(`✅ Generated AI description (${model}): ${description.substring(0, 80)}...`)
+        return description
+      }
+
+      return null
+    } catch (error) {
+      console.error('⚠️ Error generating AI description:', error)
+      return null
     }
   }
 
@@ -429,7 +682,23 @@ export class LocationDiscoveryService {
 
   private async fetchActivitiesFromOSM(lat: number, lng: number): Promise<any[]> {
     try {
-      const query = `[out:json][timeout:15];(node["tourism"="attraction"](around:3000,${lat},${lng});node["tourism"="museum"](around:3000,${lat},${lng});node["leisure"="park"](around:3000,${lat},${lng}););out body 30;`
+      // Enhanced query to include natural features, viewpoints, outdoor activities
+      const query = `[out:json][timeout:15];(
+        node["tourism"="attraction"](around:5000,${lat},${lng});
+        node["tourism"="museum"](around:5000,${lat},${lng});
+        node["tourism"="viewpoint"](around:5000,${lat},${lng});
+        node["leisure"="park"](around:5000,${lat},${lng});
+        node["natural"="waterfall"](around:10000,${lat},${lng});
+        node["natural"="peak"](around:10000,${lat},${lng});
+        node["natural"="hot_spring"](around:10000,${lat},${lng});
+        node["amenity"="ski_resort"](around:10000,${lat},${lng});
+        node["sport"="skiing"](around:10000,${lat},${lng});
+        node["sport"="hiking"](around:10000,${lat},${lng});
+        way["leisure"="nature_reserve"](around:10000,${lat},${lng});
+        way["boundary"="national_park"](around:15000,${lat},${lng});
+        way["boundary"="protected_area"](around:15000,${lat},${lng});
+      );out body 50;`
+
       const response = await fetch('https://overpass-api.de/api/interpreter', {
         method: 'POST',
         body: `data=${encodeURIComponent(query)}`,
@@ -437,26 +706,39 @@ export class LocationDiscoveryService {
       })
       if (!response.ok) return []
       const data = await response.json()
-      return data.elements.filter((el: any) => el.tags?.name).map((el: any) => ({
-        name: el.tags.name,
-        description: el.tags.description || el.tags.tourism || el.tags.leisure,
-        category: el.tags.tourism || el.tags.leisure || 'attraction',
-        address: el.tags['addr:street'] ? `${el.tags['addr:street']} ${el.tags['addr:housenumber'] || ''}`.trim() : undefined,
-        latitude: el.lat,
-        longitude: el.lon
-      }))
+
+      return data.elements.filter((el: any) => el.tags?.name).map((el: any) => {
+        // Determine category based on tags
+        let category = 'attraction'
+        if (el.tags.natural) category = el.tags.natural
+        else if (el.tags.tourism) category = el.tags.tourism
+        else if (el.tags.leisure) category = el.tags.leisure
+        else if (el.tags.sport) category = el.tags.sport
+        else if (el.tags.boundary) category = 'park'
+
+        return {
+          name: el.tags.name,
+          description: el.tags.description || el.tags.natural || el.tags.tourism || el.tags.leisure,
+          category,
+          address: el.tags['addr:street'] ? `${el.tags['addr:street']} ${el.tags['addr:housenumber'] || ''}`.trim() : undefined,
+          latitude: el.lat || (el.center?.lat),
+          longitude: el.lon || (el.center?.lon)
+        }
+      }).filter((a: any) => a.latitude && a.longitude) // Filter out items without coordinates
     } catch { return [] }
   }
 
   /**
    * Create URL-friendly slug
+   * Supports international characters (Chinese, Korean, Japanese, etc.)
    */
   private slugify(text: string): string {
     return text
       .toLowerCase()
       .trim()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
+      // Keep alphanumeric, spaces, hyphens, and Unicode characters (for international names)
+      .replace(/[^\w\s-\u00C0-\u024F\u1E00-\u1EFF\u0400-\u04FF\u0600-\u06FF\u0900-\u097F\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF\uAC00-\uD7AF]/g, '')
+      .replace(/[\s_]+/g, '-')
       .replace(/^-+|-+$/g, '')
   }
 

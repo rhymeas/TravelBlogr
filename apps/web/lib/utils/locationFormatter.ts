@@ -1,11 +1,16 @@
 /**
  * Utility functions for formatting location names
+ * Includes automatic translation support for non-Latin scripts
  */
+
+import { hasNonLatinCharacters } from '@/lib/services/translationService'
 
 export interface FormattedLocation {
   short: string
   region?: string
   country?: string
+  needsTranslation?: boolean
+  originalShort?: string
 }
 
 /**
@@ -19,20 +24,33 @@ export function formatLocationName(name: string): FormattedLocation {
   let short = name
   let region: string | undefined
   let country: string | undefined
+  let needsTranslation = false
+  let originalShort: string | undefined
+
+  // Check if the name contains non-Latin characters
+  needsTranslation = hasNonLatinCharacters(name)
+
+  // If name contains translation in format "English (Original)", extract both
+  const translationMatch = name.match(/^(.+?)\s*\((.+?)\)$/)
+  if (translationMatch) {
+    short = translationMatch[1].trim() // English translation
+    originalShort = translationMatch[2].trim() // Original script
+    needsTranslation = true
+  }
 
   // Remove "Regional District of" prefix
-  if (name.includes('Regional District of')) {
-    short = name.replace('Regional District of ', '')
+  if (short.includes('Regional District of')) {
+    short = short.replace('Regional District of ', '')
   }
-  
+
   // Remove "Regional District" suffix
-  if (name.endsWith('Regional District')) {
-    short = name.replace(' Regional District', '')
+  if (short.endsWith('Regional District')) {
+    short = short.replace(' Regional District', '')
   }
 
   // Extract country and region from comma-separated format
   // e.g., "Kelowna, British Columbia, Canada"
-  const parts = name.split(',').map(p => p.trim())
+  const parts = short.split(',').map(p => p.trim())
   if (parts.length >= 2) {
     short = parts[0]
     region = parts[1]
@@ -41,19 +59,21 @@ export function formatLocationName(name: string): FormattedLocation {
     }
   }
 
-  return { short, region, country }
+  return { short, region, country, needsTranslation, originalShort }
 }
 
 /**
  * Format location with region/country in gray
- * Returns JSX-ready object
+ * Returns JSX-ready object with translation support
  */
 export function formatLocationDisplay(name: string): {
   main: string
   secondary?: string
+  needsTranslation?: boolean
+  originalName?: string
 } {
   const formatted = formatLocationName(name)
-  
+
   let secondary: string | undefined
   if (formatted.region || formatted.country) {
     const parts = []
@@ -64,7 +84,27 @@ export function formatLocationDisplay(name: string): {
 
   return {
     main: formatted.short,
-    secondary
+    secondary,
+    needsTranslation: formatted.needsTranslation,
+    originalName: formatted.originalShort
   }
 }
 
+/**
+ * Format region and country for display
+ * Handles null/undefined region gracefully
+ *
+ * @example
+ * formatRegionCountry('Liaoning', 'China') // "Liaoning, China"
+ * formatRegionCountry(null, 'South Korea') // "South Korea"
+ * formatRegionCountry('', 'Japan') // "Japan"
+ */
+export function formatRegionCountry(
+  region: string | null | undefined,
+  country: string
+): string {
+  if (!region || region.trim() === '') {
+    return country
+  }
+  return `${region}, ${country}`
+}

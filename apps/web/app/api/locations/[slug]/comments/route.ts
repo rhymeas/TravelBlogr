@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 
 /**
  * GET /api/locations/[slug]/comments
@@ -10,7 +10,11 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   try {
-    const supabase = createServerSupabase()
+    // Create real Supabase client
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
 
     // Verify location exists and get ID
     const { data: location, error: locationError } = await supabase
@@ -32,7 +36,7 @@ export async function GET(
         content,
         created_at,
         updated_at,
-        user:users!user_id (
+        profiles!user_id (
           id,
           full_name,
           username,
@@ -44,7 +48,7 @@ export async function GET(
           content,
           created_at,
           updated_at,
-          user:users!user_id (
+          profiles!user_id (
             id,
             full_name,
             username,
@@ -77,7 +81,11 @@ export async function POST(
   { params }: { params: { slug: string } }
 ) {
   try {
-    const supabase = createServerSupabase()
+    // Create real Supabase client
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
 
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -135,7 +143,7 @@ export async function POST(
         user_id,
         content,
         created_at,
-        user:users!user_id (
+        profiles!user_id (
           id,
           full_name,
           username,

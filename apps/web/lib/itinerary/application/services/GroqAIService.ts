@@ -15,6 +15,7 @@ export interface AIGenerationContext {
   stops: string[]
   interests: string[]
   budget: 'budget' | 'moderate' | 'luxury'
+  maxTravelHoursPerDay?: number // User preference for max travel time per day
   locationsData: Array<{
     name: string
     slug: string
@@ -197,6 +198,12 @@ ROUTE INFORMATION:
 - Travel time: ${Math.round(context.routeDuration)} hours
 - Stops along the way: ${context.stops.join(', ') || 'none'}
 
+IMPORTANT: The itinerary MUST include activities in BOTH ${context.fromLocation} AND ${context.toLocation}.
+- Start in ${context.fromLocation} with activities there
+- Travel to ${context.toLocation} (allocate travel days as needed)
+- END with activities in ${context.toLocation} - this is the final destination!
+- Do NOT end the trip with just "traveling to ${context.toLocation}" - include actual activities there!
+
 AVAILABLE LOCATIONS & ACTIVITIES:
 ${context.locationsData.map((loc, i) => `
 ${i + 1}. ${loc.name}
@@ -225,6 +232,18 @@ REQUIREMENTS:
 - Consider travel time between locations
 - Use ONLY activities and restaurants listed above
 - Be realistic with timing and distances
+- CRITICAL: The final destination is ${context.toLocation} - the last day(s) MUST include activities in ${context.toLocation}, not just travel!
+- Allocate at least 1 full day for exploring ${context.toLocation} with actual activities and restaurants
+
+TRAVEL PACING RULES:
+${context.maxTravelHoursPerDay ? `- Maximum travel time per day: ${context.maxTravelHoursPerDay} hours
+- If a segment requires more than ${context.maxTravelHoursPerDay} hours of travel, split it across multiple days
+- Suggest interesting stops along the way to break up long journeys
+- NEVER schedule more than ${context.maxTravelHoursPerDay} hours of continuous travel in a single day` : `- Keep travel segments under 4 hours per day when possible
+- For journeys over 4 hours, suggest breaking them into multiple days with stops
+- Suggest creative stops along the route (scenic towns, attractions, viewpoints)`}
+- When suggesting stops, use locations from the available list above if they're on the route
+- If no database locations are on the route, mention "Consider stopping at [interesting place name] along the way" in the day's description
 
 OUTPUT SCHEMA - MUST BE VALID JSON OBJECT (not array):
 {
@@ -235,6 +254,12 @@ OUTPUT SCHEMA - MUST BE VALID JSON OBJECT (not array):
       "day": 1,
       "date": "${startDate}",
       "location": "Location name from list above",
+      "locationMetadata": {
+        "name": "Full location name",
+        "country": "Country name",
+        "region": "State/Province/Region (or subregion like 'South-Eastern Asia' for small countries)",
+        "continent": "Continent name (Asia, Europe, Africa, North America, South America, Oceania, Antarctica)"
+      },
       "type": "stay",
       "items": [
         {
@@ -254,6 +279,31 @@ OUTPUT SCHEMA - MUST BE VALID JSON OBJECT (not array):
           "costEstimate": 30
         }
       ]
+    },
+    {
+      "day": 2,
+      "date": "Next day date",
+      "location": "Next location name",
+      "locationMetadata": {
+        "name": "Full location name",
+        "country": "Country name",
+        "region": "State/Province/Region or subregion",
+        "continent": "Continent name"
+      },
+      "type": "travel",
+      "items": [
+        {
+          "time": "08:00",
+          "title": "Train to [Destination]",
+          "type": "travel",
+          "duration": "3h 30min",
+          "mode": "Train",
+          "from": "Starting location",
+          "to": "Destination location",
+          "description": "Amtrak Acela Express (3.5h, $120-180) or Northeast Regional (4h, $50-90). Book on Amtrak.com 2-3 weeks ahead for best prices. Coastal views after New Haven, historic Providence. Sit right side for ocean views, free WiFi, arrive 30min early.",
+          "costEstimate": 85
+        }
+      ]
     }
   ],
   "totalCostEstimate": 500,
@@ -263,6 +313,49 @@ OUTPUT SCHEMA - MUST BE VALID JSON OBJECT (not array):
     "Practical tip 3"
   ]
 }
+
+LOCATION METADATA REQUIREMENTS (CRITICAL):
+- ALWAYS include "locationMetadata" for EVERY day
+- "continent" MUST be one of: Asia, Europe, Africa, North America, South America, Oceania, Antarctica
+- "region" should be:
+  * For large countries: State/Province (e.g., "California", "Bavaria", "Queensland")
+  * For small countries without states: Subregion (e.g., "South-Eastern Asia" for Timor-Leste, "Western Europe" for Monaco)
+  * NEVER use "Unknown Region" - always provide accurate geographic information
+- "country" MUST be the official country name (e.g., "United States", "Timor-Leste", "France")
+- Use your geographic knowledge to provide accurate continent and region data
+
+TRAVEL ITEM REQUIREMENTS:
+- "duration" for travel items MUST be a STRING like "3h 30min", "2h 15min", "45min" (NOT a number)
+- "mode" MUST be one of: "Train", "Car", "Flight", "Bus", "Ferry"
+- "from" and "to" MUST be the actual location names for Google Maps directions
+- Include realistic travel times and costs
+
+TRAVEL DESCRIPTION GUIDELINES (VERY IMPORTANT!):
+Travel descriptions must be DETAILED and ACTIONABLE. Include ALL of these elements:
+
+1. SPECIFIC OPTIONS: Name 2-3 actual transportation providers/services with duration and price range
+   Example: "Amtrak Acela Express (3.5h, $120-180) or Northeast Regional (4h, $50-90)"
+
+2. BOOKING INFO: Where to book, advance booking tips, how to save money
+   Example: "Book on Amtrak.com or app 2-3 weeks ahead for 40% savings. Tuesday/Wednesday often cheaper."
+
+3. SCENIC HIGHLIGHTS: Interesting views or landmarks along the route
+   Example: "Coastal views after New Haven, historic Providence skyline, Connecticut shoreline"
+
+4. PRACTICAL TIPS: Useful advice for the journey
+   Example: "Sit on right side for ocean views. Free WiFi available. Arrive 30min early for boarding."
+
+EXAMPLES BY MODE:
+
+Train: "Amtrak Acela Express (3.5h, $120-180) or Northeast Regional (4h, $50-90). Book on Amtrak.com 2-3 weeks ahead for best prices. Coastal views after New Haven, historic Providence. Sit right side for ocean views, free WiFi, arrive 30min early."
+
+Flight: "Direct flights on Delta, United, or JetBlue (1.5h, $150-300). Book on Google Flights or airline sites 6-8 weeks ahead. Non-stop preferred over connections. Check-in online 24h before, arrive 2h early for security."
+
+Car: "Scenic 4-hour drive via I-95 or coastal Route 1 (slower but beautiful). Rental from Enterprise/Hertz at airport ($50-80/day). Stop at Mystic Seaport or coastal towns. Free parking at most attractions, paid downtown."
+
+Bus: "Greyhound or Peter Pan (4.5h, $25-45). Book on company websites for e-tickets. WiFi and power outlets available. Departs from central stations, arrive 15min early."
+
+Ferry: "Seasonal ferry service (2h, $60-90). Book at ferrycompany.com in advance, especially summer weekends. Bring light jacket for deck. Scenic harbor views, onboard cafe."
 
 CRITICAL:
 - Root must be an OBJECT {...}, NOT an array [...]

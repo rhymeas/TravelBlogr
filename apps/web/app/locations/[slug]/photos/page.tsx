@@ -22,7 +22,7 @@ export default async function PhotosPage({ params }: PhotosPageProps) {
   const location = mapSupabaseLocationToFrontend(supabaseLocation)
 
   return (
-    <>
+    <div className="min-h-screen">
       {/* Sticky Header with Breadcrumb */}
       <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
         <div className="mx-auto max-w-7xl px-6 lg:px-8 py-4">
@@ -76,7 +76,7 @@ export default async function PhotosPage({ params }: PhotosPageProps) {
 
       {/* Gallery Content */}
       <PhotoGalleryView location={location} />
-    </>
+    </div>
   )
 }
 

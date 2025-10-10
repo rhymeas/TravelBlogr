@@ -1,5 +1,5 @@
 import useSWR, { mutate } from 'swr'
-import { createClientSupabase } from './supabase'
+import { getBrowserSupabase } from './supabase'
 import type { Database } from '../../../infrastructure/database/types'
 
 // Generic fetcher function
@@ -13,7 +13,7 @@ const fetcher = async (url: string) => {
 
 // Supabase fetcher for direct database queries
 const supabaseFetcher = async (table: string, query?: any) => {
-  const supabase = createClientSupabase()
+  const supabase = getBrowserSupabase()
   const { data, error } = await supabase.from(table).select(query || '*')
   if (error) throw error
   return data

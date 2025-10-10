@@ -1,13 +1,16 @@
 /**
  * Enhanced Image Service with Quality Controls
- * 
+ *
  * Features:
  * - High-resolution image fetching
  * - Image quality validation
  * - Better search terms for location-specific images
  * - Support for 20+ images per location
  * - Filters out irrelevant images (people portraits, etc.)
+ * - High-quality fallbacks instead of placeholders
  */
+
+import { getLocationFallbackImage, isPlaceholderImage } from './fallbackImageService'
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 hours
 const imageCache = new Map<string, { url: string; timestamp: number }>()
@@ -600,7 +603,7 @@ export async function fetchLocationImageHighQuality(
   region?: string,
   country?: string
 ): Promise<string> {
-  if (manualUrl && manualUrl !== '/placeholder-location.svg') {
+  if (manualUrl && !isPlaceholderImage(manualUrl)) {
     return manualUrl
   }
 
@@ -722,9 +725,9 @@ export async function fetchLocationImageHighQuality(
     return best.url
   }
 
-  // Fallback
-  console.log('⚠️ No featured image found from any provider')
-  return '/placeholder-location.svg'
+  // High-quality fallback instead of placeholder
+  console.log('⚠️ No featured image found from any provider, using high-quality fallback')
+  return getLocationFallbackImage(locationName, country)
 }
 
 /**

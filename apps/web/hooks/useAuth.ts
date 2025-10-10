@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClientSupabase } from '@/lib/supabase'
+import { useSupabase } from '@/lib/supabase'
 import type { User, Session } from '@supabase/supabase-js'
 import { autoMigrateOnLogin } from '@/lib/services/guestMigrationService'
 
 interface Profile {
   id: string
   full_name?: string
+  username?: string
   avatar_url?: string
-  email?: string
+  bio?: string
   created_at?: string
   updated_at?: string
 }
@@ -31,174 +32,221 @@ export const useAuth = () => {
     loading: true,
     error: null,
   })
-  
+
   const router = useRouter()
-  const supabase = createClientSupabase()
+  const supabase = useSupabase()
 
-  // Test account credentials
-  const TEST_ACCOUNTS = {
-    'test@example.com': {
-      password: 'password123',
-      profile: {
-        id: 'test-user-id',
-        full_name: 'Test User',
-        avatar_url: undefined,
-        email: 'test@example.com',
-        created_at: '2024-01-01T00:00:00.000Z',
-        updated_at: new Date().toISOString(),
-      }
-    }
-  }
-
-  const fetchProfile = async (userId: string, email: string): Promise<Profile | null> => {
+  /**
+   * Fetch user profile from Supabase database
+   */
+  const fetchProfile = async (userId: string): Promise<Profile | null> => {
     try {
-      // Return test account profile if it matches
-      if (email in TEST_ACCOUNTS) {
-        return TEST_ACCOUNTS[email as keyof typeof TEST_ACCOUNTS].profile
+      console.log('📋 Fetching profile for user:', userId)
+
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, avatar_url, bio, created_at, updated_at')
+        .eq('id', userId)
+        .single()
+
+      if (error) {
+        console.error('❌ Error fetching profile:', error)
+        return null
       }
 
-      // Default demo profile for other cases
-      return {
-        id: userId,
-        full_name: 'Demo User',
-        avatar_url: undefined,
-        email: email,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }
+      console.log('✅ Profile fetched successfully:', profile)
+      return profile
     } catch (error) {
-      console.error('Error fetching profile:', error)
+      console.error('❌ Unexpected error fetching profile:', error)
       return null
     }
   }
 
   useEffect(() => {
-    // Get initial session from localStorage
-    const getInitialSession = async () => {
+    /**
+     * Initialize auth state and listen for auth changes
+     */
+    const initializeAuth = async () => {
       try {
-        // Check if there's a stored session
-        const storedSession = localStorage.getItem('mock_auth_session')
-        if (storedSession) {
-          const { user, profile, session } = JSON.parse(storedSession)
+        console.log('🔐 Initializing authentication...')
+
+        // Get current session from Supabase
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+        if (sessionError) {
+          console.error('❌ Error getting session:', sessionError)
+          setState(prev => ({ ...prev, loading: false, error: sessionError.message }))
+          return
+        }
+
+        if (session?.user) {
+          console.log('✅ Active session found for user:', session.user.email)
+
+          // Fetch user profile
+          const profile = await fetchProfile(session.user.id)
+
           setState({
-            user,
+            user: session.user,
             profile,
             session,
             loading: false,
             error: null,
           })
+
+          // Auto-migrate guest trips if any exist
+          try {
+            await autoMigrateOnLogin(session.user.id)
+          } catch (migrationError) {
+            console.error('⚠️ Guest trip migration failed:', migrationError)
+            // Don't fail the auth if migration fails
+          }
         } else {
+          console.log('ℹ️ No active session found')
           setState(prev => ({ ...prev, loading: false }))
         }
       } catch (error) {
-        console.error('Error loading session:', error)
-        setState(prev => ({
-          ...prev,
-          error: error instanceof Error ? error.message : 'An error occurred',
-          loading: false
-        }))
+        console.error('❌ Error initializing auth:', error)
+        setState(prev => ({ ...prev, loading: false }))
       }
     }
 
-    getInitialSession()
+    initializeAuth()
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔄 Auth state changed:', event)
+
+      if (event === 'SIGNED_IN' && session?.user) {
+        const profile = await fetchProfile(session.user.id)
+        setState({
+          user: session.user,
+          profile,
+          session,
+          loading: false,
+          error: null,
+        })
+
+        // Auto-migrate guest trips
+        try {
+          await autoMigrateOnLogin(session.user.id)
+        } catch (migrationError) {
+          console.error('⚠️ Guest trip migration failed:', migrationError)
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setState({
+          user: null,
+          profile: null,
+          session: null,
+          loading: false,
+          error: null,
+        })
+      } else if (event === 'TOKEN_REFRESHED' && session) {
+        setState(prev => ({ ...prev, session }))
+      }
+    })
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
+  /**
+   * Sign in with email and password using real Supabase auth
+   */
   const signIn = async (email: string, password: string) => {
-    console.log('useAuth.signIn called with:', { email, password: password ? '***' : 'empty' })
     setState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
-      // Validate test account credentials
-      console.log('Checking if email is in TEST_ACCOUNTS:', email in TEST_ACCOUNTS)
-      console.log('Available test accounts:', Object.keys(TEST_ACCOUNTS))
+      console.log('🔐 Signing in with email:', email)
 
-      if (email in TEST_ACCOUNTS) {
-        const testAccount = TEST_ACCOUNTS[email as keyof typeof TEST_ACCOUNTS]
-        console.log('Test account found, checking password...')
-        if (password !== testAccount.password) {
-          console.log('Password mismatch for test account')
-          throw new Error('Invalid email or password')
-        }
-        console.log('Test account credentials valid!')
-      } else {
-        // For demo purposes, allow any other email/password combination
-        console.log('Demo mode: allowing any credentials for non-test accounts')
+      // Use real Supabase authentication
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) {
+        console.error('❌ Sign in error:', error.message)
+        setState(prev => ({ ...prev, error: error.message, loading: false }))
+        return { success: false, error: error.message }
       }
 
-      const userId = email === 'test@example.com' ? 'test-user-id' : 'demo-user-id'
+      if (!data.user || !data.session) {
+        const message = 'No user data returned from sign in'
+        console.error('❌', message)
+        setState(prev => ({ ...prev, error: message, loading: false }))
+        return { success: false, error: message }
+      }
 
-      const mockUser = {
-        id: userId,
-        email,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        app_metadata: {},
-        user_metadata: {},
-        aud: 'authenticated',
-        confirmation_sent_at: null,
-        confirmed_at: new Date().toISOString(),
-        email_confirmed_at: new Date().toISOString(),
-        identities: [],
-        last_sign_in_at: new Date().toISOString(),
-        phone: null,
-        role: 'authenticated'
-      } as User
+      console.log('✅ Sign in successful for user:', data.user.email)
 
-      const mockSession = {
-        access_token: 'mock-access-token',
-        refresh_token: 'mock-refresh-token',
-        expires_in: 3600,
-        expires_at: Date.now() + 3600000,
-        token_type: 'bearer',
-        user: mockUser
-      } as Session
+      // Fetch user profile
+      const profile = await fetchProfile(data.user.id)
 
-      const profile = await fetchProfile(mockUser.id, email)
-      console.log('Profile fetched:', profile)
-
-      const authState = {
-        user: mockUser,
+      setState({
+        user: data.user,
         profile,
-        session: mockSession,
+        session: data.session,
         loading: false,
         error: null,
-      }
-
-      setState(authState)
-
-      // Store session in localStorage for persistence
-      localStorage.setItem('mock_auth_session', JSON.stringify({
-        user: mockUser,
-        profile,
-        session: mockSession
-      }))
-
-      console.log('Authentication state updated successfully')
+      })
 
       // Auto-migrate guest trips if any exist
       try {
-        await autoMigrateOnLogin(mockUser.id)
+        await autoMigrateOnLogin(data.user.id)
       } catch (migrationError) {
-        console.error('Guest trip migration failed:', migrationError)
+        console.error('⚠️ Guest trip migration failed:', migrationError)
         // Don't fail the login if migration fails
       }
 
-      return { success: true, data: { user: mockUser, session: mockSession } }
+      return { success: true, data: { user: data.user, session: data.session } }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'An error occurred'
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred'
+      console.error('❌ Unexpected sign in error:', error)
       setState(prev => ({ ...prev, error: message, loading: false }))
       return { success: false, error: message }
     }
   }
 
+  /**
+   * Sign up with email and password using real Supabase auth
+   */
   const signUp = async (email: string, password: string, metadata?: Record<string, any>) => {
     setState(prev => ({ ...prev, loading: true, error: null }))
-    
+
     try {
-      // Mock successful sign up for demo purposes
-      return { success: true, data: { user: null, session: null } }
+      console.log('📝 Signing up with email:', email)
+
+      // Use real Supabase authentication
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: metadata || {},
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        }
+      })
+
+      if (error) {
+        console.error('❌ Sign up error:', error.message)
+        setState(prev => ({ ...prev, error: error.message, loading: false }))
+        return { success: false, error: error.message }
+      }
+
+      console.log('✅ Sign up successful! Check email for confirmation.')
+      setState(prev => ({ ...prev, loading: false }))
+
+      // Note: User needs to confirm email before they can sign in
+      // The profile will be created automatically by the database trigger
+      return {
+        success: true,
+        data: { user: data.user, session: data.session },
+        message: 'Please check your email to confirm your account'
+      }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'An error occurred'
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred'
+      console.error('❌ Unexpected sign up error:', error)
       setState(prev => ({ ...prev, error: message, loading: false }))
       return { success: false, error: message }
     }
@@ -206,10 +254,27 @@ export const useAuth = () => {
 
   const signInWithProvider = async (provider: 'google' | 'github') => {
     setState(prev => ({ ...prev, loading: true, error: null }))
-    
+
     try {
-      // Mock OAuth sign in for demo purposes
-      return { success: true, data: null }
+      // Real Supabase OAuth sign in
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
+        }
+      })
+
+      if (error) {
+        setState(prev => ({ ...prev, error: error.message, loading: false }))
+        return { success: false, error: error.message }
+      }
+
+      // OAuth will redirect, so we don't need to update state here
+      return { success: true, data }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'An error occurred'
       setState(prev => ({ ...prev, error: message, loading: false }))
@@ -217,12 +282,25 @@ export const useAuth = () => {
     }
   }
 
+  /**
+   * Sign out using real Supabase auth
+   */
   const signOut = async () => {
     setState(prev => ({ ...prev, loading: true }))
 
     try {
-      // Clear localStorage
-      localStorage.removeItem('mock_auth_session')
+      console.log('👋 Signing out...')
+
+      // Use real Supabase sign out
+      const { error } = await supabase.auth.signOut()
+
+      if (error) {
+        console.error('❌ Sign out error:', error.message)
+        setState(prev => ({ ...prev, error: error.message, loading: false }))
+        return { success: false, error: error.message }
+      }
+
+      console.log('✅ Sign out successful')
 
       setState({
         user: null,
@@ -235,35 +313,69 @@ export const useAuth = () => {
       router.push('/')
       return { success: true }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'An error occurred'
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred'
+      console.error('❌ Unexpected sign out error:', error)
       setState(prev => ({ ...prev, error: message, loading: false }))
       return { success: false, error: message }
     }
   }
 
+  /**
+   * Update user profile in Supabase database
+   */
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!state.user) return { success: false, error: 'Not authenticated' }
 
     setState(prev => ({ ...prev, loading: true, error: null }))
-    
+
     try {
-      // Mock profile update for demo purposes
-      const updatedProfile = { ...state.profile, ...updates } as Profile
-      setState(prev => ({ ...prev, profile: updatedProfile, loading: false }))
-      return { success: true, data: updatedProfile }
+      console.log('📝 Updating profile for user:', state.user.id)
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', state.user.id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('❌ Profile update error:', error.message)
+        setState(prev => ({ ...prev, error: error.message, loading: false }))
+        return { success: false, error: error.message }
+      }
+
+      console.log('✅ Profile updated successfully')
+      setState(prev => ({ ...prev, profile: data, loading: false }))
+      return { success: true, data }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'An error occurred'
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred'
+      console.error('❌ Unexpected profile update error:', error)
       setState(prev => ({ ...prev, error: message, loading: false }))
       return { success: false, error: message }
     }
   }
 
+  /**
+   * Send password reset email using real Supabase auth
+   */
   const resetPassword = async (email: string) => {
     try {
-      // Mock password reset for demo purposes
-      return { success: true }
+      console.log('🔑 Sending password reset email to:', email)
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      })
+
+      if (error) {
+        console.error('❌ Password reset error:', error.message)
+        return { success: false, error: error.message }
+      }
+
+      console.log('✅ Password reset email sent')
+      return { success: true, message: 'Check your email for password reset instructions' }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'An error occurred'
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred'
+      console.error('❌ Unexpected password reset error:', error)
       return { success: false, error: message }
     }
   }

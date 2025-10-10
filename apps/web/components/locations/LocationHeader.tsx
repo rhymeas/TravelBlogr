@@ -70,7 +70,9 @@ export function LocationHeader({ location }: LocationHeaderProps) {
                 {/* Location */}
                 <div className="flex items-center gap-2 text-lg lg:text-xl text-white/90 mb-4">
                   <MapPin className="h-5 w-5" />
-                  <span>{location.region}, {location.country}</span>
+                  <span>
+                    {location.region && `${location.region}, `}{location.country}
+                  </span>
                 </div>
 
                 {/* Description */}

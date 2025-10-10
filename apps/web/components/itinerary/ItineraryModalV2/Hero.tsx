@@ -3,6 +3,8 @@
 import { X, MapPin, Calendar, DollarSign, Compass, Utensils, ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { formatLocationDisplay } from '@/lib/utils/locationFormatter'
+import { useLocationTranslations } from '@/hooks/useTranslation'
+import { getDisplayName } from '@/lib/services/translationService'
 
 interface HeroProps {
   plan: any
@@ -12,6 +14,10 @@ interface HeroProps {
 }
 
 export function Hero({ plan, locationGroups, totalCost, onClose }: HeroProps) {
+  // Translate all location names on-the-fly
+  const locationNames = locationGroups.map((g: any) => g.location)
+  const translations = useLocationTranslations(locationNames)
+
   return (
     <div className="relative overflow-hidden">
       {/* Animated gradient background */}
@@ -63,7 +69,17 @@ export function Hero({ plan, locationGroups, totalCost, onClose }: HeroProps) {
         >
           <div className="flex items-center gap-3 pb-2 min-w-max">
             {locationGroups.map((group: any, index: number) => {
-              const formatted = formatLocationDisplay(group.location)
+              // Get translation for this location
+              const translationResult = translations.get(group.location)
+              const displayLocation = translationResult?.needsTranslation
+                ? getDisplayName(translationResult.original, translationResult.translated)
+                : group.location
+
+              const formatted = formatLocationDisplay(displayLocation)
+              const tooltipText = translationResult?.needsTranslation
+                ? `${translationResult.translated} (Original: ${translationResult.original})`
+                : formatted.main
+
               return (
                 <motion.div
                   key={index}
@@ -72,9 +88,15 @@ export function Hero({ plan, locationGroups, totalCost, onClose }: HeroProps) {
                   transition={{ delay: 0.3 + index * 0.1 }}
                   className="flex items-center gap-3"
                 >
-                  <div className="glass-premium rounded-2xl px-5 py-3 flex items-center gap-3 hover:scale-105 transition-transform">
+                  <div
+                    className="glass-premium rounded-2xl px-5 py-3 flex items-center gap-3 hover:scale-105 transition-transform"
+                    title={tooltipText}
+                  >
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-gray-900 text-lg">{formatted.main}</span>
+                      {translationResult?.needsTranslation && (
+                        <span className="text-sm">🌐</span>
+                      )}
                       {formatted.secondary && (
                         <span className="text-sm text-gray-500">({formatted.secondary})</span>
                       )}

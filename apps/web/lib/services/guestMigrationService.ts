@@ -5,7 +5,7 @@
  * after successful authentication.
  */
 
-import { createClientSupabase } from '@/lib/supabase'
+import { getBrowserSupabase } from '@/lib/supabase'
 import { GuestTrip } from '@/stores/guestTripStore'
 import toast from 'react-hot-toast'
 
@@ -23,7 +23,7 @@ export async function migrateGuestTrips(
   userId: string,
   guestTrips: GuestTrip[]
 ): Promise<MigrationResult> {
-  const supabase = createClientSupabase()
+  const supabase = getBrowserSupabase()
   const result: MigrationResult = {
     success: true,
     migratedCount: 0,

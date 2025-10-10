@@ -6,6 +6,13 @@
 import { SupabaseLocation, SupabaseRestaurant, SupabaseActivity } from '@/lib/supabase/locations'
 import { Location, LocationRestaurant, LocationActivity } from '@/lib/data/locationsData'
 import { generateActivityTags, mapActivityCategory } from '@/lib/utils/activityTags'
+import {
+  getLocationFallbackImage,
+  getRestaurantFallbackImage,
+  getActivityFallbackImage,
+  isPlaceholderImage,
+  replacePlaceholderImage
+} from '@/lib/services/fallbackImageService'
 
 /**
  * Map Supabase location to frontend Location interface
@@ -17,14 +24,19 @@ export function mapSupabaseLocationToFrontend(
   }
 ): Location {
   // Build images array with featured_image ALWAYS first
-  // Filter out placeholder images from gallery
-  const featuredImage = supabaseData.featured_image || '/placeholder-location.svg'
+  // Use high-quality fallback if no featured image or if it's a placeholder
+  const rawFeaturedImage = supabaseData.featured_image
+  const featuredImage = isPlaceholderImage(rawFeaturedImage)
+    ? getLocationFallbackImage(supabaseData.name, supabaseData.country)
+    : rawFeaturedImage
+
+  // Filter out placeholder images from gallery and replace with fallbacks if needed
   const galleryImages = (supabaseData.gallery_images || [])
-    .filter(img =>
-      img &&
-      !img.includes('picsum.photos') && // Remove placeholder images
-      !img.includes('placeholder') &&
-      img !== featuredImage // Don't duplicate featured image
+    .filter(img => img && img !== featuredImage) // Don't duplicate featured image
+    .map(img =>
+      isPlaceholderImage(img)
+        ? getLocationFallbackImage(supabaseData.name, supabaseData.country)
+        : img
     )
 
   // Always start with featured image, then add real gallery images
@@ -57,22 +69,29 @@ export function mapSupabaseLocationToFrontend(
  * Map Supabase restaurants to frontend format
  */
 function mapRestaurants(supabaseRestaurants: SupabaseRestaurant[]): LocationRestaurant[] {
-  return supabaseRestaurants.map(restaurant => ({
-    id: restaurant.id,
-    name: restaurant.name,
-    cuisine: restaurant.cuisine_type || 'International',
-    description: restaurant.description || '',
-    price_range: restaurant.price_range || '$$',
-    rating: restaurant.rating || 0,
-    image: restaurant.image_url || '/placeholder-restaurant.svg',
-    address: restaurant.address || 'Address not available',
-    phone: restaurant.phone || undefined,
-    website: restaurant.website || undefined,
-    opening_hours: formatOpeningHours(restaurant.opening_hours),
-    verified: restaurant.is_verified,
-    latitude: restaurant.latitude,
-    longitude: restaurant.longitude
-  }))
+  return supabaseRestaurants.map(restaurant => {
+    // Use high-quality fallback for restaurant images
+    const restaurantImage = isPlaceholderImage(restaurant.image_url)
+      ? getRestaurantFallbackImage(restaurant.name, restaurant.cuisine_type)
+      : restaurant.image_url
+
+    return {
+      id: restaurant.id,
+      name: restaurant.name,
+      cuisine: restaurant.cuisine_type || 'International',
+      description: restaurant.description || '',
+      price_range: restaurant.price_range || '$$',
+      rating: restaurant.rating || 0,
+      image: restaurantImage,
+      address: restaurant.address || 'Address not available',
+      phone: restaurant.phone || undefined,
+      website: restaurant.website || undefined,
+      opening_hours: formatOpeningHours(restaurant.opening_hours),
+      verified: restaurant.is_verified,
+      latitude: restaurant.latitude,
+      longitude: restaurant.longitude
+    }
+  })
 }
 
 /**
@@ -90,6 +109,11 @@ function mapActivities(supabaseActivities: SupabaseActivity[]): LocationActivity
       opening_hours: activity.opening_hours
     })
 
+    // Use high-quality fallback for activity images
+    const activityImage = isPlaceholderImage(activity.image_url)
+      ? getActivityFallbackImage(activity.name, activity.category)
+      : activity.image_url
+
     return {
       id: activity.id,
       name: activity.name,
@@ -103,7 +127,7 @@ function mapActivities(supabaseActivities: SupabaseActivity[]): LocationActivity
       // Legacy fields for compatibility
       price: activity.price_info || 'Free',
       rating: activity.rating || 0,
-      image: activity.image_url || '/placeholder-activity.svg',
+      image: activityImage,
       address: activity.address || 'Address not available',
       website: activity.website || undefined,
       opening_hours: formatOpeningHours(activity.opening_hours),

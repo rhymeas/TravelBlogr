@@ -23,7 +23,9 @@ export class RouteInfo {
     public readonly toLocation: string,
     public readonly distanceKm: number,
     public readonly estimatedDurationHours: number,
-    public readonly stops: StopLocation[]
+    public readonly stops: StopLocation[],
+    public readonly fromSlug?: string, // Optional for backward compatibility
+    public readonly toSlug?: string    // Optional for backward compatibility
   ) {
     this.validate()
   }

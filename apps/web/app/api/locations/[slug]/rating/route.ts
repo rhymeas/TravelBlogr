@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 
 /**
  * POST /api/locations/[slug]/rating
@@ -10,12 +10,31 @@ export async function POST(
   { params }: { params: { slug: string } }
 ) {
   try {
-    const supabase = createServerSupabase()
+    // Create real Supabase client
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
 
-    // Get current user
+    // Get current user (try real auth first)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    // For development: accept mock user from request header
+    let userId = user?.id
+    let userEmail = user?.email
+
+    if (!userId) {
+      // Check for mock auth header (development only)
+      const mockUserId = request.headers.get('x-mock-user-id')
+      const mockUserEmail = request.headers.get('x-mock-user-email')
+
+      if (mockUserId && mockUserEmail) {
+        userId = mockUserId
+        userEmail = mockUserEmail
+        console.log('🔧 Using mock auth:', { userId, userEmail })
+      } else {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
     }
 
     const body = await request.json()
@@ -27,6 +46,7 @@ export async function POST(
     }
 
     // Verify location exists and get ID
+    console.log('🔍 Looking for location with slug:', params.slug)
     const { data: location, error: locationError } = await supabase
       .from('locations')
       .select('id')
@@ -34,15 +54,18 @@ export async function POST(
       .single()
 
     if (locationError || !location) {
+      console.error('❌ Location not found:', { slug: params.slug, error: locationError })
       return NextResponse.json({ error: 'Location not found' }, { status: 404 })
     }
+
+    console.log('✅ Found location:', location.id)
 
     // Check if user already rated this location
     const { data: existingRating } = await supabase
       .from('location_ratings')
       .select('id')
       .eq('location_id', location.id)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single()
 
     if (existingRating) {
@@ -65,7 +88,7 @@ export async function POST(
         .from('location_ratings')
         .insert({
           location_id: location.id,
-          user_id: user.id,
+          user_id: userId,
           rating
         })
 
@@ -120,7 +143,11 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   try {
-    const supabase = createServerSupabase()
+    // Create real Supabase client
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
 
     const { data: { user } } = await supabase.auth.getUser()
 

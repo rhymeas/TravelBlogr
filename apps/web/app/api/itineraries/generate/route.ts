@@ -47,7 +47,8 @@ export async function POST(request: NextRequest) {
       startDate: body.startDate,
       endDate: body.endDate,
       interests: body.interests || [],
-      budget: body.budget || 'moderate'
+      budget: body.budget || 'moderate',
+      maxTravelHoursPerDay: body.maxTravelHoursPerDay // Optional travel pacing preference
     })
 
     // 4. Handle result

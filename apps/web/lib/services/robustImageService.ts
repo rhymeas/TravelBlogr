@@ -10,11 +10,13 @@
  * 4. Wikimedia Commons (unlimited, free, no API key)
  * 5. Wikipedia REST API (unlimited, free, no API key)
  * 6. Mapbox Static (if token available)
- * 7. Lorem Picsum (high-quality placeholders, no API key, always works)
+ * 7. Unsplash Source (high-quality fallback, no API key, always works)
  *
  * Gallery Mode: Queries ALL sources with multiple search terms to get maximum images
  * Single Image Mode: Falls back through sources until one succeeds
  */
+
+import { getLocationFallbackImage, isPlaceholderImage } from './fallbackImageService'
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 hours
 const imageCache = new Map<string, { url: string; timestamp: number }>()
@@ -205,14 +207,12 @@ async function fetchUnsplashImage(searchTerm: string): Promise<string | null> {
 }
 
 /**
- * Lorem Picsum - No API Key Required!
+ * Unsplash Source - No API Key Required!
  * FREE - Unlimited - No authentication needed
- * Returns high-quality placeholder images
+ * Returns high-quality travel images
  */
-function fetchLoremPicsum(seed: string, width: number = 1600, height: number = 900): string {
-  // Use seed for consistent images per location
-  const seedHash = seed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-  return `https://picsum.photos/seed/${seedHash}/${width}/${height}`
+function fetchUnsplashSource(locationName: string, country?: string, width: number = 1600, height: number = 900): string {
+  return getLocationFallbackImage(locationName, country, width, height)
 }
 
 /**
@@ -281,8 +281,8 @@ export async function fetchLocationImage(
   lat?: number,
   lng?: number
 ): Promise<string> {
-  // 1. Use manual URL if provided
-  if (manualUrl && manualUrl !== '/placeholder-location.svg') {
+  // 1. Use manual URL if provided and not a placeholder
+  if (manualUrl && !isPlaceholderImage(manualUrl)) {
     console.log(`✅ Using manual URL for "${locationName}"`)
     return manualUrl
   }

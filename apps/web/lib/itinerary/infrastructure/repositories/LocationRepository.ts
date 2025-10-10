@@ -59,6 +59,7 @@ export class LocationRepository {
 
   /**
    * Get location images for multiple locations
+   * Uses fuzzy matching and fallback to Unsplash if not in database
    */
   async getLocationImages(locationNames: string[]): Promise<Record<string, string>> {
     const supabase = getSupabaseClient()
@@ -66,14 +67,60 @@ export class LocationRepository {
 
     for (const name of locationNames) {
       const slug = this.slugify(name)
-      const { data } = await supabase
+
+      // Try exact match first
+      let { data } = await supabase
         .from('locations')
         .select('featured_image')
         .eq('slug', slug)
         .single()
 
+      // If no exact match, try fuzzy matching on name
+      if (!data?.featured_image) {
+        const { data: fuzzyData } = await supabase
+          .from('locations')
+          .select('featured_image, name')
+          .ilike('name', `%${name.split(',')[0].trim()}%`) // Match first part of location name
+          .limit(1)
+          .single()
+
+        if (fuzzyData?.featured_image) {
+          console.log(`🔍 Fuzzy match found for "${name}": ${fuzzyData.name}`)
+          data = fuzzyData
+        }
+      }
+
       if (data?.featured_image) {
         images[name] = data.featured_image
+      } else {
+        // Parallel fetch: Query multiple sources simultaneously for diverse, high-quality images
+        console.log(`📸 Location "${name}" not in database, fetching from multiple sources in parallel...`)
+        try {
+          const { fetchLocationGalleryHighQuality } = await import('@/lib/services/enhancedImageService')
+          const mainLocation = name.split(',')[0].trim() // Main location name (e.g., "East Timor")
+          const region = name.split(',')[1]?.trim() // Region if available
+          const country = name.split(',').pop()?.trim() // Country (last part)
+
+          // Fetch 20+ images from multiple sources in parallel (Pexels, Unsplash, Wikimedia, etc.)
+          const galleryImages = await fetchLocationGalleryHighQuality(
+            mainLocation,
+            20, // target count
+            region,
+            country
+          )
+
+          if (galleryImages.length > 0) {
+            // Use first image as featured, rest as gallery
+            images[name] = galleryImages[0]
+            console.log(`✅ Fetched ${galleryImages.length} high-quality images for "${name}" from multiple sources`)
+          } else {
+            images[name] = '/placeholder-location.jpg'
+            console.log(`⚠️ No images found for "${name}", using placeholder`)
+          }
+        } catch (error) {
+          console.error(`❌ Failed to fetch images for "${name}":`, error)
+          images[name] = '/placeholder-location.jpg'
+        }
       }
     }
 
@@ -110,6 +157,8 @@ export class LocationRepository {
     restaurants: RestaurantData[]
   } | null> {
     const supabase = getSupabaseClient()
+    console.log(`🔍 [LocationRepo] Searching for slug: "${slug}"`)
+
     const { data, error } = await supabase
       .from('locations')
       .select(`
@@ -126,9 +175,12 @@ export class LocationRepository {
       .single()
 
     if (error) {
-      console.error('Error fetching location with details:', error)
+      console.error(`❌ [LocationRepo] Error fetching location "${slug}":`, error)
       return null
     }
+
+    console.log(`✅ [LocationRepo] Found location: ${data.name} (${data.slug})`)
+
 
     return {
       location: {

@@ -7,10 +7,13 @@
 
 import { useState } from 'react'
 import { LocationAutocomplete } from './LocationAutocomplete'
+import { Plus, Loader2 } from 'lucide-react'
 
 interface Location {
   id: string
   value: string
+  region?: string
+  country?: string
 }
 
 interface LocationInputProps {
@@ -18,9 +21,18 @@ interface LocationInputProps {
   onChange: (locations: Location[]) => void
 }
 
+interface SuggestedStop {
+  name: string
+  region?: string
+  country?: string
+}
+
 export function LocationInput({ locations, onChange }: LocationInputProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const [loadingStops, setLoadingStops] = useState<number | null>(null)
+  const [suggestedStops, setSuggestedStops] = useState<Record<number, SuggestedStop[]>>({})
+  const [showSuggestions, setShowSuggestions] = useState<number | null>(null)
 
   const addLocation = () => {
     onChange([
@@ -29,16 +41,23 @@ export function LocationInput({ locations, onChange }: LocationInputProps) {
     ])
   }
 
+  const addLocationBetween = (afterIndex: number, value: string = '') => {
+    const newLocation = { id: crypto.randomUUID(), value }
+    const newLocations = [...locations]
+    newLocations.splice(afterIndex + 1, 0, newLocation)
+    onChange(newLocations)
+  }
+
   const removeLocation = (id: string) => {
     if (locations.length > 2) {
       onChange(locations.filter(loc => loc.id !== id))
     }
   }
 
-  const updateLocation = (id: string, value: string) => {
+  const updateLocation = (id: string, value: string, metadata?: { region?: string; country?: string }) => {
     onChange(
       locations.map(loc =>
-        loc.id === id ? { ...loc, value } : loc
+        loc.id === id ? { ...loc, value, region: metadata?.region, country: metadata?.country } : loc
       )
     )
   }
@@ -73,6 +92,43 @@ export function LocationInput({ locations, onChange }: LocationInputProps) {
   const handleDragEnd = () => {
     setDraggedIndex(null)
     setDragOverIndex(null)
+  }
+
+  const fetchSuggestedStops = async (fromLocation: string, toLocation: string, lineIndex: number) => {
+    if (!fromLocation || !toLocation) return
+
+    // Check if we already have suggestions cached
+    if (suggestedStops[lineIndex]) {
+      setShowSuggestions(lineIndex)
+      return
+    }
+
+    setLoadingStops(lineIndex)
+
+    try {
+      const response = await fetch('/api/itineraries/suggest-stops', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: fromLocation, to: toLocation })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.stops) {
+          setSuggestedStops(prev => ({ ...prev, [lineIndex]: data.stops }))
+          setShowSuggestions(lineIndex)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching stops:', error)
+    } finally {
+      setLoadingStops(null)
+    }
+  }
+
+  const handleAddSuggestedStop = (lineIndex: number, stop: SuggestedStop) => {
+    addLocationBetween(lineIndex, stop.name)
+    setShowSuggestions(null)
   }
 
   return (
@@ -129,9 +185,25 @@ export function LocationInput({ locations, onChange }: LocationInputProps) {
                     : 'Stop along the way'
                 }
                 value={location.value}
-                onChange={(value) => updateLocation(location.id, value)}
+                onChange={(value, metadata) => updateLocation(location.id, value, metadata)}
                 className="border-gray-300 focus:border-black focus:ring-black"
               />
+              {/* Show location hierarchy below input if available */}
+              {location.value && (location.region || location.country) && (() => {
+                // Filter out "unknown" values
+                const validRegion = location.region && location.region.toLowerCase() !== 'unknown' ? location.region : null
+                const validCountry = location.country && location.country.toLowerCase() !== 'unknown' ? location.country : null
+
+                // Only show if we have at least one valid piece of info
+                if (!validRegion && !validCountry) return null
+
+                return (
+                  <div className="text-xs text-gray-500 mt-1 pl-3">
+                    {validRegion && `${validRegion}, `}
+                    {validCountry}
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Remove Button (only for middle locations) */}
@@ -148,9 +220,61 @@ export function LocationInput({ locations, onChange }: LocationInputProps) {
             )}
           </div>
 
-          {/* Connecting Line */}
+          {/* Connecting Line (simple dashed line) */}
           {index < locations.length - 1 && (
-            <div className="absolute left-8 top-10 w-0.5 h-6 bg-gray-200" />
+            <div className="relative">
+              {/* Dashed Line */}
+              <div className="absolute left-[52px] top-[56px] w-0.5 h-[32px] bg-gray-300 border-l-2 border-dashed border-gray-300" style={{ background: 'transparent' }} />
+            </div>
+          )}
+
+          {/* Suggested Stops Dropdown (triggered from "Add stop along the way" button) */}
+          {index < locations.length - 1 && showSuggestions === index && suggestedStops[index] && suggestedStops[index].length > 0 && (
+            <div className="relative">
+              <div className="absolute left-[80px] top-[56px] z-20 bg-white rounded-xl shadow-lg border border-gray-200 p-3 min-w-[280px]">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-semibold text-gray-900">Suggested stops</h4>
+                    <button
+                      type="button"
+                      onClick={() => setShowSuggestions(null)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="space-y-1">
+                    {suggestedStops[index].slice(0, 5).map((stop, stopIndex) => (
+                      <button
+                        key={stopIndex}
+                        type="button"
+                        onClick={() => handleAddSuggestedStop(index, stop)}
+                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors group"
+                      >
+                        <div className="text-sm font-medium text-gray-900 group-hover:text-rausch-500">
+                          {stop.name}
+                        </div>
+                        {(stop.region || stop.country) && (
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {stop.region && `${stop.region}, `}{stop.country}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      addLocationBetween(index)
+                      setShowSuggestions(null)
+                    }}
+                    className="w-full mt-2 pt-2 border-t border-gray-100 text-xs text-gray-600 hover:text-gray-900 text-center"
+                  >
+                    + Add custom location
+                  </button>
+              </div>
+            </div>
           )}
         </div>
       ))}

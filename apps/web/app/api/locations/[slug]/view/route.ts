@@ -10,10 +10,12 @@ export async function POST(
   { params }: { params: { slug: string } }
 ) {
   try {
+    console.log('📊 View tracking request for:', params.slug)
     const supabase = createServerSupabase()
 
     // Get optional user (views can be anonymous)
     const { data: { user } } = await supabase.auth.getUser()
+    console.log('👤 User:', user?.id || 'anonymous')
 
     const body = await request.json()
     const { timestamp, referrer, userAgent } = body
@@ -52,19 +54,24 @@ export async function POST(
     }
 
     // Increment view count on location
+    const newViewCount = (location.view_count || 0) + 1
+    console.log(`📈 Incrementing view count: ${location.view_count || 0} → ${newViewCount}`)
+
     const { error: updateError } = await supabase
       .from('locations')
       .update({
-        view_count: (location.view_count || 0) + 1,
+        view_count: newViewCount,
         updated_at: new Date().toISOString()
       })
       .eq('id', location.id)
 
     if (updateError) {
-      console.error('Error updating view count:', updateError)
+      console.error('❌ Error updating view count:', updateError)
+    } else {
+      console.log('✅ View count updated successfully')
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, viewCount: newViewCount })
   } catch (error) {
     console.error('Unexpected error tracking view:', error)
     // Return success anyway - tracking shouldn't break the page

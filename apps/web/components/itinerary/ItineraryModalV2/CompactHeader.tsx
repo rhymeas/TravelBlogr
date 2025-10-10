@@ -2,6 +2,8 @@
 
 import { MapPin, Calendar, DollarSign, Compass, Utensils, ArrowRight } from 'lucide-react'
 import { formatLocationDisplay } from '@/lib/utils/locationFormatter'
+import { useLocationTranslations } from '@/hooks/useTranslation'
+import { getDisplayName } from '@/lib/services/translationService'
 
 interface CompactHeaderProps {
   plan: any
@@ -10,6 +12,10 @@ interface CompactHeaderProps {
 }
 
 export function CompactHeader({ plan, locationGroups, totalCost }: CompactHeaderProps) {
+  // Translate all location names on-the-fly
+  const locationNames = locationGroups.map((g: any) => g.location)
+  const translations = useLocationTranslations(locationNames)
+
   return (
     <div className="border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
       <div className="px-5 py-3">
@@ -26,12 +32,28 @@ export function CompactHeader({ plan, locationGroups, totalCost }: CompactHeader
         {/* Route - Compact horizontal */}
         <div className="flex items-center gap-1.5 mb-2 overflow-x-auto scrollbar-hide pb-1">
           {locationGroups.map((group: any, index: number) => {
-            const formatted = formatLocationDisplay(group.location)
+            // Get translation for this location
+            const translationResult = translations.get(group.location)
+            const displayLocation = translationResult?.needsTranslation
+              ? getDisplayName(translationResult.original, translationResult.translated)
+              : group.location
+
+            const formatted = formatLocationDisplay(displayLocation)
+            const tooltipText = translationResult?.needsTranslation
+              ? `${translationResult.translated} (Original: ${translationResult.original})`
+              : formatted.main
+
             return (
               <div key={index} className="flex items-center gap-1.5 flex-shrink-0">
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-white border border-gray-200 rounded-md">
+                <div
+                  className="flex items-center gap-1.5 px-2 py-1 bg-white border border-gray-200 rounded-md"
+                  title={tooltipText}
+                >
                   <MapPin className="h-3 w-3 text-teal-600 flex-shrink-0" />
                   <span className="text-xs font-semibold text-gray-900">{formatted.main}</span>
+                  {translationResult?.needsTranslation && (
+                    <span className="text-[9px] text-blue-600 font-medium">🌐</span>
+                  )}
                   <span className="text-[10px] text-gray-500 font-medium">{group.days.length}d</span>
                 </div>
                 {index < locationGroups.length - 1 && (
