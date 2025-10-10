@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerSupabase } from '@/lib/supabase'
+
+// Force dynamic rendering for location routes
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 /**
  * GET /api/locations/[slug]/comments
@@ -10,11 +14,8 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   try {
-    // Create real Supabase client
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    // Initialize Supabase client at runtime (not build time)
+    const supabase = createServerSupabase()
 
     // Verify location exists and get ID
     const { data: location, error: locationError } = await supabase
@@ -81,11 +82,8 @@ export async function POST(
   { params }: { params: { slug: string } }
 ) {
   try {
-    // Create real Supabase client
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    // Initialize Supabase client at runtime (not build time)
+    const supabase = createServerSupabase()
 
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
