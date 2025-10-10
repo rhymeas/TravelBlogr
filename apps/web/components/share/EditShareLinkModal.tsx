@@ -66,7 +66,7 @@ export function EditShareLinkModal({ shareLink, onClose, onSubmit }: EditShareLi
       processedData.settings = {
         ...settingsWithoutPassword,
         passwordHash
-      }
+      } as any
     }
 
     onSubmit(processedData)

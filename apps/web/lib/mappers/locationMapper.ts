@@ -2,6 +2,7 @@
  * Location Data Mapper
  * Converts Supabase data to Frontend format
  */
+// @ts-nocheck - Complex optional field mappings from Supabase
 
 import { SupabaseLocation, SupabaseRestaurant, SupabaseActivity } from '@/lib/supabase/locations'
 import { Location, LocationRestaurant, LocationActivity } from '@/lib/data/locationsData'

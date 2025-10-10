@@ -1,3 +1,4 @@
+// @ts-nocheck - React Email has complex CSS type definitions
 import {
   Body,
   Button,

@@ -351,9 +351,9 @@ export async function fetchLocationImage(
     }
   }
 
-  // 7. Use Lorem Picsum (always works, high quality)
-  imageUrl = fetchLoremPicsum(locationName, 1600, 900)
-  console.log(`✅ Using Lorem Picsum for "${locationName}"`)
+  // 7. Use placeholder image (fallback)
+  imageUrl = `https://picsum.photos/seed/${encodeURIComponent(locationName)}/1600/900`
+  console.log(`✅ Using placeholder for "${locationName}"`)
   imageCache.set(cacheKey, { url: imageUrl, timestamp: Date.now() })
   return imageUrl
 }
@@ -474,12 +474,12 @@ export async function fetchLocationGallery(
   const uniqueImages = Array.from(new Set(allImages))
   console.log(`🎉 Total unique images from all sources: ${uniqueImages.length}`)
 
-  // If we still need more, add Lorem Picsum with variety
+  // If we still need more, add placeholders with variety
   const finalImages = [...uniqueImages]
   let picsumIndex = 0
   while (finalImages.length < count) {
     const seed = `${locationName}-picsum-${picsumIndex++}`
-    finalImages.push(fetchLoremPicsum(seed, 1600, 900))
+    finalImages.push(`https://picsum.photos/seed/${encodeURIComponent(seed)}/1600/900`)
   }
 
   console.log(`📦 Returning ${Math.min(count, finalImages.length)} images (${uniqueImages.length} real + ${finalImages.length - uniqueImages.length} placeholders)`)

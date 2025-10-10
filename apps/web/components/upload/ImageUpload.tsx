@@ -304,7 +304,7 @@ export function MultipleImageUpload({
 
         if (result.success && result.url && result.path) {
           uploadResults.push({ url: result.url, path: result.path })
-          setPreviews(prev => [...prev, result.url])
+          setPreviews(prev => [...prev, result.url].filter((url): url is string => url !== undefined))
         }
       }
 

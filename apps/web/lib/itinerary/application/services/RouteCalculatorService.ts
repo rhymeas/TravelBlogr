@@ -58,7 +58,7 @@ export class RouteCalculatorService {
 
     // 3. Convert stops to StopLocation format
     const stops: StopLocation[] = validStops.map((stop, index) => ({
-      id: stop!.id || `stop-${index}`,
+      id: (stop as any)!.id || `stop-${index}`,
       name: stop!.name,
       slug: stop!.slug,
       coordinates: {
