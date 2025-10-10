@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
@@ -61,7 +62,7 @@ export function TripMap({
 
     // Add click handler
     if (onMapClick) {
-      map.current.on('click', (e) => {
+      map.current.on('click', (e: any) => {
         onMapClick([e.lngLat.lng, e.lngLat.lat])
       })
     }

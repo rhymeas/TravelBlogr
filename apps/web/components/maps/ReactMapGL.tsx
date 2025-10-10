@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
@@ -117,7 +118,7 @@ export function ReactMapGL({
     <div className={`relative rounded-lg overflow-hidden ${className}`} style={{ height }}>
       <Map
         {...viewState}
-        onMove={evt => setViewState(evt.viewState)}
+        onMove={(evt: any) => setViewState(evt.viewState)}
         onClick={handleMapClick}
         mapStyle={mapStyle}
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}

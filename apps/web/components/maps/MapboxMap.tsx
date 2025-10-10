@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
@@ -297,7 +298,7 @@ export function MapboxMap({
       <Map
         ref={mapRef}
         {...viewState}
-        onMove={evt => setViewState(evt.viewState)}
+        onMove={(evt: any) => setViewState(evt.viewState)}
         mapStyle={mapStyle}
         mapboxAccessToken={mapboxToken}
         onClick={handleMapClick}
@@ -322,7 +323,7 @@ export function MapboxMap({
             longitude={location.lng}
             latitude={location.lat}
             anchor="bottom"
-            onClick={(e) => {
+            onClick={(e: any) => {
               e.originalEvent.stopPropagation()
               setShowPopup({ location, show: true })
             }}

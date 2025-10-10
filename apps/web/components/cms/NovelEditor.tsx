@@ -328,7 +328,7 @@ export function NovelEditor({
       <Card className="min-h-[500px]">
         <Editor
           defaultValue={post.content}
-          onUpdate={(editor) => {
+          onUpdate={(editor: any) => {
             setPost(prev => ({
               ...prev,
               content: editor?.getJSON()
@@ -403,7 +403,7 @@ function PostSettings({
         <label className="text-sm font-medium">Category</label>
         <Select
           value={post.category}
-          onValueChange={(value) => setPost({ ...post, category: value })}
+          onValueChange={(value: string) => setPost({ ...post, category: value })}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select category" />

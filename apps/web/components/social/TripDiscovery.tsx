@@ -354,9 +354,9 @@ export function TripDiscovery({ currentUserId, className = '' }: TripDiscoveryPr
 
           {/* Filter Controls */}
           <div className="flex flex-wrap gap-4">
-            <Select 
-              value={filters.destination} 
-              onValueChange={(value) => setFilters(prev => ({ ...prev, destination: value }))}
+            <Select
+              value={filters.destination}
+              onValueChange={(value: string) => setFilters(prev => ({ ...prev, destination: value }))}
             >
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Any destination" />
@@ -369,9 +369,9 @@ export function TripDiscovery({ currentUserId, className = '' }: TripDiscoveryPr
               </SelectContent>
             </Select>
 
-            <Select 
-              value={filters.duration} 
-              onValueChange={(value) => setFilters(prev => ({ ...prev, duration: value }))}
+            <Select
+              value={filters.duration}
+              onValueChange={(value: string) => setFilters(prev => ({ ...prev, duration: value }))}
             >
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Any duration" />

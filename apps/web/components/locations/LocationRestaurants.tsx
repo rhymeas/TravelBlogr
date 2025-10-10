@@ -181,7 +181,7 @@ export function LocationRestaurants({ locationSlug, restaurants: initialRestaura
                     Specialties:
                   </p>
                   <div className="flex flex-wrap gap-1">
-                    {restaurant.specialties.slice(0, 3).map((specialty, index) => (
+                    {restaurant.specialties.slice(0, 3).map((specialty: string, index: number) => (
                       <Badge
                         key={index}
                         className="bg-gray-100 text-gray-700 text-xs"

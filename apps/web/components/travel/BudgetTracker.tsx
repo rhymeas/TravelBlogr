@@ -231,7 +231,7 @@ export function BudgetTracker({
                 <label className="block text-sm font-medium mb-1">Category</label>
                 <Select
                   value={newExpense.category}
-                  onValueChange={(value) => setNewExpense(prev => ({ ...prev, category: value }))}
+                  onValueChange={(value: string) => setNewExpense(prev => ({ ...prev, category: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
