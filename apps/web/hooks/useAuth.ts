@@ -6,6 +6,14 @@ import { useSupabase } from '@/lib/supabase'
 import type { User, Session } from '@supabase/supabase-js'
 import { autoMigrateOnLogin } from '@/lib/services/guestMigrationService'
 
+// Helper to safely get window.location.origin (SSR-safe)
+const getOrigin = () => {
+  if (typeof window !== 'undefined') {
+    return window.location.origin
+  }
+  return process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+}
+
 interface Profile {
   id: string
   full_name?: string
@@ -224,7 +232,7 @@ export const useAuth = () => {
         password,
         options: {
           data: metadata || {},
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${getOrigin()}/auth/callback`,
         }
       })
 
@@ -260,7 +268,7 @@ export const useAuth = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${getOrigin()}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -363,7 +371,7 @@ export const useAuth = () => {
       console.log('🔑 Sending password reset email to:', email)
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: `${getOrigin()}/auth/reset-password`,
       })
 
       if (error) {
