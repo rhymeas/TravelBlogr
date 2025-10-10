@@ -10,7 +10,8 @@ export const Card = passthrough('div')
 export const Title = passthrough('h3')
 export const Text = passthrough('p')
 export const Metric = passthrough('div')
-export const Flex = ({ children, ...props }: any) => <div style={{ display: 'flex' }} {...props}>{children}</div>
+export const Flex = ({ children, ...props }: any) =>
+  React.createElement('div', { style: { display: 'flex' }, ...props }, children)
 export const Grid = passthrough('div')
 export const AreaChart = passthrough('div')
 export const BarChart = passthrough('div')
