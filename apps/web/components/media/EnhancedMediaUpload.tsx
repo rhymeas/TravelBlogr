@@ -81,7 +81,7 @@ export function EnhancedMediaUpload({
       console.error('Upload error:', error)
       toast.error(`Upload failed: ${error.message}`)
     },
-    onUploadProgress: (progress) => {
+    onUploadProgress: (progress: any) => {
       setUploadProgress(prev => ({
         ...prev,
         [progress.file]: progress.progress
@@ -120,7 +120,7 @@ export function EnhancedMediaUpload({
       if (generateThumbnails && file.type.startsWith('image/')) {
         try {
           const thumbnailFile = await generateThumbnail(file, 200, 200, 0.7)
-          fileWithPreview.thumbnail = URL.createObjectURL(thumbnailFile)
+          ;(fileWithPreview as any).thumbnail = URL.createObjectURL(thumbnailFile)
         } catch (error) {
           console.error('Failed to generate thumbnail:', error)
         }

@@ -340,7 +340,7 @@ export function MediaManager({
               size="sm"
               onClick={() => {
                 // Handle bulk share
-                toast.info('Bulk share feature coming soon!')
+                toast('Bulk share feature coming soon!')
               }}
             >
               <Share2 className="h-4 w-4 mr-1" />

@@ -52,7 +52,7 @@ export function FeedPost({ post, onLike, onBookmark, onComment, showFollowButton
 
   const handleFollow = () => {
     setIsFollowing(!isFollowing)
-    toast.success(isFollowing ? `Unfollowed ${post.author.name}` : `Following ${post.author.name}`)
+    toast.success(isFollowing ? `Unfollowed ${post.user.name}` : `Following ${post.user.name}`)
   }
 
   const nextImage = () => {
@@ -262,7 +262,7 @@ export function FeedPost({ post, onLike, onBookmark, onComment, showFollowButton
       {/* Comments Modal */}
       <PostCommentsModal
         postId={post.id}
-        postOwnerId={post.user.id}
+        postOwnerId={post.user.username}
         postCaption={post.caption}
         postAuthor={post.user.username}
         isOpen={showCommentsModal}

@@ -359,7 +359,7 @@ export class GenerateplanUseCase {
     }
 
     // Enrich each location with AI metadata
-    for (const [locationName, metadata] of locationMetadataMap.entries()) {
+    for (const [locationName, metadata] of Array.from(locationMetadataMap.entries())) {
       try {
         await discoveryService.findOrCreateLocationWithMetadata(locationName, metadata)
         console.log(`✅ Enriched ${locationName} with AI metadata`)

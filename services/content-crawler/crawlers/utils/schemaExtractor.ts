@@ -164,7 +164,7 @@ function extractSpecialties(description: string): string[] {
     }
   })
 
-  return [...new Set(specialties)].slice(0, 5) // Max 5 unique specialties
+  return Array.from(new Set(specialties)).slice(0, 5) // Max 5 unique specialties
 }
 
 /**
