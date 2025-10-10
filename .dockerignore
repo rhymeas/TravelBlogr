@@ -1,0 +1,59 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Next.js build output
+.next
+out
+build
+dist
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage
+.nyc_output
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Documentation
+README.md
+docs
+*.md
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Misc
+.cache
+.temp
+tmp
+
