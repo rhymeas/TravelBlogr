@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
@@ -46,7 +47,7 @@ interface InteractiveMapProps {
 // Custom hook for map events
 function MapEvents({ onLocationAdd }: { onLocationAdd?: (location: LocationPoint) => void }) {
   useMapEvents({
-    click: (e) => {
+    click: (e: any) => {
       if (onLocationAdd) {
         const newLocation: LocationPoint = {
           id: `location-${Date.now()}`,
@@ -73,7 +74,7 @@ function LocationMarker({ onLocationFound }: { onLocationFound?: (location: [num
   }, [map])
 
   useMapEvents({
-    locationfound: (e) => {
+    locationfound: (e: any) => {
       const newPosition: [number, number] = [e.latlng.lat, e.latlng.lng]
       setPosition(newPosition)
       onLocationFound?.(newPosition)

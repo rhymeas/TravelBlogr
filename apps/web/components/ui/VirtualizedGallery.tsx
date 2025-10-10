@@ -59,7 +59,7 @@ export function VirtualizedGallery({
         }}
       >
         {/* Render only visible rows */}
-        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+        {rowVirtualizer.getVirtualItems().map((virtualRow: any) => {
           const startIndex = virtualRow.index * columns
           const rowImages = images.slice(startIndex, startIndex + columns)
 

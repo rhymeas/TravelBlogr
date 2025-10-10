@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Calendar, MapPin, Clock, Plus, X, DragHandleDots2Icon, Plane, Car, Train, Ship } from 'lucide-react'
 import { createClientSupabase } from '@/lib/supabase'
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
+import { DragDropContext, Droppable, Draggable, DroppableProvided, DraggableProvided, DraggableStateSnapshot } from '@hello-pangea/dnd'
 import { format, addDays, differenceInDays } from 'date-fns'
 import toast from 'react-hot-toast'
 
@@ -370,11 +370,11 @@ export function TripPlanner({
         ) : (
           <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="plan">
-              {(provided) => (
+              {(provided: DroppableProvided) => (
                 <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-3">
                   {dayItems.map((item, index) => (
                     <Draggable key={item.id} draggableId={item.id} index={index}>
-                      {(provided, snapshot) => (
+                      {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
                         <Card
                           ref={provided.innerRef}
                           {...provided.draggableProps}

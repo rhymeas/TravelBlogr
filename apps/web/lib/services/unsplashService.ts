@@ -93,9 +93,9 @@ export async function getRestaurantImagesBatch(
   // Fetch images for each cuisine type
   for (const [cuisine, names] of cuisineGroups) {
     const images = await searchRestaurantImages(cuisine, names.length)
-    
+
     // Assign images to restaurants
-    names.forEach((name, index) => {
+    names.forEach((name: string, index: number) => {
       if (images[index]) {
         imageMap.set(name, images[index])
       }
