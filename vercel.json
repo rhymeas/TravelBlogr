@@ -1,12 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
-  "builds": [
-    { "src": "apps/web/next.config.js", "use": "@vercel/next" }
-  ],
   "crons": [
     {
       "path": "/api/cron/sync-weather",
