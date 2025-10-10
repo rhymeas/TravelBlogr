@@ -175,14 +175,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 })
     }
 
-    let updatedTags = post.tags || []
-    
+    let updatedTags: string[] = (post.tags as string[]) || []
+
     if (action === 'feature') {
       if (!updatedTags.includes('featured')) {
         updatedTags.push('featured')
       }
     } else if (action === 'unfeature') {
-      updatedTags = updatedTags.filter(tag => tag !== 'featured')
+      updatedTags = updatedTags.filter((tag: string) => tag !== 'featured')
     }
 
     const { error: updateError } = await supabase
