@@ -1,6 +1,9 @@
 // @ts-nocheck
 'use client'
 
+// Force dynamic rendering to prevent SSR issues with image fetching
+export const dynamic = 'force-dynamic'
+
 /**
  * Test Page for Gallery-DL Image Fetching
  * Tests the new professional image stack with metadata filtering
