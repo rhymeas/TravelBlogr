@@ -164,7 +164,7 @@ export function AnalyticsDashboard({ userId, isAdmin, className = '' }: Analytic
             title: trip.title,
             views: viewsResult.count || 0,
             likes: likesResult.count || 0,
-            author: trip.users?.full_name || 'Unknown'
+            author: (trip.users as any)?.full_name || 'Unknown'
           }
         })
       )

@@ -56,7 +56,9 @@ export interface Location {
   description: string
   featured_image: string
   rating: number
+  rating_count?: number
   visit_count: number
+  view_count?: number
   is_featured: boolean
   created_at: string
   images: string[]

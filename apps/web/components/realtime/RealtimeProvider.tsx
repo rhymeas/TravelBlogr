@@ -101,7 +101,7 @@ export function RealtimeProvider({ children }: RealtimeProviderProps) {
       // Remove from our channels map
       setChannels(prev => {
         const newChannels = new Map(prev)
-        for (const [name, ch] of newChannels.entries()) {
+        for (const [name, ch] of Array.from(newChannels.entries())) {
           if (ch === channel) {
             newChannels.delete(name)
             break
