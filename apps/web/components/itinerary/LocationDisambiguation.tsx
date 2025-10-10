@@ -77,13 +77,13 @@ export function LocationDisambiguation({
           type: r.type
         }))
         // Remove duplicates (same name + country)
-        .filter((loc, index, self) =>
-          index === self.findIndex(l => 
+        .filter((loc: LocationOption, index: number, self: LocationOption[]) =>
+          index === self.findIndex((l: LocationOption) =>
             l.name === loc.name && l.country === loc.country
           )
         )
         // Sort by importance
-        .sort((a, b) => (b.importance || 0) - (a.importance || 0))
+        .sort((a: LocationOption, b: LocationOption) => (b.importance || 0) - (a.importance || 0))
         .slice(0, 5) // Top 5 results
 
       setOptions(locationOptions)

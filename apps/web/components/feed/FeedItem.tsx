@@ -38,7 +38,7 @@ export function FeedItem({ activity, isNew = false }: FeedItemProps) {
 
   const handleLike = async () => {
     setLiked(!liked)
-    setLikeCount(prev => liked ? prev - 1 : prev + 1)
+    setLikeCount((prev: number) => liked ? prev - 1 : prev + 1)
     // TODO: Implement actual like functionality
   }
 

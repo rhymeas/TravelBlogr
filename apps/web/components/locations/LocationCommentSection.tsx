@@ -188,7 +188,7 @@ export function LocationCommentSection({
         currentData={(data: any) => {
           console.log('Current comment data:', data)
         }}
-        placeholder="Share your thoughts about this location..."
+        placeHolder="Share your thoughts about this location..."
         customNoComment={() => (
           <div className="text-center py-8 text-gray-500">
             <p className="text-lg font-medium">No comments yet</p>

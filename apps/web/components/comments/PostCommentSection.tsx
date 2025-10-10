@@ -193,7 +193,7 @@ export function PostCommentSection({
           // Optional: track current state
           console.log('Current comment data:', data)
         }}
-        placeholder={compact ? "Add a comment..." : "Write your comment..."}
+        placeHolder={compact ? "Add a comment..." : "Write your comment..."}
         customNoComment={() => (
           <div className={`text-center ${compact ? 'py-4' : 'py-8'} text-gray-500`}>
             <p className={`${compact ? 'text-sm' : 'text-lg'} font-medium`}>No comments yet</p>
