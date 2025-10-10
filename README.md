@@ -4,6 +4,13 @@
 
 TravelBlogr is a modern travel blogging platform that revolutionizes how travelers document and share their journeys. Create one trip and share it in completely different ways depending on your audience.
 
+## 📚 Documentation
+
+- **[Quick Start Guide](./QUICK_START.md)** - Get started in 5 minutes
+- **[Development Workflow](./DEVELOPMENT_WORKFLOW.md)** - Daily development best practices
+- **[Deployment Checklist](./DEPLOYMENT_CHECKLIST.md)** - Pre-deploy verification steps
+- **[Architecture Rules](./rules.md)** - Coding standards and patterns
+
 ## 🌟 Features
 
 ### 🎯 Audience-Specific Sharing
