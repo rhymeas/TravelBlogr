@@ -21,7 +21,7 @@ interface PhotoGalleryViewProps {
 export function PhotoGalleryView({ location }: PhotoGalleryViewProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
-  const [featuredImage, setFeaturedImage] = useState(location.featuredImage || location.images?.[0] || '')
+  const [featuredImage, setFeaturedImage] = useState(location.featured_image || location.images?.[0] || '')
   const [mounted, setMounted] = useState(false)
   const [deletedImages, setDeletedImages] = useState<Set<string>>(new Set())
   const [deletingImages, setDeletingImages] = useState<Set<string>>(new Set())

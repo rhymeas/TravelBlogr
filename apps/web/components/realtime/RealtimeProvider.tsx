@@ -166,12 +166,12 @@ export function useTripRealtime(tripId: string) {
           break
         case 'UPDATE':
           if (payload.table === 'trips') {
-            toast.info('Trip updated')
+            toast('Trip updated')
           }
           break
         case 'DELETE':
           if (payload.table === 'posts') {
-            toast.info('Post removed from trip')
+            toast('Post removed from trip')
           }
           break
       }

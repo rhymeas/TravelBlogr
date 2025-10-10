@@ -21,7 +21,7 @@ export function DuplicateTripButton({
   tripId,
   tripTitle,
   variant = 'outline',
-  size = 'md',
+  size = 'default',
   showIcon = true,
   onSuccess,
   className = ''

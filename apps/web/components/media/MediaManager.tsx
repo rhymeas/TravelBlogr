@@ -383,7 +383,7 @@ export function MediaManager({
           onItemDelete={(item) => handleDeleteItems([item.id])}
           onItemEdit={(item) => {
             // Handle item edit
-            toast.info('Edit feature coming soon!')
+            toast('Edit feature coming soon!')
           }}
         />
       )}
