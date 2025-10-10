@@ -6,6 +6,10 @@ import { createServerSupabase } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
 
+// Force dynamic rendering - page generated on-demand, not at build time
+export const dynamic = 'force-dynamic'
+export const dynamicParams = true
+
 export const metadata: Metadata = {
   title: 'Trip Maps | TravelBlogr',
   description: 'Interactive maps, location tracking, and journey visualization for your travel experiences.',
