@@ -200,3 +200,5 @@ export function LocationCommentSection({
   )
 }
 
+// Default export for dynamic import
+export default LocationCommentSection

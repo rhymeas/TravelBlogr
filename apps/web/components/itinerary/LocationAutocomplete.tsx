@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/Input'
 
 interface LocationAutocompleteProps {
   value: string
-  onChange: (value: string) => void
+  onChange: (value: string, metadata?: { region?: string; country?: string }) => void
   placeholder: string
   className?: string
 }
@@ -17,6 +17,8 @@ interface LocationAutocompleteProps {
 interface Location {
   slug: string
   name: string
+  region?: string
+  country?: string
 }
 
 export function LocationAutocomplete({
@@ -34,6 +36,7 @@ export function LocationAutocomplete({
   const [searchResults, setSearchResults] = useState<any[]>([])
   const wrapperRef = useRef<HTMLDivElement>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout>()
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Fetch available locations on mount
   useEffect(() => {
@@ -54,6 +57,11 @@ export function LocationAutocomplete({
       setSearchResults([])
       setIsOpen(false)
       setHasInteracted(false)
+      return
+    }
+
+    // Only open dropdown if input is focused
+    if (document.activeElement !== inputRef.current) {
       return
     }
 
@@ -118,15 +126,30 @@ export function LocationAutocomplete({
     // If it's a database location, use slug
     // If it's a search result, use the full display name
     const locationValue = location.slug || location.displayName || location.name
-    onChange(locationValue)
+
+    // Pass metadata for display purposes
+    const metadata = {
+      region: location.region,
+      country: location.country
+    }
+
+    // Close dropdown and blur input to prevent reopening
     setIsOpen(false)
     setSelectedIndex(-1)
+    setFilteredLocations([])
+    setSearchResults([])
+    inputRef.current?.blur()
+
+    onChange(locationValue, metadata)
   }
 
   const handleUseCustom = () => {
     // User wants to use exactly what they typed
     setIsOpen(false)
     setSelectedIndex(-1)
+    setFilteredLocations([])
+    setSearchResults([])
+    inputRef.current?.blur()
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -171,9 +194,15 @@ export function LocationAutocomplete({
   return (
     <div ref={wrapperRef} className="relative">
       <Input
+        ref={inputRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
+        onFocus={() => {
+          if (value.trim() && (filteredLocations.length > 0 || searchResults.length > 0)) {
+            setIsOpen(true)
+          }
+        }}
         placeholder={placeholder}
         className={className}
         autoComplete="off"
@@ -206,10 +235,19 @@ export function LocationAutocomplete({
                     </div>
                     <div className="flex-1">
                       <div className="font-medium text-gray-900">{location.name}</div>
-                      <div className="text-xs text-gray-500">
-                        {location.region && `${location.region}, `}
-                        {location.country}
-                      </div>
+                      {(() => {
+                        const validRegion = location.region && location.region.toLowerCase() !== 'unknown' ? location.region : null
+                        const validCountry = location.country && location.country.toLowerCase() !== 'unknown' ? location.country : null
+
+                        if (!validRegion && !validCountry) return null
+
+                        return (
+                          <div className="text-xs text-gray-500">
+                            {validRegion && `${validRegion}, `}
+                            {validCountry}
+                          </div>
+                        )
+                      })()}
                     </div>
                   </div>
                 </button>
@@ -243,10 +281,19 @@ export function LocationAutocomplete({
                       </div>
                       <div className="flex-1">
                         <div className="font-medium text-gray-900">{result.name}</div>
-                        <div className="text-xs text-gray-500">
-                          {result.region && `${result.region}, `}
-                          {result.country}
-                        </div>
+                        {(() => {
+                          const validRegion = result.region && result.region.toLowerCase() !== 'unknown' ? result.region : null
+                          const validCountry = result.country && result.country.toLowerCase() !== 'unknown' ? result.country : null
+
+                          if (!validRegion && !validCountry) return null
+
+                          return (
+                            <div className="text-xs text-gray-500">
+                              {validRegion && `${validRegion}, `}
+                              {validCountry}
+                            </div>
+                          )
+                        })()}
                       </div>
                     </div>
                   </button>

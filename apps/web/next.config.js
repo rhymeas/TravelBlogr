@@ -133,6 +133,58 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'cdn.stocksnap.io',
       },
+      // Reddit images
+      {
+        protocol: 'https',
+        hostname: 'i.redd.it',
+      },
+      {
+        protocol: 'https',
+        hostname: 'preview.redd.it',
+      },
+      {
+        protocol: 'https',
+        hostname: 'external-preview.redd.it',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.reddit.com',
+      },
+      // Imgur images
+      {
+        protocol: 'https',
+        hostname: 'i.imgur.com',
+      },
+      {
+        protocol: 'http',
+        hostname: 'i.imgur.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'imgur.com',
+      },
+      // 500px images
+      {
+        protocol: 'https',
+        hostname: 'ppcdn.500px.org',
+      },
+      {
+        protocol: 'http',
+        hostname: 'ppcdn.500px.org',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.500px.org',
+      },
+      // WordPress.org CDN
+      {
+        protocol: 'https',
+        hostname: 'pd.w.org',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.w.org',
+      },
     ],
     formats: ['image/webp', 'image/avif'],
     dangerouslyAllowSVG: true,

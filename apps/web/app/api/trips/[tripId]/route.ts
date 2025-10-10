@@ -8,10 +8,6 @@ export async function GET(
 ) {
   try {
     const supabase = createServerSupabase()
-    
-    // For mock auth, we'll skip authentication and return mock data
-    // In production, you'd check authentication here
-    
     const { tripId } = params
 
     // Fetch trip with posts and share links

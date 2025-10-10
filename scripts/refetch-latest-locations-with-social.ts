@@ -1,0 +1,137 @@
+/**
+ * Refetch images for latest 10 locations with NEW social media integration
+ * Includes Reddit, Flickr, Pinterest images!
+ */
+
+import { createClient } from '@supabase/supabase-js'
+import { fetchLocationGalleryHighQuality } from '../apps/web/lib/services/enhancedImageService'
+import { fetchSocialImages } from '../apps/web/lib/services/socialImageScraperService'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+interface ImageResult {
+  url: string
+  platform: string
+  score: number
+  author?: string
+  title?: string
+}
+
+async function refetchImagesForLocation(locationId: string, locationName: string) {
+  console.log(`\n📍 Refetching images for: ${locationName}`)
+  console.log(`   Location ID: ${locationId}`)
+
+  try {
+    // Fetch from both standard and social sources
+    console.log('   🔍 Fetching from multiple sources...')
+    
+    const [standardImages, socialImages] = await Promise.all([
+      fetchLocationGalleryHighQuality(locationName, 50),
+      fetchSocialImages(locationName, 30)
+    ])
+
+    console.log(`   ✅ Standard images: ${standardImages.length}`)
+    console.log(`   ✅ Social images: ${socialImages.length}`)
+
+    // Convert social images to URLs with metadata
+    const socialImageUrls = socialImages.map(img => img.url)
+
+    // Combine all images
+    const allImageUrls = [...standardImages, ...socialImageUrls]
+
+    // Remove duplicates
+    const uniqueImages = Array.from(new Set(allImageUrls))
+
+    console.log(`   📊 Total unique images: ${uniqueImages.length}`)
+
+    if (uniqueImages.length === 0) {
+      console.log('   ⚠️  No images found, skipping...')
+      return
+    }
+
+    // Update location with new images
+    const { error } = await supabase
+      .from('locations')
+      .update({
+        featured_image: uniqueImages[0],
+        gallery_images: uniqueImages,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', locationId)
+
+    if (error) {
+      console.error(`   ❌ Error updating location:`, error.message)
+    } else {
+      console.log(`   ✅ Updated successfully!`)
+      console.log(`      Featured: ${uniqueImages[0].substring(0, 60)}...`)
+      console.log(`      Gallery: ${uniqueImages.length} images`)
+      
+      // Show breakdown by platform
+      const redditCount = socialImages.filter(img => img.platform === 'Reddit').length
+      const flickrCount = socialImages.filter(img => img.platform === 'Flickr').length
+      const pinterestCount = socialImages.filter(img => img.platform === 'Pinterest').length
+      
+      if (redditCount > 0 || flickrCount > 0 || pinterestCount > 0) {
+        console.log(`      Social breakdown:`)
+        if (redditCount > 0) console.log(`        - Reddit: ${redditCount} images`)
+        if (flickrCount > 0) console.log(`        - Flickr: ${flickrCount} images`)
+        if (pinterestCount > 0) console.log(`        - Pinterest: ${pinterestCount} images`)
+      }
+    }
+
+  } catch (error) {
+    console.error(`   ❌ Error:`, error instanceof Error ? error.message : error)
+  }
+}
+
+async function main() {
+  console.log('🚀 Refetching images for latest 10 locations with SOCIAL MEDIA integration!')
+  console.log('   Sources: Pexels, Unsplash, Wikimedia, Reddit, Flickr, Pinterest')
+  console.log('   Filters: Excluding army, veterans, navy, medicines\n')
+
+  // Get latest 10 locations
+  const { data: locations, error } = await supabase
+    .from('locations')
+    .select('id, name, slug, created_at')
+    .order('created_at', { ascending: false })
+    .limit(10)
+
+  if (error) {
+    console.error('❌ Error fetching locations:', error)
+    return
+  }
+
+  if (!locations || locations.length === 0) {
+    console.log('❌ No locations found')
+    return
+  }
+
+  console.log(`📋 Found ${locations.length} locations to update:\n`)
+  locations.forEach((loc, i) => {
+    console.log(`   ${i + 1}. ${loc.name} (${loc.slug})`)
+  })
+
+  console.log('\n' + '='.repeat(80))
+
+  // Process each location
+  for (const location of locations) {
+    await refetchImagesForLocation(location.id, location.name)
+    
+    // Add delay to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 2000))
+  }
+
+  console.log('\n' + '='.repeat(80))
+  console.log('\n✅ COMPLETE! All locations updated with social media images!')
+  console.log('\n📊 Summary:')
+  console.log(`   - Locations updated: ${locations.length}`)
+  console.log(`   - Sources used: Pexels, Unsplash, Wikimedia, Reddit, Flickr`)
+  console.log(`   - Filters applied: Excluding army, veterans, navy, medicines`)
+  console.log('\n🎉 Your locations now have amazing Reddit images!')
+}
+
+main()
+

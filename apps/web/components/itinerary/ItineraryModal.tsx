@@ -13,6 +13,7 @@ import Image from 'next/image'
 import { useAuth } from '@/hooks/useAuth'
 import { SignUpPrompt } from '@/components/auth/SignUpPrompt'
 import { useRouter } from 'next/navigation'
+import { AddStopModal } from './AddStopModal'
 
 interface planModalProps {
   plan: any
@@ -27,8 +28,31 @@ export function planModal({ plan, locationImages: propLocationImages, onClose }:
   const [moreExperiences, setMoreExperiences] = useState<any[]>([])
   const [showMoreExperiences, setShowMoreExperiences] = useState(false)
   const [showSignUpPrompt, setShowSignUpPrompt] = useState(false)
+  const [hoveredSegment, setHoveredSegment] = useState<number | null>(null)
+  const [showAddStopModal, setShowAddStopModal] = useState(false)
+  const [addStopBetween, setAddStopBetween] = useState<{ from: string; to: string; fromIndex: number } | null>(null)
   const { isAuthenticated } = useAuth()
   const router = useRouter()
+
+  // Helper function to find location image with flexible matching
+  const getLocationImage = (locationName: string): string => {
+    if (!propLocationImages) return '/placeholder-location.jpg'
+
+    // Try exact match first
+    if (propLocationImages[locationName]) {
+      return propLocationImages[locationName]
+    }
+
+    // Try matching by first part (e.g., "New Jersey" matches "New Jersey, USA")
+    const mainLocation = locationName.split(',')[0].trim()
+    for (const [key, value] of Object.entries(propLocationImages)) {
+      if (key.startsWith(mainLocation) || mainLocation.startsWith(key.split(',')[0].trim())) {
+        return value
+      }
+    }
+
+    return '/placeholder-location.jpg'
+  }
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -38,8 +62,25 @@ export function planModal({ plan, locationImages: propLocationImages, onClose }:
     }
   }, [])
 
-  // Group days by location
+  // Handle adding a stop between locations
+  const handleAddStop = async (stopLocation: string) => {
+    if (!addStopBetween) return
+
+    // TODO: Implement regenerating itinerary with new stop
+    // This would call the AI service to regenerate the plan with the new stop inserted
+    console.log('Adding stop:', stopLocation, 'between', addStopBetween.from, 'and', addStopBetween.to)
+
+    // For now, just show an alert
+    alert(`Feature coming soon! Will add ${stopLocation} between ${addStopBetween.from} and ${addStopBetween.to}`)
+  }
+
+  // Group days by location (skip travel days for grouping)
   const locationGroups = plan.days.reduce((groups: any[], day: any) => {
+    // Skip travel days - they don't represent a location stay
+    if (day.type === 'travel') {
+      return groups
+    }
+
     const lastGroup = groups[groups.length - 1]
     if (lastGroup && lastGroup.location === day.location) {
       lastGroup.days.push(day)
@@ -54,6 +95,8 @@ export function planModal({ plan, locationImages: propLocationImages, onClose }:
     }
     return groups
   }, [])
+
+
 
   // Calculate totals
   const totalCost = plan.days.reduce((total: number, day: any) => {
@@ -248,6 +291,51 @@ export function planModal({ plan, locationImages: propLocationImages, onClose }:
                 }}
               />
 
+              {/* Hover-sensitive segments between locations */}
+              {locationGroups.map((group: any, segmentIndex: number) => {
+                if (segmentIndex >= locationGroups.length - 1) return null
+
+                const totalSegments = locationGroups.length - 1
+                const segmentWidth = 100 / totalSegments
+                const leftPosition = (segmentIndex * segmentWidth) + (segmentWidth / 2)
+
+                return (
+                  <div
+                    key={`segment-${segmentIndex}`}
+                    className="absolute top-1/2 -translate-y-1/2"
+                    style={{
+                      left: `${leftPosition}%`,
+                      transform: 'translate(-50%, -50%)',
+                      zIndex: 20
+                    }}
+                    onMouseEnter={() => setHoveredSegment(segmentIndex)}
+                    onMouseLeave={() => setHoveredSegment(null)}
+                  >
+                    {/* Larger hover area - invisible but captures mouse */}
+                    <div className="w-24 h-24 flex items-center justify-center">
+                      {/* "+" Button - appears on hover */}
+                      {hoveredSegment === segmentIndex && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setAddStopBetween({
+                              from: locationGroups[segmentIndex].location,
+                              to: locationGroups[segmentIndex + 1].location,
+                              fromIndex: segmentIndex
+                            })
+                            setShowAddStopModal(true)
+                          }}
+                          className="w-8 h-8 rounded-full bg-white border-2 border-teal-400 hover:border-teal-500 hover:bg-teal-50 flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 animate-in fade-in zoom-in"
+                          title="Add stop between locations"
+                        >
+                          <Plus className="h-4 w-4 text-teal-500" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+
               {/* Location Steps */}
               {locationGroups.map((group: any, index: number) => {
                 const formatted = formatLocationDisplay(group.location)
@@ -355,7 +443,7 @@ export function planModal({ plan, locationImages: propLocationImages, onClose }:
                     {/* Hero Image */}
                     <div className="relative h-52 rounded-xl overflow-hidden">
                       <Image
-                        src={propLocationImages?.[currentLocation.location] || '/placeholder-location.jpg'}
+                        src={getLocationImage(currentLocation.location)}
                         alt={currentLocation.location}
                         fill
                         className="object-cover"
@@ -529,13 +617,42 @@ export function planModal({ plan, locationImages: propLocationImages, onClose }:
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="text-center py-8"
+                  className="py-8"
                 >
-                  <h2 className="text-2xl font-bold text-gray-900 mb-3">Your Journey Awaits!</h2>
-                  <p className="text-sm text-gray-600 mb-6 max-w-2xl mx-auto">
-                    You've planned an amazing {plan.stats?.totalDays || plan.days.length}-day adventure across {locationGroups.length} incredible destinations.
-                  </p>
+                  <div className="text-center mb-8">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-3">Your Journey Awaits!</h2>
+                    <p className="text-sm text-gray-600 max-w-2xl mx-auto">
+                      You've planned an amazing {plan.stats?.totalDays || plan.days.length}-day adventure across {locationGroups.length} incredible destinations.
+                    </p>
+                  </div>
 
+                  {/* Location Images Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+                    {locationGroups.map((group: any, index: number) => (
+                      <div key={index} className="relative group cursor-pointer" onClick={() => setActiveLocationIndex(index)}>
+                        <div className="relative h-40 rounded-xl overflow-hidden">
+                          <Image
+                            src={getLocationImage(group.location)}
+                            alt={group.location}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            unoptimized
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                          <div className="absolute bottom-0 left-0 right-0 p-3">
+                            <h3 className="text-white font-semibold text-sm mb-0.5">
+                              {formatLocationDisplay(group.location).main}
+                            </h3>
+                            <p className="text-white/90 text-xs">
+                              {formatDateRange(group.startDate, group.endDate)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Stats Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto mb-8">
                     <div className="bg-gray-50 rounded-lg p-4">
                       <Calendar className="h-6 w-6 text-teal-500 mx-auto mb-1.5" />
@@ -559,7 +676,7 @@ export function planModal({ plan, locationImages: propLocationImages, onClose }:
                     </div>
                   </div>
 
-                  <p className="text-sm text-gray-600 mb-6">Ready to embark on your adventure?</p>
+                  <p className="text-sm text-gray-600 text-center">Ready to embark on your adventure?</p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -646,6 +763,20 @@ export function planModal({ plan, locationImages: propLocationImages, onClose }:
           </>
         )}
       </AnimatePresence>
+
+      {/* Add Stop Modal */}
+      {addStopBetween && (
+        <AddStopModal
+          isOpen={showAddStopModal}
+          onClose={() => {
+            setShowAddStopModal(false)
+            setAddStopBetween(null)
+          }}
+          fromLocation={addStopBetween.from}
+          toLocation={addStopBetween.to}
+          onAddStop={handleAddStop}
+        />
+      )}
     </>
   )
 }

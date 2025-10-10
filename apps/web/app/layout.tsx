@@ -85,9 +85,9 @@ export default function RootLayout({
       <head>
         <ImagePreconnect />
       </head>
-      <body className={cn('min-h-screen bg-background antialiased')}>
+      <body className={cn('min-h-screen bg-background antialiased')} suppressHydrationWarning>
         <ProgressBar />
-        <div className="relative flex min-h-screen flex-col">
+        <div className="relative flex min-h-screen flex-col" suppressHydrationWarning>
           <AuthAwareHeader />
           <main className="flex-1">{children}</main>
           <Footer />
@@ -95,7 +95,7 @@ export default function RootLayout({
         </div>
         <PWAInstallPrompt />
         <Toaster
-          position="top-right"
+          position="bottom-right"
           toastOptions={{
             duration: 4000,
             style: {

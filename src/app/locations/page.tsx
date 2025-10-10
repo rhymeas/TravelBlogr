@@ -162,7 +162,9 @@ export default function LocationsPage() {
                     </h3>
                     <div className="flex items-center gap-1 text-body-medium text-airbnb-dark-gray">
                       <MapPin className="h-4 w-4" />
-                      <span>{location.region}, {location.country}</span>
+                      <span>
+                        {location.region && `${location.region}, `}{location.country}
+                      </span>
                     </div>
                   </div>
 

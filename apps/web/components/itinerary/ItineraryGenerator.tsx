@@ -4,7 +4,8 @@
  * Minimalist Airbnb-style plan Generator
  */
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Label } from '@/components/ui/Label'
@@ -12,22 +13,48 @@ import { LocationInput } from './LocationInput'
 import { DateRangePicker } from './DateRangePicker'
 import { TravelTimeSlider } from './TravelTimeSlider'
 import { planModal as PlanModal } from './ItineraryModal'
-import { RoutePreview } from './RoutePreview'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 
 export function ItineraryGenerator() {
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [plan, setPlan] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [ctaBottomOffset, setCtaBottomOffset] = useState(24) // 24px = bottom-6
+  // @ts-ignore - Kept for backend logging only
   const [resolvedLocations, setResolvedLocations] = useState<any[]>([])
   const [locationImages, setLocationImages] = useState<Record<string, string>>({})
 
-  // Multi-location state with resolved names
-  const [locations, setLocations] = useState([
-    { id: '1', value: '', resolvedName: '' },
-    { id: '2', value: '', resolvedName: '' }
+  // Multi-location state with resolved names and metadata
+  const [locations, setLocations] = useState<Array<{
+    id: string
+    value: string
+    resolvedName?: string
+    region?: string
+    country?: string
+  }>>([
+    { id: '1', value: '' },
+    { id: '2', value: '' }
   ])
+
+  // Prefill destination from URL parameter
+  useEffect(() => {
+    const toParam = searchParams.get('to')
+    const fromParam = searchParams.get('from')
+
+    if (toParam || fromParam) {
+      setLocations(prev => {
+        const newLocations = [...prev]
+        if (fromParam) {
+          newLocations[0] = { ...newLocations[0], value: fromParam }
+        }
+        if (toParam) {
+          newLocations[1] = { ...newLocations[1], value: toParam }
+        }
+        return newLocations
+      })
+    }
+  }, [searchParams])
 
   // Date range state
   const [dateRange, setDateRange] = useState<{ startDate: Date; endDate: Date } | null>(null)
@@ -146,11 +173,12 @@ export function ItineraryGenerator() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      {/* Header - Compact */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-semibold">Plan your trip</h1>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto p-6">
+        {/* Header - Compact */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-semibold">Plan your trip</h1>
+        </div>
 
       {/* Error Message - Above form */}
       {error && (
@@ -169,12 +197,7 @@ export function ItineraryGenerator() {
             onChange={setLocations}
           />
 
-          {/* Show route preview if we have resolved locations */}
-          {resolvedLocations.length > 0 && (
-            <div className="mt-4">
-              <RoutePreview locations={resolvedLocations} />
-            </div>
-          )}
+          {/* Route preview hidden - kept in backend logs only */}
         </div>
 
         {/* Compact 2-Row Layout: Dates, Interests, Budget, Travel Pace */}
@@ -294,6 +317,7 @@ export function ItineraryGenerator() {
           onClose={() => setPlan(null)}
         />
       )}
+      </div>
     </div>
   )
 }

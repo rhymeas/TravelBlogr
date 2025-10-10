@@ -26,9 +26,13 @@ export function LocationRating({
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleRating = async (value: number) => {
+    // Check authentication first
     if (!isAuthenticated) {
-      toast.error('Please sign in to rate this location')
-      window.location.href = `/auth/signin?redirect=/locations/${locationSlug}`
+      toast.error('Please sign in to rate this location', {
+        duration: 3000,
+        icon: '🔒'
+      })
+      // Don't redirect immediately, let user decide
       return
     }
 
@@ -37,24 +41,43 @@ export function LocationRating({
     setIsSubmitting(true)
 
     try {
+      // Prepare headers
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      }
+
+      // Add mock auth headers for development
+      if (user?.id && user?.email) {
+        headers['x-mock-user-id'] = user.id
+        headers['x-mock-user-email'] = user.email
+      }
+
       const response = await fetch(`/api/locations/${locationSlug}/rating`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ rating: value })
+        headers,
+        body: JSON.stringify({ rating: value }),
+        credentials: 'include' // Ensure cookies are sent
       })
 
       const data = await response.json()
 
       if (!response.ok) {
+        if (response.status === 401) {
+          toast.error('Please sign in to rate this location', {
+            duration: 3000,
+            icon: '🔒'
+          })
+          return
+        }
         throw new Error(data.error || 'Failed to submit rating')
       }
 
       setRating(data.averageRating)
       setRatingCount(data.ratingCount)
       setUserRating(value)
-      toast.success('Rating submitted!')
+      toast.success('Rating submitted!', {
+        icon: '⭐'
+      })
     } catch (error) {
       console.error('Error submitting rating:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to submit rating')
@@ -66,7 +89,7 @@ export function LocationRating({
   return (
     <div className="flex items-center gap-3">
       {/* Star Rating Display */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 relative group">
         {[1, 2, 3, 4, 5].map((star) => (
           <button
             key={star}
@@ -74,8 +97,13 @@ export function LocationRating({
             onMouseEnter={() => setHoverRating(star)}
             onMouseLeave={() => setHoverRating(0)}
             disabled={isSubmitting}
-            className="transition-transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`transition-transform hover:scale-110 disabled:opacity-50 ${
+              isAuthenticated
+                ? 'cursor-pointer'
+                : 'cursor-not-allowed opacity-60'
+            }`}
             aria-label={`Rate ${star} stars`}
+            title={!isAuthenticated ? 'Sign in to rate' : `Rate ${star} stars`}
           >
             <Star
               className={`h-5 w-5 transition-colors ${
@@ -86,6 +114,15 @@ export function LocationRating({
             />
           </button>
         ))}
+
+        {/* Login hint tooltip */}
+        {!isAuthenticated && (
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            <div className="bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+              Sign in to rate
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Rating Info */}

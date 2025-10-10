@@ -4,6 +4,180 @@ type: "always_apply"
 
 # State-of-the-Art Development Structure & Rules
 
+## 🔐 TravelBlogr Authentication & User Data Architecture (CRITICAL)
+
+### **Authentication Pattern - Real Supabase Auth (Updated 2025-10-10)**
+
+**ALWAYS use real Supabase authentication - NO MOCK DATA:**
+
+```
+Supabase Auth (auth.signInWithPassword, auth.signUp, etc.)
+    ↓ (creates session)
+auth.users (Supabase managed)
+    ↓ (1:1 relationship via trigger)
+public.profiles (our public user data)
+    ↑ (referenced by all user-related tables)
+location_ratings, location_comments, trips, etc.
+```
+
+### **Supabase Client Pattern - Server/Client Separation (CRITICAL)**
+
+**ALWAYS use the correct client for the context:**
+
+```typescript
+// ✅ Client-side (React components, hooks)
+import { getBrowserSupabase } from '@/lib/supabase'
+const supabase = getBrowserSupabase() // Singleton pattern
+
+// ✅ Server-side (API routes, server components)
+import { createServerSupabase } from '@/lib/supabase'
+const supabase = createServerSupabase() // Service role key
+
+// ❌ NEVER use createClientSupabase() directly
+// ❌ NEVER create mock Supabase clients
+```
+
+### **Authentication Rules:**
+
+1. **ALWAYS use real Supabase auth methods** - Never mock authentication
+2. **Use `getBrowserSupabase()` in client components** - Singleton pattern for browser
+3. **Use `createServerSupabase()` in API routes** - Service role key for server
+4. **Use `supabase.auth.signInWithPassword()`** - For email/password sign in
+5. **Use `supabase.auth.signUp()`** - For new user registration
+6. **Use `supabase.auth.signInWithOAuth()`** - For Google/GitHub OAuth
+7. **Use `supabase.auth.onAuthStateChange()`** - For session management
+8. **NEVER use localStorage for sessions** - Supabase handles this automatically
+9. **NEVER hardcode test credentials** - Create real test users in Supabase
+10. **Enable session persistence** - `persistSession: true, autoRefreshToken: true`
+
+### **User Data Pattern - Supabase Best Practice**
+
+**ALWAYS follow this pattern for user-related data:**
+
+1. **NEVER create a `public.users` table** - Use `public.profiles` instead
+2. **All user foreign keys MUST reference `profiles(id)`** - Not `auth.users(id)`
+3. **Auto-create profiles via trigger** - When user signs up in `auth.users`
+4. **Use `profiles!user_id` in PostgREST queries** - For joining user data
+5. **Keep auth.users FK for data integrity** - But use profiles FK for API joins
+
+### **Schema:**
+
+```sql
+-- Profiles table (public user data)
+CREATE TABLE public.profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name TEXT,
+  username TEXT UNIQUE,
+  avatar_url TEXT,
+  bio TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Auto-create profile trigger
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+-- Example: User-related table
+CREATE TABLE location_ratings (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id),  -- Data integrity
+  user_id UUID REFERENCES profiles(id),     -- API joins
+  -- other columns...
+);
+```
+
+### **API Query Pattern:**
+
+```typescript
+// ✅ CORRECT: Join with profiles
+const { data } = await supabase
+  .from('location_comments')
+  .select(`
+    *,
+    profiles!user_id (
+      full_name,
+      username,
+      avatar_url
+    )
+  `)
+
+// ❌ WRONG: Don't join with users
+const { data } = await supabase
+  .from('location_comments')
+  .select(`
+    *,
+    users!user_id (...)  // ❌ This will fail!
+  `)
+```
+
+---
+
+## 📸 TravelBlogr Image Upload & Storage (CRITICAL)
+
+### **Image Storage Pattern - Supabase Storage**
+
+**ALWAYS use Supabase Storage for user-uploaded images - NO PLACEHOLDER IMAGES:**
+
+```
+User uploads image
+    ↓
+Client-side optimization (resize, compress)
+    ↓
+Upload to Supabase Storage bucket
+    ↓
+Get public URL
+    ↓
+Store URL in database
+```
+
+### **Storage Buckets:**
+
+1. **`trip-images`** - User trip photos and cover images (5MB limit)
+2. **`profile-avatars`** - User profile pictures (2MB limit)
+3. **`location-images`** - Community-contributed location photos (5MB limit)
+4. **`images`** - General purpose images
+
+### **Image Upload Rules:**
+
+1. **ALWAYS optimize images before upload** - Use `optimizeImage()` function
+2. **ALWAYS validate file size and type** - Client and server-side
+3. **Use unique filenames** - `nanoid()` for collision prevention
+4. **Organize by user and folder** - `userId/folder/filename.ext`
+5. **Store URLs in database** - Not file paths
+6. **Delete old images** - When updating to prevent storage bloat
+
+### **Usage Examples:**
+
+```typescript
+// Upload profile avatar
+import { uploadProfileAvatar } from '@/lib/services/imageUploadService'
+
+const result = await uploadProfileAvatar(file, userId)
+if (result.success) {
+  // Update profile with result.url
+}
+
+// Upload trip cover image
+import { uploadTripCoverImage } from '@/lib/services/imageUploadService'
+
+const result = await uploadTripCoverImage(file, userId, tripId)
+
+// Use ImageUpload component
+import { ImageUpload } from '@/components/upload/ImageUpload'
+
+<ImageUpload
+  bucket="profile-avatars"
+  userId={user.id}
+  onUploadComplete={(url, path) => {
+    // Handle upload success
+  }}
+/>
+```
+
+---
+
 ## 🏗️ Project Architecture
 
 ### Core Principles

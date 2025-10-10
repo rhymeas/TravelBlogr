@@ -1,0 +1,30 @@
+# Social Media Image Scrapers - NO API KEYS REQUIRED!
+# Install with: pip install -r requirements.txt
+
+# Reddit scraper (no API key)
+# https://github.com/datavorous/yars
+yars-scraper
+
+# Twitter/X scraper (no API key)
+# https://github.com/d60/twikit
+twikit
+
+# Pinterest scraper
+# https://github.com/iamatulsingh/pinterest-image-scrap
+pinterest-image-scrap
+
+# General web scraping
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# Image processing
+Pillow>=10.0.0
+
+# HTTP client
+httpx>=0.24.0
+
+# Optional: Browser automation for advanced scraping
+# playwright>=1.40.0
+# selenium>=4.15.0
+

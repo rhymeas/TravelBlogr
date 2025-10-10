@@ -1,115 +1,125 @@
-// TODO: Install @supabase/supabase-js package
-// import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
-// import type { Database } from '../../../infrastructure/database/types'
 
-// Temporary mock types until Supabase is installed
-type Database = any
+// Server-side Supabase client for API routes and server components
+export const createServerSupabase = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-// Temporary mock client until Supabase is installed
-const createMockQueryBuilder = () => {
-  const mockResult = { data: [], error: null }
-  const mockSingleResult = { data: null, error: null }
-
-  const queryBuilder = {
-    eq: (column: string, value: any) => queryBuilder,
-    neq: (column: string, value: any) => queryBuilder,
-    gt: (column: string, value: any) => queryBuilder,
-    gte: (column: string, value: any) => queryBuilder,
-    lt: (column: string, value: any) => queryBuilder,
-    lte: (column: string, value: any) => queryBuilder,
-    like: (column: string, value: any) => queryBuilder,
-    ilike: (column: string, value: any) => queryBuilder,
-    is: (column: string, value: any) => queryBuilder,
-    in: (column: string, values: any[]) => queryBuilder,
-    not: (column: string, operator: string, value: any) => queryBuilder,
-    or: (filters: string) => queryBuilder,
-    filter: (column: string, operator: string, value: any) => queryBuilder,
-    match: (query: object) => queryBuilder,
-    order: (column: string, options?: any) => queryBuilder,
-    limit: (count: number) => queryBuilder,
-    range: (from: number, to: number) => queryBuilder,
-    single: () => mockSingleResult,
-    maybeSingle: () => mockSingleResult,
-    then: (resolve: any) => resolve(mockResult),
-    data: [],
-    error: null
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Missing Supabase environment variables')
   }
 
-  return queryBuilder
+  return createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      persistSession: false // Server-side doesn't need session persistence
+    }
+  })
 }
 
-export const createClientSupabase = () => ({
-  from: (table: string) => ({
-    select: (columns?: string) => createMockQueryBuilder(),
-    insert: (values: any) => createMockQueryBuilder(),
-    update: (values: any) => createMockQueryBuilder(),
-    upsert: (values: any) => createMockQueryBuilder(),
-    delete: () => createMockQueryBuilder()
-  }),
-  auth: {
-    getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-    signInWithPassword: () => Promise.resolve({ data: null, error: null }),
-    signUp: () => Promise.resolve({ data: null, error: null }),
-    signOut: () => Promise.resolve({ error: null })
-  },
-  storage: {
-    from: (bucket: string) => ({
-      upload: (path: string, file: any) => Promise.resolve({ data: null, error: null }),
-      download: (path: string) => Promise.resolve({ data: null, error: null }),
-      remove: (paths: string[]) => Promise.resolve({ data: null, error: null }),
-      getPublicUrl: (path: string) => ({ data: { publicUrl: '' } })
+// Client-side Supabase client for browser
+export const createBrowserSupabase = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase environment variables')
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined
+    }
+  })
+}
+
+// Singleton instance for client-side usage
+let browserClient: ReturnType<typeof createBrowserSupabase> | null = null
+
+export const getBrowserSupabase = () => {
+  if (typeof window === 'undefined') {
+    throw new Error('getBrowserSupabase can only be called on the client side')
+  }
+  
+  if (!browserClient) {
+    browserClient = createBrowserSupabase()
+  }
+  
+  return browserClient
+}
+
+// Hook for React components
+export const useSupabase = () => {
+  // Only create client on the client side
+  if (typeof window === 'undefined') {
+    // Return a dummy client during SSR that won't actually be used
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
+    return createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false }
     })
-  },
-  channel: (name: string) => ({
-    on: (event: string, config: any, callback?: any) => ({
-      on: (event: string, config: any, callback?: any) => ({
-        subscribe: (callback?: any) => ({
-          unsubscribe: () => Promise.resolve({ error: null })
-        })
-      }),
-      subscribe: (callback?: any) => ({
-        unsubscribe: () => Promise.resolve({ error: null })
-      })
-    }),
-    subscribe: (callback?: any) => ({
-      unsubscribe: () => Promise.resolve({ error: null })
+  }
+
+  // Initialize browser client if not already done
+  if (!browserClient) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Missing Supabase environment variables')
+    }
+
+    browserClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      },
     })
-  }),
-  removeChannel: (channel: any) => Promise.resolve({ error: null })
-})
+  }
 
-// Temporary mock server client until Supabase is installed
-export const createServerSupabase = () => createClientSupabase()
-
-// Mock useSupabase hook for client components
-export const useSupabase = () => createClientSupabase()
-
-// Temporary mock admin client until Supabase is installed
-export const supabaseAdmin = createClientSupabase()
-
-// Convenience client for general use
-export const supabase = createClientSupabase()
+  return browserClient
+}
 
 // Storage helpers
 export const uploadFile = async (
   bucket: string,
   path: string,
   file: File,
-  options?: { cacheControl?: string; upsert?: boolean }
+  options?: { 
+    cacheControl?: string
+    upsert?: boolean
+    contentType?: string
+  }
 ) => {
+  const supabase = typeof window !== 'undefined' 
+    ? getBrowserSupabase() 
+    : createServerSupabase()
+
   const { data, error } = await supabase.storage
     .from(bucket)
     .upload(path, file, {
       cacheControl: options?.cacheControl || '3600',
-      upsert: options?.upsert || false
+      upsert: options?.upsert || false,
+      contentType: options?.contentType || file.type
     })
 
-  if (error) throw error
+  if (error) {
+    throw new Error(`Failed to upload file: ${error.message}`)
+  }
+  
   return data
 }
 
 export const getPublicUrl = (bucket: string, path: string) => {
+  const supabase = typeof window !== 'undefined' 
+    ? getBrowserSupabase() 
+    : createServerSupabase()
+    
   const { data } = supabase.storage
     .from(bucket)
     .getPublicUrl(path)
@@ -118,19 +128,29 @@ export const getPublicUrl = (bucket: string, path: string) => {
 }
 
 export const deleteFile = async (bucket: string, path: string) => {
+  const supabase = typeof window !== 'undefined' 
+    ? getBrowserSupabase() 
+    : createServerSupabase()
+
   const { error } = await supabase.storage
     .from(bucket)
     .remove([path])
   
-  if (error) throw error
+  if (error) {
+    throw new Error(`Failed to delete file: ${error.message}`)
+  }
 }
 
-// Real-time subscription helpers
+// Real-time subscription helpers (client-side only)
 export const subscribeToTrip = (
   tripId: string,
   callback: (payload: any) => void
 ) => {
-  return supabase
+  if (typeof window === 'undefined') {
+    throw new Error('Subscriptions can only be created on the client side')
+  }
+
+  return getBrowserSupabase()
     .channel(`trip:${tripId}`)
     .on(
       'postgres_changes',
@@ -149,7 +169,11 @@ export const subscribeToTripUpdates = (
   tripId: string,
   callback: (payload: any) => void
 ) => {
-  return supabase
+  if (typeof window === 'undefined') {
+    throw new Error('Subscriptions can only be created on the client side')
+  }
+
+  return getBrowserSupabase()
     .channel(`trip-updates:${tripId}`)
     .on(
       'postgres_changes',
@@ -165,15 +189,30 @@ export const subscribeToTripUpdates = (
 }
 
 // Auth helpers
-export const getCurrentUser = async () => {
+export const getCurrentUser = async (isServerSide = false) => {
+  const supabase = isServerSide 
+    ? createServerSupabase() 
+    : getBrowserSupabase()
+    
   const { data: { user }, error } = await supabase.auth.getUser()
-  if (error) throw error
+  
+  if (error) {
+    throw new Error(`Failed to get current user: ${error.message}`)
+  }
+  
   return user
 }
 
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut()
-  if (error) throw error
+  if (typeof window === 'undefined') {
+    throw new Error('signOut can only be called on the client side')
+  }
+
+  const { error } = await getBrowserSupabase().auth.signOut()
+  
+  if (error) {
+    throw new Error(`Failed to sign out: ${error.message}`)
+  }
 }
 
 // Database helpers with retry logic
@@ -189,8 +228,12 @@ export const withRetry = async <T>(
       return await operation()
     } catch (error) {
       lastError = error as Error
+      console.error(`Attempt ${i + 1} failed:`, lastError.message)
+      
       if (i < maxRetries - 1) {
-        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)))
+        const backoffDelay = delay * Math.pow(2, i)
+        console.log(`Retrying in ${backoffDelay}ms...`)
+        await new Promise(resolve => setTimeout(resolve, backoffDelay))
       }
     }
   }
@@ -199,7 +242,9 @@ export const withRetry = async <T>(
 }
 
 // Type-safe query builders
-export const buildTripQuery = (supabaseClient: ReturnType<typeof createClientSupabase>) => ({
+export const buildTripQuery = (
+  supabaseClient: ReturnType<typeof createServerSupabase> | ReturnType<typeof createBrowserSupabase>
+) => ({
   findById: (id: string) =>
     supabaseClient
       .from('trips')
@@ -238,6 +283,30 @@ export const buildTripQuery = (supabaseClient: ReturnType<typeof createClientSup
       .select('*')
       .eq('slug', slug)
       .single(),
+
+  create: (tripData: any) =>
+    supabaseClient
+      .from('trips')
+      .insert(tripData)
+      .select()
+      .single(),
+
+  update: (id: string, updates: any) =>
+    supabaseClient
+      .from('trips')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single(),
+
+  delete: (id: string) =>
+    supabaseClient
+      .from('trips')
+      .delete()
+      .eq('id', id)
 })
 
-export type SupabaseClient = ReturnType<typeof createClientSupabase>
+// Types
+export type SupabaseClient = ReturnType<typeof createServerSupabase> | ReturnType<typeof createBrowserSupabase>
+export type ServerSupabaseClient = ReturnType<typeof createServerSupabase>
+export type BrowserSupabaseClient = ReturnType<typeof createBrowserSupabase>

@@ -72,7 +72,9 @@ export class RouteCalculatorService {
       toLocation.name,
       totalDistance,
       estimatedDuration,
-      stops
+      stops,
+      fromLocation.slug, // Include from slug
+      toLocation.slug    // Include to slug
     )
   }
 
@@ -124,7 +126,9 @@ export class RouteCalculatorService {
       toLocation.name,
       distance,
       estimatedDuration,
-      stops
+      stops,
+      fromLocation.slug, // Include from slug
+      toLocation.slug    // Include to slug
     )
   }
 

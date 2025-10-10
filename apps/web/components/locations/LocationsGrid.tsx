@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/Card'
 import { OptimizedImage } from '@/components/ui/OptimizedImage'
+import { formatLocationName } from '@/lib/utils/locationFormatter'
 import {
   MapPin, Star, Eye, Heart, Calendar,
   Users, Camera, Clock, ArrowRight
@@ -106,6 +107,7 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
 
 function LocationCard({ location }: { location: Location }) {
   const latestPost = location.location_posts?.[0]
+  const formatted = formatLocationName(location.name)
 
   return (
     <Link href={`/locations/${location.slug}`} className="group block">
@@ -156,11 +158,13 @@ function LocationCard({ location }: { location: Location }) {
         <div className="p-6">
           <div className="mb-4">
             <h3 className="text-title-small text-airbnb-black font-semibold mb-1 group-hover:text-rausch-500 transition-colors">
-              {location.name}
+              {formatted.short}
             </h3>
             <div className="flex items-center gap-1 text-body-medium text-airbnb-dark-gray">
               <MapPin className="h-4 w-4" />
-              <span>{location.region}, {location.country}</span>
+              <span>
+                {formatted.region && `${formatted.region}, `}{formatted.country || location.country}
+              </span>
             </div>
           </div>
 
@@ -209,6 +213,7 @@ function LocationCard({ location }: { location: Location }) {
 
 function LocationListItem({ location }: { location: Location }) {
   const latestPost = location.location_posts?.[0]
+  const formatted = formatLocationName(location.name)
 
   return (
     <Card className="hover:shadow-md transition-shadow duration-200">
@@ -236,12 +241,14 @@ function LocationListItem({ location }: { location: Location }) {
             <div className="flex-1 min-w-0">
               <h3 className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors truncate">
                 <Link href={`/locations/${location.slug}`}>
-                  {location.name}
+                  {formatted.short}
                 </Link>
               </h3>
               <div className="flex items-center gap-1 text-xs text-gray-600">
                 <MapPin className="h-3 w-3" />
-                <span className="truncate">{location.region}, {location.country}</span>
+                <span className="truncate">
+                  {formatted.region && `${formatted.region}, `}{formatted.country || location.country}
+                </span>
               </div>
             </div>
 

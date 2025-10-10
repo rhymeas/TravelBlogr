@@ -20,6 +20,7 @@ export interface GenerateplanCommand {
   endDate: string // ISO date
   interests?: string[]
   budget?: 'budget' | 'moderate' | 'luxury'
+  maxTravelHoursPerDay?: number // Optional: max travel hours per day (e.g., 4)
   forceRefresh?: boolean // Force regeneration, bypass cache
 }
 
@@ -163,14 +164,16 @@ export class GenerateplanUseCase {
       // 6. Fetch location data (activities & restaurants)
       console.log('📊 Fetching location data...')
       const locationSlugs = [
-        command.from,
+        routeInfo.fromSlug || command.from, // Use slug from routeInfo if available
         ...routeInfo.stops.map(s => s.slug),
-        command.to
+        routeInfo.toSlug || command.to      // Use slug from routeInfo if available
       ]
 
+      console.log('🔍 Fetching data for slugs:', locationSlugs)
       const locationsData = await this.fetchLocationsData(locationSlugs)
 
       if (locationsData.length === 0) {
+        console.error('❌ No location data found for slugs:', locationSlugs)
         return {
           success: false,
           error: 'Could not fetch location data'
@@ -189,12 +192,17 @@ export class GenerateplanUseCase {
           stops: routeInfo.stops.map(s => s.name),
           interests: command.interests || [],
           budget: command.budget || 'moderate',
+          maxTravelHoursPerDay: command.maxTravelHoursPerDay, // Pass travel pacing preference
           locationsData
         },
         command.startDate
       )
 
-      // 8. Create domain entity
+      // 8. PROFESSIONAL INTEGRATION: Enrich locations with AI metadata
+      console.log('🌍 Enriching locations with AI metadata...')
+      await this.enrichLocationsWithAIMetadata(aiResult.days)
+
+      // 9. Create domain entity
       const plan = Plan.create({
         title: aiResult.title,
         summary: aiResult.summary,
@@ -203,7 +211,7 @@ export class GenerateplanUseCase {
         tips: aiResult.tips
       })
 
-      // 9. Save to cache for future reuse
+      // 10. Save to cache for future reuse
       console.log('💾 Saving plan to cache...')
       const cacheParams: CacheKey = {
         fromLocation: routeInfo.fromLocation,
@@ -309,17 +317,59 @@ export class GenerateplanUseCase {
    */
   private async fetchLocationsData(slugs: string[]) {
     const results = await Promise.all(
-      slugs.map(slug => this.locationRepo.findBySlugWithDetails(slug))
+      slugs.map(async (slug) => {
+        const result = await this.locationRepo.findBySlugWithDetails(slug)
+        if (!result) {
+          console.error(`⚠️ Could not find location data for slug: "${slug}"`)
+        }
+        return result
+      })
     )
 
-    return results
-      .filter((result): result is NonNullable<typeof result> => result !== null)
-      .map(result => ({
-        name: result.location.name,
-        slug: result.location.slug,
-        activities: result.activities,
-        restaurants: result.restaurants
-      }))
+    const validResults = results.filter((result): result is NonNullable<typeof result> => result !== null)
+    console.log(`✅ Found ${validResults.length}/${slugs.length} locations with data`)
+
+    return validResults.map(result => ({
+      name: result.location.name,
+      slug: result.location.slug,
+      activities: result.activities,
+      restaurants: result.restaurants
+    }))
+  }
+
+  /**
+   * PROFESSIONAL INTEGRATION: Enrich locations with AI-provided metadata
+   * Updates database with continent, region data from AI
+   */
+  private async enrichLocationsWithAIMetadata(days: any[]) {
+    const { LocationDiscoveryService } = await import('../../infrastructure/services/LocationDiscoveryService')
+    const discoveryService = new LocationDiscoveryService()
+
+    // Extract unique locations with their metadata from AI response
+    const locationMetadataMap = new Map<string, any>()
+
+    for (const day of days) {
+      if (day.locationMetadata) {
+        const locationName = day.location || day.locationMetadata.name
+        if (!locationMetadataMap.has(locationName)) {
+          locationMetadataMap.set(locationName, day.locationMetadata)
+          console.log(`🤖 AI metadata for ${locationName}:`, day.locationMetadata)
+        }
+      }
+    }
+
+    // Enrich each location with AI metadata
+    for (const [locationName, metadata] of locationMetadataMap.entries()) {
+      try {
+        await discoveryService.findOrCreateLocationWithMetadata(locationName, metadata)
+        console.log(`✅ Enriched ${locationName} with AI metadata`)
+      } catch (error) {
+        console.error(`⚠️ Failed to enrich ${locationName}:`, error)
+        // Don't fail the entire request if one location fails
+      }
+    }
+
+    console.log(`✅ Enriched ${locationMetadataMap.size} locations with AI metadata`)
   }
 }
 
