@@ -495,7 +495,7 @@ export class LocationDiscoveryService {
     // Since we already have the location data, leverage API calls to reduce future costs
     console.log(`🍽️ Auto-populating activities & restaurants for ${locationData.name}...`)
     try {
-      await this.autoPopulateLocationData(data.id, geoData.lat, geoData.lng)
+      await this.autoPopulateLocationData(data.id, locationData.latitude.toString(), locationData.longitude.toString())
     } catch (error) {
       console.error('⚠️ Failed to auto-populate location data:', error)
       // Don't fail the location creation if this fails

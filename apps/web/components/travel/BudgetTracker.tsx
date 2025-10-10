@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { DollarSign, Plus, Receipt, TrendingUp, TrendingDown, PieChart } from 'lucide-react'
 import { createClientSupabase } from '@/lib/supabase'
 import { format } from 'date-fns'
-import { PieChart as RechartsPieChart, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import toast from 'react-hot-toast'
 
 interface Expense {
