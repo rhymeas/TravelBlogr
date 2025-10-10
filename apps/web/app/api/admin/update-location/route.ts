@@ -91,10 +91,10 @@ export async function POST(request: NextRequest) {
         console.log(`🖼️ Updating images with HIGH QUALITY versions...`)
 
         const featuredImage = await fetchLocationImageHighQuality(locationName)
-        const galleryImages = await fetchLocationGalleryHighQuality(locationName, 20)
-        
-        galleryImages = galleryImages.slice(0, 6)
-        
+        const allGalleryImages = await fetchLocationGalleryHighQuality(locationName, 20)
+
+        const galleryImages = allGalleryImages.slice(0, 6)
+
         updates.featured_image = featuredImage
         updates.gallery_images = galleryImages
         results.push(`✅ Updated ${galleryImages.length} images`)
