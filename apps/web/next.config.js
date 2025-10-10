@@ -8,6 +8,17 @@
 // })
 
 const nextConfig = {
+  // Exclude server-only packages from bundling (Next.js 14+ way)
+  serverComponentsExternalPackages: [
+    'puppeteer',
+    'puppeteer-core',
+    'crawlee',
+    '@crawlee/puppeteer',
+    '@crawlee/core',
+    '@crawlee/browser',
+    'cheerio',
+    'undici',
+  ],
   images: {
     remotePatterns: [
       {
@@ -224,10 +235,21 @@ const nextConfig = {
       }
     }
 
-    // Mark server-only packages as external for server bundle
+    // Mark server-only packages as external for server bundle (not bundled by webpack)
     if (isServer) {
-      config.externals = config.externals || []
-      config.externals.push('puppeteer', 'crawlee', '@crawlee/puppeteer')
+      const originalExternals = config.externals || []
+      config.externals = [
+        ...originalExternals,
+        // These packages will be loaded from node_modules at runtime, not bundled
+        'puppeteer',
+        'puppeteer-core',
+        'crawlee',
+        '@crawlee/puppeteer',
+        '@crawlee/core',
+        '@crawlee/browser',
+        'cheerio',
+        'undici',
+      ]
     }
 
     return config
