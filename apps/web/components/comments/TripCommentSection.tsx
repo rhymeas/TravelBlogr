@@ -187,7 +187,7 @@ export function TripCommentSection({ tripId, tripOwnerId, className = '' }: Trip
           // Optional: track current state
           console.log('Current comment data:', data)
         }}
-        placeholder="Write your comment..."
+        placeHolder="Write your comment..."
         customNoComment={() => (
           <div className="text-center py-8 text-gray-500">
             <p className="text-lg font-medium">No comments yet</p>
