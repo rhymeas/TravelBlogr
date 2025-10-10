@@ -1,5 +1,8 @@
 'use client'
 
+// Force client-side rendering to avoid SSR document access issues
+export const dynamic = 'force-dynamic'
+
 import { Footer } from '@/components/layout/Footer'
 import { AuthAwareHeader } from '@/components/layout/AuthAwareHeader'
 import { LocationFilters } from '@/components/feed/LocationFilters'
