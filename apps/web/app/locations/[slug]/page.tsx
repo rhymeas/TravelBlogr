@@ -38,10 +38,10 @@ export default async function LocationPage({ params }: LocationPageProps) {
 }
 
 // Generate static params for all published locations
+// Disabled: Returns empty array to prevent build-time database access
+// Pages will be generated on-demand at runtime instead
 export async function generateStaticParams() {
-  const slugs = await getAllLocationSlugs()
-
-  return slugs.map((slug) => ({
-    slug: slug,
-  }))
+  // Don't pre-generate any pages at build time
+  // This prevents build-time dependency on database/environment variables
+  return []
 }
