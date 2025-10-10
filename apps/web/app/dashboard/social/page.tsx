@@ -8,6 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
 import { Badge } from '@/components/ui/Badge'
 import { Users, Compass, Activity, TrendingUp } from 'lucide-react'
 
+// Force dynamic rendering - requires authentication, should not be static
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Social Hub | TravelBlogr',
   description: 'Discover amazing travel experiences, connect with fellow travelers, and share your adventures.',
