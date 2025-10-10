@@ -28,14 +28,20 @@ export function PostCommentsModal({
     if (isOpen) {
       // Fetch comment count
       fetchCommentCount()
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden'
+      // Prevent body scroll when modal is open (SSR-safe)
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = 'hidden'
+      }
     } else {
-      document.body.style.overflow = 'unset'
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = 'unset'
+      }
     }
 
     return () => {
-      document.body.style.overflow = 'unset'
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = 'unset'
+      }
     }
   }, [isOpen, postId])
 
