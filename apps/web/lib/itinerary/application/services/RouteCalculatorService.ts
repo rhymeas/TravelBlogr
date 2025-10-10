@@ -57,11 +57,15 @@ export class RouteCalculatorService {
     }
 
     // 3. Convert stops to StopLocation format
-    const stops: StopLocation[] = validStops.map(stop => ({
+    const stops: StopLocation[] = validStops.map((stop, index) => ({
+      id: stop!.id || `stop-${index}`,
       name: stop!.name,
       slug: stop!.slug,
-      latitude: stop!.latitude,
-      longitude: stop!.longitude
+      coordinates: {
+        latitude: stop!.latitude,
+        longitude: stop!.longitude
+      },
+      detourKm: 0 // Will be calculated later
     }))
 
     // 4. Estimate travel duration (average 60 km/h)

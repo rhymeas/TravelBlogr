@@ -99,10 +99,10 @@ export function CreateShareLinkModal({ onClose, onSubmit }: CreateShareLinkModal
     if (formData.settings.requirePassword && formData.settings.password) {
       const bcrypt = await import('bcryptjs')
       const passwordHash = await bcrypt.hash(formData.settings.password, 10)
+      const { password, ...settingsWithoutPassword } = formData.settings
       processedData.settings = {
-        ...formData.settings,
-        passwordHash,
-        password: undefined // Remove plain text password
+        ...settingsWithoutPassword,
+        passwordHash
       }
     }
 

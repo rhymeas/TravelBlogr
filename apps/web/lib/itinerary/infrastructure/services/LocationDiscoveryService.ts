@@ -413,7 +413,7 @@ export class LocationDiscoveryService {
       slug,
       name: displayName,
       country: translatedCountry,
-      region: translatedRegion || null,
+      region: translatedRegion || '',
       latitude: parseFloat(geoData.lat),
       longitude: parseFloat(geoData.lng),
       description,
