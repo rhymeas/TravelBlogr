@@ -4,6 +4,10 @@ import { createServerSupabase } from '@/lib/supabase'
 import { SharedTripView } from '@/components/share/SharedTripView'
 import { ShareLinkAnalytics } from '@/components/share/ShareLinkAnalytics'
 
+// Force dynamic rendering - pages generated on-demand, not at build time
+export const dynamic = 'force-dynamic'
+export const dynamicParams = true
+
 interface SubdomainPageProps {
   params: {
     subdomain: string
@@ -204,18 +208,10 @@ export default async function SubdomainPage({ params, searchParams }: SubdomainP
 }
 
 // Generate static params for popular subdomains (optional optimization)
+// Disabled: Returns empty array to prevent build-time database access
+// Pages will be generated on-demand at runtime instead
 export async function generateStaticParams() {
-  const supabase = createServerSupabase()
-  
-  // Get most popular share links for pre-generation
-  const { data: popularLinks } = await supabase
-    .from('share_links')
-    .select('subdomain')
-    .eq('is_active', true)
-    .order('view_count', { ascending: false })
-    .limit(100)
-
-  return popularLinks?.map((link) => ({
-    subdomain: link.subdomain
-  })) || []
+  // Don't pre-generate any pages at build time
+  // This prevents build-time dependency on database/environment variables
+  return []
 }
