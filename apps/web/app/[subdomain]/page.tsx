@@ -172,15 +172,15 @@ export default async function SubdomainPage({ params, searchParams }: SubdomainP
   }
 
   // Increment view count (fire and forget)
+  // Fire-and-forget analytics update (no error handling needed)
   supabase
     .from('share_links')
-    .update({ 
+    .update({
       view_count: shareLink.view_count + 1,
       last_accessed: new Date().toISOString()
     })
     .eq('id', shareLink.id)
     .then(() => {})
-    .catch(console.error)
 
   // Track analytics if enabled
   const shouldTrackAnalytics = shareLink.settings?.enableAnalytics !== false

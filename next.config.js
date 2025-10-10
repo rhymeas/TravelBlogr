@@ -2,6 +2,7 @@
 const nextConfig = {
   experimental: {
     appDir: true,
+    serverComponentsExternalPackages: ['crawlee', 'playwright', 'cheerio'],
   },
   images: {
     // Enable image optimization

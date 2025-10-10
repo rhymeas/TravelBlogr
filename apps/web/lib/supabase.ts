@@ -43,13 +43,16 @@ export const getBrowserSupabase = () => {
   if (typeof window === 'undefined') {
     throw new Error('getBrowserSupabase can only be called on the client side')
   }
-  
+
   if (!browserClient) {
     browserClient = createBrowserSupabase()
   }
-  
+
   return browserClient
 }
+
+// Backward compatibility alias
+export const createClientSupabase = getBrowserSupabase
 
 // Hook for React components
 export const useSupabase = () => {
