@@ -196,7 +196,7 @@ export async function autoMigrateOnLogin(userId: string): Promise<void> {
       // Clear guest trips after successful migration
       clearGuestTrips()
     } else if (result.skippedCount > 0) {
-      toast.info(`All ${result.skippedCount} trip(s) already exist in your account`, {
+      toast(`All ${result.skippedCount} trip(s) already exist in your account`, {
         duration: 4000,
       })
       clearGuestTrips()
@@ -224,7 +224,7 @@ export async function triggerManualMigration(userId: string): Promise<MigrationR
   const guestTrips = getGuestTrips()
 
   if (guestTrips.length === 0) {
-    toast.info('No trips to import')
+    toast('No trips to import')
     return {
       success: true,
       migratedCount: 0,
@@ -243,7 +243,7 @@ export async function triggerManualMigration(userId: string): Promise<MigrationR
       toast.success(`Imported ${result.migratedCount} trip(s)!`)
       clearGuestTrips()
     } else {
-      toast.info('No new trips to import')
+      toast('No new trips to import')
     }
 
     return result

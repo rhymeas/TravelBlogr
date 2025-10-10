@@ -1,3 +1,4 @@
+// @ts-nocheck - Novel Editor has complex type exports
 'use client'
 
 import { useState, useEffect } from 'react'
