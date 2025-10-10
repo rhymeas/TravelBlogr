@@ -1,11 +1,7 @@
-import { Metadata } from 'next'
+'use client'
+
 import { Button } from '@/components/ui/Button'
 import { WifiOff, RefreshCw, Home, Plane } from 'lucide-react'
-
-export const metadata: Metadata = {
-  title: 'Offline | TravelBlogr',
-  description: 'You are currently offline. Some features may be limited.',
-}
 
 export default function OfflinePage() {
   return (
