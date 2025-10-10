@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerSupabase } from '@/lib/supabase'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// Force dynamic rendering for admin routes
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 /**
  * Fix Activity Descriptions for All Locations
- * 
+ *
  * This endpoint generates proper descriptions for activities that have:
  * - NULL descriptions
  * - Empty descriptions
@@ -14,7 +15,8 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PU
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // Initialize Supabase client at runtime (not build time)
+    const supabase = createServerSupabase()
     
     // Get query parameters
     const { searchParams } = new URL(request.url)
@@ -209,7 +211,8 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // Initialize Supabase client at runtime (not build time)
+    const supabase = createServerSupabase()
     
     const { searchParams } = new URL(request.url)
     const locationSlug = searchParams.get('slug')
