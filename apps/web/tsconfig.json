@@ -45,6 +45,7 @@
     "stores/**/*.tsx",
     "shims/**/*.ts",
     "shims/**/*.tsx",
+    "types/**/*.ts",
     ".next/types/**/*.ts"
   ]
 }
