@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Groq from 'groq-sdk'
+import { createGroqClient } from '@/lib/groq'
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY || ''
-})
+// Force dynamic rendering for AI routes
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
+    // Initialize Groq client at runtime (not build time)
+    const groq = createGroqClient()
+
     const { title, startDate, endDate } = await request.json()
 
     if (!title) {

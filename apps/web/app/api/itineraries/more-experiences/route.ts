@@ -4,17 +4,16 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import Groq from 'groq-sdk'
+import { createGroqClient } from '@/lib/groq'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY
-})
-
 export async function POST(request: NextRequest) {
   try {
+    // Initialize Groq client at runtime (not build time)
+    const groq = createGroqClient()
+
     const body = await request.json()
     const { location, interests, budget, existingActivities } = body
 
