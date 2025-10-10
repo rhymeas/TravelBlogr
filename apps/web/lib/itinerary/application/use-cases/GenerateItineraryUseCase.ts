@@ -10,7 +10,7 @@ import { plan as Plan } from '../../domain/entities/Itinerary'
 import { LocationRepository } from '../../infrastructure/repositories/LocationRepository'
 import { RouteCalculatorService } from '../services/RouteCalculatorService'
 import { GroqAIService } from '../services/GroqAIService'
-import { cachedItineraryRepository, CacheKey } from '../../infrastructure/repositories/CachedItineraryRepository'
+import { getCachedItineraryRepository, CacheKey } from '../../infrastructure/repositories/CachedItineraryRepository'
 
 export interface GenerateplanCommand {
   from: string // location slug or name
@@ -103,12 +103,13 @@ export class GenerateplanUseCase {
 
         // Try exact match first
         console.log('🔍 Checking cache for exact match...')
-        let cachedPlan = await cachedItineraryRepository.findByExactMatch(cacheParams)
+        const cacheRepo = getCachedItineraryRepository()
+        let cachedPlan = await cacheRepo.findByExactMatch(cacheParams)
 
         // If no exact match, try similar plans
         if (!cachedPlan) {
           console.log('🔍 Checking cache for similar plans...')
-          cachedPlan = await cachedItineraryRepository.findSimilar(cacheParams)
+          cachedPlan = await cacheRepo.findSimilar(cacheParams)
         }
 
         // If cache hit, return cached plan
@@ -222,7 +223,8 @@ export class GenerateplanUseCase {
         budget: command.budget || 'moderate'
       }
 
-      await cachedItineraryRepository.save(cacheParams, {
+      const cacheRepo = getCachedItineraryRepository()
+      await cacheRepo.save(cacheParams, {
         title: aiResult.title,
         summary: aiResult.summary,
         days: aiResult.days,
