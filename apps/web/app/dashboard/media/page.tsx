@@ -3,6 +3,9 @@ import { MediaManager } from '@/components/media/MediaManager'
 import { createServerSupabase } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
 
+// Force dynamic rendering - requires authentication, should not be static
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Media Library | TravelBlogr',
   description: 'Manage your travel photos, videos, and documents with advanced compression and organization features.',

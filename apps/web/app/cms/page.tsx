@@ -3,6 +3,9 @@ import { CMSDashboard } from '@/components/cms/CMSDashboard'
 import { createServerSupabase } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
 
+// Force dynamic rendering - requires authentication, should not be static
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Content Management | TravelBlogr',
   description: 'Create and manage your blog posts and content with our modern CMS.',
