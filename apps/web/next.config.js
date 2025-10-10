@@ -197,8 +197,8 @@ const nextConfig = {
   swcMinify: true,
   // Optimize for production
   productionBrowserSourceMaps: false,
-  // Webpack aliases to stub heavy libs until installed
-  webpack: (config) => {
+  // Webpack configuration
+  webpack: (config, { isServer }) => {
     config.resolve = config.resolve || {}
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
@@ -211,6 +211,25 @@ const nextConfig = {
       'leaflet/dist/leaflet.css': require('path').resolve(__dirname, 'shims/empty.css'),
       'mapbox-gl/dist/mapbox-gl.css': require('path').resolve(__dirname, 'shims/empty.css'),
     }
+
+    // Exclude server-only packages from client bundle
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        'puppeteer': false,
+        'crawlee': false,
+        '@crawlee/puppeteer': false,
+        'cheerio': false,
+        'undici': false,
+      }
+    }
+
+    // Mark server-only packages as external for server bundle
+    if (isServer) {
+      config.externals = config.externals || []
+      config.externals.push('puppeteer', 'crawlee', '@crawlee/puppeteer')
+    }
+
     return config
   },
   // Security headers + Performance headers
