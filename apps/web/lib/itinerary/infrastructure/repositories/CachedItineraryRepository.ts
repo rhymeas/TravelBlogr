@@ -4,10 +4,20 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// Helper function to create Supabase client at runtime
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Supabase configuration missing. Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.')
+  }
+
+  return createClient(supabaseUrl, supabaseKey)
+}
 
 export interface CacheKey {
   fromLocation: string
@@ -34,9 +44,14 @@ export interface CachedItinerary {
 }
 
 export class CachedItineraryRepository {
-  private supabase = createClient(supabaseUrl, supabaseKey)
+  private supabase: SupabaseClient
   private readonly CACHE_EXPIRATION_DAYS = 30
   private readonly DATE_RANGE_TOLERANCE_DAYS = 2
+
+  constructor() {
+    // Initialize Supabase client at runtime (not at module level)
+    this.supabase = getSupabaseClient()
+  }
 
   /**
    * Generate a deterministic cache key from request parameters
@@ -292,6 +307,20 @@ export class CachedItineraryRepository {
   }
 }
 
-// Singleton instance
-export const cachedItineraryRepository = new CachedItineraryRepository()
+// Lazy singleton instance - only created when first accessed (runtime, not build time)
+let _cachedItineraryRepositoryInstance: CachedItineraryRepository | null = null
 
+export function getCachedItineraryRepository(): CachedItineraryRepository {
+  if (!_cachedItineraryRepositoryInstance) {
+    _cachedItineraryRepositoryInstance = new CachedItineraryRepository()
+  }
+  return _cachedItineraryRepositoryInstance
+}
+
+// For backwards compatibility, export as named export
+// But this will now be a getter function, not a direct instance
+export const cachedItineraryRepository = {
+  get instance() {
+    return getCachedItineraryRepository()
+  }
+}
