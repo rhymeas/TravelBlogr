@@ -5,6 +5,10 @@ import { PhotoGalleryView } from '@/components/locations/PhotoGalleryView'
 import Link from 'next/link'
 import { ChevronLeft, Share2, Heart, X } from 'lucide-react'
 
+// Force dynamic rendering - page generated on-demand, not at build time
+export const dynamic = 'force-dynamic'
+export const dynamicParams = true
+
 interface PhotosPageProps {
   params: {
     slug: string
