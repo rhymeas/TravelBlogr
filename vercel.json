@@ -10,22 +10,19 @@
   "crons": [
     {
       "path": "/api/cron/sync-weather",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/cron/fix-missing-images",
-      "schedule": "0 */12 * * *",
-      "comment": "Fix missing location images every 12 hours"
+      "schedule": "0 6 * * *"
     },
     {
       "path": "/api/cron/fix-missing-regions",
-      "schedule": "0 */6 * * *",
-      "comment": "Fix missing location regions every 6 hours (batch of 5)"
+      "schedule": "0 12 * * *"
     },
     {
       "path": "/api/cron/location-health-check",
-      "schedule": "0 */8 * * *",
-      "comment": "Health check: fix placeholder images and bad descriptions every 8 hours"
+      "schedule": "0 18 * * *"
     }
   ]
 }
