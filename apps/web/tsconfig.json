@@ -43,6 +43,8 @@
     "lib/**/*.tsx",
     "stores/**/*.ts",
     "stores/**/*.tsx",
+    "shims/**/*.ts",
+    "shims/**/*.tsx",
     ".next/types/**/*.ts"
   ]
 }
