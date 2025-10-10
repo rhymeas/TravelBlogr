@@ -1,8 +1,5 @@
 'use client'
 
-// Force client-side rendering to avoid SSR document access issues
-export const dynamic = 'force-dynamic'
-
 import dynamic from 'next/dynamic'
 import { useAuth } from '@/hooks/useAuth'
 
