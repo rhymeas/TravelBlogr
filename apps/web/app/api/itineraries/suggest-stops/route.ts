@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { RouteCalculatorService } from '@/lib/itinerary/application/services/RouteCalculatorService'
+import { LocationRepository } from '@/lib/itinerary/infrastructure/repositories/LocationRepository'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -31,7 +32,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Use the existing route calculator to find stops
-    const routeCalculator = new RouteCalculatorService()
+    const locationRepo = new LocationRepository()
+    const routeCalculator = new RouteCalculatorService(locationRepo)
     
     try {
       const routeInfo = await routeCalculator.calculateRoute(from, to, 5) // Get up to 5 stops
