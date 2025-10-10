@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerSupabase } from '@/lib/supabase'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const supabase = createClient(supabaseUrl, supabaseKey)
+// Force dynamic rendering for cron routes
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 /**
  * Background Cron Job: Fix Missing Regions
- * 
+ *
  * Automatically fetches and updates missing regions for locations
  * using Nominatim reverse geocoding API.
- * 
+ *
  * Features:
  * - Processes in small batches (5 locations per run)
  * - Rate limiting (1 second delay between requests)
@@ -18,6 +18,8 @@ const supabase = createClient(supabaseUrl, supabaseKey)
  * - Runs every 6 hours
  */
 export async function GET(request: Request) {
+  // Initialize Supabase client at runtime (not build time)
+  const supabase = createServerSupabase()
   console.log('🌍 [CRON] Starting automated region fix job...')
 
   try {

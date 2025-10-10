@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerSupabase } from '@/lib/supabase'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+// Force dynamic rendering for search routes
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 interface LocationSearchResult {
   id?: string
@@ -27,6 +26,9 @@ interface LocationSearchResult {
  */
 export async function GET(request: NextRequest) {
   try {
+    // Initialize Supabase client at runtime (not build time)
+    const supabase = createServerSupabase()
+
     const searchParams = request.nextUrl.searchParams
     const query = searchParams.get('q')
     const limit = parseInt(searchParams.get('limit') || '10')

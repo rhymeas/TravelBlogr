@@ -12,14 +12,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerSupabase } from '@/lib/supabase'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
+// Force dynamic rendering for cron routes
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 export const maxDuration = 300 // 5 minutes max execution
 
 // Curated image sources for specific location types
@@ -34,6 +31,8 @@ const LOCATION_IMAGE_SOURCES = {
 
 export async function GET(request: NextRequest) {
   try {
+    // Initialize Supabase client at runtime (not build time)
+    const supabase = createServerSupabase()
     console.log('🏥 [HEALTH-CHECK] Starting location health check...')
 
     // Verify cron secret for security

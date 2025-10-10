@@ -1,20 +1,22 @@
 /**
  * Admin Endpoint: Clean Gallery Images
- * 
+ *
  * Removes placeholder images from gallery_images arrays
  * Keeps only real, relevant images
  */
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerSupabase } from '@/lib/supabase'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// Force dynamic rendering for admin routes
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function POST() {
   try {
+    // Initialize Supabase client at runtime (not build time)
+    const supabase = createServerSupabase()
+
     console.log('🧹 Starting gallery cleanup...')
 
     // Get all locations with gallery images
