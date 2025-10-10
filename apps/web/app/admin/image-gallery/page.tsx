@@ -1,5 +1,8 @@
 'use client'
 
+// Force dynamic rendering to prevent SSR issues with image loading
+export const dynamic = 'force-dynamic'
+
 /**
  * Admin Image Gallery - Endless Scroll
  * Fetch images for all locations and add them with one click
