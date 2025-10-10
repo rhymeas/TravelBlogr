@@ -8,26 +8,14 @@
 // })
 
 const nextConfig = {
-  // Output standalone for production deployment
+  // Output standalone for production deployment (Railway/Docker)
   output: 'standalone',
 
-  // Skip static generation errors during build (allow dynamic rendering)
-  // This prevents build failures when database tables don't exist yet
-  experimental: {
-    missingSuspenseWithCSRBailout: false,
-  },
+  // Enable React strict mode for better development experience
+  reactStrictMode: true,
 
-  // Exclude server-only packages from bundling (Next.js 14+ way)
-  serverComponentsExternalPackages: [
-    'puppeteer',
-    'puppeteer-core',
-    'crawlee',
-    '@crawlee/puppeteer',
-    '@crawlee/core',
-    '@crawlee/browser',
-    'cheerio',
-    'undici',
-  ],
+  // Skip trailing slash for cleaner URLs
+  trailingSlash: false,
   images: {
     remotePatterns: [
       {
