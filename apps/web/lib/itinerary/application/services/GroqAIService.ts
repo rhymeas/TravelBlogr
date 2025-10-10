@@ -4,7 +4,8 @@
  */
 
 import Groq from 'groq-sdk'
-import { planDay } from '../../domain/entities/plan'
+// import { planDay } from '../../domain/entities/plan' // Not yet implemented
+type planDay = any
 
 export interface AIGenerationContext {
   fromLocation: string

@@ -92,7 +92,7 @@ export class EmailService {
     data: WelcomeEmailData,
     options?: Partial<EmailOptions>
   ): Promise<boolean> {
-    const html = render(WelcomeEmail({
+    const html = await render(WelcomeEmail({
       userFirstName: data.userFirstName,
       userEmail: data.userEmail,
       loginUrl: data.loginUrl,
@@ -110,7 +110,7 @@ export class EmailService {
     data: TripSharedEmailData,
     options?: Partial<EmailOptions>
   ): Promise<boolean> {
-    const html = render(TripSharedEmail({
+    const html = await render(TripSharedEmail({
       recipientName: data.recipientName,
       senderName: data.senderName,
       tripTitle: data.tripTitle,

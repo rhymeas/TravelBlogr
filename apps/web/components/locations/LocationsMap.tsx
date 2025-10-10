@@ -73,8 +73,7 @@ export function LocationsMap({
           ]
         },
         center: [0, 20],
-        zoom: 2,
-        antialias: true
+        zoom: 2
       })
 
       // Track zoom level for clustering

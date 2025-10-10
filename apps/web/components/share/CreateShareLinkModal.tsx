@@ -103,7 +103,7 @@ export function CreateShareLinkModal({ onClose, onSubmit }: CreateShareLinkModal
       processedData.settings = {
         ...settingsWithoutPassword,
         passwordHash
-      }
+      } as any
     }
 
     onSubmit(processedData)

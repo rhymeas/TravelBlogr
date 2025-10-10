@@ -417,7 +417,7 @@ export class LocationDiscoveryService {
       latitude: parseFloat(geoData.lat),
       longitude: parseFloat(geoData.lng),
       description,
-      featured_image: featuredImage
+      featured_image: featuredImage || undefined
     }
 
     // Continue with database insertion...
@@ -884,7 +884,7 @@ Keep it informative, engaging, and specific. Write in English only.`
   private async validateImageUrl(url: string): Promise<boolean> {
     try {
       const response = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(5000) })
-      return response.ok && response.headers.get('content-type')?.startsWith('image/')
+      return response.ok && (response.headers.get('content-type')?.startsWith('image/') ?? false)
     } catch (error) {
       console.error(`  ⚠️ Image validation failed for ${url}:`, error)
       return false

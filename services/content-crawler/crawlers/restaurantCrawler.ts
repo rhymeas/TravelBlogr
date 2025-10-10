@@ -166,7 +166,7 @@ export async function saveRestaurantsToDatabase(
           location_id: locationId,
           name: restaurant.name,
           description: restaurant.description,
-          cuisine: restaurant.cuisine,
+          cuisine: Array.isArray(restaurant.cuisine) ? restaurant.cuisine[0] : restaurant.cuisine,
           price_range: restaurant.price_range,
           rating: restaurant.rating,
           review_count: restaurant.review_count,
@@ -283,7 +283,7 @@ export async function crawlAndSaveRestaurants(
     crawled: crawlResult.data.length,
     saved: saveResult.saved,
     errors: [
-      ...crawlResult.errors.map((e) => `Crawl: ${e.error}`),
+      ...(crawlResult.errors || []).map((e) => `Crawl: ${e.error}`),
       ...saveResult.errors,
     ],
   }

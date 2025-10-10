@@ -182,7 +182,7 @@ export function TripDiscovery({ currentUserId, className = '' }: TripDiscoveryPr
       }, {} as Record<string, number>)
 
       const sortedDestinations = Object.entries(destinationCounts)
-        .sort(([,a], [,b]) => b - a)
+        .sort(([,a], [,b]) => (b as number) - (a as number))
         .slice(0, 10)
         .map(([dest]) => dest)
 
