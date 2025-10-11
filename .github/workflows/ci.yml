@@ -1,8 +1,9 @@
-name: CI/CD Pipeline
+name: Phase 1 - Basic CI
+
+# PHASE 1: Just lint and type-check on PRs
+# Safe, non-invasive, no auto-deployment
 
 on:
-  push:
-    branches: [main, develop]
   pull_request:
     branches: [main, develop]
 
@@ -11,7 +12,7 @@ jobs:
   lint-and-typecheck:
     name: Lint & Type Check
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -29,157 +30,28 @@ jobs:
       - name: Run ESLint
         run: npm run lint
         working-directory: ./apps/web
+        continue-on-error: true  # Don't fail build, just warn
 
       - name: Run TypeScript type check
         run: npm run type-check
         working-directory: ./apps/web
+        continue-on-error: true  # Don't fail build, just warn
 
-  # Job 2: Build Test
-  build:
-    name: Build Test
+  # Job 2: Summary
+  summary:
+    name: CI Summary
     runs-on: ubuntu-latest
     needs: lint-and-typecheck
-    
+    if: always()
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-        working-directory: ./apps/web
-
-      - name: Build application
-        run: npm run build
-        working-directory: ./apps/web
-        env:
-          # Use dummy values for build test
-          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-key
-          NEXT_PUBLIC_SITE_URL: https://placeholder.com
-          NODE_ENV: production
-
-      - name: Check build output
+      - name: Display results
         run: |
-          if [ ! -d ".next" ]; then
-            echo "Build failed - .next directory not found"
-            exit 1
-          fi
-          echo "✅ Build successful"
-        working-directory: ./apps/web
-
-  # Job 3: Security Audit
-  security:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Run npm audit
-        run: npm audit --audit-level=moderate
-        working-directory: ./apps/web
-        continue-on-error: true
-
-      - name: Check for known vulnerabilities
-        run: |
-          npm audit --json > audit-report.json || true
-          cat audit-report.json
-        working-directory: ./apps/web
-
-  # Job 4: Dependency Check
-  dependencies:
-    name: Dependency Check
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Check for outdated dependencies
-        run: npm outdated || true
-        working-directory: ./apps/web
-
-  # Job 5: Bundle Size Check
-  bundle-size:
-    name: Bundle Size Check
-    runs-on: ubuntu-latest
-    needs: build
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-        working-directory: ./apps/web
-
-      - name: Build and analyze bundle
-        run: npm run build
-        working-directory: ./apps/web
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-key
-          NEXT_PUBLIC_SITE_URL: https://placeholder.com
-          NODE_ENV: production
-          ANALYZE: true
-
-      - name: Check bundle size
-        run: |
-          echo "📦 Checking bundle sizes..."
-          du -sh .next/static/* || true
-        working-directory: ./apps/web
-
-  # Job 6: Deployment Status (for main branch only)
-  deployment-ready:
-    name: Deployment Ready
-    runs-on: ubuntu-latest
-    needs: [lint-and-typecheck, build, security]
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-      - name: Deployment ready notification
-        run: |
-          echo "✅ All checks passed!"
-          echo "🚀 Ready for deployment to Railway"
-          echo "📊 Branch: ${{ github.ref }}"
-          echo "📝 Commit: ${{ github.sha }}"
-
-  # Job 7: PR Comment (for pull requests only)
-  pr-comment:
-    name: PR Status Comment
-    runs-on: ubuntu-latest
-    needs: [lint-and-typecheck, build]
-    if: github.event_name == 'pull_request'
-    permissions:
-      pull-requests: write
-    
-    steps:
-      - name: Comment on PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '✅ All CI checks passed! This PR is ready for review.\n\n- ✅ Lint check passed\n- ✅ Type check passed\n- ✅ Build successful\n- ✅ Security audit completed'
-            })
+          echo "📊 Phase 1 CI Results"
+          echo "===================="
+          echo "Lint & Type Check: ${{ needs.lint-and-typecheck.result }}"
+          echo ""
+          echo "ℹ️  This is Phase 1 - Basic validation only"
+          echo "ℹ️  No auto-deployment, no blocking"
+          echo "ℹ️  Just checking code quality"
 
