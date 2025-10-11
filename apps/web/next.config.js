@@ -8,8 +8,9 @@
 // })
 
 const nextConfig = {
-  // Output standalone for production deployment (Railway/Docker)
-  output: 'standalone',
+  // Standalone mode disabled - causes issues with Railway deployment
+  // Use standard Next.js server instead
+  // output: 'standalone',
 
   // Enable React strict mode for better development experience
   reactStrictMode: true,

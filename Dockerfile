@@ -55,7 +55,6 @@ RUN npm run build
 # Expose port (Railway will set PORT env var)
 EXPOSE 3000
 
-# Start the application using standalone server
-# Required when using output: 'standalone' in next.config.js
-CMD ["node", ".next/standalone/server.js"]
+# Start the application
+CMD ["npm", "start"]
 
