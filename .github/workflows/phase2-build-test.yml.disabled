@@ -1,0 +1,58 @@
+# PHASE 2: Build Testing (DISABLED)
+# 
+# To enable: Rename to phase2-build-test.yml (remove .disabled)
+# 
+# This adds:
+# - Production build testing
+# - Ensures code compiles successfully
+# - Still no auto-deployment
+
+name: Phase 2 - Build Test
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build-test:
+    name: Build Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+        working-directory: ./apps/web
+
+      - name: Build application
+        run: npm run build
+        working-directory: ./apps/web
+        env:
+          # Use placeholder values for build test
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-key
+          NEXT_PUBLIC_SITE_URL: https://placeholder.com
+          NODE_ENV: production
+
+      - name: Check build output
+        run: |
+          if [ ! -d ".next" ]; then
+            echo "❌ Build failed - .next directory not found"
+            exit 1
+          fi
+          echo "✅ Build successful"
+        working-directory: ./apps/web
+
+      - name: Build summary
+        run: |
+          echo "📦 Build completed successfully"
+          echo "📊 Next.js production build ready"
+

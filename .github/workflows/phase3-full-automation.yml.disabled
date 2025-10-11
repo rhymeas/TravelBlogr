@@ -1,0 +1,127 @@
+# PHASE 3: Full Automation (DISABLED)
+# 
+# To enable: Rename to phase3-full-automation.yml (remove .disabled)
+# 
+# This adds:
+# - Auto-labeling PRs
+# - PR status comments
+# - Security audits
+# - Bundle size tracking
+
+name: Phase 3 - Full Automation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  # Auto-label based on changed files
+  auto-label:
+    name: Auto-label PR
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Label based on files changed
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            const labels = [];
+            
+            if (files.some(f => f.filename.startsWith('docs/'))) {
+              labels.push('documentation');
+            }
+            
+            if (files.some(f => f.filename.includes('components/'))) {
+              labels.push('ui');
+            }
+            
+            if (files.some(f => f.filename.includes('api/'))) {
+              labels.push('backend');
+            }
+            
+            if (files.some(f => f.filename.includes('.github/workflows/'))) {
+              labels.push('deployment');
+            }
+            
+            if (files.some(f => f.filename === 'package.json')) {
+              labels.push('dependencies');
+            }
+            
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: labels
+              });
+            }
+
+  # Security audit
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+        working-directory: ./apps/web
+        continue-on-error: true
+
+  # PR status comment
+  pr-comment:
+    name: PR Status Comment
+    runs-on: ubuntu-latest
+    needs: [auto-label, security]
+    if: always()
+    permissions:
+      pull-requests: write
+    
+    steps:
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labelStatus = '${{ needs.auto-label.result }}';
+            const securityStatus = '${{ needs.security.result }}';
+            
+            const body = `## 🤖 Automated PR Checks
+            
+            ✅ **Auto-labeling**: ${labelStatus}
+            ${securityStatus === 'success' ? '✅' : '⚠️'} **Security**: ${securityStatus}
+            
+            ### Next Steps
+            - Review the changes
+            - Ensure all checks pass
+            - Merge when ready
+            
+            ---
+            *Phase 3 automation active*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
