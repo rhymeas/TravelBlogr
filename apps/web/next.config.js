@@ -7,6 +7,30 @@
 //   disable: process.env.NODE_ENV === 'development'
 // })
 
+// Validate required environment variables at build time
+const requiredEnvVars = [
+  'NEXT_PUBLIC_SUPABASE_URL',
+  'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+]
+
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar])
+
+if (missingEnvVars.length > 0) {
+  console.error('❌ Missing required environment variables:')
+  missingEnvVars.forEach(envVar => console.error(`   - ${envVar}`))
+  console.error('\n💡 Make sure these are set in Railway → Variables tab')
+  console.error('💡 After adding variables, trigger a rebuild (not just restart)\n')
+
+  // Don't throw in development to allow local .env.local setup
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Missing required environment variables')
+  }
+} else {
+  console.log('✅ All required environment variables are set')
+  console.log('   - NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...')
+  console.log('   - NEXT_PUBLIC_SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20) + '...')
+}
+
 const nextConfig = {
   // Standalone mode disabled - causes issues with Railway deployment
   // Use standard Next.js server instead

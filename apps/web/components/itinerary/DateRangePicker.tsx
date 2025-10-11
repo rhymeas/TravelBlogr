@@ -67,7 +67,7 @@ export function DateRangePicker({ startDate, endDate, onSelect }: DateRangePicke
 
           {/* Calendar - Centered on Screen */}
           <div className="fixed top-1/2 left-1/2 bg-white rounded-2xl shadow-2xl border border-gray-200 z-[110] p-3" style={{ width: 'fit-content', minWidth: '650px', maxWidth: '750px', transform: 'translate(-50%, -50%) scale(0.9)' }}>
-            <style jsx global>{`
+            <style>{`
               .rdp {
                 --rdp-cell-size: 28px;
                 --rdp-accent-color: #000;

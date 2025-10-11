@@ -20,10 +20,22 @@ export const createServerSupabase = () => {
 
 // Client-side Supabase client for browser
 export const createBrowserSupabase = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  // These MUST be accessed at build time for Next.js to embed them
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+
+  // Debug logging (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Supabase URL:', supabaseUrl ? '✅ Set' : '❌ Missing')
+    console.log('Supabase Anon Key:', supabaseAnonKey ? '✅ Set' : '❌ Missing')
+  }
 
   if (!supabaseUrl || !supabaseAnonKey) {
+    const error = `Missing Supabase environment variables:
+      NEXT_PUBLIC_SUPABASE_URL: ${supabaseUrl ? '✅' : '❌'}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${supabaseAnonKey ? '✅' : '❌'}
+    `
+    console.error(error)
     throw new Error('Missing Supabase environment variables')
   }
 
@@ -67,26 +79,8 @@ export const useSupabase = () => {
     })
   }
 
-  // Initialize browser client if not already done
-  if (!browserClient) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Missing Supabase environment variables')
-    }
-
-    browserClient = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-      },
-    })
-  }
-
-  return browserClient
+  // Use the singleton pattern from getBrowserSupabase
+  return getBrowserSupabase()
 }
 
 // Storage helpers
