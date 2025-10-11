@@ -86,7 +86,7 @@ export function TravelTimeSlider({ value, onChange }: TravelTimeSliderProps) {
         </svg>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .slider::-webkit-slider-thumb {
           appearance: none;
           width: 18px;

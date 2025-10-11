@@ -9,7 +9,7 @@ const badgeVariants = {
   outline: 'text-gray-900 border-gray-300',
 }
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface BadgeProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'popover'> {
   variant?: 'default' | 'secondary' | 'destructive' | 'outline'
 }
 

@@ -199,7 +199,7 @@ export function LeafletMap({
   return (
     <>
       {/* Custom CSS for numbered markers */}
-      <style jsx global>{`
+      <style>{`
         .numbered-marker {
           width: 30px;
           height: 30px;

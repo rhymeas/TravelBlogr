@@ -43,7 +43,7 @@ Tabs.displayName = 'Tabs'
 
 const TabsList = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
+  Omit<React.HTMLAttributes<HTMLDivElement>, 'popover'>
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
@@ -56,7 +56,7 @@ const TabsList = React.forwardRef<
 ))
 TabsList.displayName = 'TabsList'
 
-interface TabsTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface TabsTriggerProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'popover'> {
   value: string
 }
 
@@ -87,7 +87,7 @@ const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
 )
 TabsTrigger.displayName = 'TabsTrigger'
 
-interface TabsContentProps extends React.HTMLAttributes<HTMLDivElement> {
+interface TabsContentProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'popover'> {
   value: string
 }
 
