@@ -6,10 +6,11 @@ TravelBlogr is a modern travel blogging platform that revolutionizes how travele
 
 ## 📚 Documentation
 
-- **[Quick Start Guide](./QUICK_START.md)** - Get started in 5 minutes
-- **[Development Workflow](./DEVELOPMENT_WORKFLOW.md)** - Daily development best practices
-- **[Deployment Checklist](./DEPLOYMENT_CHECKLIST.md)** - Pre-deploy verification steps
-- **[Architecture Rules](./rules.md)** - Coding standards and patterns
+- **[Quick Start Guide](./docs/QUICK_START.md)** - Get started in 5 minutes
+- **[Deployment Guide](./docs/DEPLOYMENT.md)** - Complete Railway deployment instructions
+- **[Architecture Rules](./.augment/rules/imported/rules.md)** - Coding standards and patterns
+- **[Image System](./docs/IMAGE_SYSTEM_AUTOMATION.md)** - Image fetching and optimization
+- **[Itinerary Planner](./docs/ITINERARY_SETUP.md)** - AI-powered trip planning
 
 ## 🌟 Features
 
@@ -136,12 +137,32 @@ npm run type-check
 
 ## 📦 Deployment
 
-### Vercel (Recommended)
-1. Connect your GitHub repository to Vercel
-2. Set environment variables in Vercel dashboard
-3. Deploy automatically on push to main
+### Railway (Current Platform)
 
-### Docker
+**See full guide:** [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)
+
+**Quick Deploy:**
+
+1. **Connect GitHub to Railway**
+   - Railway Dashboard → New Project → Deploy from GitHub
+   - Select: `rhymeas/TravelBlogr`
+
+2. **Add Environment Variables**
+   - Copy from `apps/web/.env.local`
+   - Add to Railway → Variables tab
+   - **Critical:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+3. **Generate Public Domain**
+   - Settings → Networking → Generate Domain
+   - Test: `https://your-app-production.up.railway.app`
+
+4. **Add Custom Domain (Optional)**
+   - Settings → Networking → Add Custom Domain
+   - Configure DNS CNAME to Railway domain
+
+**Important:** Changing `NEXT_PUBLIC_*` variables requires a **rebuild**, not just restart!
+
+### Docker (Alternative)
 ```bash
 # Build the image
 docker build -t travelblogr .
