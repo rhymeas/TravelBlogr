@@ -720,3 +720,205 @@ export const useTrip = (tripId: string) => {
 - [ ] Regular dependency updates
 - [ ] Security headers configured
 - [ ] Data encryption at rest and in transit
+
+---
+
+## 🚀 Deployment Rules (CRITICAL)
+
+### **Environment Variables - Build vs Runtime**
+
+**CRITICAL RULE: `NEXT_PUBLIC_*` variables are baked into the build at BUILD TIME, not runtime!**
+
+```typescript
+// ❌ WRONG: Changing these in Railway requires REBUILD, not just restart
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+NEXT_PUBLIC_SITE_URL=...
+
+// ✅ CORRECT: These can be changed at runtime (server-side only)
+SUPABASE_SERVICE_ROLE_KEY=...
+GROQ_API_KEY=...
+DATABASE_URL=...
+```
+
+### **Deployment Workflow**
+
+1. **ALWAYS test locally first:**
+   ```bash
+   npm run build  # Test production build
+   npm start      # Test production server
+   ```
+
+2. **NEVER push directly to main** - Use feature branches:
+   ```bash
+   git checkout -b feature/my-feature
+   # Make changes, test thoroughly
+   git push origin feature/my-feature
+   # Create PR, review, then merge
+   ```
+
+3. **After adding/changing `NEXT_PUBLIC_*` variables:**
+   ```bash
+   # Trigger rebuild (not just restart)
+   git commit --allow-empty -m "Trigger rebuild for env vars"
+   git push
+   ```
+
+4. **Monitor deployment:**
+   - Watch Railway build logs for errors
+   - Check deploy logs for "Ready in XXXms"
+   - Test critical user flows immediately
+   - Monitor for 10-15 minutes after deploy
+
+### **Railway-Specific Rules**
+
+1. **Port Configuration:**
+   - ✅ Let Railway auto-detect port (don't set PORT env var)
+   - ✅ Next.js uses port 3000 locally, Railway assigns port dynamically
+   - ✅ Railway reads port from logs: `- Network: http://0.0.0.0:8080`
+
+2. **Domain Setup:**
+   - ✅ Generate Railway domain FIRST: `your-app-production.up.railway.app`
+   - ✅ Test Railway domain before adding custom domain
+   - ✅ Add custom domain in Railway → Settings → Networking
+   - ✅ Configure DNS CNAME to point to Railway domain
+   - ✅ Wait 5-30 minutes for DNS propagation
+
+3. **Build Configuration:**
+   - ✅ Root Directory: Leave blank (auto-detected)
+   - ✅ Build Command: `npm run build` (from package.json)
+   - ✅ Start Command: `npm start` (from package.json)
+   - ✅ Install Command: `npm install` (auto-detected)
+
+### **Common Deployment Errors & Fixes**
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| "Missing Supabase environment variables" | Env vars not set or not rebuilt | Add vars → Trigger rebuild (git push) |
+| "502 Bad Gateway" | App crashed or not responding | Check deploy logs for errors |
+| "Not Found - train has not arrived" | Public domain not generated | Settings → Networking → Generate Domain |
+| "Application error: client-side exception" | Missing `NEXT_PUBLIC_*` vars | Add vars → Rebuild (not restart) |
+| Build fails with TypeScript errors | Code errors not caught locally | Run `npm run build` locally first |
+
+### **Pre-Deployment Checklist**
+
+Before every deployment:
+
+- [ ] Run `npm run build` locally - no errors
+- [ ] Run `npm run type-check` - no TypeScript errors
+- [ ] Run `npm run lint` - no ESLint errors
+- [ ] Test critical user flows locally
+- [ ] All environment variables documented
+- [ ] `.env.local` not committed to git
+- [ ] Feature branch tested and reviewed
+- [ ] Database migrations applied (if any)
+
+### **Post-Deployment Checklist**
+
+After every deployment:
+
+- [ ] Railway shows "Deployed" with green checkmark
+- [ ] Railway domain loads without errors
+- [ ] Custom domain loads (if configured)
+- [ ] No errors in browser console
+- [ ] User registration/login works
+- [ ] Critical features tested (trips, locations, images)
+- [ ] Performance acceptable (< 3s page load)
+- [ ] Monitor logs for 10-15 minutes
+
+### **Rollback Procedure**
+
+If deployment fails:
+
+1. **Quick rollback in Railway:**
+   - Deployments tab → Previous deployment → "⋮" → "Redeploy"
+
+2. **Git rollback:**
+   ```bash
+   git revert HEAD
+   git push origin main
+   ```
+
+3. **Emergency fix:**
+   - Fix issue in new branch
+   - Test thoroughly
+   - Deploy via PR
+
+### **Documentation References**
+
+- **Full Deployment Guide:** `docs/DEPLOYMENT.md`
+- **Quick Start:** `docs/QUICK_START.md`
+- **Architecture:** `README.md`
+
+---
+
+## 📝 Development Workflow Rules
+
+### **Before Making Changes**
+
+1. **ALWAYS pull latest code:**
+   ```bash
+   git checkout main
+   git pull origin main
+   ```
+
+2. **Create feature branch:**
+   ```bash
+   git checkout -b feature/descriptive-name
+   ```
+
+3. **Understand the codebase:**
+   - Use `codebase-retrieval` for high-level understanding
+   - Use `grep-search` for finding specific code
+   - Use `view` for reading files
+   - Check `git-commit-retrieval` for similar past changes
+
+### **While Making Changes**
+
+1. **Follow existing patterns:**
+   - Check how similar features are implemented
+   - Use same file structure and naming conventions
+   - Follow TypeScript types and interfaces
+
+2. **Test incrementally:**
+   - Test after each significant change
+   - Don't accumulate untested changes
+   - Use `npm run dev` for live testing
+
+3. **Commit frequently:**
+   - Small, focused commits
+   - Descriptive commit messages
+   - Follow conventional commits format
+
+### **Before Committing**
+
+1. **Run all checks:**
+   ```bash
+   npm run type-check  # TypeScript
+   npm run lint        # ESLint
+   npm run build       # Production build
+   npm test            # Tests (if any)
+   ```
+
+2. **Review changes:**
+   ```bash
+   git diff            # Review all changes
+   git status          # Check staged files
+   ```
+
+3. **Clean commit:**
+   ```bash
+   git add <specific-files>  # Don't use git add .
+   git commit -m "feat: descriptive message"
+   ```
+
+### **Never Do This**
+
+- ❌ Push directly to main
+- ❌ Commit `.env.local` or secrets
+- ❌ Skip testing before commit
+- ❌ Make unrelated changes in same commit
+- ❌ Use `git add .` without reviewing
+- ❌ Deploy without testing locally
+- ❌ Change production env vars without rebuild
+- ❌ Ignore TypeScript/ESLint errors
