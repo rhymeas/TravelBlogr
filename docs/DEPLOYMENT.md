@@ -65,6 +65,7 @@ UNSPLASH_ACCESS_KEY=...
 1. **`NEXT_PUBLIC_*` variables are baked into the build** - Changing them requires a rebuild
 2. **Never commit `.env.local` to git** - It's in `.gitignore` for security
 3. **Service role key is SECRET** - Only use server-side, never expose to client
+4. **Dockerfile handles env vars automatically** - Railway env vars are passed as ARG during build
 
 ---
 
@@ -80,10 +81,11 @@ UNSPLASH_ACCESS_KEY=...
    ```
 
 2. **Configure Build Settings**
+   - **Builder**: Dockerfile (configured in `railway.json`)
    - **Root Directory**: Leave blank (auto-detected)
-   - **Build Command**: `npm run build` (auto-detected from package.json)
-   - **Start Command**: `npm start` (auto-detected)
-   - **Port**: `8080` (auto-detected from Next.js logs)
+   - **Build Command**: Handled by Dockerfile
+   - **Start Command**: `npm start` (configured in `railway.json`)
+   - **Port**: `3000` (exposed in Dockerfile, Railway auto-detects)
 
 ### Step 2: Add Environment Variables
 
