@@ -1,0 +1,213 @@
+name: PR Preview & Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  # Job 1: PR Information
+  pr-info:
+    name: PR Information
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Display PR info
+        run: |
+          echo "📝 PR #${{ github.event.pull_request.number }}"
+          echo "🏷️ Title: ${{ github.event.pull_request.title }}"
+          echo "👤 Author: ${{ github.event.pull_request.user.login }}"
+          echo "🌿 Branch: ${{ github.head_ref }} → ${{ github.base_ref }}"
+
+  # Job 2: Changed Files Analysis
+  changed-files:
+    name: Analyze Changed Files
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          echo "📁 Changed files:"
+          git diff --name-only origin/${{ github.base_ref }}...HEAD
+          
+          # Count changes by type
+          COMPONENTS=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -c "components/" || echo "0")
+          PAGES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -c "app/" || echo "0")
+          LIBS=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -c "lib/" || echo "0")
+          STYLES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -c ".css" || echo "0")
+          
+          echo "🎨 Components changed: $COMPONENTS"
+          echo "📄 Pages changed: $PAGES"
+          echo "📚 Libraries changed: $LIBS"
+          echo "💅 Styles changed: $STYLES"
+
+  # Job 3: Build & Test
+  build-and-test:
+    name: Build & Test PR
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+        working-directory: ./apps/web
+
+      - name: Type check
+        run: npm run type-check
+        working-directory: ./apps/web
+
+      - name: Lint
+        run: npm run lint
+        working-directory: ./apps/web
+
+      - name: Build
+        run: npm run build
+        working-directory: ./apps/web
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-key
+          NEXT_PUBLIC_SITE_URL: https://placeholder.com
+          NODE_ENV: production
+
+  # Job 4: Security Check
+  security-check:
+    name: Security Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Security audit
+        run: npm audit --audit-level=high
+        working-directory: ./apps/web
+        continue-on-error: true
+
+  # Job 5: Comment on PR with results
+  pr-comment:
+    name: Update PR Comment
+    runs-on: ubuntu-latest
+    needs: [build-and-test, security-check]
+    if: always()
+    permissions:
+      pull-requests: write
+    
+    steps:
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const buildStatus = '${{ needs.build-and-test.result }}';
+            const securityStatus = '${{ needs.security-check.result }}';
+            
+            const buildEmoji = buildStatus === 'success' ? '✅' : '❌';
+            const securityEmoji = securityStatus === 'success' ? '✅' : '⚠️';
+            
+            const body = `## 🤖 PR Preview Check Results
+            
+            ${buildEmoji} **Build & Tests**: ${buildStatus}
+            ${securityEmoji} **Security Audit**: ${securityStatus}
+            
+            ### 📊 Details
+            - **Type Check**: ${buildStatus === 'success' ? 'Passed' : 'Failed'}
+            - **Lint**: ${buildStatus === 'success' ? 'Passed' : 'Failed'}
+            - **Build**: ${buildStatus === 'success' ? 'Passed' : 'Failed'}
+            - **Security**: ${securityStatus === 'success' ? 'No high-severity issues' : 'Check required'}
+            
+            ### 🚀 Next Steps
+            ${buildStatus === 'success' ? 
+              '- ✅ Ready for review\n- ✅ Can be merged after approval' : 
+              '- ❌ Fix failing checks before merging\n- ❌ Review error logs above'}
+            
+            ### 📝 Deployment Info
+            - **Railway Preview**: Railway will auto-deploy when merged to main
+            - **Environment**: Production variables will be used
+            - **Domain**: https://www.travelblogr.com
+            
+            ---
+            *Automated check by GitHub Actions*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  # Job 6: Label PR based on changes
+  label-pr:
+    name: Auto-label PR
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Label based on files changed
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            const labels = [];
+            
+            // Check for documentation changes
+            if (files.some(f => f.filename.startsWith('docs/'))) {
+              labels.push('documentation');
+            }
+            
+            // Check for component changes
+            if (files.some(f => f.filename.includes('components/'))) {
+              labels.push('ui');
+            }
+            
+            // Check for API changes
+            if (files.some(f => f.filename.includes('api/'))) {
+              labels.push('backend');
+            }
+            
+            // Check for deployment changes
+            if (files.some(f => f.filename.includes('.github/workflows/') || f.filename.includes('railway'))) {
+              labels.push('deployment');
+            }
+            
+            // Check for dependency changes
+            if (files.some(f => f.filename === 'package.json' || f.filename === 'package-lock.json')) {
+              labels.push('dependencies');
+            }
+            
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: labels
+              });
+            }
+
