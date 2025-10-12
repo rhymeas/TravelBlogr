@@ -1,13 +1,15 @@
 /**
  * Groq AI Client Helper
- * 
+ *
  * Centralized Groq client creation for API routes.
  * Always initialize at runtime (inside route handlers), never at module level.
- * 
+ *
+ * Supports Helicone monitoring for zero-cost AI request tracking.
+ *
  * Usage:
  * ```typescript
  * import { createGroqClient } from '@/lib/groq'
- * 
+ *
  * export async function POST(request: NextRequest) {
  *   const groq = createGroqClient()
  *   const response = await groq.chat.completions.create({ ... })
@@ -18,13 +20,14 @@
 import Groq from 'groq-sdk'
 
 /**
- * Create a Groq client instance
- * 
+ * Create a Groq client instance with optional Helicone monitoring
+ *
  * @returns Groq client configured with API key from environment
  * @throws Error if GROQ_API_KEY is not set
  */
 export function createGroqClient(): Groq {
   const apiKey = process.env.GROQ_API_KEY
+  const heliconeKey = process.env.HELICONE_API_KEY
 
   if (!apiKey) {
     throw new Error(
@@ -33,6 +36,18 @@ export function createGroqClient(): Groq {
     )
   }
 
+  // If Helicone is configured, use it for monitoring
+  if (heliconeKey) {
+    return new Groq({
+      apiKey,
+      baseURL: 'https://groq.helicone.ai/v1',
+      defaultHeaders: {
+        'Helicone-Auth': `Bearer ${heliconeKey}`,
+      },
+    })
+  }
+
+  // Otherwise, use standard Groq client
   return new Groq({
     apiKey,
   })

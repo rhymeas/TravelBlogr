@@ -4,13 +4,11 @@
 
 TravelBlogr is a modern travel blogging platform that revolutionizes how travelers document and share their journeys. Create one trip and share it in completely different ways depending on your audience.
 
-## 📚 Documentation
+## 🚀 Quick Links
 
-- **[Quick Start Guide](./docs/QUICK_START.md)** - Get started in 5 minutes
-- **[Deployment Guide](./docs/DEPLOYMENT.md)** - Complete Railway deployment instructions
-- **[Architecture Rules](./.augment/rules/imported/rules.md)** - Coding standards and patterns
-- **[Image System](./docs/IMAGE_SYSTEM_AUTOMATION.md)** - Image fetching and optimization
-- **[Itinerary Planner](./docs/ITINERARY_SETUP.md)** - AI-powered trip planning
+- **[Deploy to Railway](./DEPLOY.md)** - One command deployment
+- **[Quick Start](./docs/QUICK_START.md)** - Get started in 5 minutes
+- **[Rules](./.augment/rules/imported/rules.md)** - Coding standards
 
 ## 🌟 Features
 

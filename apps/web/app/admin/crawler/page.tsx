@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic'
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Loader2, Cloud, UtensilsCrossed, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { AdminBreadcrumb } from '@/components/admin/AdminNav'
 
 interface CrawlerResult {
   success: boolean
@@ -137,17 +138,18 @@ export default function CrawlerAdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Content Crawler Dashboard
-          </h1>
-          <p className="text-gray-600">
-            Manually trigger crawlers to fetch restaurant data and weather information
-          </p>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-6">
+        <AdminBreadcrumb currentPage="Crawler" />
+        <h1 className="text-3xl font-bold text-gray-900 mt-2 mb-2">
+          Content Crawler Dashboard
+        </h1>
+        <p className="text-gray-600">
+          Manually trigger crawlers to fetch restaurant data and weather information
+        </p>
+      </div>
 
+      <div className="max-w-4xl mx-auto">
         {/* Weather Sync Section */}
         <div className="bg-white shadow rounded-lg p-6 mb-6">
           <div className="flex items-center mb-4">
