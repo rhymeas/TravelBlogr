@@ -21,6 +21,7 @@ import { SimpleLocationMap } from '@/components/maps/SimpleLocationMap'
 import { LocationImageGallery } from './LocationImageGallery'
 import { LocationRating } from './LocationRating'
 import { LocationViewTracker } from './LocationViewTracker'
+import { NotesWidget } from '@/components/notes/NotesWidget'
 
 // Dynamic import to avoid SSR issues with emoji-picker-react
 const LocationCommentSection = dynamic(
@@ -90,7 +91,7 @@ function LocationDetailSkeleton() {
 }
 
 export function LocationDetailTemplate({ location, relatedLocations }: LocationDetailTemplateProps) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -195,6 +196,18 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
                 {location.description}
               </p>
             </Card>
+
+            {/* Personal Notes Widget */}
+            {isAuthenticated && (
+              <div className="mb-8">
+                <NotesWidget
+                  type="location"
+                  itemId={location.id}
+                  itemName={location.name}
+                  userId={user?.id}
+                />
+              </div>
+            )}
 
             {/* CMS-Driven Content Sections */}
             <LocationActivities
