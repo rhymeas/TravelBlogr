@@ -15,6 +15,7 @@ export const dynamic = 'force-dynamic'
  */
 
 import { useState } from 'react'
+import { AdminBreadcrumb } from '@/components/admin/AdminNav'
 
 interface AutoFillResponse {
   success: boolean
@@ -90,8 +91,11 @@ export default function AutoFillPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    <div className="container mx-auto px-4 py-8">
       <div className="max-w-3xl mx-auto">
+        <div className="mb-6">
+          <AdminBreadcrumb currentPage="Auto-Fill" />
+        </div>
         <div className="bg-white rounded-lg shadow-lg p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             🪄 Auto-Fill Location Content
