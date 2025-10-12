@@ -177,6 +177,27 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Gallery CTA - Prominent */}
+        <section className="py-12 bg-gradient-to-r from-rausch-50 to-babu-50">
+          <div className="mx-auto max-w-7xl px-6 lg:px-8">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                ✨ Need Inspiration?
+              </h2>
+              <p className="text-lg text-gray-700 mb-6 max-w-2xl mx-auto">
+                Check out our curated collection of family-friendly travel guides.
+                See real itineraries and get ideas for your next adventure!
+              </p>
+              <Button asChild size="lg" className="bg-rausch-500 hover:bg-rausch-600 text-white">
+                <Link href="/gallery" className="flex items-center gap-2">
+                  <Compass className="h-5 w-5" />
+                  View Sample Travel Guides
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+
         {/* Feature Cards - Below Hero */}
         <section className="py-16 bg-white">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
