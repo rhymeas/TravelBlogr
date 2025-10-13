@@ -88,8 +88,8 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
       {/* Grid View */}
       {viewMode === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {locations.map((location) => (
-            <LocationCard key={location.id} location={location} />
+          {locations.map((location, index) => (
+            <LocationCard key={location.id} location={location} priority={index < 6} />
           ))}
         </div>
       )}
@@ -97,8 +97,8 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
       {/* List View - 2 Column Layout */}
       {viewMode === 'list' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {locations.map((location) => (
-            <LocationListItem key={location.id} location={location} />
+          {locations.map((location, index) => (
+            <LocationListItem key={location.id} location={location} priority={index < 6} />
           ))}
         </div>
       )}
@@ -106,7 +106,7 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
   )
 }
 
-function LocationCard({ location }: { location: Location }) {
+function LocationCard({ location, priority = false }: { location: Location; priority?: boolean }) {
   const latestPost = location.location_posts?.[0]
   const formatted = formatLocationName(location.name)
 
@@ -120,6 +120,7 @@ function LocationCard({ location }: { location: Location }) {
             alt={location.name}
             fill
             preset="card"
+            priority={priority}
             className="object-cover group-hover:scale-105 transition-transform duration-500"
           />
 
@@ -215,7 +216,7 @@ function LocationCard({ location }: { location: Location }) {
   )
 }
 
-function LocationListItem({ location }: { location: Location }) {
+function LocationListItem({ location, priority = false }: { location: Location; priority?: boolean }) {
   const latestPost = location.location_posts?.[0]
   const formatted = formatLocationName(location.name)
 
@@ -229,6 +230,7 @@ function LocationListItem({ location }: { location: Location }) {
             alt={location.name}
             fill
             preset="thumbnail"
+            priority={priority}
             className="object-cover rounded-l-lg"
           />
 

@@ -8,6 +8,7 @@ TravelBlogr is a modern travel blogging platform that revolutionizes how travele
 
 - **[Deploy to Railway](./DEPLOY.md)** - One command deployment
 - **[Quick Start](./docs/QUICK_START.md)** - Get started in 5 minutes
+- **[Cloudinary CDN Setup](./docs/CLOUDINARY_SETUP.md)** - 80% faster images (free!)
 - **[Rules](./.augment/rules/imported/rules.md)** - Coding standards
 
 ## 🌟 Features
@@ -78,9 +79,10 @@ This project follows Domain-Driven Design principles with Clean Architecture:
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 18+ 
+- Node.js 18+
 - npm/yarn/pnpm
 - Supabase account
+- Cloudinary account (free - for image CDN)
 - Mapbox account (optional)
 
 ### Installation
@@ -98,10 +100,13 @@ This project follows Domain-Driven Design principles with Clean Architecture:
 
 3. **Set up environment variables**
    ```bash
-   cp .env.local.example .env.local
+   cp .env.example apps/web/.env.local
    ```
-   
-   Fill in your Supabase and other service credentials.
+
+   Fill in your credentials:
+   - Supabase URL and keys
+   - Cloudinary cloud name (see [Cloudinary Setup](./docs/CLOUDINARY_SETUP.md))
+   - Other optional services
 
 4. **Set up the database**
    ```bash

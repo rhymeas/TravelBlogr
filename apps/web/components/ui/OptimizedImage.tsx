@@ -3,6 +3,7 @@
 import Image, { ImageProps } from 'next/image'
 import { useState } from 'react'
 import { getBlurDataURL, getResponsiveSizes } from '@/lib/image-loader'
+import { getCDNUrl, CDN_PRESETS } from '@/lib/image-cdn'
 
 interface OptimizedImageProps extends Omit<ImageProps, 'loader' | 'placeholder' | 'blurDataURL'> {
   /**
@@ -42,7 +43,14 @@ export function OptimizedImage({
   priority = false,
   ...props
 }: OptimizedImageProps) {
-  const [imgSrc, setImgSrc] = useState(src)
+  // ✅ Route through Cloudinary CDN for external images
+  // Only apply CDN to string URLs (not StaticImport objects)
+  const qualityNum = typeof quality === 'number' ? quality : parseInt(quality as string, 10)
+  const cdnSrc = typeof src === 'string'
+    ? getCDNUrl(src, preset ? CDN_PRESETS[preset] : { quality: qualityNum })
+    : src
+
+  const [imgSrc, setImgSrc] = useState(cdnSrc)
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
 
