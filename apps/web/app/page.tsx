@@ -99,17 +99,8 @@ const tripExamples = [
 export default function HomePage() {
   const { isAuthenticated, isLoading } = useAuth()
 
-  // Show loading state while checking authentication
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rausch-500"></div>
-      </div>
-    )
-  }
-
-  // Show dashboard for authenticated users
-  if (isAuthenticated) {
+  // Show dashboard for authenticated users (don't wait for loading)
+  if (isAuthenticated && !isLoading) {
     return <DashboardLanding />
   }
 
@@ -189,7 +180,7 @@ export default function HomePage() {
                 See real itineraries and get ideas for your next adventure!
               </p>
               <Button asChild size="lg" className="bg-rausch-500 hover:bg-rausch-600 text-white">
-                <Link href="/gallery" className="flex items-center gap-2">
+                <Link href="/trips-gallery" className="flex items-center gap-2">
                   <Compass className="h-5 w-5" />
                   View Sample Travel Guides
                 </Link>

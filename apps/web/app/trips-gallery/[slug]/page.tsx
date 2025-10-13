@@ -77,7 +77,7 @@ export default async function GalleryDetailPage({ params }: { params: { slug: st
         <div className="absolute inset-0 flex items-end">
           <div className="container mx-auto px-4 pb-8 max-w-6xl">
             <Link
-              href="/gallery"
+              href="/trips-gallery"
               className="inline-flex items-center gap-1.5 text-white mb-3 hover:text-rausch-200 transition-colors text-sm"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
@@ -365,7 +365,7 @@ export default async function GalleryDetailPage({ params }: { params: { slug: st
                 Sign Up Free
               </Link>
               <Link
-                href="/gallery"
+                href="/trips-gallery"
                 className="px-6 py-3 bg-rausch-700 text-white rounded-lg hover:bg-rausch-800 transition-colors font-bold"
               >
                 View More Examples
