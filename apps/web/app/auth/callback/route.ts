@@ -8,8 +8,11 @@ import { createClient } from '@supabase/supabase-js'
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  const accessToken = requestUrl.searchParams.get('access_token')
+  const refreshToken = requestUrl.searchParams.get('refresh_token')
   const next = requestUrl.searchParams.get('next') || '/dashboard'
 
+  // Handle PKCE flow (code exchange)
   if (code) {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,7 +28,13 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Redirect to the next URL or dashboard
+  // Handle implicit flow (tokens in URL) - just redirect and let client handle it
+  // Supabase client will automatically pick up tokens from URL hash
+  if (accessToken || refreshToken) {
+    console.log('OAuth tokens detected in URL, redirecting to allow client-side session setup')
+  }
+
+  // Redirect to the next URL or dashboard (clean URL without tokens)
   return NextResponse.redirect(new URL(next, requestUrl.origin))
 }
 

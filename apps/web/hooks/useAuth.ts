@@ -118,7 +118,15 @@ export const useAuth = () => {
       }
     }
 
-    initializeAuth()
+    // Set a timeout to prevent infinite loading (max 5 seconds)
+    const loadingTimeout = setTimeout(() => {
+      console.warn('⚠️ Auth initialization timeout - forcing loading to false')
+      setState(prev => ({ ...prev, loading: false }))
+    }, 5000)
+
+    initializeAuth().finally(() => {
+      clearTimeout(loadingTimeout)
+    })
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -153,8 +161,9 @@ export const useAuth = () => {
       }
     })
 
-    // Cleanup subscription on unmount
+    // Cleanup subscription and timeout on unmount
     return () => {
+      clearTimeout(loadingTimeout)
       subscription.unsubscribe()
     }
   }, [])
