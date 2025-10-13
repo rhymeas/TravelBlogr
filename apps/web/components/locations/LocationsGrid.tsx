@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/Card'
 import { OptimizedImage } from '@/components/ui/OptimizedImage'
+import { ImageAttribution, getImageAttribution } from '@/components/ui/ImageAttribution'
 import { formatLocationName } from '@/lib/utils/locationFormatter'
 import {
   MapPin, Star, Eye, Heart, Calendar,
@@ -152,6 +153,9 @@ function LocationCard({ location }: { location: Location }) {
               {location.gallery_images?.length || 0}
             </div>
           </div>
+
+          {/* Image Attribution */}
+          <ImageAttribution {...getImageAttribution(location.featured_image)} />
         </div>
 
         {/* Content */}
@@ -233,6 +237,9 @@ function LocationListItem({ location }: { location: Location }) {
               Featured
             </Badge>
           )}
+
+          {/* Image Attribution */}
+          <ImageAttribution {...getImageAttribution(location.featured_image)} />
         </div>
 
         {/* Content - Reduced padding */}
