@@ -253,9 +253,9 @@ export function GalleryView({ guides }: GalleryViewProps) {
                             </div>
                           </div>
 
-                          {/* Thumbnail - 50% bigger (was 192x128, now 288x192) */}
-                          <div className="hidden md:block flex-shrink-0">
-                            <div className="relative w-72 h-48 rounded-lg overflow-hidden shadow-lg">
+                          {/* Thumbnail - Full height with 16:9 aspect ratio */}
+                          <div className="hidden md:block flex-shrink-0 self-stretch">
+                            <div className="relative h-full aspect-video rounded-lg overflow-hidden shadow-lg min-w-[240px]">
                               <Image
                                 src={guide.cover_image}
                                 alt={guide.title}
