@@ -43,6 +43,11 @@ const nextConfig = {
   trailingSlash: false,
   images: {
     remotePatterns: [
+      // Cloudinary CDN - MUST BE FIRST for image optimization
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
       {
         protocol: 'https',
         hostname: 'images.unsplash.com',
