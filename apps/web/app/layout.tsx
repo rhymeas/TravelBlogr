@@ -4,7 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import { cn } from '@/lib/utils'
 import './globals.css'
 import './nprogress.css'
-import { PWAInstallPrompt } from '@/components/pwa/PWAInstallPrompt'
+// import { PWAInstallPrompt } from '@/components/pwa/PWAInstallPrompt' // Disabled - too aggressive
 import { MobileNavigation } from '@/components/mobile/MobileNavigation'
 import { AuthAwareHeader } from '@/components/layout/AuthAwareHeader'
 import { Footer } from '@/components/layout/Footer'
@@ -93,7 +93,7 @@ export default function RootLayout({
           <Footer />
           <MobileNavigation />
         </div>
-        <PWAInstallPrompt />
+        {/* <PWAInstallPrompt /> */}
         <Toaster
           position="bottom-right"
           toastOptions={{
