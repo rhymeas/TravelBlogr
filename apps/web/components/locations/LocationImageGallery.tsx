@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { SmartImage as Image } from '@/components/ui/SmartImage'
+import { ImageAttribution, getImageAttribution } from '@/components/ui/ImageAttribution'
 import Lightbox from 'yet-another-react-lightbox'
 import 'yet-another-react-lightbox/styles.css'
 import Zoom from 'yet-another-react-lightbox/plugins/zoom'
@@ -56,6 +57,7 @@ export function LocationImageGallery({ images, locationName, locationSlug }: Loc
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 priority
               />
+              <ImageAttribution {...getImageAttribution(displayImages[0])} />
             </div>
           </button>
 
@@ -73,6 +75,7 @@ export function LocationImageGallery({ images, locationName, locationSlug }: Loc
                   className="object-cover transition-transform duration-300 hover:scale-105"
                   sizes="(max-width: 1024px) 50vw, 25vw"
                 />
+                <ImageAttribution {...getImageAttribution(displayImages[1])} />
               </div>
             </button>
           )}
@@ -91,6 +94,7 @@ export function LocationImageGallery({ images, locationName, locationSlug }: Loc
                   className="object-cover transition-transform duration-300 hover:scale-105"
                   sizes="(max-width: 1024px) 50vw, 25vw"
                 />
+                <ImageAttribution {...getImageAttribution(displayImages[2])} />
               </div>
             </button>
           )}
@@ -109,6 +113,7 @@ export function LocationImageGallery({ images, locationName, locationSlug }: Loc
                   className="object-cover transition-transform duration-300 hover:scale-105"
                   sizes="(max-width: 1024px) 50vw, 25vw"
                 />
+                <ImageAttribution {...getImageAttribution(displayImages[3])} />
               </div>
             </button>
           )}
@@ -127,8 +132,9 @@ export function LocationImageGallery({ images, locationName, locationSlug }: Loc
                   className="object-cover transition-transform duration-300 hover:scale-105"
                   sizes="(max-width: 1024px) 50vw, 25vw"
                 />
+                <ImageAttribution {...getImageAttribution(displayImages[4])} />
                 {hasMoreImages && (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
                     <span className="text-white font-semibold text-body-medium">
                       +{images.length - 5} more
                     </span>

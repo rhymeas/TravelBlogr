@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { SmartImage as Image } from '@/components/ui/SmartImage'
+import { ImageAttribution, getImageAttribution } from '@/components/ui/ImageAttribution'
 import { X, ChevronLeft, Share2, Heart, Star } from 'lucide-react'
 import { Location } from '@/lib/data/locationsData'
 import Lightbox from 'yet-another-react-lightbox'
@@ -215,6 +216,9 @@ export function PhotoGalleryView({ location }: PhotoGalleryViewProps) {
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     priority={index < 6}
                   />
+
+                  {/* Image Attribution */}
+                  <ImageAttribution {...getImageAttribution(image)} />
 
                   {/* Hover overlay */}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
