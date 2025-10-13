@@ -68,8 +68,8 @@ export function AuthAwareHeader() {
             Live Feed
           </Link>
           {!isAuthenticated && (
-            <Link href="/examples" className="text-body-medium text-airbnb-gray hover:text-airbnb-black transition-colors">
-              Examples
+            <Link href="/trips-library" className="text-body-medium text-airbnb-gray hover:text-airbnb-black transition-colors">
+              Trips Library
             </Link>
           )}
         </div>
@@ -268,12 +268,12 @@ export function AuthAwareHeader() {
               </>
             ) : (
               <>
-                <Link 
-                  href="/examples" 
+                <Link
+                  href="/trips-library"
                   className="block text-body-medium text-airbnb-dark-gray hover:text-airbnb-black transition-colors"
                   onClick={() => setShowMobileMenu(false)}
                 >
-                  Examples
+                  Trips Library
                 </Link>
                 <Link 
                   href="/auth/signin" 

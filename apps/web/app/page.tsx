@@ -180,7 +180,7 @@ export default function HomePage() {
                 See real itineraries and get ideas for your next adventure!
               </p>
               <Button asChild size="lg" className="bg-rausch-500 hover:bg-rausch-600 text-white">
-                <Link href="/trips-gallery" className="flex items-center gap-2">
+                <Link href="/trips-library" className="flex items-center gap-2">
                   <Compass className="h-5 w-5" />
                   View Sample Travel Guides
                 </Link>

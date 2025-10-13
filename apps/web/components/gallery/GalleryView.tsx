@@ -81,7 +81,7 @@ export function GalleryView({ guides }: GalleryViewProps) {
             const isLeft = index % 2 === 0
 
             return (
-              <Link key={guide.id} href={`/trips-gallery/${guide.slug}`}>
+              <Link key={guide.id} href={`/trips-library/${guide.slug}`}>
                 <div className={`flex ${isLeft ? 'justify-start' : 'justify-end'}`}>
                   <Card className="w-full md:w-[48%] overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 group">
                     <div className="flex flex-col md:flex-row gap-4 p-4">
@@ -182,8 +182,8 @@ export function GalleryView({ guides }: GalleryViewProps) {
                 {index !== guides.length - 1 && (
                   <div className="absolute left-6 top-12 bottom-0 w-0.5 bg-gradient-to-b from-rausch-300 to-rausch-100" />
                 )}
-                
-                <Link href={`/trips-gallery/${guide.slug}`}>
+
+                <Link href={`/trips-library/${guide.slug}`}>
                   <Card className="hover:shadow-xl transition-all duration-300 group">
                     <div className="flex gap-4 p-4">
                       {/* Timeline Dot */}
