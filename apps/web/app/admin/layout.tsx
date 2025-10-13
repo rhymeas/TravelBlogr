@@ -17,7 +17,7 @@ export default async function AdminLayout({
   children: React.ReactNode
 }) {
   // Check authentication
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
   const { data: { user }, error } = await supabase.auth.getUser()
   
   if (error || !user) {

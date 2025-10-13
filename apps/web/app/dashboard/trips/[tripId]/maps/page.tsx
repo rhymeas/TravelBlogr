@@ -22,7 +22,7 @@ interface PageProps {
 }
 
 export default async function TripMapsPage({ params }: PageProps) {
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
   
   const { data: { user }, error } = await supabase.auth.getUser()
   

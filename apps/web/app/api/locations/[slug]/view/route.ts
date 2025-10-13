@@ -11,7 +11,7 @@ export async function POST(
 ) {
   try {
     console.log('📊 View tracking request for:', params.slug)
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
 
     // Get optional user (views can be anonymous)
     const { data: { user } } = await supabase.auth.getUser()

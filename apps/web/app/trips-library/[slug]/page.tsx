@@ -29,7 +29,7 @@ interface GuideDay {
 }
 
 export default async function GalleryDetailPage({ params }: { params: { slug: string } }) {
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
   
   // Fetch guide
   const { data: guide } = await supabase

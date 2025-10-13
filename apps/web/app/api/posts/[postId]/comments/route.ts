@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: { postId: string } }
 ) {
   try {
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
 
     // Verify post exists and is accessible
     const { data: post, error: postError } = await supabase
@@ -89,7 +89,7 @@ export async function POST(
   { params }: { params: { postId: string } }
 ) {
   try {
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
     
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()

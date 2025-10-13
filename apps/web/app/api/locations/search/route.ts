@@ -27,7 +27,7 @@ interface LocationSearchResult {
 export async function GET(request: NextRequest) {
   try {
     // Initialize Supabase client at runtime (not build time)
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
 
     const searchParams = request.nextUrl.searchParams
     const query = searchParams.get('q')

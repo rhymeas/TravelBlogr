@@ -32,7 +32,7 @@ const LOCATION_IMAGE_SOURCES = {
 export async function GET(request: NextRequest) {
   try {
     // Initialize Supabase client at runtime (not build time)
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
     console.log('🏥 [HEALTH-CHECK] Starting location health check...')
 
     // Verify cron secret for security

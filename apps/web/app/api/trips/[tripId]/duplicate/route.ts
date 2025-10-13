@@ -10,7 +10,7 @@ export async function POST(
   { params }: { params: { tripId: string } }
 ) {
   try {
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
     
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()

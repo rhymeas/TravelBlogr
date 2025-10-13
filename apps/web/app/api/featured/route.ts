@@ -4,7 +4,7 @@ import { createServerSupabase } from '@/lib/supabase-server'
 // GET /api/featured - Featured trips, locations, and CMS content for landing page
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
 
     // Get featured trips with related data
     const { data: featuredTrips, error: tripsError } = await supabase

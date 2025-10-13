@@ -24,7 +24,7 @@ interface SampleGuide {
 }
 
 export default async function GalleryPage() {
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
   
   const { data: guides } = await supabase
     .from('sample_travel_guides')

@@ -1,22 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 /**
  * GET /auth/callback
  * Handle OAuth callback from providers (Google, GitHub, etc.)
+ * Uses SSR server client with proper cookie handling for PKCE flow
  */
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const accessToken = requestUrl.searchParams.get('access_token')
-  const refreshToken = requestUrl.searchParams.get('refresh_token')
   const next = requestUrl.searchParams.get('next') || '/dashboard'
 
   // Handle PKCE flow (code exchange)
   if (code) {
-    const supabase = createClient(
+    const cookieStore = await cookies()
+
+    const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {
+              // The `setAll` method was called from a Server Component.
+              // This can be ignored if you have middleware refreshing
+              // user sessions.
+            }
+          },
+        },
+      }
     )
 
     // Exchange the code for a session
@@ -26,12 +46,8 @@ export async function GET(request: NextRequest) {
       console.error('OAuth callback error:', error)
       return NextResponse.redirect(new URL('/auth/signin?error=oauth_failed', requestUrl.origin))
     }
-  }
 
-  // Handle implicit flow (tokens in URL) - just redirect and let client handle it
-  // Supabase client will automatically pick up tokens from URL hash
-  if (accessToken || refreshToken) {
-    console.log('OAuth tokens detected in URL, redirecting to allow client-side session setup')
+    console.log('✅ OAuth callback successful, session created')
   }
 
   // Redirect to the next URL or dashboard (clean URL without tokens)

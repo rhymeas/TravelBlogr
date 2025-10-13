@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: { tripId: string } }
 ) {
   try {
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
     const { tripId } = params
 
     // Fetch trip with posts and share links
@@ -54,7 +54,7 @@ export async function PATCH(
   { params }: { params: { tripId: string } }
 ) {
   try {
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
     const { tripId } = params
     const body = await request.json()
 
@@ -99,7 +99,7 @@ export async function DELETE(
   { params }: { params: { tripId: string } }
 ) {
   try {
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
     const { tripId } = params
 
     // Delete trip (cascade will handle posts and share links)

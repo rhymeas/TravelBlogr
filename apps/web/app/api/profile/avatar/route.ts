@@ -7,7 +7,7 @@ import { createServerSupabase } from '@/lib/supabase-server'
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
 
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()

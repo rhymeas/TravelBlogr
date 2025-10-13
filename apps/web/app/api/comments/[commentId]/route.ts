@@ -10,7 +10,7 @@ export async function PATCH(
   { params }: { params: { commentId: string } }
 ) {
   try {
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
     
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -80,7 +80,7 @@ export async function DELETE(
   { params }: { params: { commentId: string } }
 ) {
   try {
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
     
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()

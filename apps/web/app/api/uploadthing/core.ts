@@ -5,7 +5,7 @@ import { createServerSupabase } from "@/lib/supabase-server";
 const f = createUploadthing();
 
 const auth = async () => {
-  const supabase = createServerSupabase();
+  const supabase = await createServerSupabase();
   const { data: { user }, error } = await supabase.auth.getUser();
   
   if (error || !user) {
@@ -29,7 +29,7 @@ export const ourFileRouter = {
       console.log("file url", file.url);
 
       // Save to Supabase
-      const supabase = createServerSupabase();
+      const supabase = await createServerSupabase();
       await supabase
         .from('media')
         .insert({
@@ -55,7 +55,7 @@ export const ourFileRouter = {
     .onUploadComplete(async ({ metadata, file }) => {
       console.log("Post images upload complete for userId:", metadata.userId);
       
-      const supabase = createServerSupabase();
+      const supabase = await createServerSupabase();
       await supabase
         .from('media')
         .insert({
@@ -81,7 +81,7 @@ export const ourFileRouter = {
     .onUploadComplete(async ({ metadata, file }) => {
       console.log("Documents upload complete for userId:", metadata.userId);
       
-      const supabase = createServerSupabase();
+      const supabase = await createServerSupabase();
       await supabase
         .from('media')
         .insert({
@@ -105,7 +105,7 @@ export const ourFileRouter = {
       console.log("Avatar upload complete for userId:", metadata.userId);
       
       // Update user profile with new avatar
-      const supabase = createServerSupabase();
+      const supabase = await createServerSupabase();
       await supabase
         .from('users')
         .update({ avatar_url: file.url })

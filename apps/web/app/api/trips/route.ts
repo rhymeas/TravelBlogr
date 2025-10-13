@@ -5,11 +5,21 @@ import { nanoid } from 'nanoid'
 // GET /api/trips - Get user's trips
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerSupabase()
-    
+    const supabase = await createServerSupabase()
+
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    // Debug logging
+    console.log('🔐 Auth Debug:', {
+      hasUser: !!user,
+      userId: user?.id,
+      authError: authError?.message,
+      cookies: request.cookies.getAll().map(c => c.name)
+    })
+
     if (authError || !user) {
+      console.error('❌ Auth failed:', authError)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -53,11 +63,21 @@ export async function GET(request: NextRequest) {
 // POST /api/trips - Create new trip
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerSupabase()
-    
+    const supabase = await createServerSupabase()
+
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    // Debug logging
+    console.log('🔐 POST /api/trips Auth Debug:', {
+      hasUser: !!user,
+      userId: user?.id,
+      authError: authError?.message,
+      cookies: request.cookies.getAll().map(c => ({ name: c.name, value: c.value.substring(0, 20) + '...' }))
+    })
+
     if (authError || !user) {
+      console.error('❌ POST Auth failed:', authError)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -115,7 +135,7 @@ export async function POST(request: NextRequest) {
 
 // Helper function to generate share links
 async function generateShareLinks(tripId: string, userId: string) {
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
   
   const shareLinks = {
     public: {
@@ -169,7 +189,7 @@ async function generateShareLinks(tripId: string, userId: string) {
 // PUT /api/trips/[id] - Update trip
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
     
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()

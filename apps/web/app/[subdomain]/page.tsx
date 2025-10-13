@@ -19,7 +19,7 @@ interface SubdomainPageProps {
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: SubdomainPageProps): Promise<Metadata> {
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
   
   const { data: shareLink } = await supabase
     .from('share_links')
@@ -79,7 +79,7 @@ export async function generateMetadata({ params }: SubdomainPageProps): Promise<
 }
 
 export default async function SubdomainPage({ params, searchParams }: SubdomainPageProps) {
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
   
   // Get share link with trip data
   const { data: shareLink, error } = await supabase
