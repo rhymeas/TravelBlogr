@@ -80,7 +80,7 @@ export const useAuth = () => {
 
         // Ensure minimum loading time for better UX (prevent flash)
         const startTime = Date.now()
-        const minLoadingTime = 300 // 300ms minimum
+        const minLoadingTime = 800 // 800ms minimum - increased for visibility
 
         // Get current session from Supabase
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
@@ -109,8 +109,10 @@ export const useAuth = () => {
           const elapsed = Date.now() - startTime
           const remainingTime = Math.max(0, minLoadingTime - elapsed)
 
+          console.log(`⏱️ Auth took ${elapsed}ms, waiting ${remainingTime}ms more for minimum loading time`)
           await new Promise(resolve => setTimeout(resolve, remainingTime))
 
+          console.log('✅ Setting authenticated state, loading = false')
           setState({
             user: session.user,
             profile,
@@ -125,8 +127,10 @@ export const useAuth = () => {
           const elapsed = Date.now() - startTime
           const remainingTime = Math.max(0, minLoadingTime - elapsed)
 
+          console.log(`⏱️ Auth took ${elapsed}ms, waiting ${remainingTime}ms more for minimum loading time`)
           await new Promise(resolve => setTimeout(resolve, remainingTime))
 
+          console.log('✅ Setting unauthenticated state, loading = false')
           setState(prev => ({ ...prev, loading: false }))
         }
       } catch (error) {
