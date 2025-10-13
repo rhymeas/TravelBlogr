@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
 
     // Check if subdomain exists
     const { data: existingLink, error } = await supabase

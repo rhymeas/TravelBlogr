@@ -20,7 +20,7 @@ export const runtime = 'nodejs'
 export async function POST(request: NextRequest) {
   try {
     // Initialize Supabase client at runtime (not build time)
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
 
     const body = await request.json()
     const { locationSlug } = body
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Initialize Supabase client at runtime (not build time)
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
 
     const { searchParams } = new URL(request.url)
     const locationSlug = searchParams.get('slug')

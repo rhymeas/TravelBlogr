@@ -4,7 +4,7 @@ import { createServerSupabase } from '@/lib/supabase-server'
 // GET /api/stats/landing - Public statistics for landing page
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
     
     // Aggregate statistics using Promise.all for performance
     const [

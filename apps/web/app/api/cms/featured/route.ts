@@ -4,7 +4,7 @@ import { createServerSupabase } from '@/lib/supabase-server'
 // GET /api/cms/featured - Get featured CMS content for landing page management
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
     
     // Get current user and verify admin access
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
 // POST /api/cms/featured - Update featured status of CMS content
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
     
     // Get current user and verify admin access
     const { data: { user }, error: authError } = await supabase.auth.getUser()

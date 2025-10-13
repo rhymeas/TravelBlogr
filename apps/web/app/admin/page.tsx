@@ -77,7 +77,7 @@ function QuickAction({ title, description, icon: Icon, href, color }: QuickActio
 }
 
 export default async function AdminPage() {
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
 
   // Fetch quick stats
   const [locationsCount, usersCount, tripsCount] = await Promise.all([

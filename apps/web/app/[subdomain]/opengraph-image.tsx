@@ -10,7 +10,7 @@ export const size = {
 export const contentType = 'image/png'
 
 export default async function Image({ params }: { params: { subdomain: string } }) {
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
 
   // Fetch trip data
   const { data: shareLink } = await supabase

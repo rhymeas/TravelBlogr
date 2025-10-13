@@ -23,7 +23,7 @@ export const maxDuration = 300 // 5 minutes max execution
 export async function GET(request: NextRequest) {
   try {
     // Initialize Supabase client at runtime (not build time)
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
 
     console.log('🔧 [CRON] Starting automated image fix job...')
 

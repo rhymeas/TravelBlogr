@@ -9,8 +9,8 @@ import { cookies } from 'next/headers'
  * IMPORTANT: Only import this in server-side code (API routes, Server Components)
  * For client-side code, use getBrowserSupabase() from lib/supabase.ts
  */
-export const createServerSupabase = () => {
-  const cookieStore = cookies()
+export const createServerSupabase = async () => {
+  const cookieStore = await cookies()
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 

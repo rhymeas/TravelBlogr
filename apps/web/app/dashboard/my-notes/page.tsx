@@ -50,7 +50,7 @@ interface RestaurantNote extends Note {
 }
 
 export default async function MyNotesPage() {
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
   
   const { data: { user } } = await supabase.auth.getUser()
   

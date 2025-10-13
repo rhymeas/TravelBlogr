@@ -15,7 +15,7 @@ export async function POST(
 ) {
   try {
     // Initialize Supabase client at runtime (not build time)
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
 
     // Get current user (try real auth first)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -145,7 +145,7 @@ export async function GET(
 ) {
   try {
     // Initialize Supabase client at runtime (not build time)
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
 
     const { data: { user } } = await supabase.auth.getUser()
 

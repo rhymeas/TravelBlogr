@@ -23,7 +23,7 @@ interface CreateLocationRequest {
 export async function POST(request: NextRequest) {
   try {
     // Initialize Supabase client at runtime (not build time)
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
 
     const body: CreateLocationRequest = await request.json()
     const { name, slug, latitude, longitude, country, region, description } = body
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Initialize Supabase client at runtime (not build time)
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
 
     const { data, error } = await supabase
       .from('locations')

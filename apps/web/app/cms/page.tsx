@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 }
 
 export default async function CMSPage() {
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
   
   const { data: { user }, error } = await supabase.auth.getUser()
   

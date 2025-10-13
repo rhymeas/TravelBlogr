@@ -9,7 +9,7 @@ export const runtime = 'nodejs'
 export async function POST(request: NextRequest) {
   try {
     // Initialize Supabase client at runtime (not build time)
-    const supabase = createServerSupabase()
+    const supabase = await createServerSupabase()
 
     console.log('🚀 Starting location image update...')
 

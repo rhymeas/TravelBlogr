@@ -19,7 +19,7 @@ export const runtime = 'nodejs'
  */
 export async function GET(request: Request) {
   // Initialize Supabase client at runtime (not build time)
-  const supabase = createServerSupabase()
+  const supabase = await createServerSupabase()
   console.log('🌍 [CRON] Starting automated region fix job...')
 
   try {
