@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/hooks/useAuth'
 import { DashboardLanding } from '@/components/dashboard/DashboardLanding'
+import { PageLoading } from '@/components/ui/LoadingSpinner'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
@@ -16,11 +17,7 @@ export default function DashboardPage() {
   }, [isAuthenticated, isLoading, router])
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-airbnb-background-secondary flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rausch-500"></div>
-      </div>
-    )
+    return <PageLoading message="Loading your dashboard..." />
   }
 
   if (!isAuthenticated) {
