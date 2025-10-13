@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { HeaderLogo } from '@/components/ui/Logo'
+import { LoadingSpinner, LoadingSkeleton } from '@/components/ui/LoadingSpinner'
 import { useAuth } from '../../hooks/useAuth'
 import toast from 'react-hot-toast'
 
@@ -75,11 +76,16 @@ export function AuthAwareHeader() {
         {/* Right side actions */}
         <div className="flex lg:flex-1 lg:justify-end items-center gap-4">
           {isLoading ? (
-            // Loading state - show modern skeleton
-            <div className="hidden lg:flex items-center gap-3">
-              <div className="h-9 w-28 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded-lg"></div>
-              <div className="h-8 w-8 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded-full"></div>
-            </div>
+            // Loading state - show shimmer skeleton
+            <>
+              <div className="hidden lg:flex items-center gap-3">
+                <LoadingSkeleton className="h-9 w-28" variant="rectangular" />
+                <LoadingSkeleton className="h-8 w-8" variant="circular" />
+              </div>
+              <div className="lg:hidden flex items-center gap-2">
+                <LoadingSpinner size="sm" variant="primary" />
+              </div>
+            </>
           ) : isAuthenticated ? (
             // Authenticated User Menu
             <div className="hidden lg:flex items-center gap-3">
