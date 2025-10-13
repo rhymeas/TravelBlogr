@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase } from '@/lib/supabase'
+import { createServerSupabase } from '@/lib/supabase-server'
 import { nanoid } from 'nanoid'
 
 // GET /api/trips/[tripId]/share-links - Get share links for a trip

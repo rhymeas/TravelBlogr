@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 import { JourneyVisualizer } from '@/components/maps/JourneyVisualizer'
 import { LocationTracker } from '@/components/maps/LocationTracker'
 import { InteractiveMap } from '@/components/maps/InteractiveMap'
-import { createServerSupabase } from '@/lib/supabase'
+import { createServerSupabase } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
 

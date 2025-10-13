@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og'
-import { createServerSupabase } from '@/lib/supabase'
+import { createServerSupabase } from '@/lib/supabase-server'
 
 export const runtime = 'edge'
 export const alt = 'Trip Cover Image'

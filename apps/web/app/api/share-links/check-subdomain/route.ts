@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase } from '@/lib/supabase'
+import { createServerSupabase } from '@/lib/supabase-server'
 
 // GET /api/share-links/check-subdomain?subdomain=example
 export async function GET(request: NextRequest) {

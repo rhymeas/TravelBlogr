@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { createServerSupabase } from '@/lib/supabase'
+import { createServerSupabase } from '@/lib/supabase-server'
 import Link from 'next/link'
 import {
   Activity,

@@ -1,4 +1,4 @@
-import { createServerSupabase } from '@/lib/supabase'
+import { createServerSupabase } from '@/lib/supabase-server'
 import { Card } from '@/components/ui/Card'
 import { GalleryView } from '@/components/gallery/GalleryView'
 import { MapPin, Calendar, Star } from 'lucide-react'

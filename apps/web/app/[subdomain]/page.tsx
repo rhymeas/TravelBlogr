@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { createServerSupabase } from '@/lib/supabase'
+import { createServerSupabase } from '@/lib/supabase-server'
 import { SharedTripView } from '@/components/share/SharedTripView'
 import { ShareLinkAnalytics } from '@/components/share/ShareLinkAnalytics'
 
