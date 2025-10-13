@@ -72,13 +72,13 @@ export function ImageAttribution({
           {sourceUrl && <ExternalLink className="h-2.5 w-2.5 flex-shrink-0 opacity-70 group-hover:opacity-100" />}
         </a>
       ) : (
-        // Collapsed view - just icon
+        // Collapsed view - just icon (bigger and more visible)
         <button
           onClick={() => setIsExpanded(true)}
-          className="w-5 h-5 bg-black/50 backdrop-blur-sm text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
+          className="w-7 h-7 bg-black/60 backdrop-blur-sm text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-colors shadow-lg"
           title="Image attribution"
         >
-          <Info className="h-3 w-3" />
+          <Info className="h-4 w-4" />
         </button>
       )}
     </div>
