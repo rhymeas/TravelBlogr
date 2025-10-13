@@ -4,8 +4,6 @@ import dynamic from 'next/dynamic'
 import { useAuth } from '@/hooks/useAuth'
 
 // Dynamically import feed components with SSR disabled (like Facebook/Instagram feeds)
-const Footer = dynamic(() => import('@/components/layout/Footer').then(mod => ({ default: mod.Footer })), { ssr: false })
-const AuthAwareHeader = dynamic(() => import('@/components/layout/AuthAwareHeader').then(mod => ({ default: mod.AuthAwareHeader })), { ssr: false })
 const LocationFilters = dynamic(() => import('@/components/feed/LocationFilters').then(mod => ({ default: mod.LocationFilters })), { ssr: false })
 const FeedPost = dynamic(() => import('@/components/feed/FeedPost').then(mod => ({ default: mod.FeedPost })), { ssr: false })
 const AuthenticatedLiveFeed = dynamic(() => import('@/components/feed/AuthenticatedLiveFeed').then(mod => ({ default: mod.AuthenticatedLiveFeed })), { ssr: false })
@@ -37,7 +35,6 @@ export default function LiveFeedPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <AuthAwareHeader />
         <div className="flex items-center justify-center min-h-[50vh]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rausch-500"></div>
         </div>
@@ -47,7 +44,6 @@ export default function LiveFeedPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AuthAwareHeader />
 
       {/* Marketing Copy Section */}
       <div className="bg-white border-b border-gray-200 py-8">
@@ -139,8 +135,6 @@ export default function LiveFeedPage() {
           <StickySignUpPrompt />
         </div>
       )}
-
-      <Footer />
     </div>
   )
 }
