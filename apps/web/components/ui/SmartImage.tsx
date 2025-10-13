@@ -1,9 +1,11 @@
 /**
  * Smart Image Component
  * Automatically handles SVG files and Next.js Image optimization
+ * Routes external images through Cloudinary CDN for performance
  */
 
 import Image, { ImageProps } from 'next/image'
+import { getCDNUrl } from '@/lib/image-cdn'
 
 interface SmartImageProps extends Omit<ImageProps, 'src'> {
   src: string
@@ -12,32 +14,17 @@ interface SmartImageProps extends Omit<ImageProps, 'src'> {
 
 /**
  * SmartImage component that automatically detects SVG files
- * and uses unoptimized mode for them and external images that may have issues
+ * and routes external images through Cloudinary CDN for optimization
  */
 export function SmartImage({ src, alt, ...props }: SmartImageProps) {
   // Check if the image is an SVG
   const isSVG = src.endsWith('.svg')
 
-  // Check if it's an external image that might have optimization issues
-  const isExternalImage = src.startsWith('http://') || src.startsWith('https://')
+  // ✅ Route through Cloudinary CDN (except SVGs and local images)
+  const cdnSrc = isSVG || src.startsWith('/') ? src : getCDNUrl(src)
 
-  // Check for problematic domains that don't work well with Next.js image optimization
-  const problematicDomains = [
-    'rawpixel.com',
-    'wikimedia.org',
-    'europeana.eu',
-    'si.edu',
-    'nypl.org',
-    'loc.gov',
-    'metmuseum.org',
-    'flickr.com',
-    'stocksnap.io'
-  ]
-
-  const hasProblematicDomain = problematicDomains.some(domain => src.includes(domain))
-
-  // For SVG files or problematic external images, use unoptimized mode
-  if (isSVG || (isExternalImage && hasProblematicDomain)) {
+  // For SVG files, use unoptimized mode
+  if (isSVG) {
     return (
       <Image
         src={src}
@@ -48,10 +35,10 @@ export function SmartImage({ src, alt, ...props }: SmartImageProps) {
     )
   }
 
-  // For other images, use normal Next.js optimization
+  // For other images, use Cloudinary CDN URL
   return (
     <Image
-      src={src}
+      src={cdnSrc}
       alt={alt}
       {...props}
     />
