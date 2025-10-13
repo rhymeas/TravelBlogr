@@ -13,7 +13,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase } from '@/lib/supabase'
+import { createServerSupabase } from '@/lib/supabase-server'
 import { fetchLocationImage, fetchLocationGallery } from '@/lib/services/robustImageService'
 
 export const dynamic = 'force-dynamic'

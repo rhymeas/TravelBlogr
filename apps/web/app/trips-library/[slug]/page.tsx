@@ -1,4 +1,4 @@
-import { createServerSupabase } from '@/lib/supabase'
+import { createServerSupabase } from '@/lib/supabase-server'
 import { notFound } from 'next/navigation'
 import { Card } from '@/components/ui/Card'
 import { SmartImage as Image } from '@/components/ui/SmartImage'

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createServerSupabase } from '@/lib/supabase'
+import { createServerSupabase } from '@/lib/supabase-server'
 import { BookOpen, MapPin, UtensilsCrossed, Compass, Star, Calendar } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import Link from 'next/link'

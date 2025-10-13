@@ -1,54 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 
-// Server-side Supabase client for API routes and server components
-// Updated: 2025-10-13 - Fixed to use cookie-based auth for proper session handling
-export const createServerSupabase = () => {
-  const cookieStore = cookies()
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase environment variables')
-  }
-
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll()
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          )
-        } catch {
-          // The `setAll` method was called from a Server Component.
-          // This can be ignored if you have middleware refreshing
-          // user sessions.
-        }
-      },
-    },
-  })
-}
-
-// Service role client for admin operations (bypasses RLS)
-export const createServiceSupabase = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase service role environment variables')
-  }
-
-  return createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    }
-  })
-}
+// NOTE: Server-side functions moved to lib/supabase-server.ts to avoid
+// importing next/headers in client components
 
 // Client-side Supabase client for browser
 export const createBrowserSupabase = () => {
@@ -120,15 +73,13 @@ export const uploadFile = async (
   bucket: string,
   path: string,
   file: File,
-  options?: { 
+  options?: {
     cacheControl?: string
     upsert?: boolean
     contentType?: string
   }
 ) => {
-  const supabase = typeof window !== 'undefined' 
-    ? getBrowserSupabase() 
-    : createServerSupabase()
+  const supabase = getBrowserSupabase()
 
   const { data, error } = await supabase.storage
     .from(bucket)
@@ -141,26 +92,22 @@ export const uploadFile = async (
   if (error) {
     throw new Error(`Failed to upload file: ${error.message}`)
   }
-  
+
   return data
 }
 
 export const getPublicUrl = (bucket: string, path: string) => {
-  const supabase = typeof window !== 'undefined' 
-    ? getBrowserSupabase() 
-    : createServerSupabase()
-    
+  const supabase = getBrowserSupabase()
+
   const { data } = supabase.storage
     .from(bucket)
     .getPublicUrl(path)
-  
+
   return data.publicUrl
 }
 
 export const deleteFile = async (bucket: string, path: string) => {
-  const supabase = typeof window !== 'undefined' 
-    ? getBrowserSupabase() 
-    : createServerSupabase()
+  const supabase = getBrowserSupabase()
 
   const { error } = await supabase.storage
     .from(bucket)
@@ -219,17 +166,16 @@ export const subscribeToTripUpdates = (
 }
 
 // Auth helpers
-export const getCurrentUser = async (isServerSide = false) => {
-  const supabase = isServerSide 
-    ? createServerSupabase() 
-    : getBrowserSupabase()
-    
+// Note: For server-side auth, import createServerSupabase from lib/supabase-server.ts
+export const getCurrentUser = async () => {
+  const supabase = getBrowserSupabase()
+
   const { data: { user }, error } = await supabase.auth.getUser()
-  
+
   if (error) {
     throw new Error(`Failed to get current user: ${error.message}`)
   }
-  
+
   return user
 }
 
@@ -273,7 +219,7 @@ export const withRetry = async <T>(
 
 // Type-safe query builders
 export const buildTripQuery = (
-  supabaseClient: ReturnType<typeof createServerSupabase> | ReturnType<typeof createBrowserSupabase>
+  supabaseClient: ReturnType<typeof createBrowserSupabase>
 ) => ({
   findById: (id: string) =>
     supabaseClient
@@ -337,6 +283,6 @@ export const buildTripQuery = (
 })
 
 // Types
-export type SupabaseClient = ReturnType<typeof createServerSupabase> | ReturnType<typeof createBrowserSupabase>
-export type ServerSupabaseClient = ReturnType<typeof createServerSupabase>
+// Note: ServerSupabaseClient is now exported from lib/supabase-server.ts
 export type BrowserSupabaseClient = ReturnType<typeof createBrowserSupabase>
+export type SupabaseClient = BrowserSupabaseClient

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase } from '@/lib/supabase'
+import { createServerSupabase } from '@/lib/supabase-server'
 
 // GET /api/cms/featured - Get featured CMS content for landing page management
 export async function GET(request: NextRequest) {

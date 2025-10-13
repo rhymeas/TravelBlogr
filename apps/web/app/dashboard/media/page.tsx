@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import { MediaManager } from '@/components/media/MediaManager'
-import { createServerSupabase } from '@/lib/supabase'
+import { createServerSupabase } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 
 // Force dynamic rendering - requires authentication, should not be static
