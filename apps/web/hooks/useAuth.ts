@@ -78,6 +78,10 @@ export const useAuth = () => {
       try {
         console.log('🔐 Initializing authentication...')
 
+        // Ensure minimum loading time for better UX (prevent flash)
+        const startTime = Date.now()
+        const minLoadingTime = 300 // 300ms minimum
+
         // Get current session from Supabase
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
@@ -93,14 +97,6 @@ export const useAuth = () => {
           // Fetch user profile
           const profile = await fetchProfile(session.user.id)
 
-          setState({
-            user: session.user,
-            profile,
-            session,
-            loading: false,
-            error: null,
-          })
-
           // Auto-migrate guest trips if any exist
           try {
             await autoMigrateOnLogin(session.user.id)
@@ -108,8 +104,29 @@ export const useAuth = () => {
             console.error('⚠️ Guest trip migration failed:', migrationError)
             // Don't fail the auth if migration fails
           }
+
+          // Ensure minimum loading time has passed
+          const elapsed = Date.now() - startTime
+          const remainingTime = Math.max(0, minLoadingTime - elapsed)
+
+          await new Promise(resolve => setTimeout(resolve, remainingTime))
+
+          setState({
+            user: session.user,
+            profile,
+            session,
+            loading: false,
+            error: null,
+          })
         } else {
           console.log('ℹ️ No active session found')
+
+          // Ensure minimum loading time has passed
+          const elapsed = Date.now() - startTime
+          const remainingTime = Math.max(0, minLoadingTime - elapsed)
+
+          await new Promise(resolve => setTimeout(resolve, remainingTime))
+
           setState(prev => ({ ...prev, loading: false }))
         }
       } catch (error) {
@@ -118,11 +135,11 @@ export const useAuth = () => {
       }
     }
 
-    // Set a timeout to prevent infinite loading (max 5 seconds)
+    // Set a timeout to prevent infinite loading (max 15 seconds - increased for migration)
     const loadingTimeout = setTimeout(() => {
       console.warn('⚠️ Auth initialization timeout - forcing loading to false')
       setState(prev => ({ ...prev, loading: false }))
-    }, 5000)
+    }, 15000)
 
     initializeAuth().finally(() => {
       clearTimeout(loadingTimeout)
