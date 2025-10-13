@@ -12,6 +12,7 @@
 export function ImagePreconnect() {
   // List of image domains used in TravelBlogr
   const imageDomains = [
+    'res.cloudinary.com', // Cloudinary CDN - HIGHEST PRIORITY (routes all external images)
     'images.pexels.com',
     'images.unsplash.com',
     'plus.unsplash.com',

@@ -15,6 +15,7 @@ const nextConfig = {
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
 
     domains: [
+      'res.cloudinary.com', // Cloudinary CDN
       'images.unsplash.com',
       'source.unsplash.com',
       'supabase.co',
@@ -26,6 +27,12 @@ const nextConfig = {
       'api.mapbox.com'
     ],
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        port: '',
+        pathname: '/**',
+      },
       {
         protocol: 'https',
         hostname: '*.supabase.co',

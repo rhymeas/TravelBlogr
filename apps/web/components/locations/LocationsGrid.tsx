@@ -1,6 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+
+// Number of locations to load per batch (infinite scroll)
+const LOCATIONS_PER_PAGE = 20
 import Image from 'next/image'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/Badge'
@@ -48,6 +51,36 @@ interface LocationsGridProps {
 
 export function LocationsGrid({ locations }: LocationsGridProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [displayedCount, setDisplayedCount] = useState(LOCATIONS_PER_PAGE)
+  const [isLoading, setIsLoading] = useState(false)
+  const loadMoreRef = useRef<HTMLDivElement>(null)
+
+  // Infinite scroll: Load more when user scrolls near bottom
+  useEffect(() => {
+    if (!loadMoreRef.current) return
+    if (displayedCount >= locations.length) return // All loaded
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isLoading) {
+          setIsLoading(true)
+          // Simulate loading delay for smooth UX
+          setTimeout(() => {
+            setDisplayedCount(prev => Math.min(prev + LOCATIONS_PER_PAGE, locations.length))
+            setIsLoading(false)
+          }, 300)
+        }
+      },
+      { threshold: 0.1, rootMargin: '200px' } // Start loading 200px before reaching bottom
+    )
+
+    observer.observe(loadMoreRef.current)
+    return () => observer.disconnect()
+  }, [displayedCount, locations.length, isLoading])
+
+  // Get currently displayed locations
+  const displayedLocations = locations.slice(0, displayedCount)
+  const hasMore = displayedCount < locations.length
 
   if (!locations.length) {
     return (
@@ -64,7 +97,7 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
       {/* View Mode Toggle */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-600">
-          Showing {locations.length} location{locations.length !== 1 ? 's' : ''}
+          Showing {displayedCount} of {locations.length} location{locations.length !== 1 ? 's' : ''}
         </p>
         
         <div className="flex items-center gap-2">
@@ -88,7 +121,7 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
       {/* Grid View */}
       {viewMode === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {locations.map((location, index) => (
+          {displayedLocations.map((location, index) => (
             <LocationCard key={location.id} location={location} priority={index < 6} />
           ))}
         </div>
@@ -97,9 +130,30 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
       {/* List View - 2 Column Layout */}
       {viewMode === 'list' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {locations.map((location, index) => (
+          {displayedLocations.map((location, index) => (
             <LocationListItem key={location.id} location={location} priority={index < 6} />
           ))}
+        </div>
+      )}
+
+      {/* Infinite Scroll Trigger */}
+      {hasMore && (
+        <div ref={loadMoreRef} className="py-8 text-center">
+          {isLoading ? (
+            <div className="flex items-center justify-center gap-2 text-gray-500">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-rausch-500"></div>
+              <span>Loading more locations...</span>
+            </div>
+          ) : (
+            <div className="text-gray-400 text-sm">Scroll for more</div>
+          )}
+        </div>
+      )}
+
+      {/* All Loaded Message */}
+      {!hasMore && displayedCount > LOCATIONS_PER_PAGE && (
+        <div className="py-8 text-center text-gray-500 text-sm">
+          ✨ You've seen all {locations.length} locations!
         </div>
       )}
     </div>
