@@ -55,7 +55,7 @@ export default async function MyNotesPage() {
   const { data: { user } } = await supabase.auth.getUser()
   
   if (!user) {
-    redirect('/signin?redirect=/dashboard/my-notes')
+    redirect('/auth/signin?redirect=/dashboard/my-notes')
   }
 
   // Fetch all user notes

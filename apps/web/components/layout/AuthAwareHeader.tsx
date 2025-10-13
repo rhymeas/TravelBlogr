@@ -45,20 +45,8 @@ export function AuthAwareHeader() {
     return 'U'
   }
 
-  if (isLoading) {
-    return (
-      <header className="bg-white sticky top-0 z-50 border-b border-airbnb-border shadow-airbnb-light">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
-          <div className="flex lg:flex-1">
-            <HeaderLogo />
-          </div>
-          <div className="animate-pulse">
-            <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
-          </div>
-        </nav>
-      </header>
-    )
-  }
+  // Don't wait for auth to load - render header immediately
+  // Show loading state in the user menu area only
 
   return (
     <header className="bg-white sticky top-0 z-50 border-b border-airbnb-border shadow-airbnb-light">
@@ -88,7 +76,13 @@ export function AuthAwareHeader() {
 
         {/* Right side actions */}
         <div className="flex lg:flex-1 lg:justify-end items-center gap-4">
-          {isAuthenticated ? (
+          {isLoading ? (
+            // Loading state - show skeleton
+            <div className="hidden lg:flex items-center gap-3">
+              <div className="h-9 w-28 bg-gray-200 rounded-lg animate-pulse"></div>
+              <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
+            </div>
+          ) : isAuthenticated ? (
             // Authenticated User Menu
             <div className="hidden lg:flex items-center gap-3">
               <Button 
