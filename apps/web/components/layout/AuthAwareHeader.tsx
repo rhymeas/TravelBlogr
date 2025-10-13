@@ -67,20 +67,18 @@ export function AuthAwareHeader() {
           <Link href="/live-feed" className="text-body-medium text-airbnb-gray hover:text-airbnb-black transition-colors">
             Live Feed
           </Link>
-          {!isAuthenticated && (
-            <Link href="/trips-library" className="text-body-medium text-airbnb-gray hover:text-airbnb-black transition-colors">
-              Trips Library
-            </Link>
-          )}
+          <Link href="/trips-library" className="text-body-medium text-airbnb-gray hover:text-airbnb-black transition-colors">
+            Trips Library
+          </Link>
         </div>
 
         {/* Right side actions */}
         <div className="flex lg:flex-1 lg:justify-end items-center gap-4">
           {isLoading ? (
-            // Loading state - show skeleton
+            // Loading state - show modern skeleton
             <div className="hidden lg:flex items-center gap-3">
-              <div className="h-9 w-28 bg-gray-200 rounded-lg animate-pulse"></div>
-              <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
+              <div className="h-9 w-28 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded-lg"></div>
+              <div className="h-8 w-8 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded-full"></div>
             </div>
           ) : isAuthenticated ? (
             // Authenticated User Menu
