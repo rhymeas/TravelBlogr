@@ -1,10 +1,9 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Globe, MapPin, Menu, User, Bell, ArrowRight, Eye, Heart, Share2, Calendar, Clock, Star } from 'lucide-react'
+import { ArrowRight, Eye, Heart, Share2, Calendar, Clock, Star } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-import { Footer } from '@/components/layout/Footer'
 
 export const metadata: Metadata = {
   title: 'Examples - See TravelBlogr in Action',
@@ -101,56 +100,6 @@ const examples = [
 export default function ExamplesPage() {
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white sticky top-0 z-50 border-b border-gray-300 shadow-airbnb-light">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8" aria-label="Global">
-          {/* Logo */}
-          <div className="flex lg:flex-1">
-            <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 bg-rausch-500 rounded-lg flex items-center justify-center">
-                <Globe className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-title-medium text-airbnb-black font-semibold">TravelBlogr</span>
-            </Link>
-          </div>
-
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex lg:gap-x-8">
-            <Link href="/locations" className="text-body-medium text-airbnb-gray hover:text-airbnb-black transition-colors">
-              Locations
-            </Link>
-            <Link href="/live-feed" className="text-body-medium text-airbnb-gray hover:text-airbnb-black transition-colors">
-              Live Feed
-            </Link>
-            <Link href="/examples" className="text-body-medium text-airbnb-gray hover:text-airbnb-black transition-colors font-semibold text-airbnb-black">
-              Examples
-            </Link>
-            <Link href="/pricing" className="text-body-medium text-airbnb-gray hover:text-airbnb-black transition-colors">
-              Pricing
-            </Link>
-          </div>
-
-          {/* Right side actions */}
-          <div className="flex lg:flex-1 lg:justify-end items-center gap-4">
-            <div className="hidden lg:flex items-center gap-3">
-              <Link href="/auth/signin" className="text-body-medium text-airbnb-gray hover:text-airbnb-black transition-colors">
-                Sign in
-              </Link>
-              <Button asChild className="bg-rausch-500 hover:bg-rausch-600 text-white">
-                <Link href="/auth/signup">
-                  Get Started
-                </Link>
-              </Button>
-            </div>
-            
-            {/* Mobile menu button */}
-            <Button variant="ghost" size="sm" className="lg:hidden">
-              <Menu className="h-5 w-5" />
-            </Button>
-          </div>
-        </nav>
-      </header>
-
       <main className="min-h-screen">
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-rausch-50 to-kazan-50 py-16 lg:py-24">
@@ -350,7 +299,6 @@ export default function ExamplesPage() {
           </div>
         </section>
       </main>
-      <Footer />
     </div>
   )
 }
