@@ -4,6 +4,8 @@ import { GalleryView } from '@/components/gallery/GalleryView'
 import { MapPin, Calendar, Star } from 'lucide-react'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Travel Guide Gallery | TravelBlogr',
   description: 'Get inspired by our curated collection of family-friendly travel guides',

@@ -3,17 +3,17 @@ import { DomainEvent } from './DomainEvent'
 import { UniqueEntityID } from './UniqueEntityID'
 
 export abstract class AggregateRoot<T> extends Entity<T> {
-  private _domainEvents: DomainEvent[] = []
+  // _domainEvents is inherited from Entity
 
   get id(): UniqueEntityID {
     return this._id
   }
 
   get domainEvents(): DomainEvent[] {
-    return this._domainEvents
+    return this._domainEvents as DomainEvent[]
   }
 
-  protected addDomainEvent(domainEvent: DomainEvent): void {
+  public addDomainEvent(domainEvent: DomainEvent): void {
     this._domainEvents.push(domainEvent)
   }
 

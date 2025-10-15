@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
 import { MapPin, Grid } from 'lucide-react'
 import { HorizontalBannerAd } from '@/components/ads/HorizontalBannerAd'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Explore Locations | TravelBlogr',
   description: 'Discover amazing travel destinations, read detailed guides, and get inspired for your next adventure.',

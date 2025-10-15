@@ -65,11 +65,13 @@ export class User extends Entity<UserProps> {
 
   public updateProfile(updates: {
     fullName?: string
+    avatarUrl?: string
     bio?: string
     website?: string
     location?: string
   }): Result<void> {
     this.props.fullName = updates.fullName ?? this.props.fullName
+    this.props.avatarUrl = updates.avatarUrl ?? this.props.avatarUrl
     this.props.bio = updates.bio ?? this.props.bio
     this.props.website = updates.website ?? this.props.website
     this.props.location = updates.location ?? this.props.location

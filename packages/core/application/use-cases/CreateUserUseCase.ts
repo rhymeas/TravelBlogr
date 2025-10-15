@@ -3,8 +3,8 @@ import { Result } from '../../domain/base/Result'
 import { User } from '../../domain/entities/User'
 import { Email } from '../../domain/value-objects/Email'
 import { UserName } from '../../domain/value-objects/UserName'
-import { UserRepository } from '../repositories/UserRepository'
-import { EventBus } from '../services/EventBus'
+import type { UserRepository } from '../repositories/UserRepository'
+import type { EventBus } from '../services/EventBus'
 import { TYPES } from '../types'
 
 export interface CreateUserCommand {
@@ -29,7 +29,7 @@ export class CreateUserUseCase {
       // Validate email
       const emailResult = Email.create(command.email)
       if (emailResult.isFailure) {
-        return Result.fail<CreateUserResponse>(emailResult.error)
+        return Result.fail<CreateUserResponse>(emailResult.error || new Error('Invalid email'))
       }
 
       // Check if user already exists
@@ -43,7 +43,7 @@ export class CreateUserUseCase {
       if (command.username) {
         const usernameResult = UserName.create(command.username)
         if (usernameResult.isFailure) {
-          return Result.fail<CreateUserResponse>(usernameResult.error)
+          return Result.fail<CreateUserResponse>(usernameResult.error || new Error('Invalid username'))
         }
         username = usernameResult.getValue()
 
@@ -62,7 +62,7 @@ export class CreateUserUseCase {
       })
 
       if (userResult.isFailure) {
-        return Result.fail<CreateUserResponse>(userResult.error)
+        return Result.fail<CreateUserResponse>(userResult.error || new Error('Failed to create user'))
       }
 
       const user = userResult.getValue()

@@ -4,9 +4,9 @@ import { UniqueEntityID } from '../../domain/base/UniqueEntityID'
 import { Trip } from '../../domain/entities/Trip'
 import { TripTitle } from '../../domain/value-objects/TripTitle'
 import { DateRange } from '../../domain/value-objects/DateRange'
-import { TripRepository } from '../repositories/TripRepository'
-import { UserRepository } from '../repositories/UserRepository'
-import { EventBus } from '../services/EventBus'
+import type { TripRepository } from '../repositories/TripRepository'
+import type { UserRepository } from '../repositories/UserRepository'
+import type { EventBus } from '../services/EventBus'
 import { TYPES } from '../types'
 
 export interface CreateTripCommand {
@@ -41,7 +41,7 @@ export class CreateTripUseCase {
       // Validate title
       const titleResult = TripTitle.create(command.title)
       if (titleResult.isFailure) {
-        return Result.fail<CreateTripResponse>(titleResult.error)
+        return Result.fail<CreateTripResponse>(titleResult.error || new Error('Invalid title'))
       }
 
       // Validate date range if provided
@@ -49,7 +49,7 @@ export class CreateTripUseCase {
       if (command.startDate && command.endDate) {
         const dateRangeResult = DateRange.createFromStrings(command.startDate, command.endDate)
         if (dateRangeResult.isFailure) {
-          return Result.fail<CreateTripResponse>(dateRangeResult.error)
+          return Result.fail<CreateTripResponse>(dateRangeResult.error || new Error('Invalid date range'))
         }
         dateRange = dateRangeResult.getValue()
       }
@@ -69,7 +69,7 @@ export class CreateTripUseCase {
       })
 
       if (tripResult.isFailure) {
-        return Result.fail<CreateTripResponse>(tripResult.error)
+        return Result.fail<CreateTripResponse>(tripResult.error || new Error('Failed to create trip'))
       }
 
       const trip = tripResult.getValue()

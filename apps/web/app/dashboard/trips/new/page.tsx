@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { CreateTripForm } from '@/components/trips/CreateTripForm'
 
 export default function NewTripPage() {

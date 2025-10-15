@@ -1,6 +1,8 @@
 import { Metadata } from 'next'
 import { GuestTripDashboard } from '@/components/guest/GuestTripDashboard'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'My Trips (Guest) | TravelBlogr',
   description: 'View and manage your guest trips.',

@@ -9,9 +9,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-09-30.clover',
-})
+// Lazy initialize Stripe to avoid errors during build
+let stripe: Stripe | null = null
+
+function getStripe(): Stripe {
+  if (!stripe) {
+    const apiKey = process.env.STRIPE_SECRET_KEY
+    if (!apiKey) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set')
+    }
+    stripe = new Stripe(apiKey, {
+      apiVersion: '2025-09-30.clover',
+    })
+  }
+  return stripe
+}
 
 // Credit pack configurations
 const CREDIT_PACKS = {
@@ -83,7 +95,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     // Create Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
       line_items: [

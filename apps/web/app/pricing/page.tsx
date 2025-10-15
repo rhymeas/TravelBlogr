@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Pricing - TravelBlogr',
   description: 'Simple, transparent pricing for sharing your travel stories. Start free, upgrade when you need more.',

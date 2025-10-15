@@ -129,7 +129,7 @@ export class ShareLink extends Entity<ShareLinkProps> {
   }, id?: UniqueEntityID): Result<ShareLink> {
     const tokenResult = ShareToken.create()
     if (tokenResult.isFailure) {
-      return Result.fail<ShareLink>(tokenResult.error)
+      return Result.fail<ShareLink>(tokenResult.error || new Error('Failed to create share token'))
     }
 
     const shareLinkProps: ShareLinkProps = {

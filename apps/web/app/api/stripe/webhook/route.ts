@@ -9,9 +9,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { addCredits } from '@/lib/services/creditService'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-09-30.clover',
-})
+// Lazy initialize Stripe to avoid errors during build
+let stripe: Stripe | null = null
+
+function getStripe(): Stripe {
+  if (!stripe) {
+    const apiKey = process.env.STRIPE_SECRET_KEY
+    if (!apiKey) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set')
+    }
+    stripe = new Stripe(apiKey, {
+      apiVersion: '2025-09-30.clover',
+    })
+  }
+  return stripe
+}
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
@@ -31,7 +43,7 @@ export async function POST(request: NextRequest) {
     // Verify webhook signature
     let event: Stripe.Event
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+      event = getStripe().webhooks.constructEvent(body, signature, webhookSecret)
     } catch (err) {
       console.error('Webhook signature verification failed:', err)
       return NextResponse.json(

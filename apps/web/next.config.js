@@ -41,6 +41,17 @@ const nextConfig = {
 
   // Skip trailing slash for cleaner URLs
   trailingSlash: false,
+
+  // Disable static generation for pages with client-side context
+  // These pages use force-dynamic but still need this config
+  skipTrailingSlashRedirect: true,
+
+  // Disable static generation errors - pages with force-dynamic will be rendered on-demand
+  onDemandEntries: {
+    maxInactiveAge: 60 * 1000,
+    pagesBufferLength: 5,
+  },
+
   images: {
     remotePatterns: [
       // Google User Content (OAuth avatars)

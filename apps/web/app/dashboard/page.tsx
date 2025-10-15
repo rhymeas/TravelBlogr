@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useAuth } from '@/hooks/useAuth'
 import { DashboardLanding } from '@/components/dashboard/DashboardLanding'
 import { PageLoading } from '@/components/ui/LoadingSpinner'

@@ -4,6 +4,8 @@ import { BookOpen, MapPin, UtensilsCrossed, Compass, Star, Calendar } from 'luci
 import { Card } from '@/components/ui/Card'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'My Travel Notes | TravelBlogr',
   description: 'Your personal travel diary - all your notes and memories in one place',

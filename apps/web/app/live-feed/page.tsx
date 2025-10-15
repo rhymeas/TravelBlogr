@@ -1,14 +1,16 @@
 'use client'
 
-import dynamic from 'next/dynamic'
+export const dynamic = 'force-dynamic'
+
+import dynamicImport from 'next/dynamic'
 import { useAuth } from '@/hooks/useAuth'
 
 // Dynamically import feed components with SSR disabled (like Facebook/Instagram feeds)
-const LocationFilters = dynamic(() => import('@/components/feed/LocationFilters').then(mod => ({ default: mod.LocationFilters })), { ssr: false })
-const FeedPost = dynamic(() => import('@/components/feed/FeedPost').then(mod => ({ default: mod.FeedPost })), { ssr: false })
-const AuthenticatedLiveFeed = dynamic(() => import('@/components/feed/AuthenticatedLiveFeed').then(mod => ({ default: mod.AuthenticatedLiveFeed })), { ssr: false })
-const InlineFeedPrompt = dynamic(() => import('@/components/auth/SignUpPrompt').then(mod => ({ default: mod.InlineFeedPrompt })), { ssr: false })
-const StickySignUpPrompt = dynamic(() => import('@/components/auth/SignUpPrompt').then(mod => ({ default: mod.StickySignUpPrompt })), { ssr: false })
+const LocationFilters = dynamicImport(() => import('@/components/feed/LocationFilters').then(mod => ({ default: mod.LocationFilters })), { ssr: false })
+const FeedPost = dynamicImport(() => import('@/components/feed/FeedPost').then(mod => ({ default: mod.FeedPost })), { ssr: false })
+const AuthenticatedLiveFeed = dynamicImport(() => import('@/components/feed/AuthenticatedLiveFeed').then(mod => ({ default: mod.AuthenticatedLiveFeed })), { ssr: false })
+const InlineFeedPrompt = dynamicImport(() => import('@/components/auth/SignUpPrompt').then(mod => ({ default: mod.InlineFeedPrompt })), { ssr: false })
+const StickySignUpPrompt = dynamicImport(() => import('@/components/auth/SignUpPrompt').then(mod => ({ default: mod.StickySignUpPrompt })), { ssr: false })
 
 // Import data (safe for SSR)
 import { feedPosts, locationFilters } from '@/lib/data/feedData'

@@ -94,7 +94,7 @@ export class Trip extends AggregateRoot<TripProps> {
       // Update slug when title changes
       const slugResult = TripSlug.create(updates.title.value)
       if (slugResult.isFailure) {
-        return Result.fail<void>(slugResult.error)
+        return Result.fail<void>(slugResult.error || new Error('Invalid slug'))
       }
       this.props.slug = slugResult.getValue()
     }
@@ -114,7 +114,7 @@ export class Trip extends AggregateRoot<TripProps> {
 
     const publishedStatus = TripStatus.create('published')
     if (publishedStatus.isFailure) {
-      return Result.fail<void>(publishedStatus.error)
+      return Result.fail<void>(publishedStatus.error || new Error('Invalid status'))
     }
 
     this.props.status = publishedStatus.getValue()
@@ -128,7 +128,7 @@ export class Trip extends AggregateRoot<TripProps> {
   public archive(): Result<void> {
     const archivedStatus = TripStatus.create('archived')
     if (archivedStatus.isFailure) {
-      return Result.fail<void>(archivedStatus.error)
+      return Result.fail<void>(archivedStatus.error || new Error('Invalid status'))
     }
 
     this.props.status = archivedStatus.getValue()
@@ -179,12 +179,12 @@ export class Trip extends AggregateRoot<TripProps> {
   }, id?: UniqueEntityID): Result<Trip> {
     const slugResult = TripSlug.create(props.title.value)
     if (slugResult.isFailure) {
-      return Result.fail<Trip>(slugResult.error)
+      return Result.fail<Trip>(slugResult.error || new Error('Invalid slug'))
     }
 
     const statusResult = TripStatus.create('draft')
     if (statusResult.isFailure) {
-      return Result.fail<Trip>(statusResult.error)
+      return Result.fail<Trip>(statusResult.error || new Error('Invalid status'))
     }
 
     const tripProps: TripProps = {
