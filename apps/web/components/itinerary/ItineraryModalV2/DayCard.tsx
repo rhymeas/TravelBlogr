@@ -174,12 +174,36 @@ export function DayCard({ day, index, isExpanded, onToggle, locationCoordinates 
                                         <span>{destination}</span>
                                       </p>
                                     )}
+
+                                    {/* Waypoints/Intermediate Stops */}
+                                    {item.waypoints && item.waypoints.length > 0 && (
+                                      <div className="mt-3 mb-3 space-y-2">
+                                        <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Stops Along the Way:</p>
+                                        {item.waypoints.map((waypoint: any, wpIdx: number) => (
+                                          <div key={wpIdx} className="pl-3 border-l-2 border-purple-200">
+                                            <div className="flex items-start gap-2">
+                                              <span className="text-purple-500 mt-0.5">•</span>
+                                              <div className="flex-1">
+                                                <p className="font-medium text-gray-800">{waypoint.name || waypoint.location}</p>
+                                                {waypoint.activity && (
+                                                  <p className="text-xs text-gray-600 mt-0.5">{waypoint.activity}</p>
+                                                )}
+                                                {waypoint.duration && (
+                                                  <p className="text-xs text-purple-600 mt-0.5">Stop duration: {waypoint.duration}</p>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+
                                     {item.description && (
                                       <div className="text-gray-700 leading-relaxed space-y-1">
                                         <p className="text-sm">{item.description}</p>
                                       </div>
                                     )}
-                                    {!item.description && (
+                                    {!item.description && !item.waypoints && (
                                       <p className="text-gray-500 italic text-xs">
                                         Use Google Maps for directions and travel options
                                       </p>
@@ -191,6 +215,12 @@ export function DayCard({ day, index, isExpanded, onToggle, locationCoordinates 
                                       <div className="flex items-center gap-1">
                                         <Clock className="h-3.5 w-3.5" />
                                         <span className="font-semibold">{item.duration}</span>
+                                      </div>
+                                    )}
+                                    {item.distance && (
+                                      <div className="flex items-center gap-1">
+                                        <Navigation className="h-3.5 w-3.5" />
+                                        <span className="font-semibold">{item.distance}</span>
                                       </div>
                                     )}
                                     {item.mode && (

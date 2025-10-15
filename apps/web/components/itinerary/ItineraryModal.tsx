@@ -350,26 +350,34 @@ export function planModal({
                     onMouseEnter={() => setHoveredSegment(segmentIndex)}
                     onMouseLeave={() => setHoveredSegment(null)}
                   >
-                    {/* Hover area - 24x24px */}
-                    <div className="w-6 h-6 flex items-center justify-center">
+                    {/* Hover area - 32x32px for easier targeting */}
+                    <div className="w-8 h-8 flex items-center justify-center">
                       {/* "+" Button - appears on hover - 24x24px */}
-                      {hoveredSegment === segmentIndex && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setAddStopBetween({
-                              from: locationGroups[segmentIndex].location,
-                              to: locationGroups[segmentIndex + 1].location,
-                              fromIndex: segmentIndex
-                            })
-                            setShowAddStopModal(true)
-                          }}
-                          className="w-6 h-6 rounded-full bg-white border-2 border-teal-400 hover:border-teal-500 hover:bg-teal-50 flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 animate-in fade-in zoom-in"
-                          title="Add stop between locations"
-                        >
-                          <Plus className="h-3 w-3 text-teal-500" />
-                        </button>
-                      )}
+                      <AnimatePresence>
+                        {hoveredSegment === segmentIndex && (
+                          <motion.button
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0, opacity: 0 }}
+                            transition={{ duration: 0.15, ease: 'easeOut' }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setAddStopBetween({
+                                from: locationGroups[segmentIndex].location,
+                                to: locationGroups[segmentIndex + 1].location,
+                                fromIndex: segmentIndex
+                              })
+                              setShowAddStopModal(true)
+                            }}
+                            className="w-6 h-6 rounded-full bg-white border-2 border-teal-400 hover:border-teal-500 hover:bg-teal-50 flex items-center justify-center shadow-lg transition-colors duration-200 hover:shadow-xl"
+                            whileHover={{ scale: 1.15 }}
+                            whileTap={{ scale: 0.95 }}
+                            title="Add stop between locations"
+                          >
+                            <Plus className="h-3 w-3 text-teal-500" />
+                          </motion.button>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </div>
                 )

@@ -174,17 +174,43 @@ ${this.getTransportStrategy(transportMode, context)}
 PRO PLANNER REQUIREMENTS
 ═══════════════════════════════════════════════════════════════
 1. REALISTIC SCHEDULING: Daily itineraries from 7am-10pm with proper pacing
-2. DETAILED TRAVEL SEGMENTS: Every travel item must include:
-   - Exact from/to locations
+
+2. TRAVEL SEGMENTS WITH INTERMEDIATE STOPS (CRITICAL):
+   For ANY travel segment longer than 3-4 hours:
+   - Break the journey into realistic segments with waypoint stops
+   - Suggest intermediate towns/cities for rest, meals, or overnight stays
+   - Example: Paris → Lyon by bike (450km, ~18h total):
+     * Day 1: Paris → Fontainebleau (80km, 4h) - Lunch stop
+     * Day 1: Fontainebleau → Sens (85km, 4h) - Overnight
+     * Day 2: Sens → Auxerre (60km, 3h) - Lunch stop
+     * Day 2: Auxerre → Lyon (225km, 11h) - Split into more segments
+
+   Each travel item must include:
+   - Exact from/to locations (including intermediate waypoints)
    - Transport mode (${transportMode})
    - Distance in km
    - Duration in hours (realistic for ${transportMode})
    - Cost estimate (fuel/tickets/tolls)
-3. ACTIVITY OPTIMIZATION: Select activities from the provided list that match interests: ${interests}
-4. MEAL PLANNING: Include 3 meals/day at appropriate times using provided restaurants
-5. BUDGET ADHERENCE: All costs must align with ${context.budget} budget level
-6. PRACTICAL TIPS: Provide 5-8 actionable tips specific to ${transportMode} travel
-7. ROUTE OPTIMIZATION: Minimize backtracking, suggest logical flow between locations
+   - Suggested activities/meals at waypoint stops
+
+3. WAYPOINT SELECTION CRITERIA:
+   - Choose towns/cities along the actual route (not detours)
+   - Prioritize places with dining, accommodation, and attractions
+   - Space waypoints every 3-4 hours of travel time
+   - For bike: Every 60-80km (3-4 hours at 20km/h)
+   - For car: Every 200-300km (2.5-4 hours at 80km/h)
+   - For train: Major stations with connections
+
+4. ACTIVITY OPTIMIZATION: Select activities from the provided list that match interests: ${interests}
+
+5. MEAL PLANNING: Include 3 meals/day at appropriate times using provided restaurants
+   - Meals at waypoint stops should be realistic (towns along route)
+
+6. BUDGET ADHERENCE: All costs must align with ${context.budget} budget level
+
+7. PRACTICAL TIPS: Provide 5-8 actionable tips specific to ${transportMode} travel
+
+8. ROUTE OPTIMIZATION: Minimize backtracking, suggest logical flow between locations
 
 Return ONLY the JSON itinerary. No explanations, no markdown formatting.`
   }
@@ -195,22 +221,30 @@ Return ONLY the JSON itinerary. No explanations, no markdown formatting.`
   private getTransportStrategy(mode: string, context: AIGenerationContext): string {
     const strategies: Record<string, string> = {
       car: `- Plan scenic routes and roadside attractions
-- Include parking information and costs
-- Suggest rest stops every 2-3 hours
+- MANDATORY: Break journeys >4h into segments with intermediate town stops
+- Include parking information and costs at each stop
+- Suggest rest stops every 200-300km (2.5-4 hours)
+- Recommend lunch/dinner stops in towns along the route
 - Consider fuel costs (~$0.15/km)
 - Recommend departure times to avoid traffic`,
 
       train: `- Focus on train stations and nearby attractions
+- MANDATORY: For multi-leg journeys, suggest intermediate station stops
 - Include station-to-attraction transport
 - Suggest booking advance tickets for savings
 - Plan around train schedules (typically hourly)
-- Recommend seat reservations for long journeys`,
+- Recommend seat reservations for long journeys
+- Consider layover activities at major stations`,
 
-      bike: `- Plan routes with bike-friendly paths
-- Include rest stops every 15-20km
+      bike: `- Plan routes with bike-friendly paths and dedicated lanes
+- MANDATORY: Break journeys into 60-80km segments (3-4 hours cycling)
+- Include rest stops every 15-20km for water/snacks
+- Suggest lunch stops in towns along the route (every 60-80km)
+- Plan overnight stops for multi-day rides
 - Suggest accommodations with bike storage
 - Consider elevation changes and difficulty
-- Recommend early starts to avoid heat/traffic`,
+- Recommend early starts (7-8am) to avoid heat/traffic
+- Include bike repair shops along route`,
 
       flight: `- Minimize inter-city flights (focus on exploration)
 - Include airport transfer times (2-3h before flight)
@@ -221,7 +255,9 @@ Return ONLY the JSON itinerary. No explanations, no markdown formatting.`
       mixed: `- Optimize transport mode per segment
 - Use trains for medium distances (100-500km)
 - Use flights for long distances (>500km)
+- Use bikes/cars for scenic routes <200km
 - Use local transport within cities
+- MANDATORY: Break long segments with intermediate stops
 - Provide cost comparison for each segment`
     }
 
