@@ -22,7 +22,7 @@ export interface GenerateplanCommand {
   interests?: string[]
   budget?: 'budget' | 'moderate' | 'luxury'
   maxTravelHoursPerDay?: number // Optional: max travel hours per day (e.g., 4)
-  transportMode?: 'car' | 'train' | 'bus' | 'flight' | 'mixed' // Transport mode
+  transportMode?: 'car' | 'train' | 'bike' | 'flight' | 'mixed' // Transport mode
   proMode?: boolean // Enable Pro mode with reasoning AI
   forceRefresh?: boolean // Force regeneration, bypass cache
 }

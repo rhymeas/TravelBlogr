@@ -24,63 +24,73 @@ export class EnhancedGroqAIService {
     context: AIGenerationContext & { transportMode?: string },
     startDate: string
   ): Promise<AIGenerationResult> {
-    console.log('🚀 Pro Mode: Using DeepSeek-R1 reasoning model...')
-    
+    console.log('🚀 Pro Mode: Using Llama 3.3 70B reasoning model...')
+
     const prompt = this.buildEnhancedPrompt(context, startDate)
     const startTime = Date.now()
 
     try {
-      // Use DeepSeek-R1 for reasoning (available on Groq)
+      // Use Llama 3.3 70B for advanced reasoning (available on Groq)
       const completion = await this.groq.chat.completions.create({
         messages: [
           {
             role: 'system',
-            content: `You are an expert travel planner with deep reasoning capabilities. 
-            
-Analyze the trip requirements carefully and create an optimized itinerary that:
-1. Considers realistic travel times and transportation modes
-2. Balances travel days with exploration days
-3. Suggests optimal routes and stops
-4. Provides detailed transportation information
-5. Includes cost estimates and practical tips
+            content: `You are an expert travel planner with advanced reasoning capabilities.
 
-Output MUST be valid JSON following this exact schema:
+CRITICAL: You MUST output ONLY valid JSON. No explanations, no markdown, no code blocks.
+
+Your task is to create a detailed, optimized travel itinerary by:
+1. Analyzing the route, distances, and transportation mode
+2. Calculating realistic travel times based on the chosen transport mode
+3. Balancing travel days with exploration time
+4. Considering the user's interests, budget, and preferences
+5. Providing detailed, actionable recommendations
+
+Output Schema (STRICT JSON):
 {
-  "title": "string",
-  "summary": "string",
+  "title": "string - Creative trip title",
+  "summary": "string - 2-3 sentence overview",
   "days": [
     {
       "day": number,
       "date": "YYYY-MM-DD",
-      "location": "string",
+      "location": "string - City/location name",
       "type": "stay" | "travel",
       "items": [
         {
-          "time": "HH:MM",
-          "title": "string",
+          "time": "HH:MM - 24h format",
+          "title": "string - Activity/meal/travel name",
           "type": "activity" | "meal" | "travel",
-          "duration": number (hours),
-          "description": "string",
-          "costEstimate": number,
-          "from": "string" (for travel items),
-          "to": "string" (for travel items),
-          "mode": "string" (for travel items),
-          "distance": "string" (for travel items)
+          "duration": number - hours as decimal,
+          "description": "string - Detailed description",
+          "costEstimate": number - USD,
+          "from": "string - ONLY for travel items",
+          "to": "string - ONLY for travel items",
+          "mode": "string - ONLY for travel items (car/train/bike/flight)",
+          "distance": "string - ONLY for travel items (e.g., '120 km')"
         }
       ]
     }
   ],
-  "totalCostEstimate": number,
-  "tips": ["string"]
-}`
+  "totalCostEstimate": number - Total USD,
+  "tips": ["string - Practical travel tips"]
+}
+
+Rules:
+- Each day must have 4-8 items
+- Travel items must include from, to, mode, distance
+- Activity items must have realistic durations
+- Meal items should be at appropriate times (breakfast 7-9am, lunch 12-2pm, dinner 6-9pm)
+- Cost estimates must be realistic for the budget level
+- Tips should be specific and actionable`
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        model: 'deepseek-r1-distill-llama-70b', // Reasoning model
-        temperature: 0.6,
+        model: 'llama-3.3-70b-versatile', // Llama 3.3 70B - best available reasoning model
+        temperature: 0.7,
         max_tokens: 8000,
         response_format: { type: 'json_object' }
       })
@@ -101,59 +111,121 @@ Output MUST be valid JSON following this exact schema:
   }
 
   /**
-   * Build enhanced prompt with transportation details
+   * Build enhanced prompt with all context and transportation details
    */
   private buildEnhancedPrompt(
     context: AIGenerationContext & { transportMode?: string },
     startDate: string
   ): string {
     const transportMode = context.transportMode || 'car'
-    const interests = context.interests.length > 0 
-      ? context.interests.join(', ') 
+    const interests = context.interests.length > 0
+      ? context.interests.join(', ')
       : 'general sightseeing'
 
-    return `Create a detailed ${context.totalDays}-day travel itinerary with enhanced transportation analysis.
+    // Calculate average speed for transport mode
+    const speedMap: Record<string, number> = {
+      car: 80,
+      train: 100,
+      bike: 20,
+      flight: 500,
+      mixed: 80
+    }
+    const avgSpeed = speedMap[transportMode] || 80
 
-**Route Information:**
-- From: ${context.fromLocation}
-- To: ${context.toLocation}
-- Stops: ${context.stops.length > 0 ? context.stops.join(', ') : 'None'}
-- Total Distance: ${context.routeDistance} km
-- Estimated Travel Time: ${context.routeDuration} hours
-- Transport Mode: ${transportMode}
-- Start Date: ${startDate}
+    return `Create a ${context.totalDays}-day travel itinerary with Pro-level detail and reasoning.
 
-**Travel Preferences:**
-- Budget: ${context.budget}
-- Interests: ${interests}
-${context.maxTravelHoursPerDay ? `- Max Travel Hours/Day: ${context.maxTravelHoursPerDay}h` : ''}
+═══════════════════════════════════════════════════════════════
+ROUTE & LOGISTICS
+═══════════════════════════════════════════════════════════════
+Origin: ${context.fromLocation}
+Destination: ${context.toLocation}
+Intermediate Stops: ${context.stops.length > 0 ? context.stops.join(' → ') : 'Direct route'}
+Total Distance: ${Math.round(context.routeDistance)} km
+Estimated Travel Time: ${context.routeDuration.toFixed(1)} hours
+Transport Mode: ${transportMode.toUpperCase()} (avg speed: ${avgSpeed} km/h)
+Start Date: ${startDate}
+Trip Duration: ${context.totalDays} days
 
-**Transportation Analysis Required:**
-For ${transportMode} travel, provide:
-1. Realistic travel times between locations
-2. Suggested departure/arrival times
-3. Rest stops or breaks for long journeys
-4. Alternative transport options if beneficial
-5. Cost estimates for transportation
-6. Booking recommendations (if applicable)
+═══════════════════════════════════════════════════════════════
+TRAVELER PREFERENCES
+═══════════════════════════════════════════════════════════════
+Budget Level: ${context.budget.toUpperCase()}
+Primary Interests: ${interests}
+${context.maxTravelHoursPerDay ? `Max Travel Hours/Day: ${context.maxTravelHoursPerDay}h (user preference)` : 'No travel time restrictions'}
 
-**Available Activities & Restaurants:**
+═══════════════════════════════════════════════════════════════
+AVAILABLE ATTRACTIONS & DINING
+═══════════════════════════════════════════════════════════════
 ${context.locationsData.map(loc => `
-${loc.name}:
-- Activities: ${loc.activities.slice(0, 5).map(a => a.name).join(', ')}
-- Restaurants: ${loc.restaurants.slice(0, 3).map(r => r.name).join(', ')}
+📍 ${loc.name.toUpperCase()}
+   Top Activities (${loc.activities.length} total):
+   ${loc.activities.slice(0, 8).map((a, i) => `${i + 1}. ${a.name}${a.description ? ` - ${a.description.substring(0, 60)}...` : ''}`).join('\n   ')}
+
+   Dining Options (${loc.restaurants.length} total):
+   ${loc.restaurants.slice(0, 5).map((r, i) => `${i + 1}. ${r.name}${r.cuisine ? ` (${r.cuisine})` : ''}`).join('\n   ')}
 `).join('\n')}
 
-**Requirements:**
-1. Create realistic daily schedules (8am-10pm)
-2. Include specific travel segments with from/to/mode/duration/distance
-3. Balance travel days with exploration days
-4. Provide cost estimates for all items
-5. Add practical tips for ${transportMode} travel
-6. Consider ${context.budget} budget constraints
-7. Focus on ${interests}
+═══════════════════════════════════════════════════════════════
+TRANSPORTATION STRATEGY FOR ${transportMode.toUpperCase()}
+═══════════════════════════════════════════════════════════════
+${this.getTransportStrategy(transportMode, context)}
 
-Return a complete JSON itinerary following the schema provided.`
+═══════════════════════════════════════════════════════════════
+PRO PLANNER REQUIREMENTS
+═══════════════════════════════════════════════════════════════
+1. REALISTIC SCHEDULING: Daily itineraries from 7am-10pm with proper pacing
+2. DETAILED TRAVEL SEGMENTS: Every travel item must include:
+   - Exact from/to locations
+   - Transport mode (${transportMode})
+   - Distance in km
+   - Duration in hours (realistic for ${transportMode})
+   - Cost estimate (fuel/tickets/tolls)
+3. ACTIVITY OPTIMIZATION: Select activities from the provided list that match interests: ${interests}
+4. MEAL PLANNING: Include 3 meals/day at appropriate times using provided restaurants
+5. BUDGET ADHERENCE: All costs must align with ${context.budget} budget level
+6. PRACTICAL TIPS: Provide 5-8 actionable tips specific to ${transportMode} travel
+7. ROUTE OPTIMIZATION: Minimize backtracking, suggest logical flow between locations
+
+Return ONLY the JSON itinerary. No explanations, no markdown formatting.`
+  }
+
+  /**
+   * Get transport-specific strategy and recommendations
+   */
+  private getTransportStrategy(mode: string, context: AIGenerationContext): string {
+    const strategies: Record<string, string> = {
+      car: `- Plan scenic routes and roadside attractions
+- Include parking information and costs
+- Suggest rest stops every 2-3 hours
+- Consider fuel costs (~$0.15/km)
+- Recommend departure times to avoid traffic`,
+
+      train: `- Focus on train stations and nearby attractions
+- Include station-to-attraction transport
+- Suggest booking advance tickets for savings
+- Plan around train schedules (typically hourly)
+- Recommend seat reservations for long journeys`,
+
+      bike: `- Plan routes with bike-friendly paths
+- Include rest stops every 15-20km
+- Suggest accommodations with bike storage
+- Consider elevation changes and difficulty
+- Recommend early starts to avoid heat/traffic`,
+
+      flight: `- Minimize inter-city flights (focus on exploration)
+- Include airport transfer times (2-3h before flight)
+- Suggest booking flights in advance
+- Plan activities near airports on travel days
+- Consider baggage allowances and costs`,
+
+      mixed: `- Optimize transport mode per segment
+- Use trains for medium distances (100-500km)
+- Use flights for long distances (>500km)
+- Use local transport within cities
+- Provide cost comparison for each segment`
+    }
+
+    return strategies[mode] || strategies.car
   }
 
   /**
