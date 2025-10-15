@@ -505,7 +505,6 @@ export function planModal({
               </button>
               </div>
             </div>
-          </div> {/* Close header section */}
 
           {/* Content Area */}
           <div className="bg-white px-12 py-8 flex-1 overflow-y-auto">
@@ -632,35 +631,20 @@ export function planModal({
                   {/* Right: Location Mini Map (replaces "My Journey So Far") */}
                   <div className="space-y-4">
                     {/* Location Mini Map */}
-                    {(() => {
-                      // Find coordinates with flexible matching
-                      const coords = locationCoordinates?.[currentLocation.location] ||
-                        Object.entries(locationCoordinates || {}).find(([key]) =>
-                          key.toLowerCase().includes(currentLocation.location.toLowerCase()) ||
-                          currentLocation.location.toLowerCase().includes(key.toLowerCase())
-                        )?.[1]
-
-                      if (!coords) {
-                        console.log('No coordinates found for:', currentLocation.location)
-                        console.log('Available coordinates:', Object.keys(locationCoordinates || {}))
-                        return null
-                      }
-
-                      return (
-                        <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl p-4">
-                          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-teal-600" />
-                            Location Map
-                          </h3>
-                          <LocationMiniMap
-                            locationName={currentLocation.location}
-                            latitude={coords.latitude}
-                            longitude={coords.longitude}
-                            className="h-64 w-full rounded-lg overflow-hidden shadow-md"
-                          />
-                        </div>
-                      )
-                    })()}
+                    {locationCoordinates && locationCoordinates[currentLocation.location] && (
+                      <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-teal-500" />
+                          Location Map
+                        </h3>
+                        <LocationMiniMap
+                          locationName={currentLocation.location}
+                          latitude={locationCoordinates[currentLocation.location].latitude}
+                          longitude={locationCoordinates[currentLocation.location].longitude}
+                          className="h-64 w-full rounded-lg overflow-hidden shadow-md"
+                        />
+                      </div>
+                    )}
 
                     {/* Next Location Button */}
                     {activeLocationIndex < locationGroups.length - 1 && (

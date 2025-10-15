@@ -447,6 +447,8 @@ export function ItineraryGenerator() {
             }
           })
         }
+        console.log('📍 Extracted location coordinates:', coords)
+        console.log('📍 Total locations with coordinates:', Object.keys(coords).length)
         setLocationCoordinates(coords)
       } else {
         // Show helpful error message
