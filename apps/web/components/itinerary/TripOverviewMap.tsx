@@ -63,12 +63,18 @@ export function TripOverviewMap({ locations, className = '' }: TripOverviewMapPr
           zoom: 5
         })
 
-        // Add navigation controls
+        // Add navigation controls (same as trip planning page)
         map.current.addControl(
           new maplibregl.NavigationControl({
             showCompass: true,
             showZoom: true
           }),
+          'top-right'
+        )
+
+        // Add fullscreen control (same as trip planning page)
+        map.current.addControl(
+          new maplibregl.FullscreenControl(),
           'top-right'
         )
 
