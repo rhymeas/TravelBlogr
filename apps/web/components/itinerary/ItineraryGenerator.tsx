@@ -676,6 +676,9 @@ export function ItineraryGenerator() {
           plan={plan}
           onClose={() => setPlan(null)}
           locationImages={locationImages}
+          transportMode={transportMode}
+          proMode={proMode}
+          totalDistance={totalDistance || undefined}
         />
       )}
     </div>

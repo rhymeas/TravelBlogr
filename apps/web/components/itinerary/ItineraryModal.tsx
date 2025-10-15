@@ -18,10 +18,20 @@ import { AddStopModal } from './AddStopModal'
 interface planModalProps {
   plan: any
   locationImages?: Record<string, string>
+  transportMode?: string
+  proMode?: boolean
+  totalDistance?: number
   onClose: () => void
 }
 
-export function planModal({ plan, locationImages: propLocationImages, onClose }: planModalProps) {
+export function planModal({
+  plan,
+  locationImages: propLocationImages,
+  transportMode = 'car',
+  proMode = false,
+  totalDistance,
+  onClose
+}: planModalProps) {
   const [activeLocationIndex, setActiveLocationIndex] = useState(0)
   const [addedActivities, setAddedActivities] = useState<Set<string>>(new Set())
   const [loadingMore, setLoadingMore] = useState(false)
@@ -272,10 +282,39 @@ export function planModal({ plan, locationImages: propLocationImages, onClose }:
 
           {/* Header with Title and Timeline */}
           <div className="bg-gradient-to-br from-gray-50 to-white px-12 pt-6 pb-5 border-b border-gray-200">
-            {/* Title */}
-            <h1 className="text-2xl font-bold text-gray-900 mb-5 pr-12">
-              {plan.title}
-            </h1>
+            {/* Title and Meta Info */}
+            <div className="mb-5 pr-12">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                {plan.title}
+              </h1>
+
+              {/* Distance and Transport Mode */}
+              <div className="flex items-center gap-4 text-sm text-gray-600">
+                {totalDistance && (
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4" />
+                    <span>{Math.round(totalDistance)} km · {Math.round(totalDistance * 0.621371)} mi</span>
+                  </div>
+                )}
+
+                {transportMode && (
+                  <div className="flex items-center gap-1.5">
+                    {transportMode === 'car' && '🚗'}
+                    {transportMode === 'train' && '🚂'}
+                    {transportMode === 'bike' && '🚴'}
+                    {transportMode === 'flight' && '✈️'}
+                    {transportMode === 'mixed' && '🔀'}
+                    <span className="capitalize">{transportMode}</span>
+                  </div>
+                )}
+
+                {proMode && (
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-teal-50 text-teal-700 rounded-full text-xs font-medium">
+                    <span>✨ Pro Mode</span>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Minimal Dot Timeline */}
             <div className="relative flex items-center justify-between max-w-5xl mx-auto">
@@ -311,9 +350,9 @@ export function planModal({ plan, locationImages: propLocationImages, onClose }:
                     onMouseEnter={() => setHoveredSegment(segmentIndex)}
                     onMouseLeave={() => setHoveredSegment(null)}
                   >
-                    {/* Larger hover area - invisible but captures mouse */}
-                    <div className="w-24 h-24 flex items-center justify-center">
-                      {/* "+" Button - appears on hover */}
+                    {/* Hover area - 24x24px */}
+                    <div className="w-6 h-6 flex items-center justify-center">
+                      {/* "+" Button - appears on hover - 24x24px */}
                       {hoveredSegment === segmentIndex && (
                         <button
                           onClick={(e) => {
@@ -325,10 +364,10 @@ export function planModal({ plan, locationImages: propLocationImages, onClose }:
                             })
                             setShowAddStopModal(true)
                           }}
-                          className="w-8 h-8 rounded-full bg-white border-2 border-teal-400 hover:border-teal-500 hover:bg-teal-50 flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 animate-in fade-in zoom-in"
+                          className="w-6 h-6 rounded-full bg-white border-2 border-teal-400 hover:border-teal-500 hover:bg-teal-50 flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 animate-in fade-in zoom-in"
                           title="Add stop between locations"
                         >
-                          <Plus className="h-4 w-4 text-teal-500" />
+                          <Plus className="h-3 w-3 text-teal-500" />
                         </button>
                       )}
                     </div>
@@ -675,6 +714,36 @@ export function planModal({ plan, locationImages: propLocationImages, onClose }:
                       <div className="text-xs text-gray-600">Total Cost</div>
                     </div>
                   </div>
+
+                  {/* Route Visualization - Simple SVG */}
+                  {proMode && locationGroups.length > 1 && (
+                    <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl p-6 mb-8 max-w-3xl mx-auto">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-teal-600" />
+                        Your Route
+                      </h3>
+                      <div className="relative">
+                        {/* Simple route line with dots */}
+                        <div className="flex items-center justify-between">
+                          {locationGroups.map((group: any, index: number) => (
+                            <div key={index} className="flex items-center" style={{ flex: 1 }}>
+                              {/* Location dot */}
+                              <div className="flex flex-col items-center">
+                                <div className="w-3 h-3 rounded-full bg-teal-500 border-2 border-white shadow-md" />
+                                <div className="text-xs font-medium text-gray-700 mt-2 text-center max-w-[80px]">
+                                  {formatLocationDisplay(group.location).main}
+                                </div>
+                              </div>
+                              {/* Connecting line */}
+                              {index < locationGroups.length - 1 && (
+                                <div className="flex-1 h-0.5 bg-gradient-to-r from-teal-400 to-teal-500 mx-2" />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <p className="text-sm text-gray-600 text-center">Ready to embark on your adventure?</p>
                 </motion.div>
