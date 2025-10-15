@@ -24,6 +24,10 @@ interface planModalProps {
   proMode?: boolean
   totalDistance?: number
   locationCoordinates?: Record<string, { latitude: number; longitude: number }>
+  startDate?: string
+  endDate?: string
+  interests?: string[]
+  budget?: string
   onClose: () => void
 }
 
@@ -34,6 +38,10 @@ export function planModal({
   proMode = false,
   totalDistance,
   locationCoordinates,
+  startDate,
+  endDate,
+  interests,
+  budget,
   onClose
 }: planModalProps) {
   const [activeLocationIndex, setActiveLocationIndex] = useState(0)
@@ -317,8 +325,21 @@ export function planModal({
                 {plan.title}
               </h1>
 
-              {/* Distance and Transport Mode */}
-              <div className="flex items-center gap-4 text-sm text-gray-600">
+              {/* Trip Metadata - Distance, Transport, Dates, Budget, Interests */}
+              <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
+                {/* Dates */}
+                {startDate && endDate && (
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4" />
+                    <span>
+                      {new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {' - '}
+                      {new Date(endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                  </div>
+                )}
+
+                {/* Distance */}
                 {totalDistance && (
                   <div className="flex items-center gap-1.5">
                     <MapPin className="h-4 w-4" />
@@ -326,6 +347,7 @@ export function planModal({
                   </div>
                 )}
 
+                {/* Transport Mode */}
                 {transportMode && (
                   <div className="flex items-center gap-1.5">
                     {transportMode === 'car' && '🚗'}
@@ -337,6 +359,23 @@ export function planModal({
                   </div>
                 )}
 
+                {/* Budget */}
+                {budget && (
+                  <div className="flex items-center gap-1.5">
+                    <DollarSign className="h-4 w-4" />
+                    <span className="capitalize">{budget}</span>
+                  </div>
+                )}
+
+                {/* Interests */}
+                {interests && interests.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <Compass className="h-4 w-4" />
+                    <span>{interests.slice(0, 3).join(', ')}{interests.length > 3 ? '...' : ''}</span>
+                  </div>
+                )}
+
+                {/* Pro Mode Badge */}
                 {proMode && (
                   <div className="flex items-center gap-1.5 px-2 py-0.5 bg-teal-50 text-teal-700 rounded-full text-xs font-medium">
                     <span>✨ Pro Mode</span>
