@@ -794,6 +794,7 @@ export function planModal({
                             latitude: locationCoordinates[group.location].latitude,
                             longitude: locationCoordinates[group.location].longitude
                           }))}
+                        transportMode={transportMode as any}
                         className="h-96 w-full"
                       />
                     </div>
