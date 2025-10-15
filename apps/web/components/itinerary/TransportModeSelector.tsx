@@ -6,9 +6,9 @@
  */
 
 import { useState } from 'react'
-import { Car, Train, Bus, Plane, Shuffle } from 'lucide-react'
+import { Car, Train, Bike, Plane, Shuffle } from 'lucide-react'
 
-export type TransportMode = 'car' | 'train' | 'bus' | 'flight' | 'mixed'
+export type TransportMode = 'car' | 'train' | 'bike' | 'flight' | 'mixed'
 
 interface TransportModeOption {
   id: TransportMode
@@ -37,12 +37,12 @@ const TRANSPORT_MODES: TransportModeOption[] = [
     color: 'green'
   },
   {
-    id: 'bus',
-    label: 'Bus / Coach',
-    icon: <Bus className="w-5 h-5" />,
-    avgSpeed: 60,
-    description: 'Budget-friendly travel',
-    color: 'orange'
+    id: 'bike',
+    label: 'Bike / Cycling',
+    icon: <Bike className="w-5 h-5" />,
+    avgSpeed: 20,
+    description: 'Eco-friendly, active travel',
+    color: 'teal'
   },
   {
     id: 'flight',

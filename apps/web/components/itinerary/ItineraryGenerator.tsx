@@ -12,7 +12,6 @@ import { LocationInput } from './LocationInput'
 import { DateRangePicker } from './DateRangePicker'
 import { TravelTimeSlider } from './TravelTimeSlider'
 import { TransportModeSelector, type TransportMode } from './TransportModeSelector'
-import { ProPlanToggle } from './ProPlanToggle'
 import { planModal as PlanModal } from './ItineraryModal'
 import { LoadingModal } from './LoadingModal'
 import { ChevronDown, ChevronUp, Map as MapIcon } from 'lucide-react'
@@ -84,6 +83,9 @@ export function ItineraryGenerator() {
   // Transport mode and Pro mode
   const [transportMode, setTransportMode] = useState<TransportMode>('car')
   const [proMode, setProMode] = useState(false)
+
+  // Distance calculation state
+  const [totalDistance, setTotalDistance] = useState<number | null>(null)
 
   const [formData, setFormData] = useState({
     interests: 'art, food, history',
@@ -264,6 +266,40 @@ export function ItineraryGenerator() {
     return () => clearTimeout(timeoutId)
   }, [locations])
 
+  // Calculate total distance when locations change
+  useEffect(() => {
+    const filledLocations = locations.filter(loc =>
+      loc.value.trim() && loc.latitude && loc.longitude
+    )
+
+    if (filledLocations.length >= 2) {
+      let distance = 0
+
+      // Calculate distance through all waypoints using Haversine formula
+      for (let i = 0; i < filledLocations.length - 1; i++) {
+        const from = filledLocations[i]
+        const to = filledLocations[i + 1]
+
+        // Haversine formula for great-circle distance
+        const R = 6371 // Earth radius in km
+        const dLat = (to.latitude! - from.latitude!) * Math.PI / 180
+        const dLon = (to.longitude! - from.longitude!) * Math.PI / 180
+
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(from.latitude! * Math.PI / 180) *
+                  Math.cos(to.latitude! * Math.PI / 180) *
+                  Math.sin(dLon / 2) * Math.sin(dLon / 2)
+
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+        distance += R * c
+      }
+
+      setTotalDistance(distance)
+    } else {
+      setTotalDistance(null)
+    }
+  }, [locations])
+
   // Update map markers and route when mapLocations change
   useEffect(() => {
     if (!map.current) return
@@ -436,7 +472,14 @@ export function ItineraryGenerator() {
             <div className="space-y-4 mb-6 pb-24">
         {/* Where to? */}
         <div className="bg-white rounded-2xl shadow-sm border p-5 flex flex-col">
-          <h3 className="text-base font-semibold mb-3">Where to?</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-semibold">Where to?</h3>
+            {totalDistance && (
+              <span className="text-sm text-gray-400 font-normal">
+                {Math.round(totalDistance)} km · {Math.round(totalDistance * 0.621371)} mi
+              </span>
+            )}
+          </div>
           <div className="relative">
             <LocationInput
               locations={locations}
@@ -514,20 +557,35 @@ export function ItineraryGenerator() {
           </div>
         </div>
 
+        {/* Pro Planner Toggle - Compact */}
+        <div className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-xl border border-gray-200">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-700">Pro Planner</span>
+            <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded-full">
+              BETA
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setProMode(!proMode)}
+            className={`
+              relative w-11 h-6 rounded-full transition-colors
+              ${proMode ? 'bg-purple-500' : 'bg-gray-300'}
+            `}
+          >
+            <div className={`
+              absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform
+              ${proMode ? 'translate-x-5' : 'translate-x-0.5'}
+            `} />
+          </button>
+        </div>
+
         {/* Transport Mode */}
         <div className="bg-white rounded-2xl shadow-sm border p-5">
           <h3 className="text-base font-semibold mb-3">Transport Mode</h3>
           <TransportModeSelector
             value={transportMode}
             onChange={setTransportMode}
-          />
-        </div>
-
-        {/* Pro Planner Toggle */}
-        <div>
-          <ProPlanToggle
-            value={proMode}
-            onChange={setProMode}
           />
         </div>
 
