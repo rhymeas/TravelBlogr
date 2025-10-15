@@ -718,7 +718,7 @@ export function ItineraryGenerator() {
       <LoadingModal isOpen={loading} />
 
       {/* Plan Modal */}
-      {plan && (
+      {plan && dateRange && (
         <PlanModal
           plan={plan}
           onClose={() => setPlan(null)}
@@ -727,6 +727,10 @@ export function ItineraryGenerator() {
           proMode={proMode}
           totalDistance={totalDistance || undefined}
           locationCoordinates={locationCoordinates}
+          startDate={dateRange.startDate.toISOString().split('T')[0]}
+          endDate={dateRange.endDate.toISOString().split('T')[0]}
+          interests={formData.interests.split(',').map(i => i.trim()).filter(i => i)}
+          budget={formData.budget}
         />
       )}
     </div>
