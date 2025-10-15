@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation'
 import { AddStopModal } from './AddStopModal'
 import { LocationMiniMap } from './LocationMiniMap'
 import { TripOverviewMap } from './TripOverviewMap'
+import { QuickBookingLinks } from '@/components/locations/QuickBookingLinks'
 
 interface planModalProps {
   plan: any
@@ -696,6 +697,26 @@ export function planModal({
                             latitude={coords.latitude}
                             longitude={coords.longitude}
                             className="h-64 w-full rounded-lg overflow-hidden shadow-md"
+                          />
+                        </div>
+                      )
+                    })()}
+
+                    {/* Booking Links - Affiliate Revenue */}
+                    {(() => {
+                      const coords = locationCoordinates?.[currentLocation.location] ||
+                        Object.entries(locationCoordinates || {}).find(([key]) =>
+                          key.toLowerCase().includes(currentLocation.location.toLowerCase()) ||
+                          currentLocation.location.toLowerCase().includes(key.toLowerCase())
+                        )?.[1]
+
+                      return (
+                        <div className="bg-white rounded-xl p-4 border border-gray-200">
+                          <QuickBookingLinks
+                            locationName={currentLocation.location}
+                            latitude={coords?.latitude}
+                            longitude={coords?.longitude}
+                            context="itinerary_modal"
                           />
                         </div>
                       )

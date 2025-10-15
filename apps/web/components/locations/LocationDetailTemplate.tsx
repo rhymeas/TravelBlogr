@@ -22,6 +22,9 @@ import { LocationImageGallery } from './LocationImageGallery'
 import { LocationRating } from './LocationRating'
 import { LocationViewTracker } from './LocationViewTracker'
 import { NotesWidget } from '@/components/notes/NotesWidget'
+import { QuickBookingLinks } from './QuickBookingLinks'
+import { SidebarAd } from '@/components/ads/SidebarAd'
+import { HorizontalBannerAd } from '@/components/ads/HorizontalBannerAd'
 
 // Dynamic import to avoid SSR issues with emoji-picker-react
 const LocationCommentSection = dynamic(
@@ -234,6 +237,15 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
               locationName={location.name}
             />
 
+            {/* Horizontal Ad - Mid-content */}
+            <div className="my-8">
+              <HorizontalBannerAd
+                slot="location_detail_mid"
+                page="location-detail"
+                size="standard"
+              />
+            </div>
+
             {/* Map Section */}
             {location.latitude && location.longitude && (
               <div className="mb-8">
@@ -316,8 +328,26 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
 
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
+            {/* Sidebar Ad - Top Position */}
+            <SidebarAd
+              slot="location_detail_sidebar"
+              page="location-detail"
+              size="medium"
+              sticky={true}
+            />
+
             {/* Weather Widget */}
             <LocationWeather locationSlug={location.slug} locationName={location.name} />
+
+            {/* Quick Booking Links - Affiliate Revenue */}
+            <Card className="card-elevated p-6">
+              <QuickBookingLinks
+                locationName={location.name}
+                latitude={location.latitude}
+                longitude={location.longitude}
+                context="location_sidebar"
+              />
+            </Card>
 
             {/* Authentication-Aware Actions */}
             {isAuthenticated ? (

@@ -27,6 +27,7 @@ import { FeaturedLocations } from '@/components/landing/FeaturedLocations'
 import { DashboardLanding } from '@/components/dashboard/DashboardLanding'
 import { PublicDestinationSearch } from '@/components/search/PublicDestinationSearch'
 import { useAuth } from '@/hooks/useAuth'
+import { HorizontalBannerAd } from '@/components/ads/HorizontalBannerAd'
 
 
 
@@ -189,6 +190,13 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Horizontal Ad - After Hero */}
+        <HorizontalBannerAd
+          slot="homepage_top"
+          page="homepage"
+          size="large"
+        />
+
         {/* Feature Cards - Below Hero */}
         <section className="py-16 bg-white">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -255,6 +263,13 @@ export default function HomePage() {
 
         {/* Featured Locations */}
         <FeaturedLocations />
+
+        {/* Horizontal Ad - Mid-page */}
+        <HorizontalBannerAd
+          slot="homepage_mid"
+          page="homepage"
+          size="standard"
+        />
 
         {/* Categories - Airbnb Style */}
         <section className="py-16 bg-gray-50">

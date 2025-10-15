@@ -5,6 +5,7 @@ import { LocationsSearch } from '@/components/locations/LocationsSearch'
 import { getAllLocations } from '@/lib/supabase/locations'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
 import { MapPin, Grid } from 'lucide-react'
+import { HorizontalBannerAd } from '@/components/ads/HorizontalBannerAd'
 
 export const metadata: Metadata = {
   title: 'Explore Locations | TravelBlogr',
@@ -59,6 +60,13 @@ export default async function LocationsPage() {
       <div className="container mx-auto px-4 py-6">
         <LocationsSearch categories={[]} />
       </div>
+
+      {/* Horizontal Ad - After Search */}
+      <HorizontalBannerAd
+        slot="locations_top"
+        page="locations"
+        size="standard"
+      />
 
       {/* Content */}
       <div className="container mx-auto px-4 pb-12">

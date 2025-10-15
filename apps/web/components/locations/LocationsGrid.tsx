@@ -16,6 +16,8 @@ import {
   MapPin, Star, Eye, Heart, Calendar,
   Users, Camera, Clock, ArrowRight
 } from 'lucide-react'
+import { InFeedAd } from '@/components/ads/InFeedAd'
+import { shouldShowInFeedAd } from '@/lib/utils/adHelpers'
 
 interface Location {
   id: string
@@ -122,7 +124,17 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
       {viewMode === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {displayedLocations.map((location, index) => (
-            <LocationCard key={location.id} location={location} priority={index < 6} />
+            <>
+              <LocationCard key={location.id} location={location} priority={index < 6} />
+              {/* In-feed ad every 5th item */}
+              {shouldShowInFeedAd(index) && (
+                <InFeedAd
+                  key={`ad-${index}`}
+                  slot="locations_infeed"
+                  page="locations"
+                />
+              )}
+            </>
           ))}
         </div>
       )}

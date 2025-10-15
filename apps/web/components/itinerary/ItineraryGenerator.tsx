@@ -14,6 +14,7 @@ import { TravelTimeSlider } from './TravelTimeSlider'
 import { TransportModeSelector, type TransportMode } from './TransportModeSelector'
 import { planModal as PlanModal } from './ItineraryModal'
 import { LoadingModal } from './LoadingModal'
+import { CreditLimitModal } from '@/components/credits/CreditLimitModal'
 import { ChevronDown, ChevronUp, Map as MapIcon } from 'lucide-react'
 import maplibregl from 'maplibre-gl'
 
@@ -27,6 +28,10 @@ export function ItineraryGenerator() {
   const [resolvedLocations, setResolvedLocations] = useState<any[]>([])
   const [locationImages, setLocationImages] = useState<Record<string, string>>({})
   const [locationCoordinates, setLocationCoordinates] = useState<Record<string, { latitude: number; longitude: number }>>({})
+
+  // Credit limit modal state
+  const [showCreditModal, setShowCreditModal] = useState(false)
+  const [creditModalReason, setCreditModalReason] = useState<'free_tier_limit' | 'no_credits'>('free_tier_limit')
 
   // Multi-location state with resolved names and metadata
   const [locations, setLocations] = useState<Array<{
@@ -488,6 +493,14 @@ export function ItineraryGenerator() {
 
       const data = await response.json()
 
+      // Handle credit limit errors
+      if (!response.ok && data.action === 'buy_credits') {
+        setLoading(false)
+        setCreditModalReason(data.needsCredits ? 'free_tier_limit' : 'no_credits')
+        setShowCreditModal(true)
+        return
+      }
+
       if (data.success) {
         setPlan(data.data)
         setResolvedLocations(data.resolvedLocations || [])
@@ -774,6 +787,13 @@ export function ItineraryGenerator() {
 
       {/* Loading Modal */}
       <LoadingModal isOpen={loading} />
+
+      {/* Credit Limit Modal */}
+      <CreditLimitModal
+        isOpen={showCreditModal}
+        onClose={() => setShowCreditModal(false)}
+        reason={creditModalReason}
+      />
 
       {/* Plan Modal */}
       {plan && dateRange && (

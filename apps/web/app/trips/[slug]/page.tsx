@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { MapPin, Calendar, ArrowLeft, Star, CheckCircle2, Lightbulb, Copy, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { ViewTrackingPixel } from '@/components/analytics/ViewTrackingPixel'
+import { QuickBookingLinks } from '@/components/locations/QuickBookingLinks'
 
 interface Trip {
   id: string
@@ -269,6 +270,16 @@ export default async function PublicTripPage({ params }: { params: { slug: strin
                 </div>
               </div>
             </Card>
+
+            {/* Booking Links - Affiliate Revenue */}
+            {tripData.destination && (
+              <Card className="p-6">
+                <QuickBookingLinks
+                  locationName={tripData.destination}
+                  context="trip_page"
+                />
+              </Card>
+            )}
 
             {/* Tips */}
             <Card className="p-6 bg-blue-50 border-blue-200">

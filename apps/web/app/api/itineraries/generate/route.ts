@@ -7,6 +7,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { GenerateplanUseCase } from '@/lib/itinerary/application/use-cases/GenerateItineraryUseCase'
+import { createServerSupabase } from '@/lib/supabase-server'
+import { canGenerateAI, useCredit, incrementAIUsage } from '@/lib/services/creditService'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -38,7 +40,55 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Execute use case
+    // 3. Check authentication and credit/usage limits
+    const supabase = await createServerSupabase()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Authentication required',
+          action: 'login',
+        },
+        { status: 401 }
+      )
+    }
+
+    // 4. Check if user can generate AI itinerary
+    const canGenerate = await canGenerateAI(user.id)
+
+    if (!canGenerate.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: canGenerate.reason,
+          action: canGenerate.needsCredits ? 'buy_credits' : 'wait',
+          needsCredits: canGenerate.needsCredits,
+          credits: canGenerate.credits || 0,
+        },
+        { status: 403 }
+      )
+    }
+
+    // 5. If using credits (not free tier), deduct credit
+    let usedCredit = false
+    if (canGenerate.credits !== undefined) {
+      const creditResult = await useCredit(user.id, 1, 'AI itinerary generation')
+      if (!creditResult.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Failed to use credit. Please try again.',
+            action: 'retry',
+          },
+          { status: 500 }
+        )
+      }
+      usedCredit = true
+    }
+
+    // 6. Execute use case
     const useCase = new GenerateplanUseCase()
     const result = await useCase.execute({
       from: body.from,
@@ -53,7 +103,7 @@ export async function POST(request: NextRequest) {
       proMode: body.proMode || false // Pro mode flag (default: false)
     })
 
-    // 4. Handle result
+    // 7. Handle result
     if (!result.success) {
       return NextResponse.json(
         {
@@ -64,6 +114,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 8. Increment monthly usage counter (for free tier tracking)
+    await incrementAIUsage(user.id)
+
     const generationTime = Date.now() - startTime
 
     return NextResponse.json({
@@ -73,7 +126,10 @@ export async function POST(request: NextRequest) {
       locationImages: result.locationImages || {},
       meta: {
         generationTimeMs: generationTime,
-        generatedAt: new Date().toISOString()
+        generatedAt: new Date().toISOString(),
+        usedCredit,
+        remainingFree: canGenerate.remainingFree,
+        credits: canGenerate.credits,
       }
     })
 
