@@ -24,6 +24,14 @@ export interface planDay {
   day: number
   date: string
   location: string
+  locationMetadata?: {
+    name: string
+    country: string
+    region: string
+    continent: string
+    latitude: number
+    longitude: number
+  }
   type: 'stay' | 'travel'
   items: planItem[]
   travelInfo?: {

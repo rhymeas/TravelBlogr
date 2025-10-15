@@ -439,11 +439,23 @@ export function ItineraryGenerator() {
         const coords: Record<string, { latitude: number; longitude: number }> = {}
         if (data.data?.days) {
           data.data.days.forEach((day: any) => {
-            if (day.location && day.latitude && day.longitude) {
+            // Check for coordinates in locationMetadata (new format)
+            if (day.location && day.locationMetadata?.latitude && day.locationMetadata?.longitude) {
+              coords[day.location] = {
+                latitude: day.locationMetadata.latitude,
+                longitude: day.locationMetadata.longitude
+              }
+              console.log(`📍 Extracted coordinates for ${day.location}:`, coords[day.location])
+            }
+            // Fallback to old format (direct on day object)
+            else if (day.location && day.latitude && day.longitude) {
               coords[day.location] = {
                 latitude: day.latitude,
                 longitude: day.longitude
               }
+              console.log(`📍 Extracted coordinates (legacy) for ${day.location}:`, coords[day.location])
+            } else {
+              console.warn(`⚠️  No coordinates found for: ${day.location}`)
             }
           })
         }
