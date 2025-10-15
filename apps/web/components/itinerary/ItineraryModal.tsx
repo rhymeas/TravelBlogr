@@ -84,7 +84,7 @@ export function planModal({
     alert(`Feature coming soon! Will add ${stopLocation} between ${addStopBetween.from} and ${addStopBetween.to}`)
   }
 
-  // Group days by location (skip travel days for grouping)
+  // Group days by location (skip travel days for grouping) and extract travel distances
   const locationGroups = plan.days.reduce((groups: any[], day: any) => {
     // Skip travel days - they don't represent a location stay
     if (day.type === 'travel') {
@@ -105,6 +105,31 @@ export function planModal({
     }
     return groups
   }, [])
+
+  // Extract distances between locations from travel days
+  const travelDistances: Record<string, { km: number; miles: number }> = {}
+  plan.days.forEach((day: any, index: number) => {
+    if (day.type === 'travel') {
+      const travelItem = day.items.find((item: any) => item.type === 'travel')
+      if (travelItem && travelItem.distance) {
+        // Parse distance (e.g., "450km" or "450")
+        const distanceKm = typeof travelItem.distance === 'string'
+          ? parseFloat(travelItem.distance.replace(/[^\d.]/g, ''))
+          : travelItem.distance
+
+        const distanceMiles = Math.round(distanceKm * 0.621371)
+
+        // Find the previous and next location groups
+        const prevDay = plan.days.slice(0, index).reverse().find((d: any) => d.type !== 'travel')
+        const nextDay = plan.days.slice(index + 1).find((d: any) => d.type !== 'travel')
+
+        if (prevDay && nextDay) {
+          const key = `${prevDay.location}-${nextDay.location}`
+          travelDistances[key] = { km: distanceKm, miles: distanceMiles }
+        }
+      }
+    }
+  })
 
 
 
@@ -330,13 +355,19 @@ export function planModal({
                 }}
               />
 
-              {/* Hover-sensitive segments between locations */}
+              {/* Distance labels and hover-sensitive segments between locations */}
               {locationGroups.map((group: any, segmentIndex: number) => {
                 if (segmentIndex >= locationGroups.length - 1) return null
 
                 const totalSegments = locationGroups.length - 1
                 const segmentWidth = 100 / totalSegments
                 const leftPosition = (segmentIndex * segmentWidth) + (segmentWidth / 2)
+
+                // Get distance for this segment
+                const fromLocation = locationGroups[segmentIndex].location
+                const toLocation = locationGroups[segmentIndex + 1].location
+                const distanceKey = `${fromLocation}-${toLocation}`
+                const distance = travelDistances[distanceKey]
 
                 return (
                   <div
@@ -348,11 +379,22 @@ export function planModal({
                       transform: 'translate(-50%, -50%)',
                       zIndex: 20
                     }}
-                    onMouseEnter={() => setHoveredSegment(segmentIndex)}
-                    onMouseLeave={() => setHoveredSegment(null)}
                   >
-                    {/* Hover area - 32x32px for easier targeting */}
-                    <div className="w-8 h-8 flex items-center justify-center">
+                    {/* Distance Label - always visible */}
+                    {distance && (
+                      <div className="absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                        <div className="text-[10px] font-medium text-gray-500 bg-white/90 px-1.5 py-0.5 rounded">
+                          {distance.km}km · {distance.miles}mi
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Hover area for Add Stop button */}
+                    <div
+                      className="w-8 h-8 flex items-center justify-center"
+                      onMouseEnter={() => setHoveredSegment(segmentIndex)}
+                      onMouseLeave={() => setHoveredSegment(null)}
+                    >
                       {/* "+" Button - appears on hover - 24x24px */}
                       <AnimatePresence>
                         {hoveredSegment === segmentIndex && (
