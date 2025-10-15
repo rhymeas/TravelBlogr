@@ -140,7 +140,7 @@ export function CreateTripForm({ onSuccess, onCancel }: CreateTripFormProps) {
       }
 
       // Initialize trip stats for view tracking (fire and forget)
-      supabase
+      const statsResult = await supabase
         .from('trip_stats')
         .insert({
           trip_id: trip.id,
@@ -148,12 +148,13 @@ export function CreateTripForm({ onSuccess, onCancel }: CreateTripFormProps) {
           unique_views: 0,
           updated_at: new Date().toISOString()
         })
-        .then(() => {
-          console.log('✅ Trip stats initialized')
-        })
-        .catch((err: Error) => {
-          console.warn('⚠️ Failed to initialize trip stats (non-critical):', err)
-        })
+
+      // Handle stats initialization result
+      if (statsResult.error) {
+        console.warn('⚠️ Failed to initialize trip stats (non-critical):', statsResult.error)
+      } else {
+        console.log('✅ Trip stats initialized')
+      }
 
       toast.success('Trip created successfully!')
 

@@ -105,6 +105,7 @@ export function TripsDashboardV2({ userId }: TripsDashboardV2Props) {
   const sortedTrips = [...filteredTrips].sort((a, b) => {
     switch (sortBy) {
       case 'popular':
+        // @ts-ignore - trip_stats is a joined relation
         return (b.trip_stats?.total_views || 0) - (a.trip_stats?.total_views || 0)
       case 'alphabetical':
         return a.title.localeCompare(b.title)
