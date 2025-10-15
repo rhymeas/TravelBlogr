@@ -341,9 +341,10 @@ export function planModal({
                 return (
                   <div
                     key={`segment-${segmentIndex}`}
-                    className="absolute top-1/2 -translate-y-1/2"
+                    className="absolute"
                     style={{
                       left: `${leftPosition}%`,
+                      top: '14px', // Align with the line (top-3.5 = 14px)
                       transform: 'translate(-50%, -50%)',
                       zIndex: 20
                     }}

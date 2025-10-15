@@ -212,6 +212,45 @@ PRO PLANNER REQUIREMENTS
 
 8. ROUTE OPTIMIZATION: Minimize backtracking, suggest logical flow between locations
 
+═══════════════════════════════════════════════════════════════
+JSON STRUCTURE FOR TRAVEL ITEMS WITH WAYPOINTS
+═══════════════════════════════════════════════════════════════
+For travel segments longer than 3-4 hours, use this structure:
+
+{
+  "type": "travel",
+  "title": "Bike to [Destination]",
+  "from": "Paris",
+  "to": "Lyon",
+  "mode": "${transportMode}",
+  "distance": "450km",
+  "duration": "18h total",
+  "costEstimate": 50,
+  "description": "Scenic bike route through French countryside",
+  "waypoints": [
+    {
+      "name": "Fontainebleau",
+      "location": "Fontainebleau, France",
+      "activity": "Lunch at local bistro + visit Château",
+      "duration": "2h stop"
+    },
+    {
+      "name": "Sens",
+      "location": "Sens, France",
+      "activity": "Dinner + overnight stay",
+      "duration": "Overnight"
+    },
+    {
+      "name": "Auxerre",
+      "location": "Auxerre, France",
+      "activity": "Lunch break + explore old town",
+      "duration": "1.5h stop"
+    }
+  ]
+}
+
+For short travel (<3h), omit the waypoints array.
+
 Return ONLY the JSON itinerary. No explanations, no markdown formatting.`
   }
 
