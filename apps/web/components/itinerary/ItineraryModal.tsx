@@ -14,6 +14,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { SignUpPrompt } from '@/components/auth/SignUpPrompt'
 import { useRouter } from 'next/navigation'
 import { AddStopModal } from './AddStopModal'
+import { LocationMiniMap } from './LocationMiniMap'
+import { TripOverviewMap } from './TripOverviewMap'
 
 interface planModalProps {
   plan: any
@@ -21,6 +23,7 @@ interface planModalProps {
   transportMode?: string
   proMode?: boolean
   totalDistance?: number
+  locationCoordinates?: Record<string, { latitude: number; longitude: number }>
   onClose: () => void
 }
 
@@ -30,6 +33,7 @@ export function planModal({
   transportMode = 'car',
   proMode = false,
   totalDistance,
+  locationCoordinates,
   onClose
 }: planModalProps) {
   const [activeLocationIndex, setActiveLocationIndex] = useState(0)
@@ -554,6 +558,22 @@ export function planModal({
                       </p>
                     </div>
 
+                    {/* Location Mini Map */}
+                    {locationCoordinates && locationCoordinates[currentLocation.location] && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-teal-500" />
+                          Location Map
+                        </h3>
+                        <LocationMiniMap
+                          locationName={currentLocation.location}
+                          latitude={locationCoordinates[currentLocation.location].latitude}
+                          longitude={locationCoordinates[currentLocation.location].longitude}
+                          className="h-48 w-full"
+                        />
+                      </div>
+                    )}
+
                     {/* Activities */}
                     <div className="space-y-2">
                       {highlights.map((activity: any, idx: number) => (
@@ -766,8 +786,28 @@ export function planModal({
                     </div>
                   </div>
 
-                  {/* Route Visualization - Simple SVG */}
-                  {proMode && locationGroups.length > 1 && (
+                  {/* Trip Overview Map */}
+                  {locationCoordinates && locationGroups.length > 1 && (
+                    <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl p-6 mb-8 max-w-3xl mx-auto">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-teal-600" />
+                        Your Trip Route
+                      </h3>
+                      <TripOverviewMap
+                        locations={locationGroups
+                          .filter((group: any) => locationCoordinates[group.location])
+                          .map((group: any) => ({
+                            name: group.location,
+                            latitude: locationCoordinates[group.location].latitude,
+                            longitude: locationCoordinates[group.location].longitude
+                          }))}
+                        className="h-96 w-full"
+                      />
+                    </div>
+                  )}
+
+                  {/* Fallback: Simple route visualization if no coordinates */}
+                  {(!locationCoordinates || Object.keys(locationCoordinates).length === 0) && locationGroups.length > 1 && (
                     <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl p-6 mb-8 max-w-3xl mx-auto">
                       <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-teal-600" />

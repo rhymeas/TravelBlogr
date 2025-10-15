@@ -26,6 +26,7 @@ export function ItineraryGenerator() {
   // @ts-ignore - Kept for backend logging only
   const [resolvedLocations, setResolvedLocations] = useState<any[]>([])
   const [locationImages, setLocationImages] = useState<Record<string, string>>({})
+  const [locationCoordinates, setLocationCoordinates] = useState<Record<string, { latitude: number; longitude: number }>>({})
 
   // Multi-location state with resolved names and metadata
   const [locations, setLocations] = useState<Array<{
@@ -433,6 +434,20 @@ export function ItineraryGenerator() {
         setPlan(data.data)
         setResolvedLocations(data.resolvedLocations || [])
         setLocationImages(data.locationImages || {})
+
+        // Extract location coordinates from the plan
+        const coords: Record<string, { latitude: number; longitude: number }> = {}
+        if (data.data?.days) {
+          data.data.days.forEach((day: any) => {
+            if (day.location && day.latitude && day.longitude) {
+              coords[day.location] = {
+                latitude: day.latitude,
+                longitude: day.longitude
+              }
+            }
+          })
+        }
+        setLocationCoordinates(coords)
       } else {
         // Show helpful error message
         let errorMsg = data.error || 'Failed to generate plan'
@@ -679,6 +694,7 @@ export function ItineraryGenerator() {
           transportMode={transportMode}
           proMode={proMode}
           totalDistance={totalDistance || undefined}
+          locationCoordinates={locationCoordinates}
         />
       )}
     </div>
