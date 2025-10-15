@@ -340,36 +340,94 @@ export function ItineraryGenerator() {
       markers.current.push(marker)
     })
 
-    // Add route line if multiple locations
+    // Add REAL ROAD ROUTE if multiple locations
     if (mapLocations.length > 1) {
-      const coordinates = mapLocations.map(loc => [loc.lng, loc.lat])
+      // Fetch real road route from API
+      const coordinates = mapLocations.map(loc => ({ longitude: loc.lng, latitude: loc.lat }))
 
-      map.current.addSource('route', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates
+      // Map transport mode to routing profile
+      let profile = 'driving-car'
+      if (transportMode === 'bike') profile = 'cycling-regular'
+      // Train and flight use car routing (for road access to stations/airports)
+
+      fetch('/api/routing/get-route', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coordinates, profile })
+      })
+        .then(res => res.json())
+        .then(routeData => {
+          if (!map.current) return
+
+          // Remove old route if exists
+          if (map.current.getSource('route')) {
+            map.current.removeLayer('route')
+            map.current.removeSource('route')
           }
-        }
-      })
 
-      map.current.addLayer({
-        id: 'route',
-        type: 'line',
-        source: 'route',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round'
-        },
-        paint: {
-          'line-color': '#FF5A5F',
-          'line-width': 3,
-          'line-opacity': 0.8
-        }
-      })
+          // Add real road route
+          map.current.addSource('route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              properties: {},
+              geometry: routeData.geometry
+            }
+          })
+
+          map.current.addLayer({
+            id: 'route',
+            type: 'line',
+            source: 'route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round'
+            },
+            paint: {
+              'line-color': '#FF5A5F',
+              'line-width': 3,
+              'line-opacity': 0.8
+            }
+          })
+
+          console.log(`✅ Real road route loaded from ${routeData.provider}`)
+        })
+        .catch(error => {
+          console.error('Failed to load real route, using straight line:', error)
+
+          // Fallback to straight line if routing fails
+          if (!map.current) return
+
+          const coordinates = mapLocations.map(loc => [loc.lng, loc.lat])
+
+          map.current.addSource('route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              properties: {},
+              geometry: {
+                type: 'LineString',
+                coordinates
+              }
+            }
+          })
+
+          map.current.addLayer({
+            id: 'route',
+            type: 'line',
+            source: 'route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round'
+            },
+            paint: {
+              'line-color': '#FF5A5F',
+              'line-width': 3,
+              'line-opacity': 0.8,
+              'line-dasharray': [2, 2] // Dashed line to indicate fallback
+            }
+          })
+        })
     }
 
     // Fit bounds to show all markers
