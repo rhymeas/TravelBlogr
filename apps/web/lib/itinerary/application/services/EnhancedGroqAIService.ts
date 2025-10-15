@@ -175,7 +175,13 @@ PRO PLANNER REQUIREMENTS
 ═══════════════════════════════════════════════════════════════
 1. REALISTIC SCHEDULING: Daily itineraries from 7am-10pm with proper pacing
 
-2. TRAVEL SEGMENTS WITH INTERMEDIATE STOPS (CRITICAL):
+2. DESTINATION COVERAGE (CRITICAL):
+   - MUST include activity days at BOTH origin (${context.fromLocation}) AND destination (${context.toLocation})
+   - Do NOT end the trip with just a travel day to ${context.toLocation}
+   - Final destination MUST have at least 1-2 days of activities/exploration
+   - Example structure: Paris (2 days) → Travel → Dijon (1 day) → Travel → Berlin (2 days)
+
+3. TRAVEL SEGMENTS WITH INTERMEDIATE STOPS (CRITICAL):
    For ANY travel segment longer than 3-4 hours:
    - Break the journey into realistic segments with waypoint stops
    - Suggest intermediate towns/cities for rest, meals, or overnight stays
@@ -193,7 +199,7 @@ PRO PLANNER REQUIREMENTS
    - Cost estimate (fuel/tickets/tolls)
    - Suggested activities/meals at waypoint stops
 
-3. WAYPOINT SELECTION CRITERIA:
+4. WAYPOINT SELECTION CRITERIA:
    - Choose towns/cities along the actual route (not detours)
    - Prioritize places with dining, accommodation, and attractions
    - Space waypoints every 3-4 hours of travel time
@@ -201,16 +207,16 @@ PRO PLANNER REQUIREMENTS
    - For car: Every 200-300km (2.5-4 hours at 80km/h)
    - For train: Major stations with connections
 
-4. ACTIVITY OPTIMIZATION: Select activities from the provided list that match interests: ${interests}
+5. ACTIVITY OPTIMIZATION: Select activities from the provided list that match interests: ${interests}
 
-5. MEAL PLANNING: Include 3 meals/day at appropriate times using provided restaurants
+6. MEAL PLANNING: Include 3 meals/day at appropriate times using provided restaurants
    - Meals at waypoint stops should be realistic (towns along route)
 
-6. BUDGET ADHERENCE: All costs must align with ${context.budget} budget level
+7. BUDGET ADHERENCE: All costs must align with ${context.budget} budget level
 
-7. PRACTICAL TIPS: Provide 5-8 actionable tips specific to ${transportMode} travel
+8. PRACTICAL TIPS: Provide 5-8 actionable tips specific to ${transportMode} travel
 
-8. ROUTE OPTIMIZATION: Minimize backtracking, suggest logical flow between locations
+9. ROUTE OPTIMIZATION: Minimize backtracking, suggest logical flow between locations
 
 ═══════════════════════════════════════════════════════════════
 JSON STRUCTURE FOR TRAVEL ITEMS WITH WAYPOINTS
