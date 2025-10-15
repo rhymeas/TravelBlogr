@@ -6,9 +6,12 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Label } from '@/components/ui/Label'
 import { DateRangePicker } from '@/components/itinerary/DateRangePicker'
-import { MapPin, Loader2, Sparkles, Wand2, ArrowRight, Users } from 'lucide-react'
+import { MapPin, Loader2, Sparkles, Wand2, ArrowRight, Users, Globe, Lock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
+import { getBrowserSupabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
+import { nanoid } from 'nanoid'
 
 interface CreateTripFormProps {
   onSuccess?: (trip: any) => void
@@ -16,6 +19,7 @@ interface CreateTripFormProps {
 }
 
 export function CreateTripForm({ onSuccess, onCancel }: CreateTripFormProps) {
+  const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [aiLoading, setAiLoading] = useState<'title' | 'description' | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -25,6 +29,7 @@ export function CreateTripForm({ onSuccess, onCancel }: CreateTripFormProps) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [dateRange, setDateRange] = useState<{ startDate: Date; endDate: Date } | null>(null)
+  const [isPublic, setIsPublic] = useState(true) // Default to public
 
   const generateAITitle = async () => {
     if (!dateRange) {
@@ -93,36 +98,69 @@ export function CreateTripForm({ onSuccess, onCancel }: CreateTripFormProps) {
       return
     }
 
+    if (!user) {
+      setError('You must be logged in to create a trip')
+      toast.error('Please sign in to create a trip')
+      return
+    }
+
     setIsLoading(true)
     setError(null)
 
     try {
-      const response = await fetch('/api/trips', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: title.trim(),
-          description: description.trim() || undefined,
-          startDate: dateRange?.startDate.toISOString(),
-          endDate: dateRange?.endDate.toISOString()
-        }),
-      })
+      const supabase = getBrowserSupabase()
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to create trip')
+      // Generate slug from title
+      const slug = title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        + '-' + nanoid(8)
+
+      // Create trip directly in Supabase (client-side)
+      const { data: trip, error: createError } = await supabase
+        .from('trips')
+        .insert({
+          user_id: user.id,
+          title: title.trim(),
+          description: description.trim() || null,
+          slug,
+          status: isPublic ? 'published' : 'draft',
+          start_date: dateRange?.startDate.toISOString().split('T')[0] || null,
+          end_date: dateRange?.endDate.toISOString().split('T')[0] || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      if (createError) {
+        console.error('Error creating trip:', createError)
+        throw new Error(createError.message || 'Failed to create trip')
       }
 
-      const result = await response.json()
+      // Initialize trip stats for view tracking (fire and forget)
+      supabase
+        .from('trip_stats')
+        .insert({
+          trip_id: trip.id,
+          total_views: 0,
+          unique_views: 0,
+          updated_at: new Date().toISOString()
+        })
+        .then(() => {
+          console.log('✅ Trip stats initialized')
+        })
+        .catch((err: Error) => {
+          console.warn('⚠️ Failed to initialize trip stats (non-critical):', err)
+        })
 
       toast.success('Trip created successfully!')
 
       if (onSuccess) {
-        onSuccess(result.trip)
+        onSuccess(trip)
       } else {
-        router.push(`/dashboard/trips/${result.trip.id}`)
+        router.push(`/dashboard/trips/${trip.id}`)
       }
 
     } catch (error) {
@@ -251,6 +289,52 @@ export function CreateTripForm({ onSuccess, onCancel }: CreateTripFormProps) {
                 onChange={(e) => setDescription(e.target.value)}
                 className="flex w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent resize-none"
               />
+            </div>
+
+            {/* Privacy Setting */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700 mb-3 block">Privacy</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsPublic(true)}
+                  className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                    isPublic
+                      ? 'border-rausch-500 bg-rausch-50'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+                >
+                  <Globe className={`h-5 w-5 ${isPublic ? 'text-rausch-500' : 'text-gray-400'}`} />
+                  <div className="text-left">
+                    <div className={`text-sm font-medium ${isPublic ? 'text-rausch-700' : 'text-gray-900'}`}>
+                      Public
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Anyone can view
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsPublic(false)}
+                  className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                    !isPublic
+                      ? 'border-rausch-500 bg-rausch-50'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+                >
+                  <Lock className={`h-5 w-5 ${!isPublic ? 'text-rausch-500' : 'text-gray-400'}`} />
+                  <div className="text-left">
+                    <div className={`text-sm font-medium ${!isPublic ? 'text-rausch-700' : 'text-gray-900'}`}>
+                      Private
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Only you can view
+                    </div>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         </div>

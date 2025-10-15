@@ -1,15 +1,39 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 
 // Define protected routes
 const protectedRoutes = ['/dashboard']
 const authRoutes = ['/auth/signin', '/auth/signup', '/auth/callback']
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
+  let res = NextResponse.next({
+    request: {
+      headers: req.headers,
+    },
+  })
 
-  // For now, skip Supabase auth checks until we set up the database
-  // const supabase = createMiddlewareClient({ req, res })
+  // Create Supabase client for middleware
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            req.cookies.set(name, value)
+            res.cookies.set(name, value, options)
+          })
+        },
+      },
+    }
+  )
+
+  // Refresh session if expired - this is critical for cookie-based auth
+  await supabase.auth.getSession()
 
   // Get hostname and check for subdomain
   const hostname = req.headers.get('host') || ''

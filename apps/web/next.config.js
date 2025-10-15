@@ -43,6 +43,11 @@ const nextConfig = {
   trailingSlash: false,
   images: {
     remotePatterns: [
+      // Google User Content (OAuth avatars)
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
       // Cloudinary CDN - MUST BE FIRST for image optimization
       {
         protocol: 'https',

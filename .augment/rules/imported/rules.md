@@ -50,6 +50,14 @@ const supabase = createServerSupabase() // Service role key
 9. **NEVER hardcode test credentials** - Create real test users in Supabase
 10. **Enable session persistence** - `persistSession: true, autoRefreshToken: true`
 
+### **OAuth Setup Documentation:**
+
+For complete OAuth implementation details, see:
+- **[OAuth Setup Guide](../../../docs/OAUTH_SETUP.md)** - Complete setup instructions
+- **[OAuth Troubleshooting](../../../docs/OAUTH_TROUBLESHOOTING.md)** - Common issues and fixes
+- **[OAuth Flow Diagram](../../../docs/OAUTH_FLOW_DIAGRAM.md)** - Visual flow diagrams
+- **[OAuth Checklist](../../../docs/OAUTH_CHECKLIST.md)** - Step-by-step implementation guide
+
 ### **User Data Pattern - Supabase Best Practice**
 
 **ALWAYS follow this pattern for user-related data:**

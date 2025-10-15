@@ -48,7 +48,9 @@ export async function POST(request: NextRequest) {
       endDate: body.endDate,
       interests: body.interests || [],
       budget: body.budget || 'moderate',
-      maxTravelHoursPerDay: body.maxTravelHoursPerDay // Optional travel pacing preference
+      maxTravelHoursPerDay: body.maxTravelHoursPerDay, // Optional travel pacing preference
+      transportMode: body.transportMode || 'car', // Transport mode (default: car)
+      proMode: body.proMode || false // Pro mode flag (default: false)
     })
 
     // 4. Handle result

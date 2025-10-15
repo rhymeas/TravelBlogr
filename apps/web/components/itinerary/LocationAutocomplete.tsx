@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/Input'
 
 interface LocationAutocompleteProps {
   value: string
-  onChange: (value: string, metadata?: { region?: string; country?: string }) => void
+  onChange: (value: string, metadata?: { region?: string; country?: string; latitude?: number; longitude?: number }) => void
   placeholder: string
   className?: string
 }
@@ -19,6 +19,8 @@ interface Location {
   name: string
   region?: string
   country?: string
+  latitude?: number
+  longitude?: number
 }
 
 export function LocationAutocomplete({
@@ -127,10 +129,12 @@ export function LocationAutocomplete({
     // If it's a search result, use the full display name
     const locationValue = location.slug || location.displayName || location.name
 
-    // Pass metadata for display purposes
+    // Pass metadata including coordinates for faster map updates
     const metadata = {
       region: location.region,
-      country: location.country
+      country: location.country,
+      latitude: location.latitude,
+      longitude: location.longitude
     }
 
     // Close dropdown and blur input to prevent reopening
@@ -208,9 +212,9 @@ export function LocationAutocomplete({
         autoComplete="off"
       />
 
-      {/* Dropdown */}
+      {/* Dropdown - Overlaps everything with high z-index */}
       {isOpen && (filteredLocations.length > 0 || searchResults.length > 0 || value.trim()) && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-80 overflow-auto">
+        <div className="absolute z-[100] w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-80 overflow-auto">
           {/* Database locations */}
           {filteredLocations.length > 0 && (
             <div>

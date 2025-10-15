@@ -14,6 +14,8 @@ interface Location {
   value: string
   region?: string
   country?: string
+  latitude?: number
+  longitude?: number
 }
 
 interface LocationInputProps {
@@ -54,10 +56,17 @@ export function LocationInput({ locations, onChange }: LocationInputProps) {
     }
   }
 
-  const updateLocation = (id: string, value: string, metadata?: { region?: string; country?: string }) => {
+  const updateLocation = (id: string, value: string, metadata?: { region?: string; country?: string; latitude?: number; longitude?: number }) => {
     onChange(
       locations.map(loc =>
-        loc.id === id ? { ...loc, value, region: metadata?.region, country: metadata?.country } : loc
+        loc.id === id ? {
+          ...loc,
+          value,
+          region: metadata?.region,
+          country: metadata?.country,
+          latitude: metadata?.latitude,
+          longitude: metadata?.longitude
+        } : loc
       )
     )
   }

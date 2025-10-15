@@ -1,12 +1,13 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { 
-  Plus, 
-  MapPin, 
-  Camera, 
-  Users, 
-  TrendingUp, 
+import {
+  Plus,
+  MapPin,
+  Camera,
+  Users,
+  TrendingUp,
   Calendar,
   ArrowRight,
   Star,
@@ -16,40 +17,8 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { useAuth } from '../../hooks/useAuth'
-
-// Mock data - in real app, this would come from API
-const recentTrips = [
-  {
-    id: '1',
-    title: 'Summer in Santorini',
-    destination: 'Santorini, Greece',
-    status: 'published',
-    views: 1247,
-    likes: 89,
-    image: 'https://picsum.photos/400/300?random=1',
-    lastUpdated: '2 days ago'
-  },
-  {
-    id: '2',
-    title: 'Tokyo Food Adventure',
-    destination: 'Tokyo, Japan',
-    status: 'draft',
-    views: 0,
-    likes: 0,
-    image: 'https://picsum.photos/400/300?random=2',
-    lastUpdated: '1 week ago'
-  },
-  {
-    id: '3',
-    title: 'Canadian Rockies Road Trip',
-    destination: 'Banff, Canada',
-    status: 'published',
-    views: 892,
-    likes: 67,
-    image: 'https://picsum.photos/400/300?random=3',
-    lastUpdated: '3 weeks ago'
-  }
-]
+import { UnifiedTripCard } from '@/components/trips/UnifiedTripCard'
+import { getBrowserSupabase } from '@/lib/supabase'
 
 const quickStats = [
   { label: 'Total Trips', value: '12', icon: MapPin, color: 'text-blue-600' },
@@ -60,6 +29,46 @@ const quickStats = [
 
 export function DashboardLanding() {
   const { user, profile } = useAuth()
+  const [recentTrips, setRecentTrips] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (user) {
+      fetchRecentTrips()
+    }
+  }, [user])
+
+  const fetchRecentTrips = async () => {
+    try {
+      const supabase = getBrowserSupabase()
+      const { data, error } = await supabase
+        .from('trips')
+        .select(`
+          *,
+          posts (id),
+          share_links (id),
+          trip_stats (total_views, unique_views)
+        `)
+        .eq('user_id', user!.id)
+        .order('updated_at', { ascending: false })
+        .limit(3)
+
+      if (error) {
+        console.error('Error fetching recent trips:', error)
+      } else {
+        // Transform data to include view_count
+        const tripsWithViews = data.map(trip => ({
+          ...trip,
+          view_count: trip.trip_stats?.[0]?.total_views || 0
+        }))
+        setRecentTrips(tripsWithViews)
+      }
+    } catch (error) {
+      console.error('Error fetching recent trips:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const getGreeting = () => {
     const hour = new Date().getHours()
@@ -162,56 +171,41 @@ export function DashboardLanding() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recentTrips.map((trip) => (
-              <Link key={trip.id} href={`/dashboard/trips/${trip.id}`} className="group">
-                <Card className="card-elevated overflow-hidden hover:shadow-airbnb-xl transition-all duration-300 group-hover:scale-[1.02]">
-                  <div className="relative h-48 overflow-hidden">
-                    <img
-                      src={trip.image}
-                      alt={trip.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                    <div className="absolute top-3 left-3">
-                      <Badge 
-                        className={
-                          trip.status === 'published' 
-                            ? 'bg-green-500 text-white' 
-                            : 'bg-yellow-500 text-white'
-                        }
-                      >
-                        {trip.status === 'published' ? 'Published' : 'Draft'}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div className="p-4">
-                    <h3 className="text-title-small text-airbnb-black mb-1 group-hover:text-rausch-500 transition-colors">
-                      {trip.title}
-                    </h3>
-                    <div className="flex items-center gap-1 text-airbnb-gray text-body-medium mb-3">
-                      <MapPin className="h-4 w-4" />
-                      <span>{trip.destination}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-body-small text-airbnb-gray">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-1">
-                          <Eye className="h-3 w-3" />
-                          <span>{trip.views.toLocaleString()}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Star className="h-3 w-3" />
-                          <span>{trip.likes}</span>
-                        </div>
-                      </div>
-                      <span>Updated {trip.lastUpdated}</span>
-                    </div>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="animate-pulse">
+                  <div className="aspect-video bg-gray-200 rounded-t-lg"></div>
+                  <div className="p-4 space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
                   </div>
                 </Card>
-              </Link>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : recentTrips.length === 0 ? (
+            <Card className="p-12 text-center">
+              <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No trips yet</h3>
+              <p className="text-gray-600 mb-6">Create your first trip to start sharing your travel stories!</p>
+              <Button asChild>
+                <Link href="/dashboard/trips/new">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Trip
+                </Link>
+              </Button>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recentTrips.map((trip) => (
+                <UnifiedTripCard
+                  key={trip.id}
+                  trip={trip}
+                  context="dashboard"
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Inspiration Section */}

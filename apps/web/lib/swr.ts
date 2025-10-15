@@ -21,11 +21,69 @@ const supabaseFetcher = async (table: string, query?: any) => {
 
 // Custom hooks for different data types
 
-// Trips hooks
+// Trips hooks - fetch directly from Supabase to avoid cookie issues
 export function useTrips(userId?: string) {
   const { data, error, isLoading, mutate } = useSWR(
-    userId ? `/api/trips` : null,
-    fetcher,
+    userId ? `trips-${userId}` : null,
+    async () => {
+      const { getBrowserSupabase } = await import('@/lib/supabase')
+      const supabase = getBrowserSupabase()
+
+      try {
+        // Fetch trips with basic data first
+        const { data: trips, error: tripsError } = await supabase
+          .from('trips')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+
+        if (tripsError) {
+          console.error('Error fetching trips:', tripsError)
+          throw tripsError
+        }
+
+        if (!trips || trips.length === 0) {
+          console.log('No trips found for user:', userId)
+          return []
+        }
+
+        // Fetch related data separately to avoid complex join issues
+        const tripIds = trips.map(t => t.id)
+
+        // Fetch posts
+        const { data: posts } = await supabase
+          .from('posts')
+          .select('id, trip_id, title, content, featured_image, post_date, order_index')
+          .in('trip_id', tripIds)
+
+        // Fetch share links
+        const { data: shareLinks } = await supabase
+          .from('share_links')
+          .select('id, trip_id, slug, expires_at, is_active')
+          .in('trip_id', tripIds)
+
+        // Fetch trip stats
+        const { data: tripStats } = await supabase
+          .from('trip_stats')
+          .select('trip_id, total_views, unique_views')
+          .in('trip_id', tripIds)
+
+        // Combine all data
+        const transformedTrips = trips.map(trip => ({
+          ...trip,
+          posts: posts?.filter(p => p.trip_id === trip.id) || [],
+          share_links: shareLinks?.filter(s => s.trip_id === trip.id) || [],
+          trip_stats: tripStats?.find(s => s.trip_id === trip.id) || { total_views: 0, unique_views: 0 }
+        }))
+
+        console.log('Fetched trips:', transformedTrips.length)
+        return transformedTrips
+      } catch (err) {
+        console.error('Error in useTrips:', err)
+        // Return empty array instead of throwing to prevent UI crash
+        return []
+      }
+    },
     {
       revalidateOnFocus: false,
       dedupingInterval: 60000, // 1 minute
@@ -35,7 +93,7 @@ export function useTrips(userId?: string) {
   )
 
   return {
-    trips: data?.trips || [],
+    trips: data || [],
     isLoading,
     error,
     mutate,

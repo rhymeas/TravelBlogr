@@ -20,6 +20,7 @@ import {
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardFooter } from '@/components/ui/Card'
 import { DuplicateTripButton } from './DuplicateTripButton'
+import { ViewCountBadge } from '@/components/analytics/ViewCount'
 
 interface Trip {
   id: string
@@ -125,22 +126,23 @@ export function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
   }
 
   return (
-    <Card className="group hover:shadow-lg transition-shadow duration-200">
-      <div className="relative">
-        {/* Cover Image */}
-        <div className="aspect-video bg-gradient-to-br from-blue-100 to-purple-100 rounded-t-lg overflow-hidden">
-          {trip.cover_image ? (
-            <img
-              src={trip.cover_image}
-              alt={trip.title}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <MapPin className="h-12 w-12 text-blue-400" />
-            </div>
-          )}
-        </div>
+    <Link href={`/dashboard/trips/${trip.id}`} className="block">
+      <Card className="group hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+        <div className="relative">
+          {/* Cover Image */}
+          <div className="aspect-video bg-gradient-to-br from-blue-100 to-purple-100 rounded-t-lg overflow-hidden">
+            {trip.cover_image ? (
+              <img
+                src={trip.cover_image}
+                alt={trip.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <MapPin className="h-12 w-12 text-blue-400" />
+              </div>
+            )}
+          </div>
 
         {/* Status Badge */}
         <div className="absolute top-3 left-3">
@@ -149,13 +151,22 @@ export function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
           </span>
         </div>
 
+        {/* View Count Badge */}
+        <div className="absolute bottom-3 left-3">
+          <ViewCountBadge tripId={trip.id} />
+        </div>
+
         {/* Menu */}
         <div className="absolute top-3 right-3">
           <div className="relative">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowMenu(!showMenu)}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setShowMenu(!showMenu)
+              }}
               className="h-8 w-8 p-0 bg-white/80 hover:bg-white"
             >
               <MoreVertical className="h-4 w-4" />
@@ -211,13 +222,8 @@ export function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
       <CardContent className="p-4">
         <div className="space-y-3">
           {/* Title */}
-          <h3 className="font-semibold text-lg text-gray-900 line-clamp-2">
-            <Link 
-              href={`/dashboard/trips/${trip.id}`}
-              className="hover:text-blue-600 transition-colors"
-            >
-              {trip.title}
-            </Link>
+          <h3 className="font-semibold text-lg text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors">
+            {trip.title}
           </h3>
 
           {/* Description */}
@@ -333,6 +339,7 @@ export function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
           </div>
         </div>
       )}
-    </Card>
+      </Card>
+    </Link>
   )
 }

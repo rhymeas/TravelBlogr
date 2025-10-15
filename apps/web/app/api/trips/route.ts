@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { title, description, startDate, endDate } = body
+    const { title, description, startDate, endDate, isPublic = true } = body
 
     // Validate required fields
     if (!title || title.trim().length === 0) {
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
         title: title.trim(),
         description: description?.trim(),
         slug,
-        status: 'draft',
+        status: isPublic ? 'published' : 'draft', // Public = published, Private = draft
         start_date: startDate,
         end_date: endDate,
         created_at: new Date().toISOString(),
@@ -116,6 +116,21 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Error creating trip:', error)
       return NextResponse.json({ error: 'Failed to create trip' }, { status: 500 })
+    }
+
+    // Initialize trip stats (for view tracking)
+    const { error: statsError } = await supabase
+      .from('trip_stats')
+      .insert({
+        trip_id: trip.id,
+        total_views: 0,
+        unique_views: 0,
+        updated_at: new Date().toISOString()
+      })
+
+    if (statsError) {
+      console.warn('Failed to initialize trip stats:', statsError)
+      // Don't fail the request, just log the warning
     }
 
     // Generate default share links

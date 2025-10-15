@@ -35,6 +35,9 @@ export function SignInModal({ isOpen, onClose }: SignInModalProps) {
       if (result.success) {
         toast.success('Welcome back!')
         onClose()
+
+        // Wait a moment for auth state to propagate before redirecting
+        await new Promise(resolve => setTimeout(resolve, 100))
         router.push('/dashboard')
       } else {
         toast.error(result.error || 'Failed to sign in')
