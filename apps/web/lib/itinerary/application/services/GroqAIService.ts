@@ -259,7 +259,9 @@ OUTPUT SCHEMA - MUST BE VALID JSON OBJECT (not array):
         "name": "Full location name",
         "country": "Country name",
         "region": "State/Province/Region (or subregion like 'South-Eastern Asia' for small countries)",
-        "continent": "Continent name (Asia, Europe, Africa, North America, South America, Oceania, Antarctica)"
+        "continent": "Continent name (Asia, Europe, Africa, North America, South America, Oceania, Antarctica)",
+        "latitude": 40.7128,
+        "longitude": -74.0060
       },
       "type": "stay",
       "items": [
@@ -289,7 +291,9 @@ OUTPUT SCHEMA - MUST BE VALID JSON OBJECT (not array):
         "name": "Full location name",
         "country": "Country name",
         "region": "State/Province/Region or subregion",
-        "continent": "Continent name"
+        "continent": "Continent name",
+        "latitude": 40.7128,
+        "longitude": -74.0060
       },
       "type": "travel",
       "items": [
@@ -323,7 +327,8 @@ LOCATION METADATA REQUIREMENTS (CRITICAL):
   * For small countries without states: Subregion (e.g., "South-Eastern Asia" for Timor-Leste, "Western Europe" for Monaco)
   * NEVER use "Unknown Region" - always provide accurate geographic information
 - "country" MUST be the official country name (e.g., "United States", "Timor-Leste", "France")
-- Use your geographic knowledge to provide accurate continent and region data
+- "latitude" and "longitude" MUST be accurate decimal coordinates for the location (e.g., 40.7128, -74.0060 for New York)
+- Use your geographic knowledge to provide accurate continent, region, and coordinate data
 
 TRAVEL ITEM REQUIREMENTS:
 - "duration" for travel items MUST be a STRING like "3h 30min", "2h 15min", "45min" (NOT a number)
