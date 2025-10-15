@@ -186,20 +186,146 @@ Be specific with times and durations. Consider travel time between activities.`
   }
 
   /**
+   * Get validation rules based on transport mode and distance
+   */
+  private getValidationRules(context: AIGenerationContext): string {
+    const distance = Math.round(context.routeDistance)
+    const days = context.totalDays
+    const mode = context.transportMode || 'car'
+
+    let rules = ''
+
+    switch (mode) {
+      case 'bike':
+        const minCyclingDays = Math.ceil(distance / 80) // 80km max per day
+        const recommendedCyclingDays = Math.ceil(distance / 60) // 60km comfortable
+
+        rules = `
+📊 DISTANCE CALCULATION FOR BIKE:
+- Total distance: ${distance} km
+- Minimum cycling days needed: ${minCyclingDays} days (at 80 km/day)
+- Recommended cycling days: ${recommendedCyclingDays} days (at 60 km/day comfortable pace)
+- Available days: ${days} days
+- Days for sightseeing: ${Math.max(0, days - recommendedCyclingDays)} days
+
+✅ MANDATORY REQUIREMENTS:
+1. You MUST allocate AT LEAST ${minCyclingDays} days for cycling
+2. Each cycling day MUST be ≤80 km
+3. You MUST include intermediate cities for overnight stops every 60-80 km
+4. You MUST include rest days if journey >5 cycling days
+5. You MUST plan actual cycling routes (not straight-line distance)
+
+🗺️ REQUIRED INTERMEDIATE STOPS:
+${this.calculateIntermediateStops(context.fromLocation, context.toLocation, distance, 70)}
+
+❌ VALIDATION FAILURES TO AVOID:
+- DO NOT plan ${distance}km in ${Math.min(3, days)} days
+- DO NOT skip intermediate overnight stops
+- DO NOT use activities from only start/end cities
+- DO NOT ignore the ${distance}km total distance`
+        break
+
+      case 'car':
+        const drivingDays = Math.ceil(distance / 400) // 400km comfortable per day
+        rules = `
+📊 DISTANCE CALCULATION FOR CAR:
+- Total distance: ${distance} km
+- Recommended driving days: ${drivingDays} days (at 400 km/day)
+- You MUST include rest stops every 200-300 km
+- You MUST plan overnight stops for journeys >500 km`
+        break
+
+      case 'train':
+        rules = `
+📊 TRAIN JOURNEY PLANNING:
+- Total distance: ${distance} km
+- Consider train schedules and connections
+- Include time for station transfers
+- Plan activities near train stations`
+        break
+
+      default:
+        rules = `- Plan realistic travel segments based on ${distance} km total distance`
+    }
+
+    return rules
+  }
+
+  /**
+   * Calculate intermediate stops for long journeys
+   */
+  private calculateIntermediateStops(from: string, to: string, distance: number, segmentKm: number): string {
+    const numStops = Math.floor(distance / segmentKm)
+
+    if (numStops <= 1) {
+      return `- Direct route possible (distance: ${distance}km)`
+    }
+
+    // Provide guidance on intermediate stops
+    const examples: Record<string, string[]> = {
+      'Barcelona-Rome': ['Montpellier', 'Nice', 'Genoa', 'Pisa', 'Florence', 'Siena'],
+      'Paris-Berlin': ['Reims', 'Luxembourg', 'Frankfurt', 'Leipzig'],
+      'London-Edinburgh': ['York', 'Newcastle', 'Berwick-upon-Tweed']
+    }
+
+    const routeKey = `${from}-${to}`
+    const suggestedStops = examples[routeKey] || []
+
+    if (suggestedStops.length > 0) {
+      return `- Suggested intermediate cities: ${suggestedStops.join(' → ')}
+- Plan ${numStops} overnight stops along this route
+- Each segment should be approximately ${segmentKm}km`
+    }
+
+    return `- You MUST include ${numStops} intermediate cities for overnight stops
+- Each segment should be approximately ${segmentKm}km
+- Research actual cities along the route between ${from} and ${to}`
+  }
+
+  /**
    * Get transport mode specific guidance
    */
   private getTransportModeGuidance(mode?: string): string {
     switch (mode) {
       case 'bike':
-        return `TRANSPORT MODE: BIKE/CYCLING
-- Plan realistic daily cycling distances (50-100 km per day for recreational cyclists, 100-150 km for experienced)
-- Include rest stops every 20-30 km
-- Suggest scenic cycling routes, bike paths, and quiet roads
-- Recommend bike-friendly accommodations
-- Consider terrain (hills, mountains) when planning daily distances
-- Include time for bike maintenance and rest
-- Suggest points of interest along cycling routes
-- Weather considerations are crucial for cycling trips`
+        return `TRANSPORT MODE: BIKE/CYCLING ⚠️ CRITICAL CONSTRAINTS
+
+🚴 MANDATORY DAILY LIMITS (STRICTLY ENFORCED):
+- Maximum 80 km per day for recreational cyclists
+- Maximum 120 km per day for experienced cyclists
+- NEVER plan more than 100 km in a single day without explicit user request
+- Each cycling day MUST include overnight accommodation at destination
+
+🛑 MULTI-DAY JOURNEY REQUIREMENTS:
+- For distances >150 km: MUST split into multiple days with overnight stops
+- Example: Barcelona to Rome (858 km) = MINIMUM 10-12 cycling days
+- MUST include intermediate cities for overnight stays
+- Each day MUST end in a city/town with accommodation
+
+📍 REQUIRED INTERMEDIATE STOPS (for long journeys):
+- Plan stops every 60-80 km for overnight accommodation
+- Include rest days every 3-4 cycling days
+- Suggest bike-friendly hotels/hostels at each stop
+- Include bike storage and repair shop information
+
+🗺️ ROUTE PLANNING:
+- Use actual cycling routes, not straight-line distance
+- Avoid highways and major motorways (bikes not allowed)
+- Suggest scenic coastal or countryside routes
+- Consider elevation changes (mountains add 30-50% to time)
+- Include ferry crossings if needed (e.g., Mediterranean routes)
+
+⏰ REALISTIC TIME ESTIMATES:
+- Average speed: 15-20 km/h (including breaks)
+- Add 1-2 hours for lunch and rest stops
+- Start early (7-8 AM) to avoid heat
+- Finish by 4-5 PM to allow for check-in and rest
+
+❌ WHAT NOT TO DO:
+- DO NOT plan 858 km in 2-3 days
+- DO NOT skip intermediate overnight stops
+- DO NOT use straight-line distance
+- DO NOT ignore terrain and elevation`
 
       case 'train':
         return `TRANSPORT MODE: TRAIN
@@ -261,6 +387,9 @@ ROUTE INFORMATION:
 - Transport mode: ${context.transportMode || 'car'}
 
 ${transportGuidance}
+
+⚠️ CRITICAL VALIDATION FOR ${context.transportMode?.toUpperCase() || 'CAR'} MODE:
+${this.getValidationRules(context)}
 
 IMPORTANT: The itinerary MUST include activities in BOTH ${context.fromLocation} AND ${context.toLocation}.
 - Start in ${context.fromLocation} with activities there
