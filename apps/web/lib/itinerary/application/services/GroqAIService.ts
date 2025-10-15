@@ -17,6 +17,7 @@ export interface AIGenerationContext {
   interests: string[]
   budget: 'budget' | 'moderate' | 'luxury'
   maxTravelHoursPerDay?: number // User preference for max travel time per day
+  transportMode?: 'car' | 'train' | 'bike' | 'flight' | 'mixed' // Transport mode preference
   locationsData: Array<{
     name: string
     slug: string
@@ -185,12 +186,71 @@ Be specific with times and durations. Consider travel time between activities.`
   }
 
   /**
+   * Get transport mode specific guidance
+   */
+  private getTransportModeGuidance(mode?: string): string {
+    switch (mode) {
+      case 'bike':
+        return `TRANSPORT MODE: BIKE/CYCLING
+- Plan realistic daily cycling distances (50-100 km per day for recreational cyclists, 100-150 km for experienced)
+- Include rest stops every 20-30 km
+- Suggest scenic cycling routes, bike paths, and quiet roads
+- Recommend bike-friendly accommodations
+- Consider terrain (hills, mountains) when planning daily distances
+- Include time for bike maintenance and rest
+- Suggest points of interest along cycling routes
+- Weather considerations are crucial for cycling trips`
+
+      case 'train':
+        return `TRANSPORT MODE: TRAIN
+- Prioritize train connections between cities
+- Include realistic train schedules and journey times
+- Suggest scenic train routes when available
+- Consider train station locations when planning activities
+- Include time for station transfers and connections
+- Recommend booking advance tickets for popular routes
+- Suggest rail passes if economical for the itinerary`
+
+      case 'flight':
+        return `TRANSPORT MODE: FLIGHT
+- Plan flights for long distances (>500 km)
+- Include realistic flight times + 2-3 hours for airport procedures
+- Consider airport locations and transfer times to city centers
+- Suggest booking flights in advance for better prices
+- Include time for check-in, security, and baggage claim
+- Recommend direct flights when possible`
+
+      case 'mixed':
+        return `TRANSPORT MODE: MIXED (Flexible)
+- Use the most efficient transport for each segment
+- Trains for medium distances (100-500 km)
+- Flights for long distances (>500 km)
+- Local transport (bus, metro) within cities
+- Consider cost, time, and scenic value when choosing transport
+- Provide options when multiple modes are viable`
+
+      case 'car':
+      default:
+        return `TRANSPORT MODE: CAR/ROAD TRIP
+- Plan realistic daily driving distances (300-500 km per day)
+- Include rest stops every 2-3 hours
+- Suggest scenic routes and viewpoints along the way
+- Consider parking availability at destinations
+- Include fuel costs in budget estimates
+- Recommend interesting stops along the route`
+    }
+  }
+
+  /**
    * Build optimized prompt for Groq
    */
   private buildPrompt(context: AIGenerationContext, startDate: string): string {
-    const interests = context.interests.length > 0 
-      ? context.interests.join(', ') 
+    const interests = context.interests.length > 0
+      ? context.interests.join(', ')
       : 'general sightseeing'
+
+    // Transport mode specific guidance
+    const transportGuidance = this.getTransportModeGuidance(context.transportMode)
 
     return `Create a ${context.totalDays}-day travel plan from ${context.fromLocation} to ${context.toLocation}.
 
@@ -198,6 +258,9 @@ ROUTE INFORMATION:
 - Distance: ${Math.round(context.routeDistance)} km
 - Travel time: ${Math.round(context.routeDuration)} hours
 - Stops along the way: ${context.stops.join(', ') || 'none'}
+- Transport mode: ${context.transportMode || 'car'}
+
+${transportGuidance}
 
 IMPORTANT: The itinerary MUST include activities in BOTH ${context.fromLocation} AND ${context.toLocation}.
 - Start in ${context.fromLocation} with activities there
