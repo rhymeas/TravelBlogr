@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { Calendar, ChevronDown, MapPin, Navigation, Clock, ExternalLink } from 'lucide-react'
 import { ActivityItem } from './ActivityItem'
+import { LocationMiniMap } from '../LocationMiniMap'
 import { formatLocationDisplay } from '@/lib/utils/locationFormatter'
 import { useLocationTranslation } from '@/hooks/useTranslation'
 import { getDisplayName } from '@/lib/services/translationService'
@@ -12,9 +13,10 @@ interface DayCardProps {
   index: number
   isExpanded: boolean
   onToggle: () => void
+  locationCoordinates?: { latitude: number; longitude: number } // Optional coordinates for map
 }
 
-export function DayCard({ day, index, isExpanded, onToggle }: DayCardProps) {
+export function DayCard({ day, index, isExpanded, onToggle, locationCoordinates }: DayCardProps) {
   const activities = day.items.filter((item: any) => item.type === 'activity')
   const meals = day.items.filter((item: any) => item.type === 'meal')
   const travel = day.items.filter((item: any) => item.type === 'travel')
@@ -251,6 +253,22 @@ export function DayCard({ day, index, isExpanded, onToggle }: DayCardProps) {
                           <ActivityItem key={idx} item={item} index={idx} color="orange" />
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Location Mini Map */}
+                  {!isTravel && locationCoordinates && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-teal-500" />
+                        Location Map
+                      </h4>
+                      <LocationMiniMap
+                        locationName={formatted.main}
+                        latitude={locationCoordinates.latitude}
+                        longitude={locationCoordinates.longitude}
+                        className="h-48 w-full"
+                      />
                     </div>
                   )}
                 </div>

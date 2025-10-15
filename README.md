@@ -8,6 +8,8 @@ TravelBlogr is a modern travel blogging platform that revolutionizes how travele
 
 - **[Deploy to Railway](./DEPLOY.md)** - One command deployment
 - **[Quick Start](./docs/QUICK_START.md)** - Get started in 5 minutes
+- **[OAuth Setup](./docs/OAUTH_SETUP.md)** - Google OAuth authentication guide
+- **[OAuth Troubleshooting](./docs/OAUTH_TROUBLESHOOTING.md)** - Fix common OAuth issues
 - **[Cloudinary CDN Setup](./docs/CLOUDINARY_SETUP.md)** - 80% faster images (free!)
 - **[Rules](./.augment/rules/imported/rules.md)** - Coding standards
 
@@ -71,10 +73,92 @@ This project follows Domain-Driven Design principles with Clean Architecture:
 
 ### Infrastructure Layer
 - **Database**: Supabase with PostgreSQL
-- **Authentication**: Supabase Auth
+- **Authentication**: Supabase Auth with OAuth (Google, GitHub)
 - **Storage**: Supabase Storage
 - **Maps**: Mapbox integration
 - **Real-time**: Supabase Realtime
+
+## 🔐 Authentication
+
+TravelBlogr uses **Supabase Auth** with OAuth providers for secure, seamless authentication.
+
+### Supported Authentication Methods
+
+- ✅ **Google OAuth** - Sign in with Google account (fully implemented)
+- 🔜 **GitHub OAuth** - Sign in with GitHub account (coming soon)
+- 🔜 **Email/Password** - Traditional email authentication (coming soon)
+- 🔜 **Magic Links** - Passwordless email authentication (coming soon)
+
+### OAuth Implementation
+
+Our OAuth implementation follows best practices:
+
+- **Session Management**: Automatic token refresh and persistence
+- **Profile Auto-Creation**: User profiles created automatically via database triggers
+- **Avatar Support**: Google profile pictures displayed with proper CORS handling
+- **Error Handling**: Comprehensive error handling with user-friendly messages
+- **Security**: Row-level security (RLS) policies on all user data
+
+### Quick OAuth Setup
+
+1. **Configure Supabase**:
+   - Enable Google provider in Supabase Dashboard
+   - Add OAuth credentials from Google Cloud Console
+   - Set redirect URLs
+
+2. **Configure Google Cloud**:
+   - Create OAuth client in Google Cloud Console
+   - Add authorized redirect URIs
+   - Enable Google+ API
+
+3. **Test Locally**:
+   ```bash
+   npm run dev
+   # Visit http://localhost:3000
+   # Click "Sign in with Google"
+   ```
+
+### Complete OAuth Documentation
+
+For detailed setup instructions, troubleshooting, and implementation details:
+
+- **[OAuth Setup Guide](./docs/OAUTH_SETUP.md)** - Complete configuration walkthrough
+- **[OAuth Troubleshooting](./docs/OAUTH_TROUBLESHOOTING.md)** - Fix common issues
+- **[OAuth Flow Diagram](./docs/OAUTH_FLOW_DIAGRAM.md)** - Visual authentication flow
+- **[OAuth Checklist](./docs/OAUTH_CHECKLIST.md)** - Step-by-step implementation
+- **[OAuth Summary](./docs/OAUTH_SUMMARY.md)** - Quick reference and status
+
+### Key Implementation Details
+
+**AuthContext Pattern**:
+```typescript
+// ✅ Use onAuthStateChange listener (not getSession)
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN' && session?.user) {
+    // Handle authentication
+  }
+})
+```
+
+**OAuth Callback**:
+```typescript
+// ✅ Let Supabase handle tokens automatically
+const hashParams = new URLSearchParams(window.location.hash.substring(1))
+if (hashParams.get('access_token')) {
+  await new Promise(resolve => setTimeout(resolve, 1000))
+  router.push('/dashboard')
+}
+```
+
+**Avatar Display**:
+```typescript
+// ✅ Google avatars require special handling
+<img
+  src={profile?.avatar_url}
+  referrerPolicy="no-referrer"
+  crossOrigin="anonymous"
+/>
+```
 
 ## 🚀 Getting Started
 
@@ -114,12 +198,22 @@ This project follows Domain-Driven Design principles with Clean Architecture:
    cat infrastructure/database/schema.sql
    ```
 
-5. **Start the development server**
+5. **Set up OAuth authentication** (optional but recommended)
+
+   Follow the [OAuth Setup Guide](./docs/OAUTH_SETUP.md) to enable Google sign-in:
+   - Configure Google Cloud Console OAuth credentials
+   - Enable Google provider in Supabase Dashboard
+   - Add redirect URLs
+   - Test the authentication flow
+
+   See [OAuth Checklist](./docs/OAUTH_CHECKLIST.md) for step-by-step instructions.
+
+6. **Start the development server**
    ```bash
    npm run dev
    ```
 
-6. **Open your browser**
+7. **Open your browser**
    Navigate to [http://localhost:3000](http://localhost:3000)
 
 ## 🧪 Testing

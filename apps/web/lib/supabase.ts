@@ -1,10 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
-import { createBrowserClient as createSSRBrowserClient } from '@supabase/ssr'
 
 // NOTE: Server-side functions moved to lib/supabase-server.ts to avoid
 // importing next/headers in client components
 
-// Client-side Supabase client for browser using SSR package for cookie-based auth
+// Client-side Supabase client for browser
 export const createBrowserSupabase = () => {
   // These MUST be accessed at build time for Next.js to embed them
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
@@ -25,31 +24,14 @@ export const createBrowserSupabase = () => {
     throw new Error('Missing Supabase environment variables')
   }
 
-  // Use SSR browser client with proper cookie handlers for PKCE flow
-  return createSSRBrowserClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      get(name: string) {
-        // Get cookie from document.cookie
-        if (typeof document === 'undefined') return undefined
-        return document.cookie
-          .split('; ')
-          .find(row => row.startsWith(`${name}=`))
-          ?.split('=')[1]
-      },
-      set(name: string, value: string, options?: any) {
-        // Set cookie using document.cookie
-        if (typeof document === 'undefined') return
-        document.cookie = `${name}=${value}; path=/; ${
-          options?.maxAge ? `max-age=${options.maxAge};` : ''
-        } ${options?.secure ? 'secure;' : ''} ${
-          options?.sameSite ? `samesite=${options.sameSite}` : ''
-        }`
-      },
-      remove(name: string) {
-        // Remove cookie
-        if (typeof document === 'undefined') return
-        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
-      }
+  // Use simple Supabase client with localStorage
+  // This is the most reliable approach for client-side auth
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
     }
   })
 }

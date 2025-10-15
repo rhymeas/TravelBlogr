@@ -26,13 +26,28 @@ interface SampleGuide {
 export default async function GalleryPage() {
   const supabase = await createServerSupabase()
   
+  // Fetch public trip templates from unified trips table
   const { data: guides } = await supabase
-    .from('sample_travel_guides')
-    .select('*')
+    .from('trips')
+    .select(`
+      *,
+      trip_stats (
+        total_views,
+        unique_views
+      ),
+      posts (id)
+    `)
+    .eq('is_public_template', true)
+    .eq('status', 'published')
     .order('is_featured', { ascending: false })
-    .order('view_count', { ascending: false })
+    .order('created_at', { ascending: false })
 
-  const sampleGuides = (guides || []) as SampleGuide[]
+  // Transform trips to match SampleGuide interface
+  const sampleGuides = (guides || []).map(guide => ({
+    ...guide,
+    view_count: guide.trip_stats?.[0]?.total_views || 0,
+    post_count: guide.posts?.length || 0
+  })) as SampleGuide[]
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white text-[85%]">

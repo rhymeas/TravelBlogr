@@ -10,6 +10,7 @@ import { plan as Plan } from '../../domain/entities/Itinerary'
 import { LocationRepository } from '../../infrastructure/repositories/LocationRepository'
 import { RouteCalculatorService } from '../services/RouteCalculatorService'
 import { GroqAIService } from '../services/GroqAIService'
+import { EnhancedGroqAIService } from '../services/EnhancedGroqAIService'
 import { getCachedItineraryRepository, CacheKey } from '../../infrastructure/repositories/CachedItineraryRepository'
 
 export interface GenerateplanCommand {
@@ -21,6 +22,8 @@ export interface GenerateplanCommand {
   interests?: string[]
   budget?: 'budget' | 'moderate' | 'luxury'
   maxTravelHoursPerDay?: number // Optional: max travel hours per day (e.g., 4)
+  transportMode?: 'car' | 'train' | 'bus' | 'flight' | 'mixed' // Transport mode
+  proMode?: boolean // Enable Pro mode with reasoning AI
   forceRefresh?: boolean // Force regeneration, bypass cache
 }
 
@@ -181,23 +184,47 @@ export class GenerateplanUseCase {
         }
       }
 
-      // 7. Generate plan using AI
-      console.log('🤖 Generating plan with AI...')
-      const aiResult = await this.aiService.generateplan(
-        {
-          fromLocation: routeInfo.fromLocation,
-          toLocation: routeInfo.toLocation,
-          totalDays,
-          routeDistance: routeInfo.distanceKm,
-          routeDuration: routeInfo.estimatedDurationHours,
-          stops: routeInfo.stops.map(s => s.name),
-          interests: command.interests || [],
-          budget: command.budget || 'moderate',
-          maxTravelHoursPerDay: command.maxTravelHoursPerDay, // Pass travel pacing preference
-          locationsData
-        },
-        command.startDate
-      )
+      // 7. Generate plan using AI (Pro mode or standard)
+      console.log(`🤖 Generating plan with AI${command.proMode ? ' (Pro Mode)' : ''}...`)
+
+      let aiResult
+      if (command.proMode) {
+        // Use enhanced AI service with reasoning model
+        const enhancedAI = new EnhancedGroqAIService()
+        aiResult = await enhancedAI.generateWithProMode(
+          {
+            fromLocation: routeInfo.fromLocation,
+            toLocation: routeInfo.toLocation,
+            totalDays,
+            routeDistance: routeInfo.distanceKm,
+            routeDuration: routeInfo.estimatedDurationHours,
+            stops: routeInfo.stops.map(s => s.name),
+            interests: command.interests || [],
+            budget: command.budget || 'moderate',
+            maxTravelHoursPerDay: command.maxTravelHoursPerDay,
+            transportMode: command.transportMode,
+            locationsData
+          },
+          command.startDate
+        )
+      } else {
+        // Use standard AI service
+        aiResult = await this.aiService.generateplan(
+          {
+            fromLocation: routeInfo.fromLocation,
+            toLocation: routeInfo.toLocation,
+            totalDays,
+            routeDistance: routeInfo.distanceKm,
+            routeDuration: routeInfo.estimatedDurationHours,
+            stops: routeInfo.stops.map(s => s.name),
+            interests: command.interests || [],
+            budget: command.budget || 'moderate',
+            maxTravelHoursPerDay: command.maxTravelHoursPerDay,
+            locationsData
+          },
+          command.startDate
+        )
+      }
 
       // 8. PROFESSIONAL INTEGRATION: Enrich locations with AI metadata
       console.log('🌍 Enriching locations with AI metadata...')

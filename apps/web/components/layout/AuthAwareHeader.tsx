@@ -23,6 +23,7 @@ import toast from 'react-hot-toast'
 export function AuthAwareHeader() {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [avatarError, setAvatarError] = useState(false)
   const { user, profile, signOut, isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
 
@@ -108,17 +109,31 @@ export function AuthAwareHeader() {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center gap-2 p-2"
                 >
-                  <div className="h-8 w-8 bg-rausch-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
-                    {profile?.avatar_url ? (
-                      <img
-                        src={profile.avatar_url}
-                        alt={profile.full_name || user?.email}
-                        className="h-8 w-8 rounded-full object-cover"
-                      />
-                    ) : (
-                      getInitials(profile?.full_name, user?.email)
-                    )}
-                  </div>
+                  {(profile?.avatar_url || user?.user_metadata?.avatar_url) ? (
+                    <img
+                      src={profile?.avatar_url || user?.user_metadata?.avatar_url}
+                      alt={profile?.full_name || user?.user_metadata?.full_name || user?.email}
+                      className="h-8 w-8 rounded-full object-cover"
+                      referrerPolicy="no-referrer"
+                      crossOrigin="anonymous"
+                      onError={(e) => {
+                        // Fallback to initials on error
+                        const target = e.currentTarget
+                        const parent = target.parentElement
+                        if (parent) {
+                          target.style.display = 'none'
+                          const fallback = document.createElement('div')
+                          fallback.className = 'h-8 w-8 bg-rausch-500 text-white rounded-full flex items-center justify-center text-sm font-medium'
+                          fallback.textContent = getInitials(profile?.full_name || user?.user_metadata?.full_name, user?.email)
+                          parent.appendChild(fallback)
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div className="h-8 w-8 bg-rausch-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                      {getInitials(profile?.full_name || user?.user_metadata?.full_name, user?.email)}
+                    </div>
+                  )}
                   <ChevronDown className="h-4 w-4 text-airbnb-gray" />
                 </Button>
 
@@ -152,16 +167,7 @@ export function AuthAwareHeader() {
                           <MapPin className="h-4 w-4 mr-2" />
                           My Trips
                         </Link>
-                        
-                        <Link
-                          href="/dashboard/media"
-                          onClick={() => setShowUserMenu(false)}
-                          className="flex items-center w-full px-4 py-2 text-body-medium text-airbnb-dark-gray hover:bg-airbnb-background-secondary transition-colors"
-                        >
-                          <Camera className="h-4 w-4 mr-2" />
-                          Media
-                        </Link>
-                        
+
                         <Link
                           href="/dashboard/settings"
                           onClick={() => setShowUserMenu(false)}

@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Search, Filter, Grid, List } from 'lucide-react'
+import { Plus, Search, Filter, Grid, List, Globe, FileText, Lock, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Card } from '@/components/ui/Card'
 import { CreateTripForm } from './CreateTripForm'
 import { TripCard } from './TripCard'
 import { TripList } from './TripList'
@@ -132,8 +133,65 @@ export function TripsDashboard({ userId }: TripsDashboardProps) {
     )
   }
 
+  // Calculate stats
+  const totalTrips = filteredTrips.length
+  const publishedCount = filteredTrips.filter(t => t.status === 'published').length
+  const draftCount = filteredTrips.filter(t => t.status === 'draft').length
+  const totalShareLinks = filteredTrips.reduce((sum, t) => sum + (t.share_links?.length || 0), 0)
+
   return (
     <div className="space-y-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <FileText className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{totalTrips}</p>
+              <p className="text-sm text-gray-600">Total Trips</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Globe className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{publishedCount}</p>
+              <p className="text-sm text-gray-600">Published</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-yellow-100 rounded-lg">
+              <Lock className="h-5 w-5 text-yellow-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{draftCount}</p>
+              <p className="text-sm text-gray-600">Drafts</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <Share2 className="h-5 w-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{totalShareLinks}</p>
+              <p className="text-sm text-gray-600">Share Links</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex-1 max-w-md">
