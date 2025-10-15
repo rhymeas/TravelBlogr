@@ -220,6 +220,7 @@ export class GenerateplanUseCase {
             interests: command.interests || [],
             budget: command.budget || 'moderate',
             maxTravelHoursPerDay: command.maxTravelHoursPerDay,
+            transportMode: command.transportMode, // ✅ ADDED: Pass transport mode to AI
             locationsData
           },
           command.startDate
