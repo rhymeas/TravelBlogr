@@ -345,8 +345,9 @@ export function planModal({
               </div>
             </div>
 
-            {/* Minimal Dot Timeline */}
-            <div className="relative flex items-center justify-between max-w-5xl mx-auto">
+            {/* Minimal Dot Timeline - with horizontal scroll for many waypoints */}
+            <div className="relative overflow-x-auto pb-4 -mx-4 px-4">
+              <div className="relative flex items-center justify-between min-w-max mx-auto" style={{ minWidth: `${Math.max(800, locationGroups.length * 150)}px` }}>
               {/* Connecting Line */}
               <div className="absolute top-3.5 left-0 right-0 h-0.5 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200" style={{ zIndex: 0 }} />
 
@@ -359,86 +360,15 @@ export function planModal({
                 }}
               />
 
-              {/* Distance labels and hover-sensitive segments between locations */}
-              {locationGroups.map((group: any, segmentIndex: number) => {
-                if (segmentIndex >= locationGroups.length - 1) return null
-
-                const totalSegments = locationGroups.length - 1
-                const segmentWidth = 100 / totalSegments
-                const leftPosition = (segmentIndex * segmentWidth) + (segmentWidth / 2)
-
-                // Get distance for this segment
-                const fromLocation = locationGroups[segmentIndex].location
-                const toLocation = locationGroups[segmentIndex + 1].location
-                const distanceKey = `${fromLocation}-${toLocation}`
-                const distance = travelDistances[distanceKey]
-
-                return (
-                  <div
-                    key={`segment-${segmentIndex}`}
-                    className="absolute"
-                    style={{
-                      left: `${leftPosition}%`,
-                      top: '14px', // Align with the line (top-3.5 = 14px)
-                      transform: 'translate(-50%, -50%)',
-                      zIndex: 20
-                    }}
-                  >
-                    {/* Distance Label - positioned below the line to avoid overlap */}
-                    {distance && (
-                      <div className="absolute top-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                        <div className="text-[10px] font-medium text-gray-500 bg-white/90 px-1.5 py-0.5 rounded shadow-sm">
-                          {distance.km}km · {distance.miles}mi
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Hover area for Add Stop button */}
-                    <div
-                      className="w-8 h-8 flex items-center justify-center"
-                      onMouseEnter={() => setHoveredSegment(segmentIndex)}
-                      onMouseLeave={() => setHoveredSegment(null)}
-                    >
-                      {/* "+" Button - appears on hover - 24x24px */}
-                      <AnimatePresence>
-                        {hoveredSegment === segmentIndex && (
-                          <motion.button
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0, opacity: 0 }}
-                            transition={{ duration: 0.15, ease: 'easeOut' }}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setAddStopBetween({
-                                from: locationGroups[segmentIndex].location,
-                                to: locationGroups[segmentIndex + 1].location,
-                                fromIndex: segmentIndex
-                              })
-                              setShowAddStopModal(true)
-                            }}
-                            className="w-6 h-6 rounded-full bg-white border-2 border-teal-400 hover:border-teal-500 hover:bg-teal-50 flex items-center justify-center shadow-lg transition-colors duration-200 hover:shadow-xl"
-                            whileHover={{ scale: 1.15 }}
-                            whileTap={{ scale: 0.95 }}
-                            title="Add stop between locations"
-                          >
-                            <Plus className="h-3 w-3 text-teal-500" />
-                          </motion.button>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </div>
-                )
-              })}
-
-              {/* Location Steps */}
-              {locationGroups.map((group: any, index: number) => {
+              {/* Location Steps with Add Stop buttons interleaved */}
+              {locationGroups.flatMap((group: any, index: number) => {
                 const formatted = formatLocationDisplay(group.location)
                 const isActive = index === activeLocationIndex
                 const isPast = index < activeLocationIndex
 
-                return (
+                const elements = [
                   <button
-                    key={index}
+                    key={`location-${index}`}
                     onClick={() => setActiveLocationIndex(index)}
                     className="relative flex flex-col items-center gap-1.5 group z-10 transition-all"
                     style={{ flex: 1 }}
@@ -478,7 +408,63 @@ export function planModal({
                       {formatDateRange(group.startDate, group.endDate).replace(' - ', '-')}
                     </div>
                   </button>
-                )
+                ]
+
+                // Add "Add Stop" button after this location (except for the last one)
+                if (index < locationGroups.length - 1) {
+                  const fromLocation = group.location
+                  const toLocation = locationGroups[index + 1].location
+                  const distanceKey = `${fromLocation}-${toLocation}`
+                  const distance = travelDistances[distanceKey]
+
+                  elements.push(
+                    <div
+                      key={`add-stop-${index}`}
+                      className="relative flex flex-col items-center justify-center group z-20"
+                      style={{ flex: 0.3, minWidth: '60px' }}
+                      onMouseEnter={() => setHoveredSegment(index)}
+                      onMouseLeave={() => setHoveredSegment(null)}
+                    >
+                      {/* Distance Label */}
+                      {distance && (
+                        <div className="absolute -top-2 whitespace-nowrap">
+                          <div className="text-[10px] font-medium text-gray-500 bg-white/90 px-1.5 py-0.5 rounded shadow-sm">
+                            {distance.km}km · {distance.miles}mi
+                          </div>
+                        </div>
+                      )}
+
+                      {/* "+" Button - appears on hover */}
+                      <AnimatePresence>
+                        {hoveredSegment === index && (
+                          <motion.button
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0, opacity: 0 }}
+                            transition={{ duration: 0.15, ease: 'easeOut' }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setAddStopBetween({
+                                from: fromLocation,
+                                to: toLocation,
+                                fromIndex: index
+                              })
+                              setShowAddStopModal(true)
+                            }}
+                            className="w-6 h-6 rounded-full bg-white border-2 border-teal-400 hover:border-teal-500 hover:bg-teal-50 flex items-center justify-center shadow-lg transition-colors duration-200 hover:shadow-xl"
+                            whileHover={{ scale: 1.15 }}
+                            whileTap={{ scale: 0.95 }}
+                            title="Add stop between locations"
+                          >
+                            <Plus className="h-3 w-3 text-teal-500" />
+                          </motion.button>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )
+                }
+
+                return elements
               })}
 
               {/* Final Review Step - 10% bigger */}
@@ -517,8 +503,9 @@ export function planModal({
                   Review
                 </div>
               </button>
+              </div>
             </div>
-          </div>
+          </div> {/* Close header section */}
 
           {/* Content Area */}
           <div className="bg-white px-12 py-8 flex-1 overflow-y-auto">
@@ -739,11 +726,11 @@ export function planModal({
                   </div>
 
                   {/* Trip Overview Map */}
-                  {locationCoordinates && locationGroups.length > 1 && (
+                  {locationCoordinates && Object.keys(locationCoordinates).length > 0 && (
                     <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl p-6 mb-8 max-w-3xl mx-auto">
                       <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-teal-600" />
-                        Your Trip Route
+                        {locationGroups.length > 1 ? 'Your Trip Route' : 'Your Destination'}
                       </h3>
                       <TripOverviewMap
                         locations={locationGroups
@@ -759,7 +746,7 @@ export function planModal({
                   )}
 
                   {/* Fallback: Simple route visualization if no coordinates */}
-                  {(!locationCoordinates || Object.keys(locationCoordinates).length === 0) && locationGroups.length > 1 && (
+                  {(!locationCoordinates || Object.keys(locationCoordinates).length === 0) && locationGroups.length > 0 && (
                     <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl p-6 mb-8 max-w-3xl mx-auto">
                       <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-teal-600" />
