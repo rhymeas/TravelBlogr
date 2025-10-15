@@ -76,12 +76,18 @@ export function LocationMiniMap({ locationName, latitude, longitude, className =
           )
           .addTo(map.current)
 
-        // Add zoom controls
+        // Add navigation controls (same as trip planning page)
         map.current.addControl(
           new maplibregl.NavigationControl({
-            showCompass: false,
+            showCompass: true,
             showZoom: true
           }),
+          'top-right'
+        )
+
+        // Add fullscreen control (same as trip planning page)
+        map.current.addControl(
+          new maplibregl.FullscreenControl(),
           'top-right'
         )
 
