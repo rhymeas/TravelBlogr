@@ -165,8 +165,8 @@ export class GenerateplanUseCase {
         console.log('🔄 Force refresh requested - bypassing cache')
       }
 
-      // 6. Fetch location data (activities & restaurants)
-      console.log('📊 Fetching location data...')
+      // 6. Fetch location data (activities & restaurants) from DATABASE
+      console.log('📊 Fetching location data from database...')
       const locationSlugs = [
         routeInfo.fromSlug || command.from, // Use slug from routeInfo if available
         ...routeInfo.stops.map(s => s.slug),
@@ -183,6 +183,37 @@ export class GenerateplanUseCase {
           error: 'Could not fetch location data'
         }
       }
+
+      // 6.5. Separate locations: COMPLETE (use DB) vs INCOMPLETE (need AI enrichment)
+      const completeLocations = locationsData.filter(loc => loc.hasCompleteData)
+      const incompleteLocations = locationsData.filter(loc => !loc.hasCompleteData)
+
+      console.log('\n' + '═'.repeat(80))
+      console.log('📊 DATABASE OPTIMIZATION REPORT')
+      console.log('═'.repeat(80))
+      console.log(`✅ ${completeLocations.length}/${locationsData.length} locations have COMPLETE data in database`)
+      console.log(`   → Will use existing activities, restaurants, images, coordinates`)
+      console.log(`   → NO external API calls needed for these locations`)
+      console.log(`⚠️  ${incompleteLocations.length}/${locationsData.length} locations have LIMITED data`)
+      console.log(`   → Will use available data + AI for enrichment`)
+
+      if (completeLocations.length > 0) {
+        console.log('\n📦 COMPLETE LOCATIONS (using database):')
+        completeLocations.forEach(l => {
+          console.log(`   • ${l.name}: ${l.activities.length} activities, ${l.restaurants.length} restaurants, ${l.featuredImage ? 'image ✓' : 'no image'}`)
+        })
+      }
+
+      if (incompleteLocations.length > 0) {
+        console.log('\n🔧 LIMITED LOCATIONS (need enrichment):')
+        incompleteLocations.forEach(l => {
+          console.log(`   • ${l.name}: ${l.activities.length} activities, ${l.restaurants.length} restaurants`)
+        })
+      }
+
+      const estimatedApiSavings = completeLocations.length * 3 // 3 API calls per location (activities, restaurants, images)
+      console.log(`\n💰 ESTIMATED API SAVINGS: ${estimatedApiSavings} external API calls avoided`)
+      console.log('═'.repeat(80) + '\n')
 
       // 7. Generate plan using AI (Pro mode or standard)
       console.log(`🤖 Generating plan with AI${command.proMode ? ' (Pro Mode)' : ''}...`)
@@ -343,7 +374,8 @@ export class GenerateplanUseCase {
   }
 
   /**
-   * Fetch detailed data for all locations
+   * Fetch detailed data for all locations INCLUDING images and coordinates
+   * This prevents redundant API calls by using existing database resources
    */
   private async fetchLocationsData(slugs: string[]) {
     const results = await Promise.all(
@@ -359,12 +391,53 @@ export class GenerateplanUseCase {
     const validResults = results.filter((result): result is NonNullable<typeof result> => result !== null)
     console.log(`✅ Found ${validResults.length}/${slugs.length} locations with data`)
 
+    // Fetch featured images for all locations from database
+    const locationImages = await this.fetchLocationImages(validResults.map(r => r.location.slug))
+
     return validResults.map(result => ({
       name: result.location.name,
       slug: result.location.slug,
+      latitude: result.location.latitude,
+      longitude: result.location.longitude,
+      country: result.location.country,
+      region: result.location.region,
+      featuredImage: locationImages[result.location.slug] || null,
       activities: result.activities,
-      restaurants: result.restaurants
+      restaurants: result.restaurants,
+      hasCompleteData: result.activities.length >= 5 && result.restaurants.length >= 3
     }))
+  }
+
+  /**
+   * Fetch featured images from database for locations
+   * Returns map of slug -> image URL
+   */
+  private async fetchLocationImages(slugs: string[]): Promise<Record<string, string>> {
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    const { data, error } = await supabase
+      .from('location_images')
+      .select('location_slug, image_url')
+      .in('location_slug', slugs)
+      .eq('is_featured', true)
+      .limit(slugs.length)
+
+    if (error) {
+      console.error('❌ Error fetching location images:', error)
+      return {}
+    }
+
+    const imageMap: Record<string, string> = {}
+    data?.forEach(img => {
+      imageMap[img.location_slug] = img.image_url
+    })
+
+    console.log(`🖼️ Found ${Object.keys(imageMap).length}/${slugs.length} featured images in database`)
+    return imageMap
   }
 
   /**
