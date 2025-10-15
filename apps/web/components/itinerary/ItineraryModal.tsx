@@ -384,10 +384,10 @@ export function planModal({
                       zIndex: 20
                     }}
                   >
-                    {/* Distance Label - always visible */}
+                    {/* Distance Label - positioned below the line to avoid overlap */}
                     {distance && (
-                      <div className="absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
-                        <div className="text-[10px] font-medium text-gray-500 bg-white/90 px-1.5 py-0.5 rounded">
+                      <div className="absolute top-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                        <div className="text-[10px] font-medium text-gray-500 bg-white/90 px-1.5 py-0.5 rounded shadow-sm">
                           {distance.km}km · {distance.miles}mi
                         </div>
                       </div>
@@ -481,15 +481,15 @@ export function planModal({
                 )
               })}
 
-              {/* Final Review Step */}
+              {/* Final Review Step - 10% bigger */}
               <button
                 onClick={() => setActiveLocationIndex(locationGroups.length)}
                 className="relative flex flex-col items-center gap-1.5 group z-10 transition-all"
                 style={{ flex: 1 }}
               >
-                {/* Outer Dot */}
+                {/* Outer Dot - 10% bigger (w-8 h-8 instead of w-7 h-7) */}
                 <div className={`
-                  w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300
+                  w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300
                   ${activeLocationIndex === locationGroups.length
                     ? 'bg-gradient-to-br from-teal-400 to-teal-600 shadow-lg shadow-teal-500/30 scale-110'
                     : activeLocationIndex > locationGroups.length
@@ -499,7 +499,7 @@ export function planModal({
                 `}>
                   {/* Inner Dot with Checkmark */}
                   <div className={`
-                    w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold transition-all
+                    w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold transition-all
                     ${activeLocationIndex >= locationGroups.length
                       ? 'bg-white text-teal-600'
                       : 'bg-gray-200 text-gray-500 group-hover:bg-gray-300'
@@ -557,22 +557,6 @@ export function planModal({
                         {formatDateRange(currentLocation.startDate, currentLocation.endDate)}
                       </p>
                     </div>
-
-                    {/* Location Mini Map */}
-                    {locationCoordinates && locationCoordinates[currentLocation.location] && (
-                      <div>
-                        <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-teal-500" />
-                          Location Map
-                        </h3>
-                        <LocationMiniMap
-                          locationName={currentLocation.location}
-                          latitude={locationCoordinates[currentLocation.location].latitude}
-                          longitude={locationCoordinates[currentLocation.location].longitude}
-                          className="h-48 w-full"
-                        />
-                      </div>
-                    )}
 
                     {/* Activities */}
                     <div className="space-y-2">
@@ -658,65 +642,33 @@ export function planModal({
                     </div>
                   </div>
 
-                  {/* Right: Journey Summary */}
+                  {/* Right: Location Mini Map (replaces "My Journey So Far") */}
                   <div className="space-y-4">
-                    <div className="bg-gray-50 rounded-xl p-4">
-                      <h3 className="text-lg font-bold text-gray-900 mb-4">My Journey So Far</h3>
-
-                      <div className="space-y-2.5">
-                        <div className="text-sm text-gray-700">
-                          {plan.stats?.totalDays || plan.days.length} Days ({formatDateRange(plan.days[0]?.date, plan.days[plan.days.length - 1]?.date)})
-                        </div>
-
-                        <div className="text-sm text-gray-700">
-                          {locationGroups.length} Locations
-                        </div>
-
-                        <div className="text-sm text-gray-700">
-                          {totalActivities} Activities
-                        </div>
-
-                        <div className="text-sm text-gray-700">
-                          {totalMeals} Meals
-                        </div>
-
-                        <div className="flex items-center justify-between pt-2 mt-2 border-t border-gray-200">
-                          <span className="text-sm font-semibold text-gray-900">Total Estimated Cost:</span>
-                          <span className="text-xl font-bold text-teal-600">${totalCost}</span>
-                        </div>
+                    {/* Location Mini Map */}
+                    {locationCoordinates && locationCoordinates[currentLocation.location] && (
+                      <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-teal-500" />
+                          Location Map
+                        </h3>
+                        <LocationMiniMap
+                          locationName={currentLocation.location}
+                          latitude={locationCoordinates[currentLocation.location].latitude}
+                          longitude={locationCoordinates[currentLocation.location].longitude}
+                          className="h-64 w-full rounded-lg overflow-hidden shadow-md"
+                        />
                       </div>
+                    )}
 
-                      {/* Location Highlights */}
-                      <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
-                        {locationGroups.map((group: any, idx: number) => {
-                          const formatted = formatLocationDisplay(group.location)
-                          const locationActivities = group.days.flatMap((day: any) =>
-                            day.items.filter((item: any) => item.type === 'activity')
-                          )
-                          const topActivity = locationActivities[0]
-
-                          return (
-                            <div key={idx} className="text-xs leading-relaxed">
-                              <span className="font-medium text-gray-900">{formatted.main}:</span>
-                              <span className="text-gray-600 ml-1">
-                                {topActivity?.title || 'Exploring'}
-                                {locationActivities.length > 1 && `, +${locationActivities.length - 1} more`}
-                              </span>
-                            </div>
-                          )
-                        })}
-                      </div>
-
-                      {/* Next Location Button */}
-                      {activeLocationIndex < locationGroups.length - 1 && (
-                        <button
-                          onClick={() => setActiveLocationIndex(activeLocationIndex + 1)}
-                          className="w-full mt-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 hover:border-gray-400 transition-colors"
-                        >
-                          Proceed to {formatLocationDisplay(locationGroups[activeLocationIndex + 1].location).main}
-                        </button>
-                      )}
-                    </div>
+                    {/* Next Location Button */}
+                    {activeLocationIndex < locationGroups.length - 1 && (
+                      <button
+                        onClick={() => setActiveLocationIndex(activeLocationIndex + 1)}
+                        className="w-full py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 hover:border-gray-400 transition-colors"
+                      >
+                        Proceed to {formatLocationDisplay(locationGroups[activeLocationIndex + 1].location).main}
+                      </button>
+                    )}
                   </div>
                 </motion.div>
               ) : (
