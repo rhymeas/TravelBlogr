@@ -154,16 +154,37 @@ Primary Interests: ${interests}
 ${context.maxTravelHoursPerDay ? `Max Travel Hours/Day: ${context.maxTravelHoursPerDay}h (user preference)` : 'No travel time restrictions'}
 
 ═══════════════════════════════════════════════════════════════
-AVAILABLE ATTRACTIONS & DINING
+AVAILABLE ATTRACTIONS & DINING (DATABASE RESOURCES)
 ═══════════════════════════════════════════════════════════════
-${context.locationsData.map(loc => `
-📍 ${loc.name.toUpperCase()}
-   Top Activities (${loc.activities.length} total):
+${context.locationsData.map(loc => {
+  const hasCompleteData = (loc as any).hasCompleteData
+  const dataStatus = hasCompleteData ? '✅ COMPLETE DATA' : '⚠️ LIMITED DATA'
+  return `
+📍 ${loc.name.toUpperCase()} ${dataStatus}
+   ${(loc as any).latitude && (loc as any).longitude ? `Coordinates: ${(loc as any).latitude}, ${(loc as any).longitude}` : ''}
+   ${(loc as any).featuredImage ? `Featured Image: Available in database` : ''}
+
+   Top Activities (${loc.activities.length} in database):
    ${loc.activities.slice(0, 8).map((a, i) => `${i + 1}. ${a.name}${a.description ? ` - ${a.description.substring(0, 60)}...` : ''}`).join('\n   ')}
 
-   Dining Options (${loc.restaurants.length} total):
+   Dining Options (${loc.restaurants.length} in database):
    ${loc.restaurants.slice(0, 5).map((r, i) => `${i + 1}. ${r.name}${r.cuisine ? ` (${r.cuisine})` : ''}`).join('\n   ')}
-`).join('\n')}
+`
+}).join('\n')}
+
+⚠️ CRITICAL: DATA USAGE RULES (MANDATORY)
+🚫 ABSOLUTELY FORBIDDEN:
+- DO NOT invent or hallucinate activities/restaurants
+- DO NOT use generic names like "Local Restaurant", "City Tour"
+- DO NOT create fictional names
+- DO NOT use activities/restaurants not listed above
+
+✅ MANDATORY RULES:
+- ONLY use activities and restaurants listed above from our database
+- Use EXACT names as provided (copy-paste from above list)
+- For ✅ COMPLETE DATA locations: Use ONLY provided activities/restaurants
+- For ⚠️ LIMITED DATA locations: Use what's available, plan shorter stays
+- Prioritize ✅ COMPLETE DATA locations for longer stays
 
 ═══════════════════════════════════════════════════════════════
 TRANSPORTATION STRATEGY FOR ${transportMode.toUpperCase()}

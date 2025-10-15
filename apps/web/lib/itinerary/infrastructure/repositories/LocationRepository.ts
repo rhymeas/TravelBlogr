@@ -59,60 +59,78 @@ export class LocationRepository {
 
   /**
    * Get location images for multiple locations
-   * Uses fuzzy matching and fallback to Unsplash if not in database
+   * OPTIMIZED: Uses database-first approach, only fetches externally for NEW locations
    */
   async getLocationImages(locationNames: string[]): Promise<Record<string, string>> {
     const supabase = getSupabaseClient()
     const images: Record<string, string> = {}
+    const missingImages: string[] = []
 
+    // STEP 1: Batch query location_images table for all locations
+    const slugs = locationNames.map(name => this.slugify(name))
+
+    const { data: imageData, error: imageError } = await supabase
+      .from('location_images')
+      .select('location_slug, image_url')
+      .in('location_slug', slugs)
+      .eq('is_featured', true)
+
+    if (!imageError && imageData) {
+      // Map slug back to location name
+      const slugToName: Record<string, string> = {}
+      locationNames.forEach(name => {
+        slugToName[this.slugify(name)] = name
+      })
+
+      imageData.forEach(img => {
+        const locationName = slugToName[img.location_slug]
+        if (locationName) {
+          images[locationName] = img.image_url
+        }
+      })
+      console.log(`✅ Found ${imageData.length}/${locationNames.length} images in location_images table`)
+    }
+
+    // STEP 2: For locations without images, check featured_image column (legacy)
     for (const name of locationNames) {
-      const slug = this.slugify(name)
+      if (images[name]) continue // Already have image
 
-      // Try exact match first
-      let { data } = await supabase
+      const slug = this.slugify(name)
+      const { data } = await supabase
         .from('locations')
         .select('featured_image')
         .eq('slug', slug)
         .single()
 
-      // If no exact match, try fuzzy matching on name
-      if (!data?.featured_image) {
-        const { data: fuzzyData } = await supabase
-          .from('locations')
-          .select('featured_image, name')
-          .ilike('name', `%${name.split(',')[0].trim()}%`) // Match first part of location name
-          .limit(1)
-          .single()
-
-        if (fuzzyData?.featured_image) {
-          console.log(`🔍 Fuzzy match found for "${name}": ${fuzzyData.name}`)
-          data = fuzzyData
-        }
-      }
-
       if (data?.featured_image) {
         images[name] = data.featured_image
+        console.log(`✅ Found legacy featured_image for "${name}"`)
       } else {
-        // Parallel fetch: Query multiple sources simultaneously for diverse, high-quality images
-        console.log(`📸 Location "${name}" not in database, fetching from multiple sources in parallel...`)
+        missingImages.push(name)
+      }
+    }
+
+    // STEP 3: Only fetch externally for NEW locations (not in database)
+    if (missingImages.length > 0) {
+      console.log(`📸 ${missingImages.length} locations need external image fetch:`, missingImages)
+
+      for (const name of missingImages) {
         try {
           const { fetchLocationGalleryHighQuality } = await import('@/lib/services/enhancedImageService')
-          const mainLocation = name.split(',')[0].trim() // Main location name (e.g., "East Timor")
-          const region = name.split(',')[1]?.trim() // Region if available
-          const country = name.split(',').pop()?.trim() // Country (last part)
+          const mainLocation = name.split(',')[0].trim()
+          const region = name.split(',')[1]?.trim()
+          const country = name.split(',').pop()?.trim()
 
-          // Fetch 20+ images from multiple sources in parallel (Pexels, Unsplash, Wikimedia, etc.)
           const galleryImages = await fetchLocationGalleryHighQuality(
             mainLocation,
-            20, // target count
+            20,
             region,
             country
           )
 
           if (galleryImages.length > 0) {
-            // Use first image as featured, rest as gallery
             images[name] = galleryImages[0]
-            console.log(`✅ Fetched ${galleryImages.length} high-quality images for "${name}" from multiple sources`)
+            console.log(`✅ Fetched ${galleryImages.length} images for NEW location "${name}"`)
           } else {
             images[name] = '/placeholder-location.jpg'
             console.log(`⚠️ No images found for "${name}", using placeholder`)
@@ -122,9 +140,11 @@ export class LocationRepository {
           images[name] = '/placeholder-location.jpg'
         }
       }
+    } else {
+      console.log(`🎉 All ${locationNames.length} location images found in database - NO external API calls needed!`)
     }
 
-    console.log(`🖼️ Fetched ${Object.keys(images).length}/${locationNames.length} location images`)
+    console.log(`🖼️ Final: ${Object.keys(images).length}/${locationNames.length} location images (${locationNames.length - missingImages.length} from DB, ${missingImages.length} from external APIs)`)
     return images
   }
 

@@ -397,24 +397,46 @@ IMPORTANT: The itinerary MUST include activities in BOTH ${context.fromLocation}
 - END with activities in ${context.toLocation} - this is the final destination!
 - Do NOT end the trip with just "traveling to ${context.toLocation}" - include actual activities there!
 
-AVAILABLE LOCATIONS & ACTIVITIES:
+🗺️ AVAILABLE LOCATIONS & ACTIVITIES (DATABASE RESOURCES):
 ${context.locationsData.map((loc, i) => `
-${i + 1}. ${loc.name}
-   
-   Top Activities (${loc.activities.length}):
-   ${loc.activities.slice(0, 8).map((a: any, idx: number) => 
+${i + 1}. ${loc.name} ${(loc as any).hasCompleteData ? '✅ COMPLETE DATA' : '⚠️ LIMITED DATA'}
+   ${(loc as any).latitude && (loc as any).longitude ? `📍 Coordinates: ${(loc as any).latitude}, ${(loc as any).longitude}` : ''}
+   ${(loc as any).featuredImage ? `🖼️ Featured Image: Available in database` : ''}
+
+   Top Activities (${loc.activities.length} in database):
+   ${loc.activities.slice(0, 8).map((a: any, idx: number) =>
      `${idx + 1}. ${a.name}
         ${a.description ? a.description.substring(0, 100) : 'Explore this attraction'}
         Duration: ${a.duration || '1-2 hours'} | Cost: ${a.price_info || 'Varies'}`
    ).join('\n   ')}
-   
-   Top Restaurants (${loc.restaurants.length}):
-   ${loc.restaurants.slice(0, 5).map((r: any, idx: number) => 
+
+   Top Restaurants (${loc.restaurants.length} in database):
+   ${loc.restaurants.slice(0, 5).map((r: any, idx: number) =>
      `${idx + 1}. ${r.name} - ${r.cuisine_type || 'Restaurant'} (${r.price_range || '$$'})`
    ).join('\n   ')}
 `).join('\n')}
 
-REQUIREMENTS:
+⚠️ CRITICAL REQUIREMENTS - DATA USAGE (MANDATORY):
+
+🚫 ABSOLUTELY FORBIDDEN:
+❌ DO NOT invent or hallucinate activities/restaurants
+❌ DO NOT use generic names like "Local Restaurant", "City Tour", "Walking Tour"
+❌ DO NOT create fictional restaurant names or activities
+❌ DO NOT use activities/restaurants not listed above
+
+✅ MANDATORY RULES:
+✅ ONLY use activities and restaurants listed above from our database
+✅ Use EXACT names as provided (copy-paste from above list)
+✅ For locations with ✅ COMPLETE DATA: Use ONLY the provided activities/restaurants
+✅ For locations with ⚠️ LIMITED DATA: Use what's available, plan shorter stays
+✅ Prioritize locations with ✅ COMPLETE DATA for longer stays (more to do)
+
+📊 DATA COMPLETENESS GUIDE:
+- ✅ COMPLETE DATA = 5+ activities AND 3+ restaurants → Plan 2-3 days
+- ⚠️ LIMITED DATA = <5 activities OR <3 restaurants → Plan 1 day max or skip
+- If a location has NO activities listed, it's a waypoint/transit stop only
+
+📋 ITINERARY REQUIREMENTS:
 - Total days: ${context.totalDays}
 - Start date: ${startDate}
 - Interests: ${interests}
@@ -423,7 +445,6 @@ REQUIREMENTS:
 - Include 3 meals per day (breakfast, lunch, dinner)
 - Balance activities (don't overpack - max 3-4 activities per day)
 - Consider travel time between locations
-- Use ONLY activities and restaurants listed above
 - Be realistic with timing and distances
 - CRITICAL: The final destination is ${context.toLocation} - the last day(s) MUST include activities in ${context.toLocation}, not just travel!
 - Allocate at least 1 full day for exploring ${context.toLocation} with actual activities and restaurants
