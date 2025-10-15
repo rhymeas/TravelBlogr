@@ -438,7 +438,7 @@ export function ItineraryGenerator() {
         // Extract location coordinates from the plan
         const coords: Record<string, { latitude: number; longitude: number }> = {}
         if (data.data?.days) {
-          data.data.days.forEach((day: any) => {
+          for (const day of data.data.days) {
             // Check for coordinates in locationMetadata (new format)
             if (day.location && day.locationMetadata?.latitude && day.locationMetadata?.longitude) {
               coords[day.location] = {
@@ -454,12 +454,30 @@ export function ItineraryGenerator() {
                 longitude: day.longitude
               }
               console.log(`📍 Extracted coordinates (legacy) for ${day.location}:`, coords[day.location])
-            } else {
-              console.warn(`⚠️  No coordinates found for: ${day.location}`)
             }
-          })
+            // If no coordinates, try to fetch them from the API
+            else if (day.location) {
+              console.warn(`⚠️  No coordinates in plan for: ${day.location}, fetching from API...`)
+              try {
+                const response = await fetch(`/api/locations/search?q=${encodeURIComponent(day.location)}&limit=1`)
+                const searchData = await response.json()
+                if (searchData.success && searchData.data.length > 0) {
+                  const location = searchData.data[0]
+                  coords[day.location] = {
+                    latitude: location.latitude,
+                    longitude: location.longitude
+                  }
+                  console.log(`✅ Fetched coordinates for ${day.location}:`, coords[day.location])
+                } else {
+                  console.error(`❌ Could not find coordinates for: ${day.location}`)
+                }
+              } catch (error) {
+                console.error(`❌ Error fetching coordinates for ${day.location}:`, error)
+              }
+            }
+          }
         }
-        console.log('📍 Extracted location coordinates:', coords)
+        console.log('📍 Final location coordinates:', coords)
         console.log('📍 Total locations with coordinates:', Object.keys(coords).length)
         setLocationCoordinates(coords)
       } else {
