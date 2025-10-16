@@ -37,9 +37,12 @@ export function SignInModal({ isOpen, onClose, redirectTo }: SignInModalProps) {
         toast.success('Welcome back!')
         onClose()
 
-        // Wait a moment for auth state to propagate before redirecting
-        await new Promise(resolve => setTimeout(resolve, 100))
-        router.push(redirectTo || '/dashboard')
+        // Only redirect if redirectTo is explicitly provided
+        if (redirectTo) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+          router.push(redirectTo)
+        }
+        // Otherwise, stay on current page (modal will close)
       } else {
         toast.error(result.error || 'Failed to sign in')
       }
@@ -57,6 +60,7 @@ export function SignInModal({ isOpen, onClose, redirectTo }: SignInModalProps) {
       if (result.success) {
         toast.success('Signing in with Google...')
         onClose()
+        // OAuth will handle redirect automatically
       } else {
         toast.error(result.error || 'Failed to sign in with Google')
       }

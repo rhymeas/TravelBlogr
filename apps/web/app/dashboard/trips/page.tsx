@@ -3,31 +3,29 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
+import { useAuthModal } from '@/contexts/AuthModalContext'
 import { TripsDashboardV2 } from '@/components/trips/TripsDashboardV2'
 import { TripsDashboardSkeleton } from '@/components/trips/TripsDashboardSkeleton'
 
 export default function TripsPage() {
   const { user, isLoading, isAuthenticated } = useAuth()
-  const router = useRouter()
+  const { showSignIn } = useAuthModal()
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push('/auth/signin')
+      // Show modal instead of redirecting
+      showSignIn('/dashboard/trips')
     }
-  }, [isAuthenticated, isLoading])
+  }, [isAuthenticated, isLoading, showSignIn])
 
   if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <TripsDashboardSkeleton />
-      </div>
-    )
+    return <TripsDashboardSkeleton />
   }
 
   if (!isAuthenticated || !user) {
-    return null // Will redirect
+    // Show skeleton while modal is open
+    return <TripsDashboardSkeleton />
   }
 
   return <TripsDashboardV2 userId={user.id} />

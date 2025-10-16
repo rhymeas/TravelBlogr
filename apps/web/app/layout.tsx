@@ -11,6 +11,7 @@ import { Footer } from '@/components/layout/Footer'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { ImagePreconnect } from '@/components/performance/ImagePreconnect'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { AuthModalProvider } from '@/contexts/AuthModalContext'
 
 // const inter = Inter({ subsets: ['latin'] })
 
@@ -96,25 +97,27 @@ export default function RootLayout({
       </head>
       <body className={cn('min-h-screen bg-background antialiased')} suppressHydrationWarning>
         <AuthProvider>
-          <ProgressBar />
-          <div className="relative flex min-h-screen flex-col" suppressHydrationWarning>
-            <AuthAwareHeader />
-            <main className="flex-1">{children}</main>
-            <Footer />
-            <MobileNavigation />
-          </div>
-          {/* <PWAInstallPrompt /> */}
-          <Toaster
-            position="bottom-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: 'hsl(var(--background))',
-                color: 'hsl(var(--foreground))',
-                border: '1px solid hsl(var(--border))',
-              },
-            }}
-          />
+          <AuthModalProvider>
+            <ProgressBar />
+            <div className="relative flex min-h-screen flex-col" suppressHydrationWarning>
+              <AuthAwareHeader />
+              <main className="flex-1">{children}</main>
+              <Footer />
+              <MobileNavigation />
+            </div>
+            {/* <PWAInstallPrompt /> */}
+            <Toaster
+              position="bottom-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: 'hsl(var(--background))',
+                  color: 'hsl(var(--foreground))',
+                  border: '1px solid hsl(var(--border))',
+                },
+              }}
+            />
+          </AuthModalProvider>
         </AuthProvider>
       </body>
     </html>

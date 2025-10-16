@@ -3,27 +3,28 @@
 export const dynamic = 'force-dynamic'
 
 import { useAuth } from '@/hooks/useAuth'
+import { useAuthModal } from '@/contexts/AuthModalContext'
 import { DashboardLanding } from '@/components/dashboard/DashboardLanding'
 import { PageLoading } from '@/components/ui/LoadingSpinner'
-import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
 export default function DashboardPage() {
   const { isAuthenticated, isLoading } = useAuth()
-  const router = useRouter()
+  const { showSignIn } = useAuthModal()
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push('/auth/signin')
+      // Show modal instead of redirecting
+      showSignIn('/dashboard')
     }
-  }, [isAuthenticated, isLoading, router])
+  }, [isAuthenticated, isLoading, showSignIn])
 
   if (isLoading) {
     return <PageLoading message="Loading your dashboard..." />
   }
 
   if (!isAuthenticated) {
-    return null // Will redirect to sign-in
+    return <PageLoading message="Please sign in..." />
   }
 
   return <DashboardLanding />

@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
+import { useAuthModal } from '@/contexts/AuthModalContext'
 import { ViewTrackingPixel } from '@/components/analytics/ViewTrackingPixel'
 import {
   ArrowLeft,
@@ -37,6 +38,7 @@ interface TripDetailsPageProps {
 
 export default function TripDetailsPage({ params }: TripDetailsPageProps) {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth()
+  const { showSignIn } = useAuthModal()
   const router = useRouter()
   const [trip, setTrip] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -50,14 +52,11 @@ export default function TripDetailsPage({ params }: TripDetailsPageProps) {
     if (!authLoading) {
       setAuthChecked(true)
       if (!isAuthenticated) {
-        // Add small delay to prevent flash
-        const timer = setTimeout(() => {
-          router.push('/auth/signin')
-        }, 100)
-        return () => clearTimeout(timer)
+        // Show modal instead of redirecting
+        showSignIn(`/dashboard/trips/${params.tripId}`)
       }
     }
-  }, [authLoading, isAuthenticated, router])
+  }, [authLoading, isAuthenticated, showSignIn, params.tripId])
 
   // Fetch trip data - using useCallback to prevent recreation
   const fetchTrip = useCallback(async () => {
