@@ -1,14 +1,20 @@
 /**
  * Credit Service
- * 
+ *
  * Manages user credits for AI itinerary generation.
  * Credits can be purchased or used as fallback when free tier limit is reached.
  */
 
 import { createServerSupabase } from '@/lib/supabase-server'
 
-// Free tier limit: 5 AI generations per month
-export const FREE_TIER_MONTHLY_LIMIT = 5
+// Free tier limits per month
+export const FREE_TIER_MONTHLY_LIMIT_UNAUTH = 3      // Unauthenticated: 3 free plannings
+export const FREE_TIER_MONTHLY_LIMIT_AUTH = 20       // Authenticated: 20 free plannings
+export const FREE_TIER_MONTHLY_LIMIT_PRO = 5         // Pro mode: 5 free plannings
+
+// Cost per planning (in cents)
+export const COST_PER_PLANNING_CENTS = 50             // $0.50 per planning
+export const COST_PER_PLANNING_WITH_CREDITS_CENTS = 25 // $0.25 per planning with credits
 
 export interface UserCredits {
   user_id: string
@@ -196,34 +202,43 @@ export async function incrementAIUsage(userId: string): Promise<number> {
  * Check if user can generate AI itinerary
  * Returns { allowed: true } if user can generate
  * Returns { allowed: false, reason, needsCredits } if blocked
+ *
+ * Note: This only checks if generation is allowed.
+ * The modal is only shown when user tries to SAVE the plan to their account.
  */
-export async function canGenerateAI(userId: string): Promise<{
+export async function canGenerateAI(userId: string, proMode: boolean = false): Promise<{
   allowed: boolean
   reason?: string
   needsCredits?: boolean
   remainingFree?: number
   credits?: number
+  freeLimit?: number
 }> {
   // Get monthly usage
   const monthlyUsage = await getMonthlyAIUsage(userId)
-  
+
+  // Determine free tier limit based on pro mode
+  const freeLimit = proMode ? FREE_TIER_MONTHLY_LIMIT_PRO : FREE_TIER_MONTHLY_LIMIT_AUTH
+
   // Check if within free tier
-  if (monthlyUsage < FREE_TIER_MONTHLY_LIMIT) {
+  if (monthlyUsage < freeLimit) {
     return {
       allowed: true,
-      remainingFree: FREE_TIER_MONTHLY_LIMIT - monthlyUsage,
+      remainingFree: freeLimit - monthlyUsage,
+      freeLimit,
     }
   }
 
   // Free tier exhausted, check credits
   const credits = await getUserCredits(userId)
-  
+
   if (credits < 1) {
     return {
       allowed: false,
-      reason: `You've used all ${FREE_TIER_MONTHLY_LIMIT} free AI generations this month. Purchase credits to continue!`,
+      reason: `You've used all ${freeLimit} free AI generations this month. Purchase credits to continue!`,
       needsCredits: true,
       credits: 0,
+      freeLimit,
     }
   }
 
@@ -231,6 +246,7 @@ export async function canGenerateAI(userId: string): Promise<{
   return {
     allowed: true,
     credits,
+    freeLimit,
   }
 }
 
@@ -280,7 +296,7 @@ export async function getCreditStats(userId: string): Promise<{
     remaining: details?.credits_remaining || 0,
     lastPurchaseDate: details?.last_purchase_date,
     monthlyUsage,
-    remainingFree: Math.max(0, FREE_TIER_MONTHLY_LIMIT - monthlyUsage),
+    remainingFree: Math.max(0, FREE_TIER_MONTHLY_LIMIT_AUTH - monthlyUsage),
   }
 }
 

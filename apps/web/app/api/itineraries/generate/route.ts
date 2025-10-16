@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Check authentication and credit/usage limits
+    // 3. Check authentication
     const supabase = await createServerSupabase()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
@@ -55,40 +55,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 4. Check if user can generate AI itinerary
-    const canGenerate = await canGenerateAI(user.id)
-
-    if (!canGenerate.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: canGenerate.reason,
-          action: canGenerate.needsCredits ? 'buy_credits' : 'wait',
-          needsCredits: canGenerate.needsCredits,
-          credits: canGenerate.credits || 0,
-        },
-        { status: 403 }
-      )
-    }
-
-    // 5. If using credits (not free tier), deduct credit
+    // 4. Allow generation without credit check
+    // Credits are only checked when user tries to SAVE the plan to their account
+    // This allows users to generate plans for free and only pay if they want to save
     let usedCredit = false
-    if (canGenerate.credits !== undefined) {
-      const creditResult = await useCredit(user.id, 1, 'AI itinerary generation')
-      if (!creditResult.success) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Failed to use credit. Please try again.',
-            action: 'retry',
-          },
-          { status: 500 }
-        )
-      }
-      usedCredit = true
-    }
 
-    // 6. Execute use case
+    // 5. Execute use case
     const useCase = new GenerateplanUseCase()
     const result = await useCase.execute({
       from: body.from,
@@ -128,8 +100,6 @@ export async function POST(request: NextRequest) {
         generationTimeMs: generationTime,
         generatedAt: new Date().toISOString(),
         usedCredit,
-        remainingFree: canGenerate.remainingFree,
-        credits: canGenerate.credits,
       }
     })
 
