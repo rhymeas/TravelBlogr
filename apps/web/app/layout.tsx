@@ -85,7 +85,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <ImagePreconnect />
-        {/* Google AdSense - Site Verification & Ad Script */}
+        {/* Google AdSense - Site Verification */}
+        <meta name="google-adsense-account" content="ca-pub-5985120367077865" />
+        {/* Google AdSense - Ad Script */}
         <script
           async
           src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT_ID || 'ca-pub-5985120367077865'}`}

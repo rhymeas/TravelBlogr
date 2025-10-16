@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/Card'
 import { GalleryView } from '@/components/gallery/GalleryView'
 import { MapPin, Calendar, Star } from 'lucide-react'
 import Link from 'next/link'
+import { HorizontalBannerAd } from '@/components/ads/HorizontalBannerAd'
 
 export const dynamic = 'force-dynamic'
 
@@ -81,6 +82,13 @@ export default async function GalleryPage() {
           </div>
         </div>
       </div>
+
+      {/* Horizontal Ad - Top Banner */}
+      <HorizontalBannerAd
+        slot="trips_library_top"
+        page="trips-library"
+        size="standard"
+      />
 
       {/* Gallery Grid */}
       <div className="container mx-auto px-4 py-8 max-w-6xl">

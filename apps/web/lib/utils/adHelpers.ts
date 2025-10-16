@@ -58,6 +58,34 @@ export function shouldShowInFeedAd(index: number): boolean {
 }
 
 /**
+ * Check if an ad should be inserted at this index in trips library
+ *
+ * Pattern: 5-6-4-6-5-4-3-7-5-4 (custom pattern for trips library)
+ * Positions: After index 4, 10, 14, 20, 24, 28, 31, 38, 43, 47, etc.
+ *
+ * @param index - Current item index (0-based)
+ * @returns boolean - true if ad should be shown at this position
+ */
+export function shouldShowTripsLibraryAd(index: number): boolean {
+  // Pattern: 5-6-4-6-5-4-3-7-5-4 (repeating)
+  // Ad positions after: 5, 11, 15, 21, 26, 30, 33, 40, 45, 49...
+  const pattern = [5, 6, 4, 6, 5, 4, 3, 7, 5, 4]
+
+  let position = 0
+  let patternIndex = 0
+
+  while (position <= index) {
+    position += pattern[patternIndex % pattern.length]
+    if (position === index + 1) {
+      return true
+    }
+    patternIndex++
+  }
+
+  return false
+}
+
+/**
  * Get ad slot ID based on page and position
  * 
  * Helps organize ad units in Google AdSense dashboard
