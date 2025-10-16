@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { useState, useEffect } from 'react'
 import {
   Globe,
   MapPin,
@@ -31,16 +32,33 @@ import { PublicDestinationSearch } from '@/components/search/PublicDestinationSe
 import { useAuth } from '@/hooks/useAuth'
 import { HorizontalBannerAd } from '@/components/ads/HorizontalBannerAd'
 
+// Optimized hero images - compressed, fast-loading
+const HERO_IMAGES = [
+  {
+    url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=800&fit=crop&q=75&auto=format',
+    alt: 'Mountain landscape with lake'
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1200&h=800&fit=crop&q=75&auto=format',
+    alt: 'Tropical beach paradise'
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&h=800&fit=crop&q=75&auto=format',
+    alt: 'City skyline at sunset'
+  }
+]
 
 
-// Trip data with detailed information
+
+// Trip data with detailed information - optimized images
 const tripExamples = [
   {
     id: '1',
     name: 'Banff National Park', // Updated to match our location data
     dates: 'Sep 18-19',
-    image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop&crop=entropy',
+    image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop&q=70&auto=format',
     imageAlt: 'Banff National Park mountain landscape',
+    daysStay: 2,
     accommodation: {
       name: 'Mountain Lodge',
       nights: 2
@@ -59,9 +77,10 @@ const tripExamples = [
     id: '2',
     name: 'Santorini', // Updated to match our location data
     dates: 'Sep 19-21',
-    image: 'https://images.unsplash.com/photo-1474181487882-5abf3f0ba6c2?w=400&h=300&fit=crop&crop=entropy',
+    image: 'https://images.unsplash.com/photo-1474181487882-5abf3f0ba6c2?w=400&h=300&fit=crop&q=70&auto=format',
     imageAlt: 'Santorini white buildings and blue domes',
     description: 'Greek island paradise with stunning sunsets, traditional villages, and volcanic beaches.',
+    daysStay: 3,
     accommodation: {
       name: 'Cliffside Villa',
       nights: 2,
@@ -81,8 +100,9 @@ const tripExamples = [
     id: '3',
     name: 'Tokyo', // Updated to match our location data
     dates: 'Sep 21-22',
-    image: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop&crop=entropy',
+    image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=300&fit=crop&q=70&auto=format',
     imageAlt: 'Tokyo cityscape at sunset',
+    daysStay: 1,
     accommodation: {
       name: 'Modern Tokyo Hotel',
       nights: 1
@@ -96,14 +116,51 @@ const tripExamples = [
       { name: 'Street food tours' }
     ],
     didYouKnow: 'Tokyo has more Michelin-starred restaurants than any other city in the world!'
+  },
+  {
+    id: '4',
+    name: 'Machu Picchu',
+    dates: 'Sep 22-24',
+    image: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=400&h=300&fit=crop&q=70&auto=format',
+    imageAlt: 'Machu Picchu ancient ruins',
+    description: 'Ancient Incan citadel set high in the Andes Mountains, a UNESCO World Heritage site.',
+    daysStay: 2,
+    accommodation: {
+      name: 'Sacred Valley Lodge',
+      nights: 2
+    },
+    restaurants: [
+      { name: 'Indio Feliz' },
+      { name: 'Café Inkaterra' }
+    ],
+    activities: [
+      { name: 'Sunrise at Machu Picchu' },
+      { name: 'Inca Trail hiking' }
+    ],
+    didYouKnow: 'Machu Picchu was built around 1450 and abandoned just over 100 years later during the Spanish conquest.'
   }
 ]
 
 export default function HomePage() {
   const { isAuthenticated, isLoading } = useAuth()
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Rotate hero images every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % HERO_IMAGES.length)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Show dashboard for authenticated users (don't wait for loading)
-  if (isAuthenticated && !isLoading) {
+  if (mounted && isAuthenticated && !isLoading) {
     return <DashboardLanding />
   }
 
@@ -112,17 +169,28 @@ export default function HomePage() {
     <div className="min-h-screen bg-white">
 
       <main>
-        {/* Hero Section - Airbnb Style with Image Background */}
-        <section className="relative h-[600px] lg:h-[700px]">
-          {/* Hero Image */}
+        {/* Hero Section - Airbnb Style with Rotating Image Background */}
+        <section className="relative h-[600px] lg:h-[700px] overflow-hidden">
+          {/* Hero Images - Rotating */}
           <div className="absolute inset-0">
-            <Image
-              src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&h=1080&fit=crop&crop=entropy"
-              alt="Beautiful travel destination"
-              fill
-              className="object-cover"
-              priority
-            />
+            {HERO_IMAGES.map((image, index) => (
+              <div
+                key={index}
+                className={`absolute inset-0 transition-opacity duration-1000 ${
+                  index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+                }`}
+              >
+                <Image
+                  src={image.url}
+                  alt={image.alt}
+                  fill
+                  className="object-cover"
+                  priority={index === 0} // Only prioritize first image
+                  quality={75}
+                  sizes="100vw"
+                />
+              </div>
+            ))}
             {/* Gradient overlay for better text readability */}
             <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/30"></div>
           </div>
@@ -130,13 +198,13 @@ export default function HomePage() {
           {/* Search Card Overlay */}
           <div className="relative h-full flex items-center">
             <div className="mx-auto max-w-7xl px-6 lg:px-8 w-full">
-              <div className="max-w-md">
+              <div className="max-w-[496px]">
                 {/* White Card */}
                 <div className="bg-white rounded-2xl shadow-2xl p-8">
                   <h1 className="text-3xl font-bold text-airbnb-black mb-2">
-                    Share Your Journey,
+                    Plan Your Next Adventure,
                     <br />
-                    Plan Your Next Adventure
+                    Share Your Journey
                   </h1>
                   <p className="text-sm text-airbnb-gray mb-6">
                     Transform your travel experiences into inspiring stories that help fellow travelers plan unforgettable trips.
@@ -145,7 +213,7 @@ export default function HomePage() {
                   {/* Public Destination Search - Original Functionality */}
                   <div className="mb-4">
                     <PublicDestinationSearch
-                      placeholder="Where do you want to go? Search destinations..."
+                      placeholder="Where do you want to go?"
                       showTrending={true}
                     />
                   </div>
@@ -237,7 +305,7 @@ export default function HomePage() {
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="text-center mb-10">
               <h2 className="text-2xl lg:text-3xl font-bold text-airbnb-black mb-3">
-                Real Stories, Perfect Plans
+                This is how your trip could look like
               </h2>
               <p className="text-base text-airbnb-dark-gray max-w-3xl mx-auto">
                 Discover how our community shares detailed travel experiences that become invaluable planning resources. Each timeline story includes everything you need to recreate or customize the experience.
@@ -245,17 +313,18 @@ export default function HomePage() {
             </div>
 
             {/* Timeline Layout */}
-            <div className="relative">
-              {/* Timeline Line */}
-              <div className="absolute left-1/2 transform -translate-x-1/2 w-0.5 bg-teal-300 h-full hidden lg:block"></div>
+            <div className="relative mt-24">
+              {/* Timeline Line - starts from first card at title level */}
+              <div className="absolute left-1/2 transform -translate-x-1/2 w-0.5 bg-teal-300 top-3 bottom-0 hidden lg:block"></div>
 
               {/* Trip Cards */}
-              <div className="space-y-8">
+              <div className="space-y-4 lg:space-y-0">
                 {tripExamples.map((trip, index) => (
                   <TripCard
                     key={trip.id}
                     trip={trip}
                     position={index % 2 === 0 ? 'left' : 'right'}
+                    index={index}
                   />
                 ))}
               </div>
@@ -360,21 +429,21 @@ export default function HomePage() {
                 {
                   name: "Sarah Chen",
                   location: "Vancouver, Canada",
-                  avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=150",
+                  avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&q=70&auto=format",
                   rating: 5,
                   text: "TravelBlogr helped me discover hidden gems in Japan that I never would have found otherwise. The local recommendations were spot-on!"
                 },
                 {
                   name: "Marcus Rodriguez",
                   location: "Barcelona, Spain",
-                  avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=150",
+                  avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&q=70&auto=format",
                   rating: 5,
                   text: "The planning tools made organizing our family trip to Patagonia so much easier. Everything was perfectly coordinated!"
                 },
                 {
                   name: "Emma Thompson",
                   location: "London, UK",
-                  avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=150",
+                  avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&q=70&auto=format",
                   rating: 5,
                   text: "I love sharing my travel stories here. The community is so supportive and I've made friends from all over the world!"
                 }
@@ -393,6 +462,8 @@ export default function HomePage() {
                         alt={testimonial.name}
                         fill
                         className="object-cover"
+                        quality={70}
+                        sizes="40px"
                       />
                     </div>
                     <div>

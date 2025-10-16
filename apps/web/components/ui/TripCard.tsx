@@ -27,21 +27,32 @@ interface TripCardProps {
     }[]
     didYouKnow: string
     highlights?: string[]
+    daysStay?: number  // Number of days staying at this location
   }
   position: 'left' | 'right'
+  index?: number  // Card index to determine if it's the first card
 }
 
-export function TripCard({ trip, position }: TripCardProps) {
+export function TripCard({ trip, position, index = 0 }: TripCardProps) {
   const isLeft = position === 'left'
-  
+  const daysStay = trip.daysStay || 1 // Default to 1 day if not specified
+  const isFirstCard = index === 0
+
   return (
-    <div className="flex flex-col lg:flex-row items-center gap-6">
-      <div className={`lg:w-1/2 ${isLeft ? 'lg:pr-6 flex justify-end' : 'lg:pr-6'}`}>
+    <div className="flex flex-col lg:flex-row items-start gap-6">
+      <div className={`lg:w-1/2 ${isLeft ? `lg:pr-6 flex justify-end ${!isFirstCard ? 'lg:-mt-48' : ''}` : 'lg:pr-6'}`}>
         {isLeft ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 relative hover:shadow-md transition-shadow w-[70%]">
-            {/* Timeline Dot */}
-            <div className="absolute w-6 h-6 bg-teal-400 rounded-full border-3 border-white shadow-sm hidden lg:block -right-3 top-6"></div>
-            
+            {/* Horizontal dotted line connecting to timeline */}
+            <div className="absolute hidden lg:block -right-[55px] top-[18px] w-[45px] h-[2px] border-t-2 border-dotted border-gray-300 z-0"></div>
+
+            {/* Timeline Bubble - positioned closer to card, on the green line */}
+            <div className="absolute w-12 h-12 bg-teal-400 rounded-full border-[3px] border-white shadow-lg hidden lg:block -right-[61px] top-[6px] z-10">
+              <div className="w-full h-full flex items-center justify-center">
+                <span className="text-white text-xs font-bold">{daysStay}d</span>
+              </div>
+            </div>
+
             <TripCardContent trip={trip} />
           </div>
         ) : (
@@ -50,13 +61,20 @@ export function TripCard({ trip, position }: TripCardProps) {
           </div>
         )}
       </div>
-      
-      <div className={`lg:w-1/2 ${isLeft ? 'lg:pl-6' : 'lg:pl-6 flex justify-start'}`}>
+
+      <div className={`lg:w-1/2 ${isLeft ? 'lg:pl-6' : `lg:pl-6 flex justify-start ${!isFirstCard ? 'lg:-mt-48' : ''}`}`}>
         {!isLeft ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 relative hover:shadow-md transition-shadow w-[70%]">
-            {/* Timeline Dot */}
-            <div className="absolute w-6 h-6 bg-teal-400 rounded-full border-3 border-white shadow-sm hidden lg:block -left-3 top-6"></div>
-            
+            {/* Horizontal dotted line connecting to timeline */}
+            <div className="absolute hidden lg:block -left-[55px] top-[18px] w-[45px] h-[2px] border-t-2 border-dotted border-gray-300 z-0"></div>
+
+            {/* Timeline Bubble - positioned closer to card, on the green line */}
+            <div className="absolute w-12 h-12 bg-teal-400 rounded-full border-[3px] border-white shadow-lg hidden lg:block -left-[61px] top-[6px] z-10">
+              <div className="w-full h-full flex items-center justify-center">
+                <span className="text-white text-xs font-bold">{daysStay}d</span>
+              </div>
+            </div>
+
             <TripCardContent trip={trip} />
           </div>
         ) : (
