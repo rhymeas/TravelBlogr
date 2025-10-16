@@ -37,6 +37,17 @@ export function DateRangePicker({ startDate, endDate, onSelect }: DateRangePicke
     ? `${format(range.from, 'MMM d')} - ${format(range.to, 'MMM d, yyyy')}`
     : 'Select dates'
 
+  // Check if valid range is selected (both dates and at least 2 days apart)
+  const isValidRange = range?.from && range?.to && range.from !== range.to
+
+  // Calculate number of days selected
+  const getDaysDifference = () => {
+    if (!range?.from || !range?.to) return 0
+    const diffTime = Math.abs(range.to.getTime() - range.from.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays
+  }
+
   return (
     <div className="relative">
       {/* Trigger Button */}
@@ -168,24 +179,56 @@ export function DateRangePicker({ startDate, endDate, onSelect }: DateRangePicke
               showOutsideDays={false}
             />
 
-            <div className="flex justify-between items-center pt-2 border-t mt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setRange(undefined)
-                  onSelect(null)
-                }}
-                className="text-xs font-medium text-gray-600 hover:text-gray-900 underline"
-              >
-                Clear dates
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="px-4 py-1.5 bg-black text-white rounded-lg hover:bg-gray-800 font-medium text-xs"
-              >
-                Done
-              </button>
+            <div className="pt-3 border-t mt-2">
+              {/* Hint message */}
+              <div className="mb-3 min-h-[20px]">
+                {!range?.from && (
+                  <p className="text-xs text-gray-400 text-center">
+                    Select at least 2 days for your trip
+                  </p>
+                )}
+                {range?.from && !range?.to && (
+                  <p className="text-xs text-gray-400 text-center">
+                    Select an end date
+                  </p>
+                )}
+                {range?.from && range?.to && range.from === range.to && (
+                  <p className="text-xs text-gray-400 text-center">
+                    Please select at least 2 days
+                  </p>
+                )}
+                {isValidRange && (
+                  <p className="text-xs text-gray-500 text-center font-medium">
+                    {getDaysDifference()} {getDaysDifference() === 1 ? 'day' : 'days'} selected
+                  </p>
+                )}
+              </div>
+
+              {/* Buttons */}
+              <div className="flex justify-between items-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRange(undefined)
+                    onSelect(null)
+                  }}
+                  className="text-xs font-medium text-gray-600 hover:text-gray-900 underline"
+                >
+                  Clear dates
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  disabled={!isValidRange}
+                  className={`px-4 py-1.5 rounded-lg font-medium text-xs transition-all ${
+                    isValidRange
+                      ? 'bg-black text-white hover:bg-gray-800 cursor-pointer'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  Done
+                </button>
+              </div>
             </div>
           </div>
         </>

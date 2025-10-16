@@ -17,30 +17,32 @@ export function TripsDashboardSkeleton() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[...Array(6)].map((_, i) => (
           <div key={i} className="bg-white rounded-lg shadow border overflow-hidden">
-            {/* Image skeleton */}
-            <div className="aspect-video bg-gray-200 animate-pulse" />
-            
-            {/* Content skeleton */}
-            <div className="p-4 space-y-3">
-              <div className="h-6 bg-gray-200 rounded animate-pulse" />
-              <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
-              <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2" />
-              
-              <div className="flex justify-between">
-                <div className="h-4 bg-gray-200 rounded animate-pulse w-16" />
-                <div className="h-4 bg-gray-200 rounded animate-pulse w-20" />
-              </div>
-            </div>
-            
-            {/* Footer skeleton */}
-            <div className="px-4 py-3 bg-gray-50">
-              <div className="flex justify-between items-center">
-                <div className="flex gap-1">
-                  {[...Array(4)].map((_, j) => (
-                    <div key={j} className="w-6 h-6 bg-gray-200 rounded animate-pulse" />
-                  ))}
+            <div className="animate-pulse">
+              {/* Image skeleton with proper aspect ratio */}
+              <div className="w-full aspect-[16/9] bg-gray-200" />
+
+              {/* Content skeleton */}
+              <div className="p-4 space-y-3">
+                <div className="h-6 bg-gray-200 rounded w-3/4" />
+                <div className="h-4 bg-gray-200 rounded w-2/3" />
+                <div className="h-4 bg-gray-200 rounded w-1/2" />
+
+                <div className="flex justify-between pt-2">
+                  <div className="h-4 bg-gray-200 rounded w-16" />
+                  <div className="h-4 bg-gray-200 rounded w-20" />
                 </div>
-                <div className="h-3 bg-gray-200 rounded animate-pulse w-16" />
+              </div>
+
+              {/* Footer skeleton */}
+              <div className="px-4 py-3 bg-gray-50 border-t">
+                <div className="flex justify-between items-center">
+                  <div className="flex gap-1">
+                    {[...Array(4)].map((_, j) => (
+                      <div key={j} className="w-6 h-6 bg-gray-200 rounded" />
+                    ))}
+                  </div>
+                  <div className="h-3 bg-gray-200 rounded w-16" />
+                </div>
               </div>
             </div>
           </div>

@@ -12,7 +12,9 @@ import {
   LogOut,
   Plus,
   MapPin,
-  Camera
+  Camera,
+  CreditCard,
+  Wallet
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { HeaderLogo } from '@/components/ui/Logo'
@@ -22,6 +24,7 @@ import toast from 'react-hot-toast'
 
 export function AuthAwareHeader() {
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showTripsMenu, setShowTripsMenu] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [avatarError, setAvatarError] = useState(false)
   const { user, profile, signOut, isAuthenticated, isLoading } = useAuth()
@@ -58,19 +61,74 @@ export function AuthAwareHeader() {
           <HeaderLogo />
         </div>
 
-        {/* Desktop Navigation */}
-        <div className="hidden lg:flex lg:gap-x-8">
-          <Link href="/plan" className="text-body-medium text-airbnb-black hover:text-rausch-500 transition-colors font-medium">
+        {/* Desktop Navigation - TripAdvisor Style */}
+        <div className="hidden lg:flex lg:gap-x-2">
+          <Link
+            href="/plan"
+            className="px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+          >
             Plan your trip
           </Link>
-          <Link href="/locations" className="text-body-medium text-airbnb-gray hover:text-airbnb-black transition-colors">
+
+          {/* Trips Dropdown - TripAdvisor Style with improved hover */}
+          <div
+            className="relative group"
+            onMouseEnter={() => setShowTripsMenu(true)}
+            onMouseLeave={() => setShowTripsMenu(false)}
+          >
+            <button
+              className="flex items-center gap-1 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              Trips
+              <ChevronDown className="h-4 w-4" />
+            </button>
+
+            {/* Invisible bridge to prevent dropdown from closing */}
+            {showTripsMenu && (
+              <div className="absolute left-0 top-full h-2 w-full" />
+            )}
+
+            {showTripsMenu && (
+              <div className="absolute left-0 top-full pt-2 w-64 z-50">
+                <div className="bg-white rounded-2xl shadow-xl border border-gray-200 py-3">
+                  <Link
+                    href={isAuthenticated ? "/dashboard/trips" : "/auth/signin?redirect=/dashboard/trips"}
+                    className="block px-5 py-3 text-sm text-gray-900 hover:bg-gray-50 transition-colors"
+                    onClick={() => setShowTripsMenu(false)}
+                  >
+                    <div className="font-semibold">View my trips</div>
+                  </Link>
+                  <Link
+                    href="/dashboard/trips/new"
+                    className="block px-5 py-3 text-sm text-gray-900 hover:bg-gray-50 transition-colors"
+                    onClick={() => setShowTripsMenu(false)}
+                  >
+                    <div className="font-semibold">Start a new trip</div>
+                  </Link>
+                  <Link
+                    href="/plan"
+                    className="block px-5 py-3 text-sm text-gray-900 hover:bg-gray-50 transition-colors"
+                    onClick={() => setShowTripsMenu(false)}
+                  >
+                    <div className="font-semibold">Create trip with AI</div>
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Link
+            href="/locations"
+            className="px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+          >
             Locations
           </Link>
-          <Link href="/live-feed" className="text-body-medium text-airbnb-gray hover:text-airbnb-black transition-colors">
+
+          <Link
+            href="/live-feed"
+            className="px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+          >
             Live Feed
-          </Link>
-          <Link href="/trips-library" className="text-body-medium text-airbnb-gray hover:text-airbnb-black transition-colors">
-            Trips Library
           </Link>
         </div>
 
@@ -167,6 +225,26 @@ export function AuthAwareHeader() {
                           <MapPin className="h-4 w-4 mr-2" />
                           My Trips
                         </Link>
+
+                        <div className="border-t border-airbnb-border-light mt-1 pt-1">
+                          <Link
+                            href="/pricing"
+                            onClick={() => setShowUserMenu(false)}
+                            className="flex items-center w-full px-4 py-2 text-body-medium text-airbnb-dark-gray hover:bg-airbnb-background-secondary transition-colors"
+                          >
+                            <CreditCard className="h-4 w-4 mr-2" />
+                            Billing & Subscription
+                          </Link>
+
+                          <Link
+                            href="/dashboard/credits"
+                            onClick={() => setShowUserMenu(false)}
+                            className="flex items-center w-full px-4 py-2 text-body-medium text-airbnb-dark-gray hover:bg-airbnb-background-secondary transition-colors"
+                          >
+                            <Wallet className="h-4 w-4 mr-2" />
+                            Credits & Usage
+                          </Link>
+                        </div>
 
                         <Link
                           href="/dashboard/settings"

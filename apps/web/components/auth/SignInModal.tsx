@@ -13,9 +13,10 @@ import Image from 'next/image'
 interface SignInModalProps {
   isOpen: boolean
   onClose: () => void
+  redirectTo?: string
 }
 
-export function SignInModal({ isOpen, onClose }: SignInModalProps) {
+export function SignInModal({ isOpen, onClose, redirectTo }: SignInModalProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -38,7 +39,7 @@ export function SignInModal({ isOpen, onClose }: SignInModalProps) {
 
         // Wait a moment for auth state to propagate before redirecting
         await new Promise(resolve => setTimeout(resolve, 100))
-        router.push('/dashboard')
+        router.push(redirectTo || '/dashboard')
       } else {
         toast.error(result.error || 'Failed to sign in')
       }

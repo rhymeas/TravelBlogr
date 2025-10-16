@@ -5,6 +5,8 @@ import { ArrowRight, Eye, Heart, Share2, Calendar, Clock, Star, MapPin } from 'l
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Examples - See TravelBlogr in Action',
   description: 'Explore real travel stories created with TravelBlogr. See how different travelers share their journeys with various audiences.',

@@ -85,6 +85,12 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <ImagePreconnect />
+        {/* Google AdSense - Site Verification & Ad Script */}
+        <script
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT_ID || 'ca-pub-5985120367077865'}`}
+          crossOrigin="anonymous"
+        />
       </head>
       <body className={cn('min-h-screen bg-background antialiased')} suppressHydrationWarning>
         <AuthProvider>

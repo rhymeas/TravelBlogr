@@ -18,13 +18,13 @@ interface ImageOptions {
 /**
  * Convert any image URL to Cloudinary CDN URL
  * Automatically optimizes format (WebP/AVIF) and size
- * 
+ *
  * @param originalUrl - Original image URL (external or local)
  * @param options - Transformation options
  * @returns Cloudinary CDN URL or original URL for local images
  */
 export function getCDNUrl(
-  originalUrl: string, 
+  originalUrl: string,
   options: ImageOptions = {}
 ): string {
   // Skip if no URL provided
@@ -44,6 +44,14 @@ export function getCDNUrl(
 
   // Skip data URLs
   if (originalUrl.startsWith('data:')) {
+    return originalUrl
+  }
+
+  // ✅ CRITICAL FIX: Skip Cloudinary if not properly configured
+  // 'demo' is Cloudinary's demo account which blocks production domains with 401
+  // Return original URL to use Next.js Image Optimization instead
+  if (!isCloudinaryConfigured()) {
+    console.warn('⚠️ Cloudinary not configured - using original image URLs')
     return originalUrl
   }
 

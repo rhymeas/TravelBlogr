@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { Button } from '@/components/ui/Button'
 import { WifiOff, RefreshCw, Home, Plane } from 'lucide-react'
 

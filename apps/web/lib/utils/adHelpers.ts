@@ -37,18 +37,24 @@ export function shouldShowAds(user: User | null): boolean {
 
 /**
  * Check if an ad should be inserted at this index in a list
- * 
+ *
  * Used for in-feed ads in location grids, trip lists, etc.
- * Default: Insert ad every 5th item (index 4, 9, 14, etc.)
- * 
+ * Pattern: 5 items - ad - 4 items - ad - 5 items - ad - 4 items - ad (alternating)
+ * Positions: After index 4, 8, 13, 17, 22, 26, etc.
+ *
  * @param index - Current item index (0-based)
- * @param frequency - How often to show ads (default: 5)
  * @returns boolean - true if ad should be shown at this position
  */
-export function shouldShowInFeedAd(index: number, frequency: number = 5): boolean {
-  // Show ad after every Nth item
-  // Example: frequency=5 means ads at positions 4, 9, 14, 19, etc.
-  return (index + 1) % frequency === 0
+export function shouldShowInFeedAd(index: number): boolean {
+  // Alternating pattern: 5-4-5-4-5-4...
+  // Ad positions: 4, 8, 13, 17, 22, 26, 31, 35...
+
+  // Calculate which "cycle" we're in (each cycle is 9 items: 5 + ad + 4 + ad)
+  const cycleLength = 9 // 5 items + 4 items
+  const positionInCycle = (index + 1) % cycleLength
+
+  // Show ad after 5th item (position 5) or after 4th item in second half (position 9/0)
+  return positionInCycle === 5 || positionInCycle === 0
 }
 
 /**

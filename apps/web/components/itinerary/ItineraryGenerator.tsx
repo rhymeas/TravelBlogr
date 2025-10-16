@@ -85,6 +85,9 @@ export function ItineraryGenerator() {
   const [transportMode, setTransportMode] = useState<TransportMode>('car')
   const [proMode, setProMode] = useState(false)
 
+  // Advanced settings modal
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
+
   // Distance calculation state
   const [totalDistance, setTotalDistance] = useState<number | null>(null)
 
@@ -561,9 +564,41 @@ export function ItineraryGenerator() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6">
           {/* Left: Form */}
           <div>
-            {/* Header - Compact */}
-            <div className="mb-6">
-              <h1 className="text-3xl font-semibold">Plan your trip</h1>
+            {/* Header - Compact with Pro Toggle */}
+            <div className="mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-semibold">Plan your trip</h1>
+                <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                  proMode
+                    ? 'bg-purple-100 text-purple-700'
+                    : 'bg-gray-100 text-gray-700'
+                }`}>
+                  {proMode ? 'Plus' : 'Basic'}
+                </span>
+              </div>
+
+              {/* Planner Plus BETA Toggle */}
+              <div className="flex items-center gap-3 pr-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-700">Planner Plus</span>
+                  <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded-full">
+                    BETA
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setProMode(!proMode)}
+                  className={`
+                    relative w-11 h-6 rounded-full transition-colors
+                    ${proMode ? 'bg-purple-500' : 'bg-gray-300'}
+                  `}
+                >
+                  <div className={`
+                    absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform
+                    ${proMode ? 'translate-x-5' : 'translate-x-0.5'}
+                  `} />
+                </button>
+              </div>
             </div>
 
             {/* Error Message - Above form */}
@@ -593,106 +628,61 @@ export function ItineraryGenerator() {
           </div>
         </div>
 
-        {/* Compact 2-Row Layout: Dates, Interests, Budget, Travel Pace */}
-        <div className="bg-white rounded-2xl shadow-sm border p-5 flex flex-col">
-          {/* Row 1: Dates + Interests */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-            <div>
-              <h3 className="text-base font-semibold mb-3">Dates</h3>
-              <DateRangePicker
-                startDate={dateRange?.startDate}
-                endDate={dateRange?.endDate}
-                onSelect={setDateRange}
-              />
-            </div>
-            <div>
-              <h3 className="text-base font-semibold mb-3">Interests</h3>
-              <Input
-                id="interests"
-                placeholder="art, food, history"
-                value={formData.interests}
-                onChange={(e) => setFormData({ ...formData, interests: e.target.value })}
-                className="border-gray-300 focus:border-black focus:ring-black"
-              />
-            </div>
-          </div>
-
-          {/* Row 2: Budget + Travel Pace */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <h3 className="text-base font-semibold mb-3">Budget</h3>
-              <select
-                id="budget"
-                className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                value={formData.budget}
-                onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-              >
-                <option value="budget">Budget-friendly</option>
-                <option value="moderate">Moderate</option>
-                <option value="luxury">Luxury</option>
-              </select>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-base font-semibold">Travel pace</h3>
-                <button
-                  type="button"
-                  onClick={() => setShowTravelPace(!showTravelPace)}
-                  className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
-                >
-                  {showTravelPace ? 'Hide' : 'Optional'}
-                  {showTravelPace ? (
-                    <ChevronUp className="h-3 w-3" />
-                  ) : (
-                    <ChevronDown className="h-3 w-3" />
-                  )}
-                </button>
-              </div>
-              {showTravelPace ? (
-                <TravelTimeSlider
-                  value={travelHoursPerDay || 5}
-                  onChange={setTravelHoursPerDay}
-                />
-              ) : (
-                <div className="px-3 py-2 border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-500">
-                  Click "Optional" to set
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Pro Planner Toggle - Compact */}
-        <div className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-xl border border-gray-200">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">Pro Planner</span>
-            <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded-full">
-              BETA
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setProMode(!proMode)}
-            className={`
-              relative w-11 h-6 rounded-full transition-colors
-              ${proMode ? 'bg-purple-500' : 'bg-gray-300'}
-            `}
-          >
-            <div className={`
-              absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform
-              ${proMode ? 'translate-x-5' : 'translate-x-0.5'}
-            `} />
-          </button>
-        </div>
-
-        {/* Transport Mode */}
+        {/* Dates - Full Width */}
         <div className="bg-white rounded-2xl shadow-sm border p-5">
-          <h3 className="text-base font-semibold mb-3">Transport Mode</h3>
-          <TransportModeSelector
-            value={transportMode}
-            onChange={setTransportMode}
+          <h3 className="text-base font-semibold mb-3">Dates</h3>
+          <DateRangePicker
+            startDate={dateRange?.startDate}
+            endDate={dateRange?.endDate}
+            onSelect={setDateRange}
           />
         </div>
+
+        {/* Advanced Settings Button */}
+        <button
+          type="button"
+          onClick={() => setShowAdvancedSettings(true)}
+          className="w-full bg-white rounded-2xl shadow-sm border p-5 hover:bg-gray-50 transition-colors text-left"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h3 className="text-base font-semibold mb-2">Advanced Settings</h3>
+              <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+                {/* Transport Mode */}
+                <span className="px-2 py-1 bg-gray-100 rounded-full">
+                  {transportMode === 'car' && '🚗 Car'}
+                  {transportMode === 'flight' && '✈️ Flight'}
+                  {transportMode === 'train' && '🚂 Train'}
+                  {transportMode === 'bike' && '🚴 Bike'}
+                  {transportMode === 'mixed' && '🔄 Mixed'}
+                </span>
+
+                {/* Budget */}
+                <span className="px-2 py-1 bg-gray-100 rounded-full">
+                  {formData.budget === 'budget' && '💰 Budget-friendly'}
+                  {formData.budget === 'moderate' && '💵 Moderate'}
+                  {formData.budget === 'luxury' && '💎 Luxury'}
+                </span>
+
+                {/* Interests - show first 2 */}
+                {formData.interests && formData.interests.trim() && (
+                  <span className="px-2 py-1 bg-gray-100 rounded-full">
+                    {formData.interests.split(',').slice(0, 2).map(i => i.trim()).join(', ')}
+                    {formData.interests.split(',').length > 2 && '...'}
+                  </span>
+                )}
+
+                {/* Travel Pace */}
+                {travelHoursPerDay && (
+                  <span className="px-2 py-1 bg-gray-100 rounded-full">
+                    ⏱️ {travelHoursPerDay}h/day
+                  </span>
+                )}
+              </div>
+            </div>
+            <ChevronDown className="h-5 w-5 text-gray-400 flex-shrink-0 ml-4" />
+          </div>
+        </button>
 
             </div>
 
@@ -790,6 +780,112 @@ export function ItineraryGenerator() {
           interests={formData.interests.split(',').map(i => i.trim()).filter(i => i)}
           budget={formData.budget}
         />
+      )}
+
+      {/* Advanced Settings Modal */}
+      {showAdvancedSettings && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowAdvancedSettings(false)}
+          />
+
+          {/* Modal */}
+          <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Advanced Settings</h2>
+              <button
+                onClick={() => setShowAdvancedSettings(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* Interests */}
+              <div>
+                <h3 className="text-base font-semibold mb-3">Interests</h3>
+                <Input
+                  id="interests"
+                  placeholder="art, food, history"
+                  value={formData.interests}
+                  onChange={(e) => setFormData({ ...formData, interests: e.target.value })}
+                  className="border-gray-300 focus:border-black focus:ring-black"
+                />
+                <p className="text-xs text-gray-500 mt-2">Separate multiple interests with commas</p>
+              </div>
+
+              {/* Budget */}
+              <div>
+                <h3 className="text-base font-semibold mb-3">Budget</h3>
+                <select
+                  id="budget"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                  value={formData.budget}
+                  onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                >
+                  <option value="budget">Budget-friendly</option>
+                  <option value="moderate">Moderate</option>
+                  <option value="luxury">Luxury</option>
+                </select>
+              </div>
+
+              {/* Travel Pace */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-base font-semibold">Travel Pace</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowTravelPace(!showTravelPace)}
+                    className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                  >
+                    {showTravelPace ? 'Hide' : 'Optional'}
+                    {showTravelPace ? (
+                      <ChevronUp className="h-3 w-3" />
+                    ) : (
+                      <ChevronDown className="h-3 w-3" />
+                    )}
+                  </button>
+                </div>
+                {showTravelPace ? (
+                  <TravelTimeSlider
+                    value={travelHoursPerDay || 5}
+                    onChange={setTravelHoursPerDay}
+                  />
+                ) : (
+                  <div className="px-3 py-2 border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-500">
+                    Click "Optional" to set
+                  </div>
+                )}
+              </div>
+
+              {/* Transport Mode */}
+              <div>
+                <h3 className="text-base font-semibold mb-3">Transport Mode</h3>
+                <TransportModeSelector
+                  value={transportMode}
+                  onChange={setTransportMode}
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="sticky bottom-0 bg-white border-t px-6 py-4">
+              <Button
+                onClick={() => setShowAdvancedSettings(false)}
+                className="w-full bg-black hover:bg-gray-800 text-white"
+              >
+                Done
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

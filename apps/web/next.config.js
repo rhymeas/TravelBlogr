@@ -52,6 +52,17 @@ const nextConfig = {
     pagesBufferLength: 5,
   },
 
+  // Skip static generation for pages that use context
+  // This prevents "Cannot read properties of null (reading 'useContext')" errors during build
+  staticPageGenerationTimeout: 0,
+
+  // Disable static export - use dynamic rendering for all pages
+  // This is required because the app uses context providers in the layout
+  // which cannot be statically generated at build time
+  experimental: {
+    isrMemoryCacheSize: 0,
+  },
+
   images: {
     remotePatterns: [
       // Google User Content (OAuth avatars)

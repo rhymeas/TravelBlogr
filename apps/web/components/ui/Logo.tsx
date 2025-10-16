@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { Globe } from 'lucide-react'
 
 interface LogoProps {
   size?: 'small' | 'medium' | 'large'
@@ -8,48 +7,65 @@ interface LogoProps {
   className?: string
 }
 
-export function Logo({ 
-  size = 'medium', 
-  variant = 'light', 
+export function Logo({
+  size = 'medium',
+  variant = 'light',
   showText = true,
-  className = '' 
+  className = ''
 }: LogoProps) {
-  const sizeClasses = {
-    small: 'w-6 h-6',
-    medium: 'w-8 h-8', 
-    large: 'w-12 h-12'
+  const dimensions = {
+    small: { width: 120, height: 24, iconSize: 20, fontSize: '16px' },
+    medium: { width: 160, height: 32, iconSize: 28, fontSize: '22px' },
+    large: { width: 200, height: 40, iconSize: 35, fontSize: '28px' }
   }
 
-  const iconSizes = {
-    small: 'h-3 w-3',
-    medium: 'h-5 w-5',
-    large: 'h-7 w-7'
-  }
-
-  const textSizes = {
-    small: 'text-body-medium',
-    medium: 'text-title-medium', 
-    large: 'text-display-small'
-  }
-
-  const textColors = {
-    light: 'text-airbnb-black',
-    dark: 'text-white'
-  }
+  const dim = dimensions[size]
+  const color = '#2C5F6F' // Teal color from the logo
 
   return (
-    <Link href="/" className={`flex items-center gap-3 hover:opacity-80 transition-opacity ${className}`}>
-      {/* Logo Icon - Left side of trim sheet */}
-      <div className={`${sizeClasses[size]} bg-rausch-500 rounded-airbnb-small flex items-center justify-center flex-shrink-0`}>
-        <Globe className={`${iconSizes[size]} text-white`} />
-      </div>
-      
-      {/* Brand Text - Right side of trim sheet */}
-      {showText && (
-        <span className={`${textSizes[size]} ${textColors[variant]} font-semibold`}>
+    <Link href="/" className={`flex items-center hover:opacity-80 transition-opacity ${className}`}>
+      <svg
+        width={dim.width}
+        height={dim.height}
+        viewBox="0 0 160 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="flex-shrink-0"
+      >
+        {/* Paper Plane Icon */}
+        <g transform="translate(0, 4)">
+          {/* Plane outline */}
+          <path
+            d="M2 22 L14 2 L26 22 L14 18 L2 22 Z"
+            stroke={color}
+            strokeWidth="1.5"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {/* Inner lines */}
+          <path
+            d="M14 2 L14 18 M14 18 L8 20"
+            stroke={color}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </g>
+
+        {/* TravelBlogr Text */}
+        <text
+          x="34"
+          y="23"
+          fontFamily="system-ui, -apple-system, sans-serif"
+          fontSize="18"
+          fontWeight="700"
+          fill={color}
+          letterSpacing="-0.5"
+        >
           TravelBlogr
-        </span>
-      )}
+        </text>
+      </svg>
     </Link>
   )
 }

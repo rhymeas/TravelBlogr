@@ -73,23 +73,13 @@ export function GoogleAd({
       return
     }
 
-    // Load AdSense script if not already loaded
+    // AdSense script is now loaded in layout.tsx <head>
+    // Just push ad to AdSense queue when component mounts
     if (typeof window !== 'undefined') {
-      const script = document.querySelector('script[src*="adsbygoogle.js"]')
-      
-      if (!script) {
-        const newScript = document.createElement('script')
-        newScript.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${clientId}`
-        newScript.async = true
-        newScript.crossOrigin = 'anonymous'
-        document.head.appendChild(newScript)
-      }
-
-      // Push ad to AdSense queue
       try {
         if (adRef.current) {
           ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({})
-          
+
           // Track impression
           trackAdImpression(slot, page)
         }
@@ -97,7 +87,7 @@ export function GoogleAd({
         console.error('AdSense error:', error)
       }
     }
-  }, [slot, clientId, page])
+  }, [slot, page])
 
   // Don't render if AdSense not configured
   if (!isAdSenseConfigured()) {

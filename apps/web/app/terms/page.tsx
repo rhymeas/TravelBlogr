@@ -1,6 +1,8 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Terms of Service | TravelBlogr',
   description: 'Terms of Service for TravelBlogr - Rules and guidelines for using our platform',

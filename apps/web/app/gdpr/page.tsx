@@ -1,6 +1,8 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'GDPR Compliance | TravelBlogr',
   description: 'GDPR Compliance information for TravelBlogr - Your rights under EU data protection law',

@@ -122,11 +122,11 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
 
       {/* Grid View */}
       {viewMode === 'grid' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {displayedLocations.map((location, index) => (
             <>
-              <LocationCard key={location.id} location={location} priority={index < 6} />
-              {/* In-feed ad every 5th item */}
+              <LocationCard key={location.id} location={location} priority={index < 8} />
+              {/* In-feed ad alternating 5-4-5-4 pattern */}
               {shouldShowInFeedAd(index) && (
                 <InFeedAd
                   key={`ad-${index}`}
