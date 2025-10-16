@@ -8,11 +8,13 @@ export const createBrowserSupabase = () => {
   // These MUST be accessed at build time for Next.js to embed them
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
   // Debug logging (only in development)
   if (process.env.NODE_ENV === 'development') {
     console.log('Supabase URL:', supabaseUrl ? '✅ Set' : '❌ Missing')
     console.log('Supabase Anon Key:', supabaseAnonKey ? '✅ Set' : '❌ Missing')
+    console.log('Site URL:', siteUrl)
   }
 
   if (!supabaseUrl || !supabaseAnonKey) {
