@@ -114,7 +114,8 @@ export function CreditWidget() {
     )
   }
 
-  const freeUsagePercent = stats ? (stats.monthlyUsage / 5) * 100 : 0
+  // Use 20 as the free tier limit for authenticated users (updated from 5)
+  const freeUsagePercent = stats ? (stats.monthlyUsage / 20) * 100 : 0
 
   return (
     <Card>
@@ -147,7 +148,7 @@ export function CreditWidget() {
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">Free Tier This Month</span>
             <span className="text-sm font-medium text-airbnb-black">
-              {stats?.monthlyUsage || 0} / 5 used
+              {stats?.monthlyUsage || 0} / 20 used
             </span>
           </div>
           

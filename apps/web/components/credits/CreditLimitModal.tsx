@@ -19,6 +19,7 @@ interface CreditLimitModalProps {
   remainingFree?: number
   credits?: number
   costPerPlanning?: number // Cost in cents
+  userCredits?: number // User's current credit balance
 }
 
 const CREDIT_PACKS = [
@@ -34,6 +35,7 @@ export function CreditLimitModal({
   remainingFree = 0,
   credits = 0,
   costPerPlanning = 50, // Default $0.50
+  userCredits = 0,
 }: CreditLimitModalProps) {
   const handlePurchase = async (packSize: string) => {
     try {
@@ -83,11 +85,18 @@ export function CreditLimitModal({
                 : "Out of Credits"}
             </h2>
 
-            <p className="text-xs text-muted-foreground mb-2">
+            <p className="text-xs text-muted-foreground mb-3">
               {reason === 'free_tier_limit'
                 ? `Each planning costs $${(costPerPlanning / 100).toFixed(2)} (or $${((costPerPlanning / 2) / 100).toFixed(2)} with credits)`
                 : "You've used all your credits. Purchase more to continue generating AI itineraries."}
             </p>
+
+            {/* Current Credit Balance */}
+            <div className="bg-blue-50 rounded-lg p-2 mb-2">
+              <div className="text-xs text-blue-600 font-medium">
+                Current Balance: <span className="text-lg font-bold text-blue-700">{userCredits}</span> credits
+              </div>
+            </div>
           </div>
 
           {/* Credit Packs */}
