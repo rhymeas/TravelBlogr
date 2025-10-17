@@ -1055,6 +1055,7 @@ export function ItineraryGenerator() {
             }, 500)
           }
         }}
+        redirectTo="/plan"
         heroContent={{
           title: "Your Trip Plan is Waiting!",
           subtitle: "Sign in to unlock AI-powered itinerary generation and save your perfect trip.",
