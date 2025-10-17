@@ -15,6 +15,10 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        // Check for redirect parameter in URL
+        const searchParams = new URLSearchParams(window.location.search)
+        const redirectTo = searchParams.get('redirect') || '/dashboard'
+
         // Check if we have hash params (implicit flow)
         const hashParams = new URLSearchParams(window.location.hash.substring(1))
         const accessToken = hashParams.get('access_token')
@@ -23,7 +27,7 @@ export default function AuthCallbackPage() {
           // Supabase client automatically processes hash params and sets session
           // Just wait a moment for the session to be established
           await new Promise(resolve => setTimeout(resolve, 1000))
-          router.push('/dashboard')
+          router.push(redirectTo)
           return
         }
 
@@ -38,7 +42,7 @@ export default function AuthCallbackPage() {
         }
 
         if (session) {
-          router.push('/dashboard')
+          router.push(redirectTo)
         } else {
           setTimeout(() => router.push('/auth/signin'), 2000)
         }

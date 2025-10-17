@@ -5,17 +5,22 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
-import { 
-  Home, 
-  Plane, 
-  Compass, 
-  Camera, 
-  User, 
+import { useAuth } from '@/contexts/AuthContext'
+import { useAuthModal } from '@/contexts/AuthModalContext'
+import { MobileActionMenu } from './MobileActionMenu'
+import {
+  Home,
+  Plane,
+  Compass,
+  Camera,
+  User,
   Plus,
   Bell,
   Search,
   Menu,
-  X
+  X,
+  MapPin,
+  Newspaper
 } from 'lucide-react'
 
 interface MobileNavigationProps {
@@ -24,100 +29,197 @@ interface MobileNavigationProps {
 
 export function MobileNavigation({ className = '' }: MobileNavigationProps) {
   const pathname = usePathname()
+  const { user, isAuthenticated } = useAuth()
+  const { showSignIn } = useAuthModal()
   const [notificationCount, setNotificationCount] = useState(0)
 
   // Mock notification count - would come from real API
   useEffect(() => {
-    setNotificationCount(3)
-  }, [])
+    if (isAuthenticated) {
+      setNotificationCount(3)
+    }
+  }, [isAuthenticated])
 
-  const navItems = [
+  // Public navigation items (not authenticated)
+  const publicNavItems = [
     {
-      href: '/dashboard',
-      icon: Home,
+      href: '/live-feed' as string | null,
+      icon: Newspaper,
       label: 'Home',
-      badge: null
+      badge: null as number | null,
+      isAction: false,
+      requiresAuth: false
     },
     {
-      href: '/dashboard/trips',
+      href: '/trips-library' as string | null,
       icon: Plane,
       label: 'Trips',
-      badge: null
+      badge: null as number | null,
+      isAction: false,
+      requiresAuth: false
     },
     {
-      href: '/dashboard/trips/new',
+      href: null, // Action menu button
       icon: Plus,
       label: 'Create',
-      badge: null,
-      isAction: true
+      badge: null as number | null,
+      isAction: true,
+      requiresAuth: false
     },
     {
-      href: '/dashboard/social',
-      icon: Compass,
+      href: '/locations' as string | null,
+      icon: MapPin,
       label: 'Discover',
-      badge: null
+      badge: null as number | null,
+      isAction: false,
+      requiresAuth: false
     },
     {
-      href: '/dashboard/profile',
+      href: null, // Will trigger sign-in modal
       icon: User,
       label: 'Profile',
-      badge: notificationCount > 0 ? notificationCount : null
+      badge: null as number | null,
+      isAction: false,
+      requiresAuth: true
     }
   ]
 
-  const isActive = (href: string) => {
-    if (href === '/dashboard') {
-      return pathname === '/dashboard'
+  // Authenticated navigation items
+  const authNavItems = [
+    {
+      href: '/dashboard' as string | null,
+      icon: Home,
+      label: 'Home',
+      badge: null as number | null,
+      isAction: false,
+      requiresAuth: false
+    },
+    {
+      href: '/dashboard/trips' as string | null,
+      icon: Plane,
+      label: 'Trips',
+      badge: null as number | null,
+      isAction: false,
+      requiresAuth: false
+    },
+    {
+      href: null, // Action menu button
+      icon: Plus,
+      label: 'Create',
+      badge: null as number | null,
+      isAction: true,
+      requiresAuth: false
+    },
+    {
+      href: '/locations' as string | null,
+      icon: MapPin,
+      label: 'Discover',
+      badge: null as number | null,
+      isAction: false,
+      requiresAuth: false
+    },
+    {
+      href: '/dashboard/profile' as string | null,
+      icon: User,
+      label: 'Profile',
+      badge: (notificationCount > 0 ? notificationCount : null) as number | null,
+      isAction: false,
+      requiresAuth: false
+    }
+  ]
+
+  const navItems = isAuthenticated ? authNavItems : publicNavItems
+
+  const isActive = (href: string | null) => {
+    if (!href) return false
+    if (href === '/dashboard' || href === '/live-feed') {
+      return pathname === href
     }
     return pathname.startsWith(href)
+  }
+
+  const handleNavClick = (item: typeof navItems[0], e: React.MouseEvent) => {
+    if (item.requiresAuth && !isAuthenticated) {
+      e.preventDefault()
+      showSignIn()
+    }
   }
 
   return (
     <>
       {/* Bottom Navigation Bar */}
-      <nav className={cn(
-        "fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 md:hidden",
-        "safe-area-inset-bottom", // For devices with home indicator
-        className
-      )}>
+      <nav
+        className={cn(
+          "fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 lg:hidden",
+          className
+        )}
+        style={{
+          paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))'
+        }}
+      >
         <div className="flex items-center justify-around px-2 py-2">
-          {navItems.map((item) => {
+          {navItems.map((item, index) => {
             const Icon = item.icon
             const active = isActive(item.href)
-            
+
+            // Center action button - use MobileActionMenu
+            if (item.isAction) {
+              return (
+                <div key={`nav-${index}`} className="flex flex-col items-center justify-center min-w-0 flex-1">
+                  <MobileActionMenu />
+                </div>
+              )
+            }
+
+            // For items that require auth but user is not authenticated
+            if (item.requiresAuth && !isAuthenticated) {
+              return (
+                <button
+                  key={`nav-${index}`}
+                  onClick={(e) => handleNavClick(item, e as any)}
+                  className={cn(
+                    "flex flex-col items-center justify-center p-2 rounded-lg transition-colors min-w-0 flex-1",
+                    "relative",
+                    "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  )}
+                >
+                  <div className="relative">
+                    <Icon className="h-5 w-5 mb-1" />
+                  </div>
+                  <span className="text-xs font-medium truncate">
+                    {item.label}
+                  </span>
+                </button>
+              )
+            }
+
             return (
               <Link
-                key={item.href}
-                href={item.href}
+                key={item.href || `nav-${index}`}
+                href={item.href || '#'}
+                onClick={(e) => handleNavClick(item, e)}
                 className={cn(
                   "flex flex-col items-center justify-center p-2 rounded-lg transition-colors min-w-0 flex-1",
                   "relative",
-                  active 
-                    ? "text-blue-600 bg-blue-50" 
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50",
-                  item.isAction && "bg-blue-600 text-white hover:bg-blue-700 mx-1 rounded-full"
+                  active
+                    ? "text-blue-600 bg-blue-50"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 )}
               >
                 <div className="relative">
-                  <Icon className={cn(
-                    "h-5 w-5 mb-1",
-                    item.isAction && "h-6 w-6"
-                  )} />
-                  
+                  <Icon className="h-5 w-5 mb-1" />
+
                   {item.badge && (
-                    <Badge 
-                      variant="destructive" 
+                    <Badge
+                      variant="destructive"
                       className="absolute -top-2 -right-2 h-4 w-4 p-0 flex items-center justify-center text-xs"
                     >
                       {item.badge > 9 ? '9+' : item.badge}
                     </Badge>
                   )}
                 </div>
-                
-                <span className={cn(
-                  "text-xs font-medium truncate",
-                  item.isAction && "sr-only"
-                )}>
+
+                <span className="text-xs font-medium truncate">
                   {item.label}
                 </span>
               </Link>
@@ -127,7 +229,7 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
       </nav>
 
       {/* Spacer to prevent content from being hidden behind bottom nav */}
-      <div className="h-16 md:hidden" />
+      <div className="h-16 lg:hidden" />
     </>
   )
 }

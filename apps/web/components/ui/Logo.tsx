@@ -32,8 +32,8 @@ export function Logo({
         xmlns="http://www.w3.org/2000/svg"
         className="flex-shrink-0"
       >
-        {/* Paper Plane Icon */}
-        <g transform="translate(0, 4)">
+        {/* Paper Plane Icon - Rotated 160 degrees */}
+        <g transform="translate(14, 16) rotate(160) translate(-14, -12)">
           {/* Plane outline */}
           <path
             d="M2 22 L14 2 L26 22 L14 18 L2 22 Z"

@@ -13,16 +13,22 @@ export interface AffiliateParams {
   checkOut?: string
 }
 
+// Track if we've already warned about missing affiliate IDs (only warn once)
+let hasWarnedBooking = false
+let hasWarnedGetYourGuide = false
+let hasWarnedViator = false
+
 /**
  * Generate Booking.com affiliate link
  * Commission: 25-40% on hotel bookings
  */
 export function generateBookingLink(params: AffiliateParams): string {
   const affiliateId = process.env.NEXT_PUBLIC_BOOKING_AFFILIATE_ID || ''
-  
-  // If no affiliate ID, return direct link (no commission)
-  if (!affiliateId) {
+
+  // If no affiliate ID, warn once in development only
+  if (!affiliateId && !hasWarnedBooking && process.env.NODE_ENV === 'development') {
     console.warn('NEXT_PUBLIC_BOOKING_AFFILIATE_ID not set - no commission will be earned')
+    hasWarnedBooking = true
   }
 
   const baseUrl = 'https://www.booking.com/searchresults.html'
@@ -71,9 +77,10 @@ export function generateAirbnbLink(params: AffiliateParams): string {
  */
 export function generateGetYourGuideLink(locationName: string): string {
   const partnerId = process.env.NEXT_PUBLIC_GETYOURGUIDE_PARTNER_ID || ''
-  
-  if (!partnerId) {
+
+  if (!partnerId && !hasWarnedGetYourGuide && process.env.NODE_ENV === 'development') {
     console.warn('NEXT_PUBLIC_GETYOURGUIDE_PARTNER_ID not set - no commission will be earned')
+    hasWarnedGetYourGuide = true
   }
 
   const baseUrl = 'https://www.getyourguide.com/s'
@@ -94,9 +101,10 @@ export function generateGetYourGuideLink(locationName: string): string {
  */
 export function generateViatorLink(locationName: string): string {
   const partnerId = process.env.NEXT_PUBLIC_VIATOR_PARTNER_ID || ''
-  
-  if (!partnerId) {
+
+  if (!partnerId && !hasWarnedViator && process.env.NODE_ENV === 'development') {
     console.warn('NEXT_PUBLIC_VIATOR_PARTNER_ID not set - no commission will be earned')
+    hasWarnedViator = true
   }
 
   const baseUrl = 'https://www.viator.com/searchResults/all'

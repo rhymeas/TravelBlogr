@@ -49,6 +49,16 @@
     animation: loading-bar 1.5s ease-in-out infinite;
   }
 
+  /* iOS Safe Area Support */
+  @supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom) !important;
+    }
+    .mb-safe {
+      margin-bottom: env(safe-area-inset-bottom) !important;
+    }
+  }
+
   /* Shimmer animation for skeleton loading */
   @keyframes shimmer {
     0% {

@@ -1,15 +1,18 @@
 import { createServerSupabase } from '@/lib/supabase-server'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { Card } from '@/components/ui/Card'
 import { SmartImage as Image } from '@/components/ui/SmartImage'
 import Link from 'next/link'
-import { MapPin, Calendar, ArrowLeft, Star, CheckCircle2, Lightbulb, Copy, Eye } from 'lucide-react'
+import { MapPin, Calendar, ArrowLeft, Star, CheckCircle2, Lightbulb, Copy, Eye, AlertCircle, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { ViewTrackingPixel } from '@/components/analytics/ViewTrackingPixel'
 import { QuickBookingLinks } from '@/components/locations/QuickBookingLinks'
+import { TripPasswordForm } from '@/components/trips/TripPasswordForm'
+import { cookies, headers } from 'next/headers'
 
 interface Trip {
   id: string
+  user_id: string
   title: string
   slug: string
   description: string
@@ -21,6 +24,9 @@ interface Trip {
   is_featured: boolean
   is_public_template: boolean
   status: string
+  privacy: string
+  privacy_password: string | null
+  family_members: string[] | null
   start_date: string | null
   end_date: string | null
   created_at: string
@@ -36,10 +42,20 @@ interface Post {
   location: string | null
 }
 
-export default async function PublicTripPage({ params }: { params: { slug: string } }) {
+export default async function PublicTripPage({
+  params,
+  searchParams
+}: {
+  params: { slug: string }
+  searchParams: { preview?: string }
+}) {
   const supabase = await createServerSupabase()
-  
-  // Fetch trip (public template or published trip)
+  const isPreviewMode = searchParams?.preview === 'true'
+
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Fetch trip
   const { data: trip } = await supabase
     .from('trips')
     .select(`
@@ -59,7 +75,6 @@ export default async function PublicTripPage({ params }: { params: { slug: strin
       )
     `)
     .eq('slug', params.slug)
-    .or('is_public_template.eq.true,status.eq.published')
     .single()
 
   if (!trip) {
@@ -67,6 +82,64 @@ export default async function PublicTripPage({ params }: { params: { slug: strin
   }
 
   const tripData = trip as Trip & { posts: Post[], trip_stats: any[] }
+  const isOwner = user?.id === tripData.user_id
+
+  // Check access permissions
+  const canAccess = () => {
+    // Owner can always access
+    if (isOwner) return true
+
+    // Preview mode only for owner
+    if (isPreviewMode && !isOwner) return false
+
+    // Check privacy settings
+    switch (tripData.privacy) {
+      case 'public':
+        return tripData.status === 'published' || tripData.is_public_template
+
+      case 'private':
+        return isOwner
+
+      case 'family':
+        return isOwner || (user && tripData.family_members?.includes(user.id))
+
+      case 'password':
+        // Check if password was provided in session (handled by TripPasswordForm)
+        // For now, show password form
+        return false
+
+      default:
+        return tripData.status === 'published' || tripData.is_public_template
+    }
+  }
+
+  // Handle password-protected trips
+  if (tripData.privacy === 'password' && !isOwner) {
+    return <TripPasswordForm tripSlug={params.slug} />
+  }
+
+  // Handle access denied
+  if (!canAccess()) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center">
+          <div className="h-16 w-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Lock className="h-8 w-8 text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
+          <p className="text-gray-600 mb-6">
+            {tripData.privacy === 'private' && 'This trip is private and only visible to the owner.'}
+            {tripData.privacy === 'family' && 'This trip is only visible to designated family members.'}
+            {!tripData.status || tripData.status === 'draft' ? 'This trip is not published yet.' : 'You do not have permission to view this trip.'}
+          </p>
+          <Link href="/trips-library">
+            <Button>Browse Public Trips</Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   const posts = (tripData.posts || []).sort((a, b) => a.order_index - b.order_index)
   const totalViews = tripData.trip_stats?.[0]?.total_views || 0
 
@@ -82,8 +155,19 @@ export default async function PublicTripPage({ params }: { params: { slug: strin
 
   return (
     <div className="min-h-screen bg-gray-50 text-[85%]">
-      {/* View Tracking */}
-      <ViewTrackingPixel tripId={tripData.id} />
+      {/* Preview Mode Banner */}
+      {isPreviewMode && isOwner && (
+        <div className="bg-yellow-500 text-yellow-900 py-3 px-4 text-center">
+          <div className="container mx-auto max-w-6xl flex items-center justify-center gap-2">
+            <AlertCircle className="h-5 w-5" />
+            <span className="font-semibold">Preview Mode</span>
+            <span className="hidden sm:inline">- Only you can see this trip</span>
+          </div>
+        </div>
+      )}
+
+      {/* View Tracking - Only track if not preview mode */}
+      {!isPreviewMode && <ViewTrackingPixel tripId={tripData.id} />}
 
       {/* Hero Section */}
       <div className="relative h-80 overflow-hidden">

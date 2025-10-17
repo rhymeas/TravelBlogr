@@ -124,14 +124,14 @@ export function planModalV2({ plan, onClose }: planModalV2Props) {
           </button>
 
           {/* Header with Title and Timeline */}
-          <div className="bg-gradient-to-br from-gray-50 to-white px-12 pt-6 pb-5 border-b border-gray-200">
+          <div className="bg-gradient-to-br from-gray-50 to-white px-12 pt-4 pb-1 border-b border-gray-200">
             {/* Title */}
-            <h1 className="text-2xl font-bold text-gray-900 mb-5 pr-12">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2 pr-12">
               {plan.title}
             </h1>
 
             {/* Minimal Dot Timeline */}
-            <div className="relative flex items-center justify-between max-w-5xl mx-auto">
+            <div className="relative flex items-center justify-between max-w-5xl mx-auto pb-1">
               {/* Connecting Line */}
               <div className="absolute top-3.5 left-0 right-0 h-0.5 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200" style={{ zIndex: 0 }} />
 
@@ -154,7 +154,7 @@ export function planModalV2({ plan, onClose }: planModalV2Props) {
                   <button
                     key={index}
                     onClick={() => setActiveLocationIndex(index)}
-                    className="relative flex flex-col items-center gap-1.5 group z-10 transition-all"
+                    className="relative flex flex-col items-center gap-0.5 group z-10 transition-all"
                     style={{ flex: 1 }}
                   >
                     {/* Outer Dot */}
@@ -188,7 +188,7 @@ export function planModalV2({ plan, onClose }: planModalV2Props) {
                     </div>
 
                     {/* Date Range */}
-                    <div className="text-[10px] text-gray-400 font-medium">
+                    <div className="text-[10px] text-gray-400 font-medium mb-0">
                       {formatDateRange(group.startDate, group.endDate).replace(' - ', '-')}
                     </div>
                   </button>
@@ -198,7 +198,7 @@ export function planModalV2({ plan, onClose }: planModalV2Props) {
               {/* Final Review Step */}
               <button
                 onClick={() => setActiveLocationIndex(locationGroups.length)}
-                className="relative flex flex-col items-center gap-1.5 group z-10 transition-all"
+                className="relative flex flex-col items-center gap-0.5 group z-10 transition-all"
                 style={{ flex: 1 }}
               >
                 {/* Outer Dot */}
@@ -235,7 +235,7 @@ export function planModalV2({ plan, onClose }: planModalV2Props) {
           </div>
 
           {/* Content Area */}
-          <div className="bg-white px-12 py-8 flex-1 overflow-y-auto">
+          <div className="bg-white px-12 py-3 flex-1 overflow-y-auto">
             <AnimatePresence mode="wait">
               {activeLocationIndex < locationGroups.length ? (
                 <motion.div

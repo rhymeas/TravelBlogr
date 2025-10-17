@@ -34,6 +34,7 @@
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.38.4",
     "@tremor/react": "^3.18.7",
+    "@types/qrcode": "^1.5.5",
     "@types/react-image-gallery": "^1.2.4",
     "@uploadthing/react": "^6.0.2",
     "axios": "^1.6.2",
@@ -55,6 +56,7 @@
     "next": "14.0.4",
     "novel": "^1.0.2",
     "nprogress": "^0.2.0",
+    "qrcode": "^1.5.4",
     "react": "^18.2.0",
     "react-comments-section": "^3.2.0",
     "react-day-picker": "^8.10.0",
@@ -94,7 +96,9 @@
     "prettier": "^3.1.0",
     "prettier-plugin-tailwindcss": "^0.5.7",
     "reflect-metadata": "^0.2.2",
+    "sharp": "^0.34.4",
     "tailwindcss": "^3.3.5",
+    "to-ico": "^1.1.5",
     "typescript": "^5.3.2"
   }
 }

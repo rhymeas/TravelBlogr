@@ -7,9 +7,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Globe, Eye, EyeOff, Mail, Lock, User } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import toast from 'react-hot-toast'
+import { HeaderLogo } from '@/components/ui/Logo'
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -85,12 +86,9 @@ export default function SignUpPage() {
     <div className="min-h-screen bg-airbnb-background-secondary flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Logo */}
-        <Link href="/" className="flex items-center justify-center gap-3 mb-8 hover:opacity-80 transition-opacity">
-          <div className="w-10 h-10 bg-rausch-500 rounded-airbnb-small flex items-center justify-center">
-            <Globe className="h-6 w-6 text-white" />
-          </div>
-          <span className="text-title-medium text-airbnb-black font-semibold">TravelBlogr</span>
-        </Link>
+        <div className="flex justify-center mb-8">
+          <HeaderLogo />
+        </div>
 
         <h2 className="text-center text-display-small text-airbnb-black mb-2">
           Create your account

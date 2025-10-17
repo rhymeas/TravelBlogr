@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS route_cache (
   geometry JSONB NOT NULL,
   distance NUMERIC NOT NULL,
   duration NUMERIC NOT NULL,
+  elevation_data JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

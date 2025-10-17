@@ -1,0 +1,26 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="16" cy="16" r="16" fill="#2C5F6F"/>
+  
+  <!-- Paper Plane Icon - Rotated 160 degrees, centered and scaled -->
+  <g transform="translate(16, 16) rotate(160) translate(-8, -8)">
+    <!-- Plane outline -->
+    <path
+      d="M1 13 L8 1 L15 13 L8 11 L1 13 Z"
+      stroke="white"
+      strokeWidth="1.2"
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <!-- Inner lines -->
+    <path
+      d="M8 1 L8 11 M8 11 L5 12"
+      stroke="white"
+      strokeWidth="1.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </g>
+</svg>
+

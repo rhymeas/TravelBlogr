@@ -32,19 +32,48 @@ import { PublicDestinationSearch } from '@/components/search/PublicDestinationSe
 import { useAuth } from '@/hooks/useAuth'
 import { HorizontalBannerAd } from '@/components/ads/HorizontalBannerAd'
 
-// Optimized hero images - compressed, fast-loading
-const HERO_IMAGES = [
+// ✅ Self-hosted videos on Supabase - Fast & Reliable!
+// Videos uploaded to: https://supabase.com/dashboard/project/nchhcxokrzabbkvhzsor/storage/buckets/images/uploads
+const HERO_VIDEOS = [
   {
-    url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=800&fit=crop&q=75&auto=format',
-    alt: 'Mountain landscape with lake'
+    id: 'caribbean',
+    url: 'https://nchhcxokrzabbkvhzsor.supabase.co/storage/v1/object/public/images/uploads/4135118-sd_960_540_30fps.mp4',
+    fallbackImage: 'https://images.pexels.com/videos/4135118/pexels-photo-4135118.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080',
+    poster: 'https://images.pexels.com/videos/4135118/pexels-photo-4135118.jpeg?auto=compress&cs=tinysrgb&w=800',
+    credit: 'Taryn Elliott',
+    theme: 'tropical'
   },
   {
-    url: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1200&h=800&fit=crop&q=75&auto=format',
-    alt: 'Tropical beach paradise'
+    id: 'city',
+    url: 'https://nchhcxokrzabbkvhzsor.supabase.co/storage/v1/object/public/images/uploads/2282013-sd_640_338_24fps.mp4',
+    fallbackImage: 'https://images.pexels.com/videos/2282013/pexels-photo-2282013.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080',
+    poster: 'https://images.pexels.com/videos/2282013/pexels-photo-2282013.jpeg?auto=compress&cs=tinysrgb&w=800',
+    credit: 'Kelly',
+    theme: 'urban'
   },
   {
-    url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&h=800&fit=crop&q=75&auto=format',
-    alt: 'City skyline at sunset'
+    id: 'snow',
+    url: 'https://nchhcxokrzabbkvhzsor.supabase.co/storage/v1/object/public/images/uploads/1858244-sd_640_338_24fps.mp4',
+    fallbackImage: 'https://images.pexels.com/videos/1858244/pexels-photo-1858244.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080',
+    poster: 'https://images.pexels.com/videos/1858244/pexels-photo-1858244.jpeg?auto=compress&cs=tinysrgb&w=800',
+    credit: 'Taryn Elliott',
+    theme: 'winter'
+  },
+  {
+    id: 'desert',
+    url: 'https://nchhcxokrzabbkvhzsor.supabase.co/storage/v1/object/public/images/uploads/2055060-sd_640_268_25fps.mp4',
+    fallbackImage: 'https://images.pexels.com/videos/2055060/pexels-photo-2055060.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080',
+    poster: 'https://images.pexels.com/videos/2055060/pexels-photo-2055060.jpeg?auto=compress&cs=tinysrgb&w=800',
+    credit: 'Taryn Elliott',
+    theme: 'desert'
+  },
+  {
+    id: 'nature',
+    url: 'https://nchhcxokrzabbkvhzsor.supabase.co/storage/v1/object/public/images/uploads/14190583_960_540_24fps.mp4',
+    fallbackImage: 'https://images.pexels.com/videos/14190583/pexels-photo-14190583.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080',
+    poster: 'https://images.pexels.com/videos/14190583/pexels-photo-14190583.jpeg?auto=compress&cs=tinysrgb&w=800',
+    credit: 'Pexels',
+    theme: 'nature'
   }
 ]
 
@@ -145,17 +174,31 @@ export default function HomePage() {
   const { isAuthenticated, isLoading } = useAuth()
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [mounted, setMounted] = useState(false)
+  const [videoErrors, setVideoErrors] = useState<Record<string, boolean>>({})
+  const [videosLoaded, setVideosLoaded] = useState<Record<string, boolean>>({})
 
   // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Rotate hero images every 5 seconds
+  // Handle video errors - fallback to image
+  const handleVideoError = (videoId: string) => {
+    console.warn(`Video failed to load: ${videoId}, falling back to image`)
+    setVideoErrors(prev => ({ ...prev, [videoId]: true }))
+  }
+
+  // Handle video loaded
+  const handleVideoLoaded = (videoId: string) => {
+    console.log(`Video loaded successfully: ${videoId}`)
+    setVideosLoaded(prev => ({ ...prev, [videoId]: true }))
+  }
+
+  // Rotate hero videos every 10 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % HERO_IMAGES.length)
-    }, 5000)
+      setCurrentImageIndex((prev) => (prev + 1) % HERO_VIDEOS.length)
+    }, 10000)
     return () => clearInterval(interval)
   }, [])
 
@@ -169,30 +212,57 @@ export default function HomePage() {
     <div className="min-h-screen bg-white">
 
       <main>
-        {/* Hero Section - Airbnb Style with Rotating Image Background */}
+        {/* Hero Section - Video Background */}
         <section className="relative h-[600px] lg:h-[700px] overflow-hidden">
-          {/* Hero Images - Rotating */}
+          {/* Hero Videos - Rotating */}
           <div className="absolute inset-0">
-            {HERO_IMAGES.map((image, index) => (
+            {HERO_VIDEOS.map((video, index) => (
               <div
-                key={index}
+                key={video.id}
                 className={`absolute inset-0 transition-opacity duration-1000 ${
                   index === currentImageIndex ? 'opacity-100' : 'opacity-0'
                 }`}
               >
-                <Image
-                  src={image.url}
-                  alt={image.alt}
-                  fill
-                  className="object-cover"
-                  priority={index === 0} // Only prioritize first image
-                  quality={75}
-                  sizes="100vw"
-                />
+                {/* Show fallback image if video failed to load */}
+                {videoErrors[video.id] ? (
+                  <div
+                    className="w-full h-full bg-cover bg-center"
+                    style={{ backgroundImage: `url(${video.fallbackImage || video.poster})` }}
+                  />
+                ) : (
+                  <video
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    poster={video.poster}
+                    className="w-full h-full object-cover"
+                    preload={index === 0 ? 'auto' : 'metadata'}
+                    onError={() => handleVideoError(video.id)}
+                    onLoadedData={() => handleVideoLoaded(video.id)}
+                    onCanPlay={() => handleVideoLoaded(video.id)}
+                  >
+                    <source src={video.url} type="video/mp4" />
+                  </video>
+                )}
               </div>
             ))}
             {/* Gradient overlay for better text readability */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/30"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black/40"></div>
+          </div>
+
+          {/* Video Credit */}
+          <div className="absolute bottom-4 right-4 z-10 text-white/60 text-xs flex items-center gap-1">
+            <span>Video by</span>
+            <a
+              href="https://www.pexels.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white/80 transition-colors underline"
+            >
+              {HERO_VIDEOS[currentImageIndex].credit}
+            </a>
+            <span>on Pexels</span>
           </div>
 
           {/* Search Card Overlay */}
@@ -250,10 +320,10 @@ export default function HomePage() {
                 Check out our curated collection of family-friendly travel guides.
                 See real itineraries and get ideas for your next adventure!
               </p>
-              <Button asChild size="lg" className="bg-rausch-500 hover:bg-rausch-600 text-white">
+              <Button asChild size="lg" className="bg-rausch-500 hover:bg-rausch-600 text-white text-lg px-8 py-6">
                 <Link href="/trips-library" className="flex items-center gap-2">
-                  <Compass className="h-5 w-5" />
-                  View Sample Travel Guides
+                  <Compass className="h-6 w-6" />
+                  Discover
                 </Link>
               </Button>
             </div>
@@ -313,18 +383,19 @@ export default function HomePage() {
             </div>
 
             {/* Timeline Layout */}
-            <div className="relative mt-24">
-              {/* Timeline Line - starts from first card at title level */}
+            <div className="relative mt-8 lg:mt-24">
+              {/* Desktop Timeline Line - starts from first card at title level */}
               <div className="absolute left-1/2 transform -translate-x-1/2 w-0.5 bg-teal-300 top-3 bottom-0 hidden lg:block"></div>
 
               {/* Trip Cards */}
-              <div className="space-y-4 lg:space-y-0">
+              <div className="space-y-0 lg:space-y-0">
                 {tripExamples.map((trip, index) => (
                   <TripCard
                     key={trip.id}
                     trip={trip}
                     position={index % 2 === 0 ? 'left' : 'right'}
                     index={index}
+                    isLastCard={index === tripExamples.length - 1}
                   />
                 ))}
               </div>
@@ -531,7 +602,7 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="bg-white text-rausch-500 hover:bg-gray-100 font-semibold">
                 <Link href="/auth/signup">
-                  Share Your Story
+                   Share Your Journey
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-rausch-500">

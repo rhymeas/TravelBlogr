@@ -54,8 +54,7 @@ export function InFeedAd({
         {/* Sponsored Label - Subtle, top-left */}
         <div className="p-4 pb-2">
           <span className="text-xs text-muted-foreground uppercase tracking-wider">
-            Sponsored
-          </span>
+                       </span>
         </div>
         
         {/* Ad Content */}

@@ -1,16 +1,14 @@
 'use client'
 
 /**
- * Credit Limit Modal
- * 
- * Shown when user hits free tier limit or runs out of credits.
- * Uses existing Dialog component from design system.
+ * Credit Limit Modal - Redesigned
+ *
+ * Beautiful, emotional modal for purchasing credits.
+ * Features hero image, simple pricing, and clear value proposition.
  */
 
-import { Dialog } from '@/components/ui/Dialog'
-import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
-import { Sparkles, Zap, TrendingUp, X } from 'lucide-react'
+import { X, Sparkles, Check, Heart } from 'lucide-react'
+import Image from 'next/image'
 
 interface CreditLimitModalProps {
   isOpen: boolean
@@ -23,9 +21,33 @@ interface CreditLimitModalProps {
 }
 
 const CREDIT_PACKS = [
-  { size: '10', credits: 10, price: 15, name: 'Starter' },
-  { size: '25', credits: 25, price: 30, name: 'Explorer', popular: true, savings: 'Save $7.50' },
-  { size: '50', credits: 50, price: 50, name: 'Adventurer', savings: 'Save $25' },
+  {
+    size: '10',
+    credits: 10,
+    price: 15,
+    name: 'Starter',
+    description: 'Perfect for trying out',
+    emoji: '🌱'
+  },
+  {
+    size: '25',
+    credits: 25,
+    price: 30,
+    name: 'Explorer',
+    description: 'Most popular choice',
+    popular: true,
+    savings: 'Save 25%',
+    emoji: '✨'
+  },
+  {
+    size: '50',
+    credits: 50,
+    price: 50,
+    name: 'Adventurer',
+    description: 'Best value',
+    savings: 'Save 50%',
+    emoji: '🚀'
+  },
 ]
 
 export function CreditLimitModal({
@@ -57,118 +79,134 @@ export function CreditLimitModal({
     }
   }
 
+  if (!isOpen) return null
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-5 space-y-4 max-h-[70vh] overflow-y-auto">
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-5 w-5" />
-          </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-6 right-6 z-10 text-white/80 hover:text-white transition-colors"
+        >
+          <X className="h-6 w-6" />
+        </button>
 
-          {/* Header */}
-          <div className="text-center">
-            <div className="mx-auto w-10 h-10 bg-gradient-to-br from-rausch-100 to-kazan-100 rounded-full flex items-center justify-center mb-3">
-              {reason === 'free_tier_limit' ? (
-                <Sparkles className="h-5 w-5 text-rausch-600" />
-              ) : (
-                <Zap className="h-5 w-5 text-kazan-600" />
-              )}
+        {/* Hero Image Section */}
+        <div className="relative h-64 bg-gradient-to-br from-rausch-500 via-kazan-500 to-babu-500 overflow-hidden">
+          {/* Decorative Elements */}
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yLjIxLTEuNzktNC00LTRzLTQgMS43OS00IDQgMS43OSA0IDQgNCA0LTEuNzkgNC00em0wLTEwYzAtMi4yMS0xLjc5LTQtNC00cy00IDEuNzktNCA0IDEuNzkgNCA0IDQgNC0xLjc5IDQtNHptMC0xMGMwLTIuMjEtMS43OS00LTQtNHMtNCAxLjc5LTQgNCAxLjc5IDQgNCA0IDQtMS43OSA0LTR6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-20"></div>
+
+          {/* Content */}
+          <div className="relative h-full flex flex-col items-center justify-center text-white px-8 text-center">
+            <div className="mb-4">
+              <Heart className="h-16 w-16 mx-auto mb-4 animate-pulse" />
             </div>
-
-            <h2 className="text-lg font-bold text-airbnb-black mb-1">
+            <h2 className="text-3xl font-bold mb-2">
               {reason === 'free_tier_limit'
-                ? "You've Used Your Free Generations!"
-                : "Out of Credits"}
+                ? "Continue Your Journey"
+                : "Keep Exploring"}
             </h2>
-
-            <p className="text-xs text-muted-foreground mb-3">
+            <p className="text-white/90 text-lg max-w-md">
               {reason === 'free_tier_limit'
-                ? `Each planning costs $${(costPerPlanning / 100).toFixed(2)} (or $${((costPerPlanning / 2) / 100).toFixed(2)} with credits)`
-                : "You've used all your credits. Purchase more to continue generating AI itineraries."}
+                ? "You've discovered the magic of AI trip planning. Let's keep the adventure going!"
+                : "Your wanderlust knows no bounds. Unlock more amazing itineraries."}
             </p>
+          </div>
+        </div>
 
-            {/* Current Credit Balance */}
-            <div className="bg-blue-50 rounded-lg p-2 mb-2">
-              <div className="text-xs text-blue-600 font-medium">
-                Current Balance: <span className="text-lg font-bold text-blue-700">{userCredits}</span> credits
+        {/* Pricing Section */}
+        <div className="p-8">
+          {/* Current Balance */}
+          {userCredits > 0 && (
+            <div className="mb-6 text-center">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full">
+                <Sparkles className="h-4 w-4 text-blue-600" />
+                <span className="text-sm text-blue-900">
+                  You have <span className="font-bold">{userCredits}</span> credits
+                </span>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Credit Packs */}
-          <div className="space-y-1.5">
+          {/* Pricing Cards */}
+          <div className="grid grid-cols-3 gap-4 mb-6">
             {CREDIT_PACKS.map((pack) => (
-              <div key={pack.size} className="relative">
+              <button
+                key={pack.size}
+                onClick={() => handlePurchase(pack.size)}
+                className={`relative p-6 rounded-xl border-2 transition-all hover:scale-105 ${
+                  pack.popular
+                    ? 'border-rausch-500 bg-gradient-to-br from-rausch-50 to-kazan-50 shadow-lg'
+                    : 'border-gray-200 hover:border-rausch-300 bg-white'
+                }`}
+              >
                 {pack.popular && (
-                  <Badge className="absolute -top-1.5 -right-1.5 z-10 bg-rausch-500 text-white text-xs">
-                    Most Popular
-                  </Badge>
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="px-3 py-1 bg-rausch-500 text-white text-xs font-semibold rounded-full shadow-md">
+                      Most Popular
+                    </span>
+                  </div>
                 )}
 
-                <button
-                  onClick={() => handlePurchase(pack.size)}
-                  className="w-full p-3 border-2 border-gray-200 rounded-lg hover:border-rausch-500 hover:bg-rausch-50 transition-all text-left"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-semibold text-sm text-airbnb-black">
-                        {pack.credits} Credits
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {pack.name} Pack
-                      </div>
-                      {pack.savings && (
-                        <div className="text-xs text-green-600 font-medium mt-0.5">
-                          {pack.savings}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="text-right">
-                      <div className="text-xl font-bold text-airbnb-black">
-                        ${pack.price}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        ${(pack.price / pack.credits).toFixed(2)}/credit
-                      </div>
-                    </div>
+                <div className="text-center">
+                  <div className="text-4xl mb-2">{pack.emoji}</div>
+                  <div className="text-2xl font-bold text-gray-900 mb-1">
+                    ${pack.price}
                   </div>
-                </button>
-              </div>
+                  <div className="text-sm text-gray-600 mb-3">
+                    {pack.credits} Credits
+                  </div>
+                  <div className="text-xs font-medium text-gray-500 mb-2">
+                    {pack.description}
+                  </div>
+                  {pack.savings && (
+                    <div className="inline-block px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded">
+                      {pack.savings}
+                    </div>
+                  )}
+                </div>
+              </button>
             ))}
           </div>
 
           {/* Benefits */}
-          <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-3">
-            <h3 className="text-xs font-semibold text-airbnb-black mb-1 flex items-center gap-2">
-              <TrendingUp className="h-3 w-3 text-rausch-500" />
-              Why Purchase Credits?
-            </h3>
-            <ul className="space-y-0.5 text-xs text-muted-foreground">
-              <li>✓ Never expire - use anytime</li>
-              <li>✓ Instant AI itinerary generation</li>
-              <li>✓ Unlimited trip planning</li>
-            </ul>
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-2 bg-blue-100 rounded-full flex items-center justify-center">
+                <Check className="h-6 w-6 text-blue-600" />
+              </div>
+              <div className="text-sm font-medium text-gray-900">Never Expire</div>
+              <div className="text-xs text-gray-500">Use anytime</div>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-2 bg-purple-100 rounded-full flex items-center justify-center">
+                <Sparkles className="h-6 w-6 text-purple-600" />
+              </div>
+              <div className="text-sm font-medium text-gray-900">Instant AI</div>
+              <div className="text-xs text-gray-500">Fast generation</div>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-2 bg-green-100 rounded-full flex items-center justify-center">
+                <Heart className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="text-sm font-medium text-gray-900">Unlimited</div>
+              <div className="text-xs text-gray-500">Plan freely</div>
+            </div>
           </div>
 
           {/* Footer */}
-          <div className="text-center pt-1">
-            <Button
-              variant="ghost"
-              size="sm"
+          <div className="text-center">
+            <button
               onClick={onClose}
-              className="text-muted-foreground text-xs"
+              className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
             >
-              Maybe Later
-            </Button>
+              Maybe later
+            </button>
           </div>
         </div>
       </div>
-    </Dialog>
+    </div>
   )
 }
 

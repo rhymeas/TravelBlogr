@@ -130,7 +130,7 @@ export function QuickBookingLinks({
 
       {/* Disclosure - Required by FTC */}
       <p className="text-xs text-muted-foreground italic leading-relaxed">
-        We may earn a small commission from bookings made through these links at no extra cost to you. This helps us keep TravelBlogr free!
+         
       </p>
     </div>
   )

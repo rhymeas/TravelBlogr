@@ -6,9 +6,9 @@
  */
 
 import { useState } from 'react'
-import { Car, Train, Bike, Plane, Shuffle } from 'lucide-react'
+import { Car, Train, Bike, Plane, Shuffle, Bus } from 'lucide-react'
 
-export type TransportMode = 'car' | 'train' | 'bike' | 'flight' | 'mixed'
+export type TransportMode = 'car' | 'train' | 'bike' | 'flight' | 'bus' | 'mixed'
 
 interface TransportModeOption {
   id: TransportMode
@@ -53,6 +53,14 @@ const TRANSPORT_MODES: TransportModeOption[] = [
     color: 'purple'
   },
   {
+    id: 'bus',
+    label: 'Bus',
+    icon: <Bus className="w-5 h-5" />,
+    avgSpeed: 60,
+    description: 'Budget-friendly, regional',
+    color: 'orange'
+  },
+  {
     id: 'mixed',
     label: 'Mixed Transport',
     icon: <Shuffle className="w-5 h-5" />,
@@ -70,7 +78,7 @@ interface TransportModeSelectorProps {
 export function TransportModeSelector({ value, onChange }: TransportModeSelectorProps) {
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
         {TRANSPORT_MODES.map((mode) => {
           const isSelected = value === mode.id
           

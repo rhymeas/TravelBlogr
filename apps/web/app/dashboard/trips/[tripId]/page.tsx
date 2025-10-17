@@ -9,6 +9,7 @@ import { useAuthModal } from '@/contexts/AuthModalContext'
 import { ViewTrackingPixel } from '@/components/analytics/ViewTrackingPixel'
 import {
   ArrowLeft,
+  ArrowRight,
   Eye,
   EyeOff,
   Edit2,
@@ -23,12 +24,20 @@ import {
   Heart,
   Image as ImageIcon,
   BarChart3,
-  Trash2
+  Trash2,
+  Lock,
+  Users,
+  Key
 } from 'lucide-react'
 import Link from 'next/link'
 import { SmartImage as Image } from '@/components/ui/SmartImage'
+import { Card } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Badge'
 import { getBrowserSupabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
+import { QuickShareModal } from '@/components/trips/QuickShareModal'
+import { TripEditorModal } from '@/components/trips/TripEditorModal'
+import { TripPrivacyModal } from '@/components/trips/TripPrivacyModal'
 
 interface TripDetailsPageProps {
   params: {
@@ -43,9 +52,13 @@ export default function TripDetailsPage({ params }: TripDetailsPageProps) {
   const [trip, setTrip] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [canEdit, setCanEdit] = useState(false)
-  const [activeTab, setActiveTab] = useState('overview')
   const [saving, setSaving] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [existingShareLink, setExistingShareLink] = useState<any>(null)
+  const [showMenu, setShowMenu] = useState(false)
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false)
 
   // Single auth check effect
   useEffect(() => {
@@ -85,11 +98,12 @@ export default function TripDetailsPage({ params }: TripDetailsPageProps) {
           ),
           share_links (
             id,
-            link_type,
+            subdomain,
             token,
             title,
             is_active,
-            view_count
+            view_count,
+            settings
           ),
           trip_stats (
             total_views,
@@ -118,6 +132,11 @@ export default function TripDetailsPage({ params }: TripDetailsPageProps) {
       } else if (trip) {
         setTrip(trip)
         setCanEdit(trip.user_id === user.id)
+
+        // Set existing share link if available
+        if (trip.share_links && trip.share_links.length > 0) {
+          setExistingShareLink(trip.share_links[0])
+        }
       }
     } catch (error) {
       console.error('Unexpected error fetching trip:', error)
@@ -180,7 +199,7 @@ export default function TripDetailsPage({ params }: TripDetailsPageProps) {
 
       const { error } = await supabase
         .from('trips')
-        .update({ 
+        .update({
           status: newStatus,
           updated_at: new Date().toISOString()
         })
@@ -190,15 +209,43 @@ export default function TripDetailsPage({ params }: TripDetailsPageProps) {
       if (error) throw error
 
       toast.success(newStatus === 'published' ? 'Trip published!' : 'Trip unpublished')
-      
+
       // Update local state immediately for better UX
       setTrip((prev: any) => ({ ...prev, status: newStatus }))
-      
+
       // Refetch to get latest data
       fetchTrip()
     } catch (error: any) {
       console.error('Error toggling publish:', error)
       toast.error(error.message || 'Failed to update trip status')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!canEdit || !trip) return
+
+    const confirmed = confirm(`Are you sure you want to delete "${trip.title}"? This action cannot be undone.`)
+    if (!confirmed) return
+
+    try {
+      setSaving(true)
+      const supabase = getBrowserSupabase()
+
+      const { error } = await supabase
+        .from('trips')
+        .delete()
+        .eq('id', params.tripId)
+        .eq('user_id', user!.id) // Extra safety check
+
+      if (error) throw error
+
+      toast.success('Trip deleted successfully')
+      router.push('/dashboard/trips')
+    } catch (error: any) {
+      console.error('Error deleting trip:', error)
+      toast.error(error.message || 'Failed to delete trip')
     } finally {
       setSaving(false)
     }
@@ -383,32 +430,90 @@ export default function TripDetailsPage({ params }: TripDetailsPageProps) {
                     </button>
                   )}
 
-                  <Link href={`/dashboard/trips/${trip.id}/edit`}>
-                    <button className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                      <Edit2 className="w-4 h-4 mr-1.5" />
-                      Edit
-                    </button>
-                  </Link>
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <Edit2 className="w-4 h-4 mr-1.5" />
+                    Edit
+                  </button>
 
-                  <button className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                  <button
+                    onClick={() => setShowShareModal(true)}
+                    className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
                     <Share2 className="w-4 h-4 mr-1.5" />
                     Share
                   </button>
 
-                  <button className="inline-flex items-center px-2 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                    <MoreVertical className="w-4 h-4" />
+                  {/* Privacy Settings Button */}
+                  <button
+                    onClick={() => setShowPrivacyModal(true)}
+                    className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    title="Privacy Settings"
+                  >
+                    {trip.privacy === 'private' && <Lock className="w-4 h-4 mr-1.5" />}
+                    {trip.privacy === 'family' && <Users className="w-4 h-4 mr-1.5" />}
+                    {trip.privacy === 'password' && <Key className="w-4 h-4 mr-1.5" />}
+                    {(!trip.privacy || trip.privacy === 'public') && <Globe className="w-4 h-4 mr-1.5" />}
+                    <span className="capitalize">{trip.privacy || 'Public'}</span>
                   </button>
-                </>
-              )}
 
-              {/* View Public Page */}
-              {trip.status === 'published' && trip.slug && (
-                <Link href={`/trips/${trip.slug}`} target="_blank">
-                  <button className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                    <Eye className="w-4 h-4 mr-1.5" />
-                    View
-                  </button>
-                </Link>
+                  {/* View Public Page / Preview - Always show */}
+                  {trip.slug && (
+                    <Link
+                      href={`/trips/${trip.slug}${trip.status !== 'published' ? '?preview=true' : ''}`}
+                      target="_blank"
+                    >
+                      <button className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        <Eye className="w-4 h-4 mr-1.5" />
+                        {trip.status === 'published' ? 'View Public Page' : 'Preview Trip'}
+                      </button>
+                    </Link>
+                  )}
+
+                  {/* More Menu */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowMenu(!showMenu)}
+                      className="inline-flex items-center px-2 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+
+                    {showMenu && (
+                      <>
+                        <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                          <Link
+                            href={`/dashboard/trips/${trip.id}/edit`}
+                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            onClick={() => setShowMenu(false)}
+                          >
+                            <Edit2 className="h-4 w-4 mr-2" />
+                            Edit Details
+                          </Link>
+                          <button
+                            onClick={() => {
+                              setShowMenu(false)
+                              handleDelete()
+                            }}
+                            disabled={saving}
+                            className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            {saving ? 'Deleting...' : 'Delete Trip'}
+                          </button>
+                        </div>
+
+                        {/* Click outside to close */}
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={() => setShowMenu(false)}
+                        />
+                      </>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -416,645 +521,277 @@ export default function TripDetailsPage({ params }: TripDetailsPageProps) {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-6 py-6">
-        {/* Tab Navigation */}
-        <div className="border-b border-gray-200 mb-6">
-          <nav className="-mb-px flex space-x-8 overflow-x-auto">
-            {[
-              { id: 'overview', label: 'Overview' },
-              { id: 'posts', label: 'Posts' },
-              { id: 'settings', label: 'Settings' },
-              { id: 'images', label: 'Images' },
-              { id: 'map', label: 'Map' },
-              { id: 'share', label: 'Share' },
-              { id: 'analytics', label: 'Analytics' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-3 px-1 border-b-2 text-sm font-medium transition-colors whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'border-rausch-500 text-rausch-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        {/* Overview Tab */}
-        {activeTab === 'overview' && (
-          <div className="space-y-6">
-            {/* Cover Image */}
-            {trip.cover_image && (
-              <div className="relative w-full h-64 rounded-xl overflow-hidden shadow-sm">
-                <Image
-                  src={trip.cover_image}
-                  alt={trip.title}
-                  fill
-                  className="object-cover"
-                />
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="space-y-8">
+          {/* Live Feed Section - Social Media Aspect */}
+          <div className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl border border-rose-100 p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 mb-1">Share Your Journey 🌍</h2>
+                <p className="text-sm text-gray-600">Live updates from this trip</p>
               </div>
-            )}
-
-            {/* About This Trip */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base font-semibold text-gray-900">About This Trip</h2>
-                {canEdit && (
-                  <Link href={`/dashboard/trips/${trip.id}/edit`}>
-                    <button className="text-sm text-rausch-600 hover:text-rausch-700 font-medium">
-                      Edit Details
-                    </button>
-                  </Link>
-                )}
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span>Live</span>
               </div>
-              <p className="text-sm text-gray-700 leading-relaxed">
-                {trip.description || 'No description yet. Click Edit Details to add information about your trip.'}
-              </p>
-
-              {/* Trip Details Grid */}
-              {(trip.destination || trip.duration_days || trip.trip_type) && (
-                <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-100">
-                  {trip.destination && (
-                    <div>
-                      <div className="text-xs text-gray-500 mb-1">Destination</div>
-                      <div className="text-sm font-medium text-gray-900">{trip.destination}</div>
-                    </div>
-                  )}
-                  {trip.duration_days && (
-                    <div>
-                      <div className="text-xs text-gray-500 mb-1">Duration</div>
-                      <div className="text-sm font-medium text-gray-900">{trip.duration_days} days</div>
-                    </div>
-                  )}
-                  {trip.trip_type && (
-                    <div>
-                      <div className="text-xs text-gray-500 mb-1">Type</div>
-                      <div className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full capitalize ${tripTypeColors[trip.trip_type] || 'bg-gray-100 text-gray-700'}`}>
-                        {trip.trip_type.replace('-', ' ')}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Highlights */}
-              {trip.highlights && trip.highlights.length > 0 && (
-                <div className="mt-6 pt-6 border-t border-gray-100">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Highlights</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {trip.highlights.map((highlight: string, idx: number) => (
-                      <span
-                        key={idx}
-                        className="px-3 py-1 bg-gray-50 text-gray-700 text-xs rounded-full border border-gray-200"
-                      >
-                        {highlight}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-              <button
-                onClick={() => setActiveTab('posts')}
-                className="flex flex-col items-center justify-center p-4 bg-white rounded-xl border border-gray-200 hover:border-rausch-300 hover:bg-rausch-50 transition-all group"
-              >
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mb-2 group-hover:bg-blue-200 transition-colors">
-                  <Calendar className="w-5 h-5 text-blue-600" />
-                </div>
-                <span className="text-xs font-medium text-gray-700">Posts</span>
-                <span className="text-xs text-gray-500">{trip.posts?.length || 0}</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('map')}
-                className="flex flex-col items-center justify-center p-4 bg-white rounded-xl border border-gray-200 hover:border-rausch-300 hover:bg-rausch-50 transition-all group"
-              >
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mb-2 group-hover:bg-green-200 transition-colors">
-                  <MapPin className="w-5 h-5 text-green-600" />
-                </div>
-                <span className="text-xs font-medium text-gray-700">Map</span>
-              </button>
-
-              <button className="flex flex-col items-center justify-center p-4 bg-white rounded-xl border border-gray-200 hover:border-rausch-300 hover:bg-rausch-50 transition-all group">
-                <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center mb-2 group-hover:bg-pink-200 transition-colors">
-                  <Heart className="w-5 h-5 text-pink-600" />
-                </div>
-                <span className="text-xs font-medium text-gray-700">Favorites</span>
-              </button>
-
-              <button className="flex flex-col items-center justify-center p-4 bg-white rounded-xl border border-gray-200 hover:border-rausch-300 hover:bg-rausch-50 transition-all group">
-                <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mb-2 group-hover:bg-purple-200 transition-colors">
-                  <ImageIcon className="w-5 h-5 text-purple-600" />
-                </div>
-                <span className="text-xs font-medium text-gray-700">Photos</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('share')}
-                className="flex flex-col items-center justify-center p-4 bg-white rounded-xl border border-gray-200 hover:border-rausch-300 hover:bg-rausch-50 transition-all group"
-              >
-                <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center mb-2 group-hover:bg-orange-200 transition-colors">
-                  <Share2 className="w-5 h-5 text-orange-600" />
-                </div>
-                <span className="text-xs font-medium text-gray-700">Share</span>
-                <span className="text-xs text-gray-500">{trip.share_links?.length || 0}</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('analytics')}
-                className="flex flex-col items-center justify-center p-4 bg-white rounded-xl border border-gray-200 hover:border-rausch-300 hover:bg-rausch-50 transition-all group"
-              >
-                <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center mb-2 group-hover:bg-teal-200 transition-colors">
-                  <BarChart3 className="w-5 h-5 text-teal-600" />
-                </div>
-                <span className="text-xs font-medium text-gray-700">Analytics</span>
-                <span className="text-xs text-gray-500">{totalViews}</span>
-              </button>
-            </div>
-
-            {/* Recent Posts */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base font-semibold text-gray-900">Recent Travel Stories</h2>
-                <button
-                  onClick={() => setActiveTab('posts')}
-                  className="text-sm text-rausch-600 hover:text-rausch-700 font-medium"
-                >
-                  View all
-                </button>
-              </div>
-
+            {/* Live Feed Component */}
+            <div className="bg-white rounded-xl p-4 min-h-[200px]">
               {trip.posts && trip.posts.length > 0 ? (
                 <div className="space-y-3">
-                  {trip.posts.slice(0, 5).map((post: any) => (
-                    <div key={post.id} className="p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer border border-transparent hover:border-gray-200">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-gray-900 text-sm mb-1 truncate">{post.title}</h3>
-                          <p className="text-xs text-gray-600 line-clamp-2">
-                            {post.content?.substring(0, 120)}...
-                          </p>
-                          <div className="flex items-center gap-3 mt-2">
-                            <p className="text-xs text-gray-500">
-                              {new Date(post.post_date || post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                            </p>
-                            {post.location && (
-                              <span className="text-xs text-gray-500 flex items-center gap-1">
-                                <MapPin className="w-3 h-3" />
-                                {post.location}
-                              </span>
-                            )}
-                          </div>
+                  {trip.posts.slice(0, 3).map((post: any) => (
+                    <div key={post.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                      {post.featured_image && (
+                        <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                          <Image
+                            src={post.featured_image}
+                            alt={post.title}
+                            width={64}
+                            height={64}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                        {canEdit && (
-                          <button className="p-1.5 hover:bg-gray-100 rounded transition-colors">
-                            <Edit2 className="w-3.5 h-3.5 text-gray-400" />
-                          </button>
-                        )}
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-900 text-sm mb-1">{post.title}</h3>
+                        <p className="text-xs text-gray-600 line-clamp-2">
+                          {post.content?.substring(0, 100)}...
+                        </p>
+                        <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(post.post_date || post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {post.location && (
+                            <>
+                              <span>•</span>
+                              <MapPin className="w-3 h-3" />
+                              {post.location}
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                    <Calendar className="w-8 h-8 text-gray-400" />
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
+                    <Heart className="w-6 h-6 text-gray-400" />
                   </div>
-                  <p className="text-sm font-medium text-gray-900 mb-1">No posts yet</p>
-                  <p className="text-xs text-gray-500 mb-4">Start documenting your journey!</p>
+                  <p className="text-sm text-gray-600 mb-2">No updates yet</p>
+                  <p className="text-xs text-gray-500">Start sharing your journey!</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Trip Timeline - Location Cards (Matching Landing Page Style) */}
+          <div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Trip Timeline</h2>
+              <p className="text-gray-600">Explore each destination on this journey</p>
+            </div>
+
+            {/* Location Cards Grid - Exact same style as FeaturedLocations */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {trip.posts && trip.posts.length > 0 ? (
+                trip.posts.map((post: any, index: number) => {
+                  // Try to find matching location for linking
+                  const locationSlug = post.location?.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+
+                  return (
+                    <Link
+                      key={post.id}
+                      href={locationSlug ? `/locations/${locationSlug}` : '#'}
+                      className="group block"
+                    >
+                      <Card className="overflow-hidden hover:shadow-airbnb-large transition-all duration-300 group-hover:scale-[1.02]">
+                        {/* Location Image */}
+                        <div className="relative h-64 overflow-hidden">
+                          {post.featured_image ? (
+                            <img
+                              src={post.featured_image}
+                              alt={post.location || post.title}
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
+                              <MapPin className="h-12 w-12 text-blue-400" />
+                            </div>
+                          )}
+
+                          {/* Day Badge */}
+                          <Badge className="absolute top-3 left-3 bg-teal-500 text-white">
+                            Day {index + 1}
+                          </Badge>
+
+                          {/* Gradient Overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                          {/* Hover Content */}
+                          <div className="absolute bottom-4 left-4 right-4 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div className="flex items-center gap-2 text-sm">
+                              <ArrowRight className="h-4 w-4" />
+                              <span>Explore {post.location || 'Location'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Location Info */}
+                        <div className="p-6">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <h3 className="text-xl font-semibold text-airbnb-black mb-1 group-hover:text-rausch-500 transition-colors">
+                                {post.location || post.title}
+                              </h3>
+                              <div className="flex items-center gap-1 text-airbnb-gray text-sm">
+                                <Calendar className="h-4 w-4" />
+                                <span>
+                                  {new Date(post.post_date || post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <p className="text-airbnb-dark-gray text-sm mb-4 line-clamp-2">
+                            {post.content?.substring(0, 120) || 'Explore this amazing destination...'}
+                          </p>
+
+                          {/* Stats */}
+                          <div className="flex items-center justify-between text-xs text-airbnb-gray">
+                            <div className="flex items-center gap-1">
+                              <ImageIcon className="h-3 w-3" />
+                              <span>{post.featured_image ? '1 photo' : 'No photos'}</span>
+                            </div>
+                            {canEdit && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  toast.success('Edit post coming soon!')
+                                }}
+                                className="flex items-center gap-1 text-rausch-500 hover:text-rausch-600"
+                              >
+                                <Edit2 className="h-3 w-3" />
+                                <span>Edit</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    </Link>
+                  )
+                })
+              ) : (
+                <div className="col-span-full text-center py-16">
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                    <MapPin className="w-10 h-10 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No locations yet</h3>
+                  <p className="text-gray-600 mb-6">Start building your trip timeline by adding locations</p>
                   {canEdit && (
                     <button
-                      onClick={() => setActiveTab('posts')}
-                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-rausch-500 hover:bg-rausch-600 rounded-lg transition-colors"
+                      onClick={() => toast.success('Add location coming soon!')}
+                      className="inline-flex items-center px-6 py-3 text-sm font-medium text-white bg-rausch-500 hover:bg-rausch-600 rounded-lg transition-colors"
                     >
-                      <Plus className="w-4 h-4 mr-1.5" />
-                      Add First Post
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add First Location
                     </button>
                   )}
                 </div>
               )}
             </div>
           </div>
-        )}
 
-        {/* Posts Tab - Integrated CMS */}
-        {activeTab === 'posts' && canEdit && (
-          <div className="space-y-6">
-            {/* Add New Post Button */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">Manage Posts</h2>
-                <p className="text-sm text-gray-600 mt-1">Add and edit your travel stories</p>
-              </div>
-              <button
-                onClick={() => {
-                  // Will implement add post modal
-                  toast.success('Add post functionality coming soon!')
-                }}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-rausch-500 hover:bg-rausch-600 rounded-lg transition-colors"
-              >
-                <Plus className="w-4 h-4 mr-1.5" />
-                Add Post
-              </button>
-            </div>
-
-            {/* Posts List */}
-            {trip.posts && trip.posts.length > 0 ? (
-              <div className="grid gap-4">
-                {trip.posts.map((post: any, index: number) => (
-                  <div
-                    key={post.id}
-                    className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-rausch-100 text-rausch-600 text-sm font-semibold">
-                            {index + 1}
-                          </span>
-                          <h3 className="text-base font-semibold text-gray-900">{post.title}</h3>
-                        </div>
-
-                        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-                          {post.content?.substring(0, 200)}...
-                        </p>
-
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
-                          {post.post_date && (
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3.5 h-3.5" />
-                              <span>
-                                {new Date(post.post_date).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric'
-                                })}
-                              </span>
-                            </div>
-                          )}
-                          {post.location && (
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-3.5 h-3.5" />
-                              <span>{post.location}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                            // Will implement edit post modal
-                            toast.success('Edit post functionality coming soon!')
-                          }}
-                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="Edit post"
-                        >
-                          <Edit2 className="w-4 h-4 text-gray-600" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (confirm('Are you sure you want to delete this post?')) {
-                              // Will implement delete
-                              toast.success('Delete functionality coming soon!')
-                            }
-                          }}
-                          className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete post"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                  <Calendar className="w-8 h-8 text-gray-400" />
-                </div>
-                <h3 className="text-base font-semibold text-gray-900 mb-2">No posts yet</h3>
-                <p className="text-sm text-gray-600 mb-6">Start documenting your journey by adding your first post</p>
-                <button
-                  onClick={() => {
-                    toast.success('Add post functionality coming soon!')
-                  }}
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-rausch-500 hover:bg-rausch-600 rounded-lg transition-colors"
-                >
-                  <Plus className="w-4 h-4 mr-1.5" />
-                  Add First Post
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Posts Tab - Read-only for non-owners */}
-        {activeTab === 'posts' && !canEdit && (
-          <div className="space-y-4">
-            {trip.posts && trip.posts.length > 0 ? (
-              trip.posts.map((post: any, index: number) => (
-                <div
-                  key={post.id}
-                  className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm"
-                >
-                  <div className="flex items-start gap-4">
-                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-rausch-100 text-rausch-600 text-sm font-semibold flex-shrink-0">
-                      {index + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-semibold text-gray-900 mb-2">{post.title}</h3>
-                      <p className="text-sm text-gray-700 leading-relaxed mb-3">{post.content}</p>
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                        {post.post_date && (
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5" />
-                            <span>
-                              {new Date(post.post_date).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric'
-                              })}
-                            </span>
-                          </div>
-                        )}
-                        {post.location && (
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5" />
-                            <span>{post.location}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-                <Calendar className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                <p className="text-sm text-gray-500">No posts yet</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Settings Tab - Trip Details Editor */}
-        {activeTab === 'settings' && canEdit && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">Trip Settings</h2>
-              <p className="text-sm text-gray-600">Manage your trip details and preferences</p>
-            </div>
-
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-              <h3 className="text-base font-semibold text-gray-900 mb-4">Basic Information</h3>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Trip Title
-                  </label>
-                  <input
-                    type="text"
-                    value={trip.title}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50"
-                    placeholder="Enter trip title"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Edit in the header above</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={trip.description || ''}
-                    readOnly
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50"
-                    placeholder="Describe your trip..."
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Destination
-                    </label>
-                    <input
-                      type="text"
-                      value={trip.destination || ''}
-                      readOnly
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50"
-                      placeholder="e.g., Paris, France"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Duration (days)
-                    </label>
-                    <input
-                      type="number"
-                      value={trip.duration_days || ''}
-                      readOnly
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50"
-                      placeholder="7"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Start Date
-                    </label>
-                    <input
-                      type="date"
-                      value={trip.start_date || ''}
-                      readOnly
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      End Date
-                    </label>
-                    <input
-                      type="date"
-                      value={trip.end_date || ''}
-                      readOnly
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Trip Type
-                  </label>
-                  <select
-                    value={trip.trip_type || ''}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50"
-                  >
-                    <option value="">Select type</option>
-                    <option value="family">Family</option>
-                    <option value="adventure">Adventure</option>
-                    <option value="beach">Beach</option>
-                    <option value="cultural">Cultural</option>
-                    <option value="road-trip">Road Trip</option>
-                    <option value="solo">Solo</option>
-                    <option value="romantic">Romantic</option>
-                  </select>
-                </div>
-
-                <div className="pt-4 border-t border-gray-200">
-                  <Link href={`/dashboard/trips/${trip.id}/edit`}>
-                    <button className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-rausch-500 hover:bg-rausch-600 rounded-lg transition-colors">
-                      <Edit2 className="w-4 h-4 mr-1.5" />
-                      Edit Trip Details
-                    </button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            {/* Privacy Settings */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-              <h3 className="text-base font-semibold text-gray-900 mb-4">Privacy & Visibility</h3>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Trip Status</p>
-                    <p className="text-xs text-gray-500">Control who can see this trip</p>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    trip.status === 'published'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-700'
-                  }`}>
-                    {trip.status === 'published' ? 'Published' : 'Draft'}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Public Template</p>
-                    <p className="text-xs text-gray-500">Allow others to copy this trip</p>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    trip.is_public_template
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-gray-100 text-gray-700'
-                  }`}>
-                    {trip.is_public_template ? 'Yes' : 'No'}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Featured Trip</p>
-                    <p className="text-xs text-gray-500">Highlight in trips library</p>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    trip.is_featured
-                      ? 'bg-yellow-100 text-yellow-700'
-                      : 'bg-gray-100 text-gray-700'
-                  }`}>
-                    {trip.is_featured ? 'Yes' : 'No'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Images Tab - Cover Image & Gallery */}
-        {activeTab === 'images' && canEdit && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">Trip Images</h2>
-              <p className="text-sm text-gray-600">Manage your trip cover image and photo gallery</p>
-            </div>
-
-            {/* Cover Image */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-              <h3 className="text-base font-semibold text-gray-900 mb-4">Cover Image</h3>
-
-              {trip.cover_image ? (
-                <div className="space-y-4">
-                  <div className="relative w-full h-64 rounded-lg overflow-hidden">
-                    <Image
-                      src={trip.cover_image}
-                      alt={trip.title}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                      <Edit2 className="w-4 h-4 mr-1.5" />
-                      Change Image
-                    </button>
-                    <button className="inline-flex items-center px-3 py-2 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors">
-                      <Trash2 className="w-4 h-4 mr-1.5" />
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-                  <ImageIcon className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-                  <p className="text-sm font-medium text-gray-900 mb-1">No cover image</p>
-                  <p className="text-xs text-gray-500 mb-4">Upload a beautiful cover image for your trip</p>
-                  <button className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-rausch-500 hover:bg-rausch-600 rounded-lg transition-colors">
-                    <Plus className="w-4 h-4 mr-1.5" />
-                    Upload Cover Image
+          {/* About This Trip */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold text-gray-900">About This Trip</h2>
+              {canEdit && (
+                <Link href={`/dashboard/trips/${trip.id}/edit`}>
+                  <button className="text-sm text-rausch-600 hover:text-rausch-700 font-medium">
+                    Edit Details
                   </button>
-                </div>
+                </Link>
               )}
             </div>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              {trip.description || 'No description yet. Click Edit Details to add information about your trip.'}
+            </p>
 
-            {/* Photo Gallery */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-semibold text-gray-900">Photo Gallery</h3>
-                <button className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-rausch-500 hover:bg-rausch-600 rounded-lg transition-colors">
-                  <Plus className="w-4 h-4 mr-1.5" />
-                  Add Photos
-                </button>
+            {/* Trip Details Grid */}
+            {(trip.destination || trip.duration_days || trip.trip_type) && (
+              <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-100">
+                {trip.destination && (
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">Destination</div>
+                    <div className="text-sm font-medium text-gray-900">{trip.destination}</div>
+                  </div>
+                )}
+                {trip.duration_days && (
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">Duration</div>
+                    <div className="text-sm font-medium text-gray-900">{trip.duration_days} days</div>
+                  </div>
+                )}
+                {trip.trip_type && (
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">Type</div>
+                    <div className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full capitalize ${tripTypeColors[trip.trip_type] || 'bg-gray-100 text-gray-700'}`}>
+                      {trip.trip_type.replace('-', ' ')}
+                    </div>
+                  </div>
+                )}
               </div>
+            )}
 
-              <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-                <ImageIcon className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-                <p className="text-sm text-gray-500">Photo gallery coming soon</p>
+            {/* Highlights */}
+            {trip.highlights && trip.highlights.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-gray-100">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Highlights</h3>
+                <div className="flex flex-wrap gap-2">
+                  {trip.highlights.map((highlight: string, idx: number) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1 bg-gray-50 text-gray-700 text-xs rounded-full border border-gray-200"
+                    >
+                      {highlight}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
-        )}
-
-        {/* Other Tabs - Placeholders */}
-        {['map', 'share', 'analytics'].includes(activeTab) && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div className="text-center py-12">
-              <p className="text-sm text-gray-500 capitalize">{activeTab} content coming soon</p>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
+
+      {/* Quick Share Modal */}
+      <QuickShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        tripId={trip.id}
+        tripTitle={trip.title}
+        existingShareLink={existingShareLink}
+      />
+
+      {/* Trip Editor Modal */}
+      {showEditModal && (
+        <TripEditorModal
+          trip={trip}
+          onClose={() => setShowEditModal(false)}
+          onUpdate={fetchTrip}
+        />
+      )}
+
+      {/* Privacy Settings Modal */}
+      <TripPrivacyModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        tripId={trip.id}
+        currentPrivacy={trip.privacy || 'public'}
+        onUpdate={(privacy) => {
+          setTrip({ ...trip, privacy })
+        }}
+      />
     </div>
   )
 }

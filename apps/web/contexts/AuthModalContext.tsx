@@ -1,28 +1,47 @@
 'use client'
 
 import { createContext, useContext, useState, ReactNode } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { SignInModal } from '@/components/auth/SignInModal'
 
 interface AuthModalContextType {
   showSignIn: (redirectTo?: string) => void
-  hideSignIn: () => void
+  hideSignIn: (userSignedIn?: boolean) => void
   isOpen: boolean
 }
 
 const AuthModalContext = createContext<AuthModalContextType | undefined>(undefined)
 
+// Protected routes that require authentication
+const PROTECTED_ROUTES = ['/dashboard', '/trips', '/profile', '/settings']
+
 export function AuthModalProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
   const [redirectTo, setRedirectTo] = useState<string | undefined>()
+  const router = useRouter()
+  const pathname = usePathname()
 
   const showSignIn = (redirect?: string) => {
     setRedirectTo(redirect)
     setIsOpen(true)
   }
 
-  const hideSignIn = () => {
+  const hideSignIn = (userSignedIn = false) => {
     setIsOpen(false)
     setRedirectTo(undefined)
+
+    // Only redirect if user did NOT sign in and is on a protected route
+    if (!userSignedIn) {
+      const isOnProtectedRoute = PROTECTED_ROUTES.some(route =>
+        pathname?.startsWith(route)
+      )
+
+      // If on protected route and modal is being closed without signing in,
+      // redirect to home page
+      if (isOnProtectedRoute) {
+        router.push('/')
+      }
+    }
   }
 
   return (

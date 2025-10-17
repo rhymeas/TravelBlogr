@@ -56,6 +56,7 @@ Output Schema (STRICT JSON):
       "date": "YYYY-MM-DD",
       "location": "string - City/location name",
       "type": "stay" | "travel",
+      "didYouKnow": "string - One interesting fact about this location (for stay days)",
       "items": [
         {
           "time": "HH:MM - 24h format",
@@ -82,7 +83,9 @@ Rules:
 - Activity items must have realistic durations
 - Meal items should be at appropriate times (breakfast 7-9am, lunch 12-2pm, dinner 6-9pm)
 - Cost estimates must be realistic for the budget level
-- Tips should be specific and actionable`
+- Tips should be specific and actionable
+- For "stay" days, include ONE interesting "didYouKnow" fact (history, culture, or fun fact)
+- Keep facts concise (1-2 sentences) and surprising/educational`
           },
           {
             role: 'user',

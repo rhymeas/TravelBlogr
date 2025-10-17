@@ -12,6 +12,7 @@ import { ProgressBar } from '@/components/ui/ProgressBar'
 import { ImagePreconnect } from '@/components/performance/ImagePreconnect'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { AuthModalProvider } from '@/contexts/AuthModalContext'
+import { FeedbackButton } from '@/components/feedback/FeedbackButton'
 
 // const inter = Inter({ subsets: ['latin'] })
 
@@ -71,9 +72,12 @@ export const metadata: Metadata = {
   },
   manifest: '/manifest.json',
   icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon-16x16.png',
-    apple: '/apple-touch-icon.png',
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: '32x32' }
+    ],
+    shortcut: '/favicon-16.svg',
+    apple: '/apple-touch-icon.svg',
   },
 }
 
@@ -104,6 +108,7 @@ export default function RootLayout({
               <main className="flex-1">{children}</main>
               <Footer />
               <MobileNavigation />
+              <FeedbackButton />
             </div>
             {/* <PWAInstallPrompt /> */}
             <Toaster

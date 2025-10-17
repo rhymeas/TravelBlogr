@@ -14,21 +14,88 @@ import {
   MapPin,
   Camera,
   CreditCard,
-  Wallet
+  Wallet,
+  Home,
+  Compass,
+  BookOpen,
+  Newspaper,
+  LayoutDashboard,
+  Plane,
+  Coins
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { HeaderLogo } from '@/components/ui/Logo'
 import { LoadingSpinner, LoadingSkeleton } from '@/components/ui/LoadingSpinner'
 import { useAuth } from '../../hooks/useAuth'
+import { useAuthModal } from '@/contexts/AuthModalContext'
+import { useUserCredits } from '@/hooks/useUserCredits'
+import { CreditsModal } from '@/components/credits/CreditsModal'
 import toast from 'react-hot-toast'
+
+// Helper function to get role badge info
+const getRoleBadge = (role?: string, unlimitedUntil?: string, couponType?: string) => {
+  // Check if user has unlimited access
+  if (unlimitedUntil && new Date(unlimitedUntil) > new Date()) {
+    return {
+      label: 'Plus',
+      color: 'bg-yellow-500',
+      textColor: 'text-white'
+    }
+  }
+
+  // Check for special coupon types (family, friend, etc.)
+  if (couponType) {
+    const couponLabels: Record<string, { label: string; color: string }> = {
+      'family': { label: 'Family', color: 'bg-purple-500' },
+      'friend': { label: 'Friend', color: 'bg-blue-500' },
+      'vip': { label: 'VIP', color: 'bg-pink-500' }
+    }
+
+    if (couponLabels[couponType]) {
+      return {
+        label: couponLabels[couponType].label,
+        color: couponLabels[couponType].color,
+        textColor: 'text-white'
+      }
+    }
+  }
+
+  // Check role
+  switch (role) {
+    case 'admin':
+      return {
+        label: 'Admin',
+        color: 'bg-red-500',
+        textColor: 'text-white'
+      }
+    case 'moderator':
+      return {
+        label: 'Mod',
+        color: 'bg-blue-600',
+        textColor: 'text-white'
+      }
+    case 'plus':
+      return {
+        label: 'Plus',
+        color: 'bg-yellow-500',
+        textColor: 'text-white'
+      }
+    default:
+      return null
+  }
+}
 
 export function AuthAwareHeader() {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showTripsMenu, setShowTripsMenu] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
-  const [avatarError, setAvatarError] = useState(false)
+  const [showCreditsModal, setShowCreditsModal] = useState(false)
   const { user, profile, signOut, isAuthenticated, isLoading } = useAuth()
-  const router = useRouter()
+  const { showSignIn } = useAuthModal()
+  const { credits, loading: creditsLoading } = useUserCredits()
+
+  // Get role badge info
+  const roleBadge = getRoleBadge(profile?.role, profile?.unlimited_until, profile?.coupon_type)
 
   const handleSignOut = async () => {
     try {
@@ -77,10 +144,11 @@ export function AuthAwareHeader() {
             onMouseLeave={() => setShowTripsMenu(false)}
           >
             <button
+              onClick={() => setShowTripsMenu(!showTripsMenu)}
               className="flex items-center gap-1 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
             >
               Trips
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className={`h-4 w-4 transition-transform ${showTripsMenu ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Invisible bridge to prevent dropdown from closing */}
@@ -92,12 +160,33 @@ export function AuthAwareHeader() {
               <div className="absolute left-0 top-full pt-2 w-64 z-50">
                 <div className="bg-white rounded-2xl shadow-xl border border-gray-200 py-3">
                   <Link
-                    href={isAuthenticated ? "/dashboard/trips" : "/auth/signin?redirect=/dashboard/trips"}
+                    href="/trips-library"
                     className="block px-5 py-3 text-sm text-gray-900 hover:bg-gray-50 transition-colors"
                     onClick={() => setShowTripsMenu(false)}
                   >
-                    <div className="font-semibold">View my trips</div>
+                    <div className="font-semibold">Trips Library</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Browse community & public trips</div>
                   </Link>
+                  <div className="border-t border-gray-100 my-2" />
+                  {isAuthenticated ? (
+                    <Link
+                      href="/dashboard/trips"
+                      className="block px-5 py-3 text-sm text-gray-900 hover:bg-gray-50 transition-colors"
+                      onClick={() => setShowTripsMenu(false)}
+                    >
+                      <div className="font-semibold">View my trips</div>
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setShowTripsMenu(false)
+                        showSignIn('/dashboard/trips')
+                      }}
+                      className="block px-5 py-3 text-sm text-gray-900 hover:bg-gray-50 transition-colors w-full text-left"
+                    >
+                      <div className="font-semibold">View my trips</div>
+                    </button>
+                  )}
                   <Link
                     href="/dashboard/trips/new"
                     className="block px-5 py-3 text-sm text-gray-900 hover:bg-gray-50 transition-colors"
@@ -148,9 +237,21 @@ export function AuthAwareHeader() {
           ) : isAuthenticated ? (
             // Authenticated User Menu
             <div className="hidden lg:flex items-center gap-3">
-              <Button 
-                asChild 
-                variant="outline" 
+              {/* Credits Display */}
+              {!creditsLoading && (
+                <button
+                  onClick={() => setShowCreditsModal(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-colors"
+                  title="View credits"
+                >
+                  <Coins className="h-5 w-5" />
+                  <span className="font-semibold">{credits}</span>
+                </button>
+              )}
+
+              <Button
+                asChild
+                variant="outline"
                 size="sm"
                 className="btn-secondary"
               >
@@ -167,31 +268,43 @@ export function AuthAwareHeader() {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center gap-2 p-2"
                 >
-                  {(profile?.avatar_url || user?.user_metadata?.avatar_url) ? (
-                    <img
-                      src={profile?.avatar_url || user?.user_metadata?.avatar_url}
-                      alt={profile?.full_name || user?.user_metadata?.full_name || user?.email}
-                      className="h-8 w-8 rounded-full object-cover"
-                      referrerPolicy="no-referrer"
-                      crossOrigin="anonymous"
-                      onError={(e) => {
-                        // Fallback to initials on error
-                        const target = e.currentTarget
-                        const parent = target.parentElement
-                        if (parent) {
-                          target.style.display = 'none'
-                          const fallback = document.createElement('div')
-                          fallback.className = 'h-8 w-8 bg-rausch-500 text-white rounded-full flex items-center justify-center text-sm font-medium'
-                          fallback.textContent = getInitials(profile?.full_name || user?.user_metadata?.full_name, user?.email)
-                          parent.appendChild(fallback)
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div className="h-8 w-8 bg-rausch-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
-                      {getInitials(profile?.full_name || user?.user_metadata?.full_name, user?.email)}
-                    </div>
-                  )}
+                  <div className="relative">
+                    {(profile?.avatar_url || user?.user_metadata?.avatar_url) ? (
+                      <img
+                        src={profile?.avatar_url || user?.user_metadata?.avatar_url}
+                        alt={profile?.full_name || user?.user_metadata?.full_name || user?.email}
+                        className="h-8 w-8 rounded-full object-cover"
+                        referrerPolicy="no-referrer"
+                        crossOrigin="anonymous"
+                        onError={(e) => {
+                          // Fallback to initials on error
+                          const target = e.currentTarget
+                          const parent = target.parentElement
+                          if (parent) {
+                            target.style.display = 'none'
+                            const fallback = document.createElement('div')
+                            fallback.className = 'h-8 w-8 bg-rausch-500 text-white rounded-full flex items-center justify-center text-sm font-medium'
+                            fallback.textContent = getInitials(profile?.full_name || user?.user_metadata?.full_name, user?.email)
+                            parent.appendChild(fallback)
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="h-8 w-8 bg-rausch-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                        {getInitials(profile?.full_name || user?.user_metadata?.full_name, user?.email)}
+                      </div>
+                    )}
+
+                    {/* Role Badge */}
+                    {roleBadge && (
+                      <div
+                        className={`absolute -bottom-0.5 -right-0.5 ${roleBadge.color} ${roleBadge.textColor} text-[8px] font-bold px-1 py-0.5 rounded shadow-md ring-1 ring-white uppercase leading-none`}
+                        title={roleBadge.label}
+                      >
+                        {roleBadge.label}
+                      </div>
+                    )}
+                  </div>
                   <ChevronDown className="h-4 w-4 text-airbnb-gray" />
                 </Button>
 
@@ -279,109 +392,211 @@ export function AuthAwareHeader() {
           ) : (
             // Non-authenticated User Actions
             <div className="hidden lg:flex items-center gap-3">
-              <Link href="/auth/signin" className="text-body-medium text-airbnb-gray hover:text-airbnb-black transition-colors">
+              <button
+                onClick={() => showSignIn()}
+                className="text-body-medium text-airbnb-gray hover:text-airbnb-black transition-colors"
+              >
                 Sign in
-              </Link>
+              </button>
               <Button asChild className="btn-primary">
                 <Link href="/auth/signup">
-                  Share Your Story
+                   Share Your Journey
                 </Link>
               </Button>
             </div>
           )}
 
           {/* Mobile menu button */}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="lg:hidden"
+          <Button
+            variant="outline"
+            size="sm"
+            className="lg:hidden flex items-center gap-2"
             onClick={() => setShowMobileMenu(!showMobileMenu)}
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-4 w-4" />
+            <span className="text-sm font-medium">Menu</span>
           </Button>
         </div>
       </nav>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu - Redesigned */}
       {showMobileMenu && (
-        <div className="lg:hidden border-t border-airbnb-border bg-white">
-          <div className="px-6 py-4 space-y-4">
+        <div className="lg:hidden border-t border-airbnb-border bg-white shadow-lg">
+          <div className="px-4 py-3 space-y-1 max-h-[calc(100vh-80px)] overflow-y-auto">
+            {/* User Profile Section (if authenticated) */}
+            {isAuthenticated && (
+              <>
+                <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg mb-2">
+                  <div className="relative">
+                    {(profile?.avatar_url || user?.user_metadata?.avatar_url) ? (
+                      <img
+                        src={profile?.avatar_url || user?.user_metadata?.avatar_url}
+                        alt={profile?.full_name || user?.user_metadata?.full_name || user?.email}
+                        className="h-10 w-10 rounded-full object-cover"
+                        referrerPolicy="no-referrer"
+                        crossOrigin="anonymous"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 bg-rausch-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                        {getInitials(profile?.full_name || user?.user_metadata?.full_name, user?.email)}
+                      </div>
+                    )}
+
+                    {/* Role Badge */}
+                    {roleBadge && (
+                      <div
+                        className={`absolute -bottom-0.5 -right-0.5 ${roleBadge.color} ${roleBadge.textColor} text-[8px] font-bold px-1 py-0.5 rounded shadow-md ring-1 ring-white uppercase leading-none`}
+                        title={roleBadge.label}
+                      >
+                        {roleBadge.label}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900 truncate">
+                      {profile?.full_name || 'User'}
+                    </div>
+                    <div className="text-xs text-gray-500 truncate">
+                      {user?.email}
+                    </div>
+                    {roleBadge && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${roleBadge.color} ${roleBadge.textColor}`}>
+                          {roleBadge.label}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="border-t border-gray-200 my-2" />
+              </>
+            )}
+
+            {/* Main Navigation */}
             <Link
-              href="/plan"
-              className="block text-body-medium text-airbnb-black hover:text-rausch-500 transition-colors font-medium"
+              href="/"
+              className="flex items-center gap-3 px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
               onClick={() => setShowMobileMenu(false)}
             >
-              Plan your trip
+              <Home className="h-5 w-5 text-gray-600" />
+              <span className="font-medium">Home</span>
             </Link>
             <Link
-              href="/locations"
-              className="block text-body-medium text-airbnb-dark-gray hover:text-airbnb-black transition-colors"
+              href="/plan"
+              className="flex items-center gap-3 px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
               onClick={() => setShowMobileMenu(false)}
             >
-              Locations
+              <Compass className="h-5 w-5 text-gray-600" />
+              <span className="font-medium">Plan Your Trip</span>
+            </Link>
+            <Link
+              href="/trips-library"
+              className="flex items-center gap-3 px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+              onClick={() => setShowMobileMenu(false)}
+            >
+              <BookOpen className="h-5 w-5 text-gray-600" />
+              <span className="font-medium">Trips Library</span>
+            </Link>
+
+            <div className="border-t border-gray-200 my-2" />
+
+            {/* Secondary Navigation */}
+            <Link
+              href="/locations"
+              className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+              onClick={() => setShowMobileMenu(false)}
+            >
+              <MapPin className="h-5 w-5 text-gray-500" />
+              <span>Locations</span>
             </Link>
             <Link
               href="/live-feed"
-              className="block text-body-medium text-airbnb-dark-gray hover:text-airbnb-black transition-colors"
+              className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
               onClick={() => setShowMobileMenu(false)}
             >
-              Live Feed
+              <Newspaper className="h-5 w-5 text-gray-500" />
+              <span>Live Feed</span>
             </Link>
 
+            <div className="border-t border-gray-200 my-2" />
+
+            {/* User Actions */}
             {isAuthenticated ? (
               <>
-                <Link 
-                  href="/dashboard" 
-                  className="block text-body-medium text-airbnb-dark-gray hover:text-airbnb-black transition-colors"
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
                   onClick={() => setShowMobileMenu(false)}
                 >
-                  Dashboard
+                  <LayoutDashboard className="h-5 w-5 text-gray-600" />
+                  <span className="font-medium">Dashboard</span>
                 </Link>
-                <Link 
-                  href="/dashboard/trips/new" 
-                  className="block text-body-medium text-rausch-500 hover:text-rausch-600 transition-colors font-medium"
+                <Link
+                  href="/dashboard/trips"
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
                   onClick={() => setShowMobileMenu(false)}
                 >
-                  Create Trip
+                  <Plane className="h-5 w-5 text-gray-500" />
+                  <span>My Trips</span>
+                </Link>
+                <Link
+                  href="/dashboard/trips/new"
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-rausch-600 hover:bg-rausch-50 rounded-lg transition-colors"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  <Plus className="h-5 w-5 text-rausch-600" />
+                  <span className="font-semibold">Create Trip</span>
+                </Link>
+
+                <div className="border-t border-gray-200 my-2" />
+
+                <Link
+                  href="/dashboard/settings"
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  <Settings className="h-5 w-5 text-gray-500" />
+                  <span>Settings</span>
                 </Link>
                 <button
                   onClick={() => {
                     handleSignOut()
                     setShowMobileMenu(false)
                   }}
-                  className="block w-full text-left text-body-medium text-red-600 hover:text-red-700 transition-colors"
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors w-full"
                 >
-                  Sign out
+                  <LogOut className="h-5 w-5 text-red-600" />
+                  <span className="font-medium">Sign Out</span>
                 </button>
               </>
             ) : (
               <>
+                <button
+                  onClick={() => {
+                    setShowMobileMenu(false)
+                    showSignIn()
+                  }}
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 rounded-lg transition-colors w-full"
+                >
+                  <UserIcon className="h-5 w-5 text-gray-600" />
+                  <span className="font-medium">Sign In</span>
+                </button>
                 <Link
-                  href="/trips-library"
-                  className="block text-body-medium text-airbnb-dark-gray hover:text-airbnb-black transition-colors"
+                  href="/auth/signup"
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-white bg-rausch-500 hover:bg-rausch-600 rounded-lg transition-colors font-semibold"
                   onClick={() => setShowMobileMenu(false)}
                 >
-                  Trips Library
-                </Link>
-                <Link 
-                  href="/auth/signin" 
-                  className="block text-body-medium text-airbnb-dark-gray hover:text-airbnb-black transition-colors"
-                  onClick={() => setShowMobileMenu(false)}
-                >
-                  Sign in
-                </Link>
-                <Link 
-                  href="/auth/signup" 
-                  className="block text-body-medium text-rausch-500 hover:text-rausch-600 transition-colors font-medium"
-                  onClick={() => setShowMobileMenu(false)}
-                >
-                  Share Your Story
+                  <Camera className="h-5 w-5 text-white" />
+                  <span> Share Your Journey</span>
                 </Link>
               </>
             )}
           </div>
         </div>
       )}
+
+      {/* Credits Modal */}
+      <CreditsModal isOpen={showCreditsModal} onClose={() => setShowCreditsModal(false)} />
     </header>
   )
 }

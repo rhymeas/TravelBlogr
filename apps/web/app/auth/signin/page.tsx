@@ -17,10 +17,13 @@ export default function SignInPage() {
     setIsModalOpen(true)
   }, [])
 
-  const handleClose = () => {
+  const handleClose = (userSignedIn = false) => {
     setIsModalOpen(false)
-    // Redirect to specified page or home when modal is closed
-    router.push(redirect || '/')
+    // If user signed in and there's a redirect, the modal will handle it
+    // If user didn't sign in, redirect to home
+    if (!userSignedIn) {
+      router.push(redirect || '/')
+    }
   }
 
   return (

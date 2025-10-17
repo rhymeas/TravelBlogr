@@ -74,7 +74,19 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { subdomain, title, description, settings, customization } = body
+    const { subdomain, title, description, settings, customization, password } = body
+
+    // Hash password if provided
+    let processedSettings = settings || getDefaultSettings()
+    if (password && password.trim()) {
+      const bcrypt = await import('bcryptjs')
+      const passwordHash = await bcrypt.hash(password, 10)
+      processedSettings = {
+        ...processedSettings,
+        requirePassword: true,
+        passwordHash
+      }
+    }
 
     // Validate subdomain
     if (!subdomain || typeof subdomain !== 'string') {
@@ -115,7 +127,7 @@ export async function POST(
         token,
         title: title || trip.title,
         description,
-        settings: settings || getDefaultSettings(),
+        settings: processedSettings,
         customization: customization || getDefaultCustomization(),
         is_active: true,
         view_count: 0,

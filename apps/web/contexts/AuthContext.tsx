@@ -12,6 +12,9 @@ interface Profile {
   username?: string
   avatar_url?: string
   bio?: string
+  role?: string
+  unlimited_until?: string
+  coupon_type?: string
   created_at?: string
   updated_at?: string
 }
@@ -27,7 +30,7 @@ interface AuthState {
 interface AuthContextType extends AuthState {
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string; data?: any }>
   signUp: (email: string, password: string, metadata?: Record<string, any>) => Promise<{ success: boolean; error?: string; data?: any; message?: string }>
-  signInWithProvider: (provider: 'google' | 'github') => Promise<{ success: boolean; error?: string; data?: any }>
+  signInWithProvider: (provider: 'google' | 'github', redirectTo?: string) => Promise<{ success: boolean; error?: string; data?: any }>
   signOut: () => Promise<{ success: boolean; error?: string }>
   updateProfile: (updates: Partial<Profile>) => Promise<{ success: boolean; error?: string }>
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>
@@ -72,6 +75,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Initialize auth on mount
   useEffect(() => {
+    // Check for existing session on mount
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+
+        if (error) {
+          console.error('Error getting session:', error)
+          setState(prev => ({ ...prev, loading: false }))
+          return
+        }
+
+        if (session?.user) {
+          const profile = await fetchProfile(session.user.id)
+          setState({
+            user: session.user,
+            profile,
+            session,
+            loading: false,
+            error: null,
+          })
+        } else {
+          setState(prev => ({ ...prev, loading: false }))
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error)
+        setState(prev => ({ ...prev, loading: false }))
+      }
+    }
+
+    initializeAuth()
+
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
@@ -169,14 +203,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   // Sign in with OAuth provider
-  const signInWithProvider = async (provider: 'google' | 'github') => {
+  const signInWithProvider = async (provider: 'google' | 'github', redirectTo?: string) => {
     setState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
+      // Build callback URL with redirect parameter if provided
+      const callbackUrl = redirectTo
+        ? `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`
+        : `${window.location.origin}/auth/callback`
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: callbackUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',

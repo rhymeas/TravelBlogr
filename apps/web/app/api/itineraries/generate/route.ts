@@ -44,7 +44,16 @@ export async function POST(request: NextRequest) {
     const supabase = await createServerSupabase()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
+    // Debug logging
+    console.log('🔐 Auth check:', {
+      hasUser: !!user,
+      userId: user?.id,
+      authError: authError?.message,
+      cookies: request.cookies.getAll().map(c => c.name)
+    })
+
     if (authError || !user) {
+      console.error('❌ Authentication failed:', authError)
       return NextResponse.json(
         {
           success: false,
@@ -55,9 +64,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 4. Allow generation without credit check
+    // 4. Check if user is admin (unlimited credits)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    const isAdmin = profile?.role === 'admin'
+    console.log('👤 User role:', { userId: user.id, role: profile?.role, isAdmin })
+
+    // 5. Allow generation without credit check
     // Credits are only checked when user tries to SAVE the plan to their account
     // This allows users to generate plans for free and only pay if they want to save
+    // Admins have unlimited credits
     let usedCredit = false
 
     // 5. Execute use case
@@ -87,7 +107,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 8. Increment monthly usage counter (for free tier tracking)
-    await incrementAIUsage(user.id)
+    // Skip for admins - they have unlimited usage
+    if (!isAdmin) {
+      await incrementAIUsage(user.id)
+    }
 
     const generationTime = Date.now() - startTime
 
@@ -100,6 +123,7 @@ export async function POST(request: NextRequest) {
         generationTimeMs: generationTime,
         generatedAt: new Date().toISOString(),
         usedCredit,
+        isAdmin, // Include admin status in response for debugging
       }
     })
 

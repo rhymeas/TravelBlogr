@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, MapPin, Calendar, DollarSign, Utensils, Compass, Plus, Share2, Download, Save, PlaneTakeoff } from 'lucide-react'
+import { X, MapPin, Calendar, DollarSign, Utensils, Compass, Plus, Share2, Download, Save, PlaneTakeoff, Car, Bike, Train, Plane, Bus } from 'lucide-react'
 import { formatLocationDisplay } from '@/lib/utils/locationFormatter'
 import Image from 'next/image'
 import { useAuth } from '@/hooks/useAuth'
@@ -17,6 +17,9 @@ import { AddStopModal } from './AddStopModal'
 import { LocationMiniMap } from './LocationMiniMap'
 import { TripOverviewMap } from './TripOverviewMap'
 import { QuickBookingLinks } from '@/components/locations/QuickBookingLinks'
+import { AnimatedTripReveal } from '@/components/trips/AnimatedTripReveal'
+import { saveAIGeneratedTrip, getTripPreviewData } from '@/lib/services/aiTripConversionService'
+import toast from 'react-hot-toast'
 
 interface planModalProps {
   plan: any
@@ -54,7 +57,11 @@ export function planModal({
   const [hoveredSegment, setHoveredSegment] = useState<number | null>(null)
   const [showAddStopModal, setShowAddStopModal] = useState(false)
   const [addStopBetween, setAddStopBetween] = useState<{ from: string; to: string; fromIndex: number } | null>(null)
-  const { isAuthenticated } = useAuth()
+  const [showMapReveal, setShowMapReveal] = useState(false)
+  const [mapRevealed, setMapRevealed] = useState(false)
+  const [showTripReveal, setShowTripReveal] = useState(false)
+  const [creatingTrip, setCreatingTrip] = useState(false)
+  const { isAuthenticated, user } = useAuth()
   const router = useRouter()
 
   // Helper function to find location image with flexible matching
@@ -272,14 +279,41 @@ export function planModal({
 
   // Create trip - requires authentication
   const handleCreateTrip = async () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user) {
       setShowSignUpPrompt(true)
       return
     }
 
-    // TODO: Implement trip creation in Supabase
-    console.log('Creating trip:', plan)
-    router.push('/dashboard/trips/new')
+    setCreatingTrip(true)
+
+    try {
+      // Save AI-generated trip to database
+      const result = await saveAIGeneratedTrip(plan, user.id, propLocationImages)
+
+      if (!result.success) {
+        toast.error(result.error || 'Failed to create trip')
+        setCreatingTrip(false)
+        return
+      }
+
+      // Show animated trip reveal
+      setShowTripReveal(true)
+
+      // After animation completes, navigate to trips dashboard
+      // The AnimatedTripReveal component will call onAnimationComplete
+    } catch (error) {
+      console.error('Error creating trip:', error)
+      toast.error('Failed to create trip')
+      setCreatingTrip(false)
+    }
+  }
+
+  // Handle trip reveal animation complete
+  const handleTripRevealComplete = () => {
+    setShowTripReveal(false)
+    setCreatingTrip(false)
+    onClose() // Close the itinerary modal
+    router.push('/dashboard/trips') // Navigate to trips dashboard
   }
 
   // Plan another trip
@@ -319,10 +353,10 @@ export function planModal({
           </button>
 
           {/* Header with Title and Timeline */}
-          <div className="bg-gradient-to-br from-gray-50 to-white px-12 pt-6 pb-5 border-b border-gray-200">
+          <div className="bg-gradient-to-br from-gray-50 to-white px-12 pt-4 pb-3 border-b border-gray-200">
             {/* Title and Meta Info */}
-            <div className="mb-5 pr-12">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <div className="mb-3 pr-12">
+              <h1 className="text-2xl font-bold text-gray-900 mb-1.5">
                 {plan.title}
               </h1>
 
@@ -355,6 +389,7 @@ export function planModal({
                     {transportMode === 'train' && '🚂'}
                     {transportMode === 'bike' && '🚴'}
                     {transportMode === 'flight' && '✈️'}
+                    {transportMode === 'bus' && '🚌'}
                     {transportMode === 'mixed' && '🔀'}
                     <span className="capitalize">{transportMode}</span>
                   </div>
@@ -386,14 +421,14 @@ export function planModal({
             </div>
 
             {/* Minimal Dot Timeline - with horizontal scroll for many waypoints */}
-            <div className="relative overflow-x-auto pb-4 -mx-4 px-4">
+            <div className="relative overflow-x-auto pb-2 -mx-4 px-4">
               <div className="relative flex items-center justify-between min-w-max mx-auto" style={{ minWidth: `${Math.max(800, locationGroups.length * 150)}px` }}>
               {/* Connecting Line */}
-              <div className="absolute top-3.5 left-0 right-0 h-0.5 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200" style={{ zIndex: 0 }} />
+              <div className="absolute top-3 left-0 right-0 h-0.5 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200" style={{ zIndex: 0 }} />
 
               {/* Progress Line */}
               <div
-                className="absolute top-3.5 left-0 h-0.5 bg-gradient-to-r from-teal-400 to-teal-500 transition-all duration-700 ease-out"
+                className="absolute top-3 left-0 h-0.5 bg-gradient-to-r from-teal-400 to-teal-500 transition-all duration-700 ease-out"
                 style={{
                   width: `${(activeLocationIndex / locationGroups.length) * 100}%`,
                   zIndex: 1
@@ -410,12 +445,12 @@ export function planModal({
                   <button
                     key={`location-${index}`}
                     onClick={() => setActiveLocationIndex(index)}
-                    className="relative flex flex-col items-center gap-1.5 group z-10 transition-all"
+                    className="relative flex flex-col items-center gap-1 group z-10 transition-all"
                     style={{ flex: 1 }}
                   >
                     {/* Outer Dot */}
                     <div className={`
-                      w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300
+                      w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300
                       ${isActive
                         ? 'bg-gradient-to-br from-teal-400 to-teal-600 shadow-lg shadow-teal-500/30 scale-110'
                         : isPast
@@ -425,7 +460,7 @@ export function planModal({
                     `}>
                       {/* Inner Dot with Day Count */}
                       <div className={`
-                        w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold transition-all
+                        w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold transition-all
                         ${isActive || isPast
                           ? 'bg-white text-teal-600'
                           : 'bg-gray-200 text-gray-500 group-hover:bg-gray-300'
@@ -509,7 +544,19 @@ export function planModal({
 
               {/* Final Review Step - 10% bigger */}
               <button
-                onClick={() => setActiveLocationIndex(locationGroups.length)}
+                onClick={() => {
+                  // Trigger map reveal animation if not already revealed
+                  if (!mapRevealed && locationCoordinates && Object.keys(locationCoordinates).length > 0) {
+                    setShowMapReveal(true)
+                    setTimeout(() => {
+                      setShowMapReveal(false)
+                      setMapRevealed(true)
+                      setActiveLocationIndex(locationGroups.length)
+                    }, 2000) // Animation duration
+                  } else {
+                    setActiveLocationIndex(locationGroups.length)
+                  }
+                }}
                 className="relative flex flex-col items-center gap-1.5 group z-10 transition-all"
                 style={{ flex: 1 }}
               >
@@ -548,7 +595,7 @@ export function planModal({
           </div> {/* Close header section */}
 
           {/* Content Area */}
-          <div className="bg-white px-12 py-8 flex-1 overflow-y-auto">
+          <div className="bg-white px-12 py-4 flex-1 overflow-y-auto">
             <AnimatePresence mode="wait">
               {activeLocationIndex < locationGroups.length ? (
                 <motion.div
@@ -557,12 +604,12 @@ export function planModal({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="grid grid-cols-1 lg:grid-cols-2 gap-5"
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-4"
                 >
                   {/* Left: Location Card */}
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {/* Hero Image */}
-                    <div className="relative h-52 rounded-xl overflow-hidden">
+                    <div className="relative h-48 rounded-xl overflow-hidden">
                       <Image
                         src={getLocationImage(currentLocation.location)}
                         alt={currentLocation.location}
@@ -577,12 +624,22 @@ export function planModal({
                       <h2 className="text-xl font-bold text-gray-900 mb-1">
                         Welcome to {formatLocationDisplay(currentLocation.location).main}
                       </h2>
-                      <p className="text-sm text-gray-600 mb-2 leading-relaxed">
+                      <p className="text-sm text-gray-600 mb-1.5 leading-relaxed">
                         Your adventure begins in the City of Lights! Spend {currentLocation.days.length} magical day{currentLocation.days.length > 1 ? 's' : ''} exploring its history and romance.
                       </p>
                       <p className="text-xs text-gray-500">
                         {formatDateRange(currentLocation.startDate, currentLocation.endDate)}
                       </p>
+
+                      {/* Did You Know? Fact */}
+                      {currentLocation.days[0]?.didYouKnow && (
+                        <div className="mt-2 p-2.5 bg-blue-50 border-l-3 border-blue-400 rounded-r-lg">
+                          <p className="text-xs font-semibold text-blue-900 mb-0.5">💡 Did You Know?</p>
+                          <p className="text-xs text-blue-800 leading-relaxed">
+                            {currentLocation.days[0].didYouKnow}
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Activities */}
@@ -670,7 +727,7 @@ export function planModal({
                   </div>
 
                   {/* Right: Location Mini Map (replaces "My Journey So Far") */}
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {/* Location Mini Map */}
                     {(() => {
                       // Find coordinates with flexible matching
@@ -687,8 +744,8 @@ export function planModal({
                       }
 
                       return (
-                        <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl p-4">
-                          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl p-3">
+                          <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-teal-600" />
                             Location Map
                           </h3>
@@ -696,7 +753,7 @@ export function planModal({
                             locationName={currentLocation.location}
                             latitude={coords.latitude}
                             longitude={coords.longitude}
-                            className="h-64 w-full rounded-lg overflow-hidden shadow-md"
+                            className="h-56 w-full rounded-lg overflow-hidden shadow-md"
                           />
                         </div>
                       )
@@ -741,20 +798,41 @@ export function planModal({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="py-8"
+                  className="py-2"
                 >
-                  <div className="text-center mb-8">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-3">Your Journey Awaits!</h2>
+                  {/* Animated Vehicle - Full Width */}
+                  <div className="relative h-8 mb-4 overflow-hidden -mx-12 z-0" style={{ marginTop: '-15px' }}>
+                    <motion.div
+                      initial={{ x: '-10%' }}
+                      animate={{ x: 'calc(100vw + 10%)' }}
+                      transition={{
+                        duration: 7,
+                        repeat: Infinity,
+                        ease: 'linear'
+                      }}
+                      className="absolute top-1/2 -translate-y-1/2 z-0"
+                    >
+                      {transportMode === 'bike' && <Bike className="h-6 w-6 text-teal-500" />}
+                      {transportMode === 'car' && <Car className="h-6 w-6 text-teal-500" />}
+                      {transportMode === 'train' && <Train className="h-6 w-6 text-teal-500" />}
+                      {transportMode === 'plane' && <Plane className="h-6 w-6 text-teal-500" />}
+                      {transportMode === 'bus' && <Bus className="h-6 w-6 text-teal-500" />}
+                      {!transportMode && <Car className="h-6 w-6 text-teal-500" />}
+                    </motion.div>
+                  </div>
+
+                  <div className="text-center mb-4 relative z-10">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Your Journey Awaits!</h2>
                     <p className="text-sm text-gray-600 max-w-2xl mx-auto">
                       You've planned an amazing {plan.stats?.totalDays || plan.days.length}-day adventure across {locationGroups.length} incredible destinations.
                     </p>
                   </div>
 
                   {/* Location Images Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6 relative z-10">
                     {locationGroups.map((group: any, index: number) => (
                       <div key={index} className="relative group cursor-pointer" onClick={() => setActiveLocationIndex(index)}>
-                        <div className="relative h-40 rounded-xl overflow-hidden">
+                        <div className="relative h-36 rounded-xl overflow-hidden">
                           <Image
                             src={getLocationImage(group.location)}
                             alt={group.location}
@@ -777,33 +855,33 @@ export function planModal({
                   </div>
 
                   {/* Stats Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto mb-8">
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <Calendar className="h-6 w-6 text-teal-500 mx-auto mb-1.5" />
-                      <div className="text-xl font-bold text-gray-900">{plan.stats?.totalDays || plan.days.length}</div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto mb-6 relative z-10">
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <Calendar className="h-5 w-5 text-teal-500 mx-auto mb-1" />
+                      <div className="text-lg font-bold text-gray-900">{plan.stats?.totalDays || plan.days.length}</div>
                       <div className="text-xs text-gray-600">Days</div>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <MapPin className="h-6 w-6 text-teal-500 mx-auto mb-1.5" />
-                      <div className="text-xl font-bold text-gray-900">{locationGroups.length}</div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <MapPin className="h-5 w-5 text-teal-500 mx-auto mb-1" />
+                      <div className="text-lg font-bold text-gray-900">{locationGroups.length}</div>
                       <div className="text-xs text-gray-600">Locations</div>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <Compass className="h-6 w-6 text-teal-500 mx-auto mb-1.5" />
-                      <div className="text-xl font-bold text-gray-900">{totalActivities}</div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <Compass className="h-5 w-5 text-teal-500 mx-auto mb-1" />
+                      <div className="text-lg font-bold text-gray-900">{totalActivities}</div>
                       <div className="text-xs text-gray-600">Activities</div>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <DollarSign className="h-6 w-6 text-teal-500 mx-auto mb-1.5" />
-                      <div className="text-xl font-bold text-gray-900">${totalCost}</div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <DollarSign className="h-5 w-5 text-teal-500 mx-auto mb-1" />
+                      <div className="text-lg font-bold text-gray-900">${totalCost}</div>
                       <div className="text-xs text-gray-600">Total Cost</div>
                     </div>
                   </div>
 
                   {/* Trip Overview Map */}
                   {locationCoordinates && Object.keys(locationCoordinates).length > 0 && (
-                    <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl p-6 mb-8 max-w-3xl mx-auto">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl p-4 mb-6 max-w-3xl mx-auto relative z-10">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-teal-600" />
                         {locationGroups.length > 1 ? 'Your Trip Route' : 'Your Destination'}
                       </h3>
@@ -823,8 +901,8 @@ export function planModal({
 
                   {/* Fallback: Simple route visualization if no coordinates */}
                   {(!locationCoordinates || Object.keys(locationCoordinates).length === 0) && locationGroups.length > 0 && (
-                    <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl p-6 mb-8 max-w-3xl mx-auto">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl p-4 mb-6 max-w-3xl mx-auto relative z-10">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-teal-600" />
                         Your Route
                       </h3>
@@ -858,8 +936,9 @@ export function planModal({
           </div>
 
           {/* Footer Actions */}
-          <div className="bg-white border-t border-gray-200 px-12 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="bg-white border-t border-gray-200 px-4 md:px-12 py-4 pb-20 md:pb-4 flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-0 justify-between">
+            {/* Action Buttons - Hidden on mobile, shown on desktop */}
+            <div className="hidden md:flex items-center gap-2">
               <button
                 onClick={() => {
                   if (navigator.share) {
@@ -893,12 +972,24 @@ export function planModal({
                 Plan Another Trip
               </button>
             </div>
+
+            {/* Primary CTA - Full width on mobile */}
             <button
               onClick={handleCreateTrip}
-              className="px-5 py-2 bg-teal-500 text-white rounded-lg text-sm font-semibold hover:bg-teal-600 transition-colors shadow-lg flex items-center gap-2"
+              disabled={creatingTrip}
+              className="w-full md:w-auto px-5 py-3 md:py-2 bg-teal-500 text-white rounded-lg text-sm font-semibold hover:bg-teal-600 transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Save className="h-4 w-4" />
-              {isAuthenticated ? 'Create Trip' : 'Sign Up to Save'}
+              {creatingTrip ? (
+                <>
+                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  {isAuthenticated ? 'Create Trip' : 'Sign Up to Save'}
+                </>
+              )}
             </button>
           </div>
         </motion.div>
@@ -950,6 +1041,56 @@ export function planModal({
           fromLocation={addStopBetween.from}
           toLocation={addStopBetween.to}
           onAddStop={handleAddStop}
+        />
+      )}
+
+      {/* Map Reveal Animation */}
+      <AnimatePresence>
+        {showMapReveal && locationCoordinates && Object.keys(locationCoordinates).length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.8, y: -100, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 800, opacity: 0 }}
+              transition={{
+                type: "spring",
+                damping: 25,
+                stiffness: 200,
+                duration: 0.8
+              }}
+              className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl p-6 shadow-2xl max-w-3xl w-full mx-4"
+            >
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2 justify-center">
+                <MapPin className="h-5 w-5 text-teal-600" />
+                {locationGroups.length > 1 ? 'Your Trip Route' : 'Your Destination'}
+              </h3>
+              <TripOverviewMap
+                locations={locationGroups
+                  .filter((group: any) => locationCoordinates[group.location])
+                  .map((group: any) => ({
+                    name: group.location,
+                    latitude: locationCoordinates[group.location].latitude,
+                    longitude: locationCoordinates[group.location].longitude
+                  }))}
+                transportMode={transportMode as any}
+                className="h-96 w-full rounded-lg overflow-hidden shadow-lg"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Animated Trip Reveal */}
+      {showTripReveal && (
+        <AnimatedTripReveal
+          isOpen={showTripReveal}
+          tripPreview={getTripPreviewData(plan, propLocationImages)}
+          onAnimationComplete={handleTripRevealComplete}
         />
       )}
     </>

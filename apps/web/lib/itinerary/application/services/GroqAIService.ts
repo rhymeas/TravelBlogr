@@ -17,7 +17,7 @@ export interface AIGenerationContext {
   interests: string[]
   budget: 'budget' | 'moderate' | 'luxury'
   maxTravelHoursPerDay?: number // User preference for max travel time per day
-  transportMode?: 'car' | 'train' | 'bike' | 'flight' | 'mixed' // Transport mode preference
+  transportMode?: 'car' | 'train' | 'bike' | 'flight' | 'bus' | 'mixed' // Transport mode preference
   locationsData: Array<{
     name: string
     slug: string
@@ -467,7 +467,7 @@ OUTPUT SCHEMA - MUST BE VALID JSON OBJECT (not array):
     {
       "day": 1,
       "date": "${startDate}",
-      "location": "Location name from list above",
+      "location": "Location name from list above (JUST the city/place name, NOT 'Travel to X')",
       "locationMetadata": {
         "name": "Full location name",
         "country": "Country name",
@@ -494,12 +494,13 @@ OUTPUT SCHEMA - MUST BE VALID JSON OBJECT (not array):
           "description": "Meal description",
           "costEstimate": 30
         }
-      ]
+      ],
+      "didYouKnow": "One interesting fact about this location (history, culture, or fun fact)"
     },
     {
       "day": 2,
       "date": "Next day date",
-      "location": "Next location name",
+      "location": "Next location name (JUST the city/place name, NOT 'Travel to X')",
       "locationMetadata": {
         "name": "Full location name",
         "country": "Country name",
@@ -542,6 +543,12 @@ LOCATION METADATA REQUIREMENTS (CRITICAL):
 - "country" MUST be the official country name (e.g., "United States", "Timor-Leste", "France")
 - "latitude" and "longitude" MUST be accurate decimal coordinates for the location (e.g., 40.7128, -74.0060 for New York)
 - Use your geographic knowledge to provide accurate continent, region, and coordinate data
+
+LOCATION NAME REQUIREMENTS (CRITICAL):
+- The "location" field MUST contain ONLY the city/place name (e.g., "Paris", "Rome", "Tokyo")
+- NEVER use phrases like "Travel to Paris" or "Journey to Rome" in the location field
+- For travel days, the location should be the DESTINATION city, not "Travel to X"
+- Example: ✅ "location": "Paris" | ❌ "location": "Travel to Paris"
 
 TRAVEL ITEM REQUIREMENTS:
 - "duration" for travel items MUST be a STRING like "3h 30min", "2h 15min", "45min" (NOT a number)
@@ -588,6 +595,13 @@ IMPORTANT:
 - Include travel time between activities (15-30 min in same city)
 - Don't schedule more than 8-9 hours of activities per day
 - Leave buffer time for rest and spontaneous exploration
+
+DID YOU KNOW FACTS:
+- For each "stay" day, include ONE interesting fact in the "didYouKnow" field
+- Make it surprising, educational, or useful for travelers
+- Keep it concise (1-2 sentences)
+- Examples: "Tokyo has over 100 Michelin-starred restaurants, more than any other city" or "The Eiffel Tower was meant to be temporary, built for the 1889 World's Fair"
+- For "travel" days, you can omit this field or include a fact about the journey
 
 Generate the plan now:`
   }

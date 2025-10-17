@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Card } from '@/components/ui/Card'
 import { SmartImage as Image } from '@/components/ui/SmartImage'
 import Link from 'next/link'
@@ -81,8 +81,8 @@ export function GalleryView({ guides }: GalleryViewProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {guides.map((guide, index) => {
             return (
-              <>
-                <Link key={guide.id} href={`/trips-library/${guide.slug}`}>
+              <React.Fragment key={guide.id}>
+                <Link href={`/trips-library/${guide.slug}`}>
                   <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 group h-full flex flex-col">
                   {/* Image */}
                   <div className="relative w-full aspect-[4/3] flex-shrink-0 overflow-hidden">
@@ -167,12 +167,11 @@ export function GalleryView({ guides }: GalleryViewProps) {
               {/* In-feed ad with custom pattern: 5-6-4-6-5-4-3-7-5-4 */}
               {shouldShowTripsLibraryAd(index) && (
                 <InFeedAd
-                  key={`ad-${index}`}
                   slot="trips_library_infeed"
                   page="trips-library"
                 />
               )}
-            </>
+            </React.Fragment>
             )
           })}
         </div>

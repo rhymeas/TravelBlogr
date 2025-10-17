@@ -14,10 +14,12 @@ import { ImageAttribution, getImageAttribution } from '@/components/ui/ImageAttr
 import { formatLocationName } from '@/lib/utils/locationFormatter'
 import {
   MapPin, Star, Eye, Heart, Calendar,
-  Users, Camera, Clock, ArrowRight
+  Users, Camera, Clock, ArrowRight, MoreVertical, Edit, Trash2
 } from 'lucide-react'
 import { InFeedAd } from '@/components/ads/InFeedAd'
 import { shouldShowInFeedAd } from '@/lib/utils/adHelpers'
+import { useAuth } from '@/hooks/useAuth'
+import { LocationEditModal } from '@/components/admin/LocationEditModal'
 
 interface Location {
   id: string
@@ -55,7 +57,11 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [displayedCount, setDisplayedCount] = useState(LOCATIONS_PER_PAGE)
   const [isLoading, setIsLoading] = useState(false)
+  const [editingLocation, setEditingLocation] = useState<Location | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
   const loadMoreRef = useRef<HTMLDivElement>(null)
+  const { profile } = useAuth()
+  const isAdmin = (profile as any)?.role === 'admin'
 
   // Infinite scroll: Load more when user scrolls near bottom
   useEffect(() => {
@@ -94,6 +100,11 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
     )
   }
 
+  const handleUpdate = () => {
+    setRefreshKey(prev => prev + 1)
+    // Trigger parent refresh if needed
+  }
+
   return (
     <div className="space-y-6">
       {/* View Mode Toggle */}
@@ -101,7 +112,7 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
         <p className="text-sm text-gray-600">
           Showing {displayedCount} of {locations.length} location{locations.length !== 1 ? 's' : ''}
         </p>
-        
+
         <div className="flex items-center gap-2">
           <Button
             variant={viewMode === 'grid' ? 'default' : 'outline'}
@@ -125,7 +136,13 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {displayedLocations.map((location, index) => (
             <>
-              <LocationCard key={location.id} location={location} priority={index < 8} />
+              <LocationCard
+                key={`${location.id}-${refreshKey}`}
+                location={location}
+                priority={index < 8}
+                isAdmin={isAdmin}
+                onEdit={() => setEditingLocation(location)}
+              />
               {/* In-feed ad alternating 5-4-5-4 pattern */}
               {shouldShowInFeedAd(index) && (
                 <InFeedAd
@@ -143,7 +160,13 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
       {viewMode === 'list' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {displayedLocations.map((location, index) => (
-            <LocationListItem key={location.id} location={location} priority={index < 6} />
+            <LocationListItem
+              key={`${location.id}-${refreshKey}`}
+              location={location}
+              priority={index < 6}
+              isAdmin={isAdmin}
+              onEdit={() => setEditingLocation(location)}
+            />
           ))}
         </div>
       )}
@@ -168,46 +191,113 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
           ✨ You've seen all {locations.length} locations!
         </div>
       )}
+
+      {/* Admin Edit Modal */}
+      {editingLocation && (
+        <LocationEditModal
+          isOpen={true}
+          onClose={() => setEditingLocation(null)}
+          location={editingLocation}
+          onUpdate={handleUpdate}
+        />
+      )}
     </div>
   )
 }
 
-function LocationCard({ location, priority = false }: { location: Location; priority?: boolean }) {
+function LocationCard({
+  location,
+  priority = false,
+  isAdmin = false,
+  onEdit
+}: {
+  location: Location
+  priority?: boolean
+  isAdmin?: boolean
+  onEdit?: () => void
+}) {
+  const [showMenu, setShowMenu] = useState(false)
   const latestPost = location.location_posts?.[0]
   const formatted = formatLocationName(location.name)
 
   return (
-    <Link href={`/locations/${location.slug}`} className="group block">
-      <div className="card-elevated hover:shadow-airbnb-large transition-all duration-300 overflow-hidden">
-        {/* Featured Image */}
-        <div className="relative aspect-[4/3] overflow-hidden">
-          <OptimizedImage
-            src={location.featured_image || '/placeholder-location.jpg'}
-            alt={location.name}
-            fill
-            preset="card"
-            priority={priority}
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
-          />
+    <div className="group block relative">
+      <Link href={`/locations/${location.slug}`}>
+        <div className="card-elevated hover:shadow-airbnb-large transition-all duration-300 overflow-hidden">
+          {/* Featured Image */}
+          <div className="relative aspect-[4/3] overflow-hidden">
+            <OptimizedImage
+              src={location.featured_image || '/placeholder-location.jpg'}
+              alt={location.name}
+              fill
+              preset="card"
+              priority={priority}
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
+            />
 
-          {/* Heart Button */}
-          <button
-            className="absolute top-3 left-3 w-8 h-8 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center text-airbnb-dark-gray hover:text-rausch-500 transition-colors shadow-airbnb-light"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              // Handle favorite toggle
-            }}
-          >
-            <Heart className="h-4 w-4" />
-          </button>
+            {/* Heart Button */}
+            <button
+              className="absolute top-3 left-3 w-8 h-8 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center text-airbnb-dark-gray hover:text-rausch-500 transition-colors shadow-airbnb-light"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                // Handle favorite toggle
+              }}
+            >
+              <Heart className="h-4 w-4" />
+            </button>
 
-          {/* Rating Badge */}
-          <div className="absolute top-3 right-3">
-            <div className="bg-white/95 backdrop-blur-sm rounded-airbnb-small px-3 py-1 text-body-small font-semibold text-airbnb-black shadow-airbnb-light">
-              {location.rating ? `★ ${location.rating}` : 'New'}
-            </div>
-          </div>
+            {/* Admin Three-Dots Menu */}
+            {isAdmin && (
+              <div className="absolute top-3 right-3">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setShowMenu(!showMenu)
+                  }}
+                  className="w-8 h-8 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-700 hover:bg-white transition-colors shadow-lg"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </button>
+
+                {showMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        setShowMenu(false)
+                      }}
+                    />
+                    <div className="absolute right-0 top-10 w-40 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setShowMenu(false)
+                          onEdit?.()
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit Location
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Rating Badge */}
+            {!isAdmin && (
+              <div className="absolute top-3 right-3">
+                <div className="bg-white/95 backdrop-blur-sm rounded-airbnb-small px-3 py-1 text-body-small font-semibold text-airbnb-black shadow-airbnb-light">
+                  {location.rating ? `★ ${location.rating}` : 'New'}
+                </div>
+              </div>
+            )}
 
           {/* Stats Overlay */}
           <div className="absolute bottom-3 right-3 flex gap-2">
@@ -277,17 +367,29 @@ function LocationCard({ location, priority = false }: { location: Location; prio
             </Button>
           </div>
         </div>
-      </div>
-    </Link>
+        </div>
+      </Link>
+    </div>
   )
 }
 
-function LocationListItem({ location, priority = false }: { location: Location; priority?: boolean }) {
+function LocationListItem({
+  location,
+  priority = false,
+  isAdmin = false,
+  onEdit
+}: {
+  location: Location
+  priority?: boolean
+  isAdmin?: boolean
+  onEdit?: () => void
+}) {
+  const [showMenu, setShowMenu] = useState(false)
   const latestPost = location.location_posts?.[0]
   const formatted = formatLocationName(location.name)
 
   return (
-    <Card className="hover:shadow-md transition-shadow duration-200">
+    <Card className="hover:shadow-md transition-shadow duration-200 relative">
       <div className="flex">
         {/* Image - Reduced from w-48 to w-32 */}
         <div className="relative w-32 h-24 flex-shrink-0">
@@ -328,20 +430,63 @@ function LocationListItem({ location, priority = false }: { location: Location; 
             </div>
 
             <div className="flex items-center gap-2 text-xs text-gray-500 ml-2">
-              {location.rating && (
+              {!isAdmin && location.rating && (
                 <div className="flex items-center gap-1">
                   <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                   <span>{location.rating}</span>
                 </div>
               )}
-              <div className="flex items-center gap-1">
-                <Eye className="h-3 w-3" />
-                <span>{location.visit_count}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Camera className="h-3 w-3" />
-                <span>{location.gallery_images?.length || 0}</span>
-              </div>
+              {!isAdmin && (
+                <>
+                  <div className="flex items-center gap-1">
+                    <Eye className="h-3 w-3" />
+                    <span>{location.visit_count}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Camera className="h-3 w-3" />
+                    <span>{location.gallery_images?.length || 0}</span>
+                  </div>
+                </>
+              )}
+
+              {/* Admin Menu */}
+              {isAdmin && (
+                <div className="relative">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setShowMenu(!showMenu)
+                    }}
+                    className="p-1 hover:bg-gray-100 rounded transition-colors"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+
+                  {showMenu && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowMenu(false)}
+                      />
+                      <div className="absolute right-0 top-8 w-40 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setShowMenu(false)
+                            onEdit?.()
+                          }}
+                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit Location
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

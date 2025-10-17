@@ -14,11 +14,21 @@ import { TravelTimeSlider } from './TravelTimeSlider'
 import { TransportModeSelector, type TransportMode } from './TransportModeSelector'
 import { planModal as PlanModal } from './ItineraryModal'
 import { LoadingModal } from './LoadingModal'
-import { ChevronDown, ChevronUp, Map as MapIcon } from 'lucide-react'
+import { SignInModal } from '@/components/auth/SignInModal'
+import { ChevronDown, ChevronUp, Map as MapIcon, Shield, Sparkles, Info } from 'lucide-react'
 import maplibregl from 'maplibre-gl'
+import { useAuth } from '@/hooks/useAuth'
+import {
+  savePlanningFormData,
+  getPlanningFormData,
+  clearPlanningFormData
+} from '@/lib/utils/planningFormStorage'
+import toast from 'react-hot-toast'
 
 export function ItineraryGenerator() {
   const searchParams = useSearchParams()
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
+  const [showPlanningAuthModal, setShowPlanningAuthModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const [plan, setPlan] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
@@ -54,6 +64,42 @@ export function ItineraryGenerator() {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
   const markers = useRef<maplibregl.Marker[]>([])
+
+  // Restore saved form data on mount (after login/signup)
+  useEffect(() => {
+    const savedData = getPlanningFormData()
+    if (savedData) {
+      console.log('🔄 Restoring saved planning form data:', savedData)
+
+      // Restore locations
+      if (savedData.locations && savedData.locations.length > 0) {
+        setLocations(savedData.locations.map((loc, index) => ({
+          id: (index + 1).toString(),
+          value: loc.value,
+          latitude: loc.coordinates?.lat,
+          longitude: loc.coordinates?.lng
+        })))
+      }
+
+      // Restore dates
+      if (savedData.startDate && savedData.endDate) {
+        setDateRange({
+          startDate: new Date(savedData.startDate),
+          endDate: new Date(savedData.endDate)
+        })
+      }
+
+      // Restore pro mode
+      if (savedData.proMode !== undefined) {
+        setProMode(savedData.proMode)
+      }
+
+      toast.success('Your trip details have been restored!')
+
+      // Clear saved data after restoring
+      clearPlanningFormData()
+    }
+  }, [])
 
   // Prefill destination from URL parameter
   useEffect(() => {
@@ -444,7 +490,7 @@ export function ItineraryGenerator() {
   }, [mapLocations])
 
   const handleGenerate = async () => {
-    // Validation
+    // Validation first
     const filledLocations = locations.filter(loc => loc.value.trim())
     if (filledLocations.length < 2) {
       setError('Please enter at least a starting location and destination')
@@ -453,6 +499,31 @@ export function ItineraryGenerator() {
 
     if (!dateRange) {
       setError('Please select travel dates')
+      return
+    }
+
+    // Check authentication - save form data before showing modal
+    if (!isAuthenticated) {
+      // Save form data to localStorage
+      savePlanningFormData({
+        locations: filledLocations.map(loc => ({
+          value: loc.value,
+          label: loc.resolvedName || loc.value,
+          coordinates: loc.latitude && loc.longitude
+            ? { lat: loc.latitude, lng: loc.longitude }
+            : undefined
+        })),
+        startDate: dateRange.startDate.toISOString(),
+        endDate: dateRange.endDate.toISOString(),
+        proMode,
+        preferences: {
+          budget: formData.budget,
+          interests: formData.interests.split(',').map(i => i.trim())
+        }
+      })
+
+      toast.success('Your trip details have been saved!')
+      setShowPlanningAuthModal(true)
       return
     }
 
@@ -483,13 +554,18 @@ export function ItineraryGenerator() {
         requestBody.maxTravelHoursPerDay = travelHoursPerDay
       }
 
+      console.log('🚀 Sending request to API:', requestBody)
+
       const response = await fetch('/api/itineraries/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
       })
 
+      console.log('📡 API Response status:', response.status)
+
       const data = await response.json()
+      console.log('📦 API Response data:', data)
 
       if (data.success) {
         setPlan(data.data)
@@ -564,40 +640,112 @@ export function ItineraryGenerator() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6">
           {/* Left: Form */}
           <div>
-            {/* Header - Compact with Pro Toggle */}
-            <div className="mb-6 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-semibold">Plan your trip</h1>
-                <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                  proMode
-                    ? 'bg-purple-100 text-purple-700'
-                    : 'bg-gray-100 text-gray-700'
-                }`}>
-                  {proMode ? 'Plus' : 'Basic'}
-                </span>
+            {/* Header - Mobile-Optimized Hero Section */}
+            <div className="mb-6">
+              {/* Mobile: Stacked Layout */}
+              <div className="lg:hidden">
+                {/* Title */}
+                <h1 className="text-2xl font-bold text-gray-900 mb-4">
+                  Plan your trip
+                </h1>
+
+                {/* Planner Plus Toggle Card */}
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-4 border border-purple-100 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-semibold text-gray-900">Planner Plus</span>
+                        <span className="px-2 py-0.5 bg-purple-500 text-white text-[10px] font-bold rounded-full">
+                          BETA
+                        </span>
+                        <div className="group relative">
+                          <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                          <div className="absolute left-0 top-6 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                            <div className="font-semibold mb-1">✨ Plus Benefits:</div>
+                            <ul className="space-y-1 text-gray-300">
+                              <li>• Advanced AI reasoning model</li>
+                              <li>• Detailed route optimization</li>
+                              <li>• Better activity suggestions</li>
+                              <li>• Enhanced travel times</li>
+                            </ul>
+                            <div className="mt-2 pt-2 border-t border-gray-700 text-gray-400">
+                              Takes 10-15s longer to generate
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-600">
+                        {proMode ? 'Advanced AI planning enabled' : 'Get smarter recommendations'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setProMode(!proMode)}
+                      className={`
+                        relative w-12 h-7 rounded-full transition-colors flex-shrink-0
+                        ${proMode ? 'bg-purple-500' : 'bg-gray-300'}
+                      `}
+                      aria-label={proMode ? 'Disable Planner Plus' : 'Enable Planner Plus'}
+                    >
+                      <div className={`
+                        absolute top-1 w-5 h-5 bg-white rounded-full shadow-md transition-transform
+                        ${proMode ? 'translate-x-6' : 'translate-x-1'}
+                      `} />
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              {/* Planner Plus BETA Toggle */}
-              <div className="flex items-center gap-3 pr-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-700">Planner Plus</span>
-                  <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded-full">
-                    BETA
+              {/* Desktop: Original Horizontal Layout */}
+              <div className="hidden lg:flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl font-semibold">Plan your trip</h1>
+                  <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                    proMode
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'bg-gray-100 text-gray-700'
+                  }`}>
+                    {proMode ? 'Plus' : 'Basic'}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setProMode(!proMode)}
-                  className={`
-                    relative w-11 h-6 rounded-full transition-colors
-                    ${proMode ? 'bg-purple-500' : 'bg-gray-300'}
-                  `}
-                >
-                  <div className={`
-                    absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform
-                    ${proMode ? 'translate-x-5' : 'translate-x-0.5'}
-                  `} />
-                </button>
+
+                {/* Planner Plus BETA Toggle */}
+                <div className="flex items-center gap-3 pr-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-700">Planner Plus</span>
+                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded-full">
+                      BETA
+                    </span>
+                    <div className="group relative">
+                      <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                      <div className="absolute right-0 top-6 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                        <div className="font-semibold mb-1">✨ Plus Benefits:</div>
+                        <ul className="space-y-1 text-gray-300">
+                          <li>• Advanced AI reasoning model</li>
+                          <li>• Detailed route optimization</li>
+                          <li>• Better activity suggestions</li>
+                          <li>• Enhanced travel times</li>
+                        </ul>
+                        <div className="mt-2 pt-2 border-t border-gray-700 text-gray-400">
+                          Takes 10-15s longer to generate
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setProMode(!proMode)}
+                    className={`
+                      relative w-11 h-6 rounded-full transition-colors
+                      ${proMode ? 'bg-purple-500' : 'bg-gray-300'}
+                    `}
+                  >
+                    <div className={`
+                      absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform
+                      ${proMode ? 'translate-x-5' : 'translate-x-0.5'}
+                    `} />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -654,6 +802,7 @@ export function ItineraryGenerator() {
                   {transportMode === 'flight' && '✈️ Flight'}
                   {transportMode === 'train' && '🚂 Train'}
                   {transportMode === 'bike' && '🚴 Bike'}
+                  {transportMode === 'bus' && '🚌 Bus'}
                   {transportMode === 'mixed' && '🔄 Mixed'}
                 </span>
 
@@ -686,13 +835,17 @@ export function ItineraryGenerator() {
 
             </div>
 
-            {/* Floating Sticky CTA Button */}
+            {/* Floating Sticky CTA Button - Mobile Safe Area Aware + Bottom Nav Bar */}
             <div
               className="fixed left-0 lg:left-auto lg:right-[42%] z-40 px-6 pointer-events-none transition-all duration-300 ease-out"
-              style={{ bottom: `${ctaBottomOffset}px` }}
+              style={{
+                // Desktop: use ctaBottomOffset
+                // Mobile: add 64px (bottom nav height) + safe area
+                bottom: `max(${ctaBottomOffset}px, calc(64px + env(safe-area-inset-bottom)))`,
+              }}
             >
               <div className="max-w-[800px] lg:max-w-[500px] mx-auto">
-                <div className="bg-white rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-gray-200 py-4 pl-6 pr-6 pointer-events-auto flex items-center justify-between gap-4">
+                <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-gray-200 py-4 pl-6 pr-6 pointer-events-auto flex items-center justify-between gap-4">
                   {/* Secondary Gray CTA */}
                   <Button
                     onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -887,6 +1040,37 @@ export function ItineraryGenerator() {
           </div>
         </div>
       )}
+
+      {/* Planning Auth Modal - Reusing SignInModal with custom hero */}
+      <SignInModal
+        isOpen={showPlanningAuthModal}
+        onClose={(userSignedIn) => {
+          setShowPlanningAuthModal(false)
+          if (userSignedIn) {
+            // Form data will be restored by the useEffect on mount
+            // Trigger generation after a short delay to allow state to update
+            setTimeout(() => {
+              handleGenerate()
+            }, 500)
+          }
+        }}
+        heroContent={{
+          title: "Your Trip Plan is Waiting!",
+          subtitle: "Sign in to unlock AI-powered itinerary generation and save your perfect trip.",
+          features: [
+            {
+              icon: <Shield className="h-5 w-5" />,
+              title: "Your Input is Saved",
+              description: "We've saved your locations and dates - you won't lose anything!"
+            },
+            {
+              icon: <Sparkles className="h-5 w-5" />,
+              title: "15 Free Credits",
+              description: "New users get 10 regular plans + 5 pro mode AI generations and 2 manual trip plans for free"
+            }
+          ]
+        }}
+      />
     </div>
   )
 }

@@ -1,0 +1,26 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with rounded corners for iOS -->
+  <rect width="180" height="180" rx="40" fill="#2C5F6F"/>
+  
+  <!-- Paper Plane Icon - Rotated 160 degrees, centered and scaled -->
+  <g transform="translate(90, 90) rotate(160) translate(-45, -45)">
+    <!-- Plane outline -->
+    <path
+      d="M5 75 L45 5 L85 75 L45 62 L5 75 Z"
+      stroke="white"
+      strokeWidth="6"
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <!-- Inner lines -->
+    <path
+      d="M45 5 L45 62 M45 62 L28 68"
+      stroke="white"
+      strokeWidth="6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </g>
+</svg>
+

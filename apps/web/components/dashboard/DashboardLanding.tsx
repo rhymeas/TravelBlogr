@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import {
   Plus,
@@ -31,12 +31,28 @@ export function DashboardLanding() {
   const { user, profile } = useAuth()
   const [recentTrips, setRecentTrips] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const adLoadedRef = useRef(false)
 
   useEffect(() => {
     if (user) {
       fetchRecentTrips()
     }
   }, [user])
+
+  // Initialize Google Ads - only once
+  useEffect(() => {
+    // Skip if already loaded or in development strict mode double-render
+    if (adLoadedRef.current) return
+
+    try {
+      if (typeof window !== 'undefined' && (window as any).adsbygoogle) {
+        ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({})
+        adLoadedRef.current = true
+      }
+    } catch (error) {
+      console.error('Error loading ad:', error)
+    }
+  }, [])
 
   const fetchRecentTrips = async () => {
     try {
@@ -78,163 +94,262 @@ export function DashboardLanding() {
   }
 
   return (
-    <div className="min-h-screen bg-airbnb-background-secondary">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h1 className="text-display-medium text-airbnb-black mb-2">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30">
+      <div className="mx-auto max-w-6xl px-4 lg:px-6 py-6">
+        {/* Welcome Section - Compact */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">
             {getGreeting()}, {profile?.full_name?.split(' ')[0] || 'Traveler'}!
           </h1>
-          <p className="text-body-large text-airbnb-dark-gray">
-            Ready to share your next adventure? Your travel stories inspire others to explore the world.
+          <p className="text-sm text-gray-600">
+            Ready to share your next adventure?
           </p>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="card-elevated p-6 hover:shadow-airbnb-large transition-all duration-300">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-rausch-500 rounded-airbnb-medium flex items-center justify-center">
-                <Plus className="h-6 w-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-title-small text-airbnb-black mb-1">Create New Trip</h3>
-                <p className="text-body-medium text-airbnb-gray">Start documenting your latest adventure</p>
-              </div>
-              <Button asChild className="btn-primary">
-                <Link href="/dashboard/trips/new">
-                  Create
-                </Link>
-              </Button>
-            </div>
-          </Card>
-
-          <Card className="card-elevated p-6 hover:shadow-airbnb-large transition-all duration-300">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-500 rounded-airbnb-medium flex items-center justify-center">
-                <Camera className="h-6 w-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-title-small text-airbnb-black mb-1">Upload Media</h3>
-                <p className="text-body-medium text-airbnb-gray">Add photos and videos to your trips</p>
-              </div>
-              <Button asChild variant="outline" className="btn-secondary">
-                <Link href="/dashboard/media">
-                  Upload
-                </Link>
-              </Button>
-            </div>
-          </Card>
-
-          <Card className="card-elevated p-6 hover:shadow-airbnb-large transition-all duration-300">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-green-500 rounded-airbnb-medium flex items-center justify-center">
-                <Users className="h-6 w-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-title-small text-airbnb-black mb-1">Explore Feed</h3>
-                <p className="text-body-medium text-airbnb-gray">Discover stories from fellow travelers</p>
-              </div>
-              <Button asChild variant="outline" className="btn-secondary">
-                <Link href="/live-feed">
-                  Explore
-                </Link>
-              </Button>
-            </div>
-          </Card>
-        </div>
-
-        {/* Stats Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {quickStats.map((stat, index) => (
-            <Card key={index} className="card-elevated p-4">
-              <div className="flex items-center gap-3">
-                <stat.icon className={`h-5 w-5 ${stat.color}`} />
+        {/* Quick Actions - With Clear CTAs */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Link href="/dashboard/trips/new" className="group">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 h-36 shadow-sm hover:shadow-lg transition-all">
+              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400')] bg-cover bg-center opacity-20"></div>
+              <div className="relative h-full p-4 flex flex-col justify-between">
                 <div>
-                  <div className="text-title-small text-airbnb-black">{stat.value}</div>
-                  <div className="text-body-small text-airbnb-gray">{stat.label}</div>
+                  <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
+                    <Plus className="h-5 w-5 text-white" />
+                  </div>
+                  <h3 className="text-base font-bold text-white mb-1">Create New Trip</h3>
+                  <p className="text-xs text-white/90">Start your next adventure</p>
+                </div>
+                <div className="flex items-center gap-2 text-white font-semibold text-sm group-hover:gap-3 transition-all">
+                  <span>Start Planning</span>
+                  <ArrowRight className="h-4 w-4" />
                 </div>
               </div>
-            </Card>
+            </div>
+          </Link>
+
+          <Link href="/dashboard/media" className="group">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 h-36 shadow-sm hover:shadow-lg transition-all">
+              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1452421822248-d4c2b47f0c81?w=400')] bg-cover bg-center opacity-20"></div>
+              <div className="relative h-full p-4 flex flex-col justify-between">
+                <div>
+                  <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
+                    <Camera className="h-5 w-5 text-white" />
+                  </div>
+                  <h3 className="text-base font-bold text-white mb-1">Upload Media</h3>
+                  <p className="text-xs text-white/90">Add photos & videos</p>
+                </div>
+                <div className="flex items-center gap-2 text-white font-semibold text-sm group-hover:gap-3 transition-all">
+                  <span>Upload Now</span>
+                  <ArrowRight className="h-4 w-4" />
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/live-feed" className="group">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500 to-green-600 h-36 shadow-sm hover:shadow-lg transition-all">
+              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400')] bg-cover bg-center opacity-20"></div>
+              <div className="relative h-full p-4 flex flex-col justify-between">
+                <div>
+                  <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
+                    <Users className="h-5 w-5 text-white" />
+                  </div>
+                  <h3 className="text-base font-bold text-white mb-1">Explore Feed</h3>
+                  <p className="text-xs text-white/90">Discover travel stories</p>
+                </div>
+                <div className="flex items-center gap-2 text-white font-semibold text-sm group-hover:gap-3 transition-all">
+                  <span>Explore Now</span>
+                  <ArrowRight className="h-4 w-4" />
+                </div>
+              </div>
+            </div>
+          </Link>
+        </div>
+
+        {/* Stats Overview - Compact */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          {quickStats.map((stat, index) => (
+            <div key={index} className="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
+              <div className="flex items-center gap-2">
+                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                <div>
+                  <div className="text-lg font-bold text-gray-900">{stat.value}</div>
+                  <div className="text-xs text-gray-500">{stat.label}</div>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
 
-        {/* Recent Trips */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-title-large text-airbnb-black">Your Recent Trips</h2>
-            <Button asChild variant="outline" className="btn-secondary">
-              <Link href="/dashboard/trips" className="flex items-center gap-2">
-                View All
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
+        {/* Recent Trips - 50% Width, 2 Columns */}
+        <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column - Recent Trips */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            {/* Compact Header with Image */}
+            <div className="relative h-16 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
+              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800')] bg-cover bg-center opacity-20"></div>
+              <div className="relative h-full px-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-bold text-white">Your Recent Trips</h2>
+                  <p className="text-xs text-white/80">Continue your travel journey</p>
+                </div>
+                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                  <MapPin className="h-5 w-5 text-white" />
+                </div>
+              </div>
+            </div>
 
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="overflow-hidden">
-                  <div className="animate-pulse">
-                    <div className="w-full aspect-[16/9] bg-gray-200"></div>
-                    <div className="p-4 space-y-3">
-                      <div className="h-5 bg-gray-200 rounded w-3/4"></div>
-                      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                      <div className="flex gap-2 mt-4">
-                        <div className="h-6 bg-gray-200 rounded w-16"></div>
-                        <div className="h-6 bg-gray-200 rounded w-16"></div>
+            {/* Compact Content */}
+            <div className="p-3">
+              {loading ? (
+                <div className="flex items-center justify-center py-6">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                </div>
+              ) : recentTrips.length === 0 ? (
+                <div className="text-center py-6">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <MapPin className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-1">No trips yet</h3>
+                  <p className="text-xs text-gray-600 mb-3">Create your first trip!</p>
+                  <Button asChild size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-8 text-xs">
+                    <Link href="/dashboard/trips/new">
+                      <Plus className="h-3 w-3 mr-1" />
+                      Create Trip
+                    </Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {recentTrips.slice(0, 3).map((trip, index) => (
+                    <Link
+                      key={trip.id}
+                      href={`/dashboard/trips/${trip.id}`}
+                      className="block group"
+                    >
+                      <div className="relative overflow-hidden rounded-lg p-2.5 hover:bg-gray-50 transition-all border border-gray-100 hover:border-blue-200">
+                        <div className="flex items-center gap-2.5">
+                          {/* Smaller Trip Image/Icon */}
+                          <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                            {trip.cover_image ? (
+                              <img
+                                src={trip.cover_image}
+                                alt={trip.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className={`w-full h-full flex items-center justify-center ${
+                                index === 0 ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
+                                index === 1 ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
+                                'bg-gradient-to-br from-pink-500 to-pink-600'
+                              }`}>
+                                <MapPin className="h-5 w-5 text-white" />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Compact Trip Info */}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-xs font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
+                              {trip.title}
+                            </h3>
+                            <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                              <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                                trip.status === 'published'
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                {trip.status === 'published' ? 'Published' : 'Draft'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <ArrowRight className="h-3.5 w-3.5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+
+                  {/* Big "View All Trips" Button */}
+                  <Link href="/dashboard/trips" className="block mt-2">
+                    <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all p-3 shadow-sm hover:shadow-md">
+                      <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400')] bg-cover bg-center opacity-10"></div>
+                      <div className="relative flex items-center justify-center gap-2 text-white">
+                        <span className="text-sm font-bold">View All My Trips</span>
+                        <ArrowRight className="h-4 w-4" />
                       </div>
                     </div>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column - Placeholder for future content */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="relative h-16 bg-gradient-to-r from-orange-500 to-pink-600">
+              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800')] bg-cover bg-center opacity-20"></div>
+              <div className="relative h-full px-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-bold text-white">Quick Stats</h2>
+                  <p className="text-xs text-white/80">Your travel overview</p>
+                </div>
+                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-white" />
+                </div>
+              </div>
+            </div>
+            <div className="p-3 space-y-2">
+              {quickStats.map((stat, index) => (
+                <div key={index} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                    <span className="text-xs font-medium text-gray-700">{stat.label}</span>
                   </div>
-                </Card>
+                  <span className="text-sm font-bold text-gray-900">{stat.value}</span>
+                </div>
               ))}
             </div>
-          ) : recentTrips.length === 0 ? (
-            <Card className="p-12 text-center">
-              <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No trips yet</h3>
-              <p className="text-gray-600 mb-6">Create your first trip to start sharing your travel stories!</p>
-              <Button asChild>
-                <Link href="/dashboard/trips/new">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Your First Trip
-                </Link>
-              </Button>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {recentTrips.map((trip) => (
-                <UnifiedTripCard
-                  key={trip.id}
-                  trip={trip}
-                  context="dashboard"
-                />
-              ))}
-            </div>
-          )}
+          </div>
         </div>
 
-        {/* Inspiration Section */}
-        <Card className="card-elevated p-6 bg-gradient-to-r from-rausch-50 to-rausch-100 border-rausch-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-title-medium text-airbnb-black mb-2">Need Inspiration?</h3>
-              <p className="text-body-large text-airbnb-dark-gray mb-4">
-                Explore trending destinations and discover what other travelers are sharing
+        {/* Inspiration Section - Compact with Image */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-orange-500 to-pink-600 mb-6 shadow-sm">
+          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800')] bg-cover bg-center opacity-25"></div>
+          <div className="relative px-5 py-6 flex items-center justify-between">
+            <div className="flex-1">
+              <h3 className="text-base font-bold text-white mb-1">Need Inspiration?</h3>
+              <p className="text-xs text-white/90 mb-3">
+                Explore trending destinations and discover travel stories
               </p>
-              <Button asChild className="btn-primary">
+              <Button asChild size="sm" className="bg-white text-orange-600 hover:bg-white/90">
                 <Link href="/locations">
                   Discover Destinations
                 </Link>
               </Button>
             </div>
-            <div className="hidden md:block">
-              <div className="w-24 h-24 bg-rausch-500 rounded-full flex items-center justify-center">
-                <MapPin className="h-12 w-12 text-white" />
-              </div>
+            <div className="hidden md:block w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0 ml-4">
+              <MapPin className="h-8 w-8 text-white" />
             </div>
           </div>
-        </Card>
+        </div>
+
+        {/* Google Ad - Compact Horizontal Banner */}
+        <div className="mb-6">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <p className="text-xs text-gray-400 text-center mb-2">Advertisement</p>
+            <div className="flex items-center justify-center min-h-[80px]">
+              <ins
+                className="adsbygoogle"
+                style={{ display: 'block' }}
+                data-ad-client={process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT_ID || 'ca-pub-5985120367077865'}
+                data-ad-slot="1234567890"
+                data-ad-format="horizontal"
+                data-full-width-responsive="true"
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

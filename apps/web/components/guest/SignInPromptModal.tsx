@@ -91,7 +91,7 @@ const PROMPT_CONTENT = {
   },
   advanced_features: {
     icon: Sparkles,
-    title: "Sign in to unlock all features",
+    title: " ",
     description: "Get the full TravelBlogr experience with an account. It's free and takes less than a minute!",
     benefits: [
       "All features unlocked",

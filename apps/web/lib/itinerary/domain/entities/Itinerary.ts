@@ -41,6 +41,7 @@ export interface planDay {
     duration: number
     mode: string
   }
+  didYouKnow?: string // One interesting fact about the location
 }
 
 export class plan {

@@ -106,7 +106,7 @@ export function Hero() {
               href="/auth/signup"
               className="btn-primary px-8 py-4 text-body-large font-semibold rounded-airbnb-small w-full sm:w-auto hover:scale-105 transition-transform"
             >
-              Share Your Story
+               Share Your Journey
             </Link>
             <Link
               href="/locations"

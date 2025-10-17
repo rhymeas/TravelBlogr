@@ -5,18 +5,30 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Globe, Eye, EyeOff, Mail, Lock, X } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, X } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import toast from 'react-hot-toast'
+import { HeaderLogo } from '@/components/ui/Logo'
 import Image from 'next/image'
+
+interface HeroContent {
+  title: string
+  subtitle: string
+  features?: Array<{
+    icon: React.ReactNode
+    title: string
+    description: string
+  }>
+}
 
 interface SignInModalProps {
   isOpen: boolean
-  onClose: () => void
+  onClose: (userSignedIn?: boolean) => void
   redirectTo?: string
+  heroContent?: HeroContent
 }
 
-export function SignInModal({ isOpen, onClose, redirectTo }: SignInModalProps) {
+export function SignInModal({ isOpen, onClose, redirectTo, heroContent }: SignInModalProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -35,7 +47,7 @@ export function SignInModal({ isOpen, onClose, redirectTo }: SignInModalProps) {
 
       if (result.success) {
         toast.success('Welcome back!')
-        onClose()
+        onClose(true) // Pass true to indicate user signed in
 
         // Only redirect if redirectTo is explicitly provided
         if (redirectTo) {
@@ -56,11 +68,11 @@ export function SignInModal({ isOpen, onClose, redirectTo }: SignInModalProps) {
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
     try {
-      const result = await signInWithProvider('google')
+      const result = await signInWithProvider('google', redirectTo)
       if (result.success) {
         toast.success('Signing in with Google...')
-        onClose()
-        // OAuth will handle redirect automatically
+        onClose(true) // Pass true to indicate user signed in
+        // OAuth will handle redirect automatically via callback URL
       } else {
         toast.error(result.error || 'Failed to sign in with Google')
       }
@@ -73,47 +85,75 @@ export function SignInModal({ isOpen, onClose, redirectTo }: SignInModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop with blur */}
-      <div 
+      {/* Backdrop */}
+      <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={() => onClose(false)}
       />
 
       {/* Modal - 25% smaller with adjusted height */}
       <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden flex max-h-[72vh]">
         {/* Close button */}
         <button
-          onClick={onClose}
+          onClick={() => onClose(false)}
           className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
         >
           <X className="h-5 w-5 text-gray-600" />
         </button>
 
-        {/* Left side - Image */}
+        {/* Left side - Image or Custom Hero */}
         <div className="hidden md:block md:w-1/2 relative">
-          <Image
-            src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=1000&fit=crop"
-            alt="Travel destination"
-            fill
-            className="object-cover"
-            priority
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-          <div className="absolute bottom-8 left-8 right-8 text-white">
-            <h3 className="text-3xl font-bold mb-2">Welcome Back!</h3>
-            <p className="text-lg opacity-90">Continue your journey with TravelBlogr</p>
-          </div>
+          {heroContent ? (
+            // Custom hero content (e.g., for planning flow)
+            <div className="h-full bg-gradient-to-br from-rausch-500 via-kazan-500 to-babu-500 p-12 flex flex-col justify-center text-white relative overflow-hidden">
+              {/* Decorative Pattern */}
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yLjIxLTEuNzktNC00LTRzLTQgMS43OS00IDQgMS43OSA0IDQgNCA0LTEuNzkgNC00em0wLTEwYzAtMi4yMS0xLjc5LTQtNC00cy00IDEuNzktNCA0IDEuNzkgNCA0IDQgNC0xLjc5IDQtNHptMC0xMGMwLTIuMjEtMS43OS00LTQtNHMtNCAxLjc5LTQgNCAxLjc5IDQgNCA0IDQtMS43OSA0LTR6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-20"></div>
+
+              <div className="relative z-10">
+                <h3 className="text-3xl font-bold mb-4">{heroContent.title}</h3>
+                <p className="text-white/90 text-lg mb-6">{heroContent.subtitle}</p>
+
+                {/* Features */}
+                {heroContent.features && heroContent.features.length > 0 && (
+                  <div className="space-y-3">
+                    {heroContent.features.map((feature, index) => (
+                      <div key={index} className="flex items-start gap-3">
+                        <div className="flex-shrink-0 mt-0.5">{feature.icon}</div>
+                        <div>
+                          <div className="font-semibold">{feature.title}</div>
+                          <div className="text-sm text-white/80">{feature.description}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            // Default image hero
+            <>
+              <Image
+                src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=1000&fit=crop"
+                alt="Travel destination"
+                fill
+                className="object-cover"
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+              <div className="absolute bottom-8 left-8 right-8 text-white">
+                <h3 className="text-3xl font-bold mb-2">Welcome Back!</h3>
+                <p className="text-lg opacity-90">Continue your journey with TravelBlogr</p>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Right side - Form */}
         <div className="w-full md:w-1/2 p-6 md:p-9 overflow-y-auto">
           <div className="max-w-md mx-auto">
             {/* Logo */}
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 bg-rausch-500 rounded-lg flex items-center justify-center">
-                <Globe className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl text-airbnb-black font-semibold">TravelBlogr</span>
+            <div className="mb-4">
+              <HeaderLogo />
             </div>
 
             <h2 className="text-2xl font-bold text-airbnb-black mb-1">

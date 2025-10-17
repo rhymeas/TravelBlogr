@@ -278,7 +278,7 @@ export default function ExamplesPage() {
             {/* Call to Action */}
             <div className="text-center mt-16 p-8 bg-gradient-to-r from-rausch-50 to-kazan-50 rounded-airbnb-large">
               <h3 className="text-title-large font-bold text-airbnb-black mb-4">
-                Ready to Share Your Story?
+                Ready to  Share Your Journey?
               </h3>
               <p className="text-body-medium text-airbnb-dark-gray mb-6 max-w-2xl mx-auto">
                 Join thousands of travelers who use TravelBlogr to document their journeys and connect with different audiences.

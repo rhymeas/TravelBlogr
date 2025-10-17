@@ -5,7 +5,7 @@ import { cookies } from 'next/headers'
 /**
  * Server-side Supabase client for API routes and server components
  * Uses cookie-based authentication to read user session
- * 
+ *
  * IMPORTANT: Only import this in server-side code (API routes, Server Components)
  * For client-side code, use getBrowserSupabase() from lib/supabase.ts
  */
