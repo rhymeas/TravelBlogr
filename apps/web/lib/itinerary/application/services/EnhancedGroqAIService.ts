@@ -30,12 +30,16 @@ export class EnhancedGroqAIService {
     const startTime = Date.now()
 
     try {
-      // Use Llama 3.3 70B for advanced reasoning (available on Groq)
-      const completion = await this.groq.chat.completions.create({
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert travel planner with advanced reasoning capabilities.
+      // Select reasoning-capable model for Plus mode
+      const model = process.env.GROQ_REASONING_MODEL || 'openai/gpt-oss-20b'
+      const effort = process.env.GROQ_REASONING_EFFORT || ''
+      const isGptOss = model.startsWith('openai/gpt-oss')
+      const isQwen = model.startsWith('qwen/')
+
+      const messages = [
+        {
+          role: 'system' as const,
+          content: `You are an expert travel planner with advanced reasoning capabilities.
 
 CRITICAL: You MUST output ONLY valid JSON. No explanations, no markdown, no code blocks.
 
@@ -86,17 +90,34 @@ Rules:
 - Tips should be specific and actionable
 - For "stay" days, include ONE interesting "didYouKnow" fact (history, culture, or fun fact)
 - Keep facts concise (1-2 sentences) and surprising/educational`
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        model: 'llama-3.3-70b-versatile', // Llama 3.3 70B - best available reasoning model
-        temperature: 0.7,
+        },
+        {
+          role: 'user' as const,
+          content: prompt
+        }
+      ]
+
+      const params: any = {
+        messages,
+        model,
+        temperature: 0.6,
         max_tokens: 8000,
         response_format: { type: 'json_object' }
-      })
+      }
+
+      // Configure reasoning controls per model family
+      if (isGptOss) {
+        // GPT-OSS uses include_reasoning + effort (low|medium|high)
+        params.include_reasoning = false // never expose chain-of-thought
+        if (effort) params.reasoning_effort = effort
+      } else if (isQwen) {
+        // Qwen uses reasoning_format + effort (none|default)
+        params.reasoning_format = 'hidden' // suppress chain-of-thought
+        if (effort) params.reasoning_effort = effort
+      }
+
+      console.log(`🚀 Pro Mode: Using reasoning model: ${model}${effort ? ` (effort=${effort})` : ''}`)
+      const completion = await this.groq.chat.completions.create(params)
 
       const generationTime = Date.now() - startTime
       console.log(`✅ Pro Mode completed in ${generationTime}ms`)
