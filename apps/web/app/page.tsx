@@ -13,18 +13,14 @@ import {
   Calendar,
   Users,
   Star,
-  Heart,
   Camera,
   Compass,
   TrendingUp,
   Award,
   Shield,
-  Zap,
-  ChevronRight,
-  Play
+  Zap
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
 import { TripCard } from '@/components/ui/TripCard'
 import { FeaturedLocations } from '@/components/landing/FeaturedLocations'
 import { DashboardLanding } from '@/components/dashboard/DashboardLanding'
@@ -175,7 +171,6 @@ export default function HomePage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [videoErrors, setVideoErrors] = useState<Record<string, boolean>>({})
-  const [videosLoaded, setVideosLoaded] = useState<Record<string, boolean>>({})
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -191,7 +186,6 @@ export default function HomePage() {
   // Handle video loaded
   const handleVideoLoaded = (videoId: string) => {
     console.log(`Video loaded successfully: ${videoId}`)
-    setVideosLoaded(prev => ({ ...prev, [videoId]: true }))
   }
 
   // Rotate hero videos every 10 seconds
@@ -309,23 +303,68 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Gallery CTA - Prominent */}
-        <section className="py-12 bg-gradient-to-r from-rausch-50 to-babu-50">
+        {/* Planner CTA - Focused on AI planning and sharing */}
+        <section className="py-14 bg-gradient-to-r from-babu-50 via-rausch-50 to-lima-50">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                ✨ Need Inspiration?
-              </h2>
-              <p className="text-lg text-gray-700 mb-6 max-w-2xl mx-auto">
-                Check out our curated collection of family-friendly travel guides.
-                See real itineraries and get ideas for your next adventure!
-              </p>
-              <Button asChild size="lg" className="bg-rausch-500 hover:bg-rausch-600 text-white text-lg px-8 py-6">
-                <Link href="/trips-library" className="flex items-center gap-2">
-                  <Compass className="h-6 w-6" />
-                  Discover
-                </Link>
-              </Button>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+              {/* Copy */}
+              <div>
+                <h2 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-4">
+                  Plan smarter with AI. Share your journey as you go.
+                </h2>
+                <p className="text-base lg:text-lg text-gray-700 mb-6 max-w-xl">
+                  Get a complete itinerary in seconds—route, travel times, pacing, budget ideas and highlights. Save, update and share your trip with friends and the community.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Button asChild size="lg" className="bg-rausch-500 hover:bg-rausch-600 text-white px-6 py-5">
+                    <Link href="/plan" className="flex items-center gap-2">
+                      <MapPin className="h-5 w-5" />
+                      Plan your trip
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" size="lg" className="px-6 py-5">
+                    <Link href="/trips-library" className="flex items-center gap-2">
+                      <Compass className="h-5 w-5" />
+                      See examples
+                    </Link>
+                  </Button>
+                  <Link href="/live-feed" className="text-sm text-rausch-700 hover:underline flex items-center gap-1">
+                    <TrendingUp className="h-4 w-4" /> Live feed
+                  </Link>
+                </div>
+              </div>
+
+              {/* Mini feature list */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="rounded-2xl border bg-white p-5 shadow-sm">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Zap className="h-5 w-5 text-rausch-600" />
+                    <h3 className="font-semibold text-gray-900">Fast & affordable</h3>
+                  </div>
+                  <p className="text-sm text-gray-600">Rule-based + free data sources keep it snappy and low-cost.</p>
+                </div>
+                <div className="rounded-2xl border bg-white p-5 shadow-sm">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Calendar className="h-5 w-5 text-babu-700" />
+                    <h3 className="font-semibold text-gray-900">Dates & pacing</h3>
+                  </div>
+                  <p className="text-sm text-gray-600">A→B with stops, travel hours/day, and flexible timing.</p>
+                </div>
+                <div className="rounded-2xl border bg-white p-5 shadow-sm">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Users className="h-5 w-5 text-lima-700" />
+                    <h3 className="font-semibold text-gray-900">Community-powered</h3>
+                  </div>
+                  <p className="text-sm text-gray-600">Real stories and tips fuel better planning.</p>
+                </div>
+                <div className="rounded-2xl border bg-white p-5 shadow-sm">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Camera className="h-5 w-5 text-rose-600" />
+                    <h3 className="font-semibold text-gray-900">Share as you go</h3>
+                  </div>
+                  <p className="text-sm text-gray-600">Auto trip pages, subdomains, and quick sharing.</p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -337,35 +376,61 @@ export default function HomePage() {
           size="large"
         />
 
-        {/* Feature Cards - Below Hero */}
+        {/* How it works */}
         <section className="py-16 bg-white">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[
-                {
-                  icon: <Calendar className="h-6 w-6" />,
-                  title: "Keep it flexible",
-                  description: "Homes with flexible cancellation make it easy to rethink your booking if your plans change."
-                },
-                {
-                  icon: <Star className="h-6 w-6" />,
-                  title: "Get the amenities you want",
-                  description: "Hot tubs, pools, BBQs—discover dozens of great extras that fit your needs."
-                },
-                {
-                  icon: <Heart className="h-6 w-6" />,
-                  title: "Read real reviews",
-                  description: "Find homes you'll love based on the great experiences of people who've stayed there."
-                }
-              ].map((feature, index) => (
-                <div key={index} className="text-center">
-                  <div className="flex justify-center mb-4">
-                    {feature.icon}
-                  </div>
-                  <h3 className="text-lg font-semibold text-airbnb-black mb-2">{feature.title}</h3>
-                  <p className="text-sm text-airbnb-gray">{feature.description}</p>
+            <div className="text-center mb-10">
+              <h3 className="text-2xl lg:text-3xl font-bold text-airbnb-black mb-3">How it works</h3>
+              <p className="text-base text-airbnb-dark-gray max-w-3xl mx-auto">From idea to shareable trip in minutes.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="rounded-2xl border p-6 bg-gray-50">
+                <div className="flex items-center gap-3 mb-2">
+                  <MapPin className="h-5 w-5 text-rausch-600" />
+                  <h4 className="font-semibold text-gray-900">1) Tell us where & when</h4>
                 </div>
-              ))}
+                <p className="text-sm text-gray-600">Enter locations, dates, travel mode and pace. We auto-resolve places worldwide.</p>
+              </div>
+              <div className="rounded-2xl border p-6 bg-gray-50">
+                <div className="flex items-center gap-3 mb-2">
+                  <Zap className="h-5 w-5 text-babu-700" />
+                  <h4 className="font-semibold text-gray-900">2) Get your itinerary</h4>
+                </div>
+                <p className="text-sm text-gray-600">Route, daily plan, travel times, budget hints, highlights and images.</p>
+              </div>
+              <div className="rounded-2xl border p-6 bg-gray-50">
+                <div className="flex items-center gap-3 mb-2">
+                  <Camera className="h-5 w-5 text-lima-700" />
+                  <h4 className="font-semibold text-gray-900">3) Share your journey</h4>
+                </div>
+                <p className="text-sm text-gray-600">Auto trip pages with subdomain links, live feed posts, and comments.</p>
+              </div>
+            </div>
+
+            {/* Key benefits */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+              <div className="rounded-2xl border p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <Shield className="h-5 w-5 text-rose-600" />
+                  <h4 className="font-semibold text-gray-900">Free data sources first</h4>
+                </div>
+                <p className="text-sm text-gray-600">OpenTripMap, WikiVoyage, OpenWeather and community data  fast and low-cost.</p>
+              </div>
+              <div className="rounded-2xl border p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <Users className="h-5 w-5 text-rausch-600" />
+                  <h4 className="font-semibold text-gray-900">Community insights</h4>
+                </div>
+                <p className="text-sm text-gray-600">Real stories, rankings and comments improve every plan.</p>
+              </div>
+              <div className="rounded-2xl border p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <Award className="h-5 w-5 text-babu-700" />
+                  <h4 className="font-semibold text-gray-900">Snappy performance</h4>
+                </div>
+                <p className="text-sm text-gray-600">Optimized fetch, caching and zero storage image strategy for speed.</p>
+              </div>
             </div>
           </div>
         </section>
