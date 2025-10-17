@@ -130,25 +130,27 @@ export const useTripStore = create<TripState>()(
         })
 
         try {
-          const response = await fetch('/api/trips')
+          const response = await fetch('/api/trips', {
+            credentials: 'include' // Include cookies for authentication
+          })
           if (!response.ok) {
             throw new Error('Failed to fetch trips')
           }
-          
+
           const data = await response.json()
-          
+
           set((state) => {
             state.trips = data.trips || []
             state.isLoading = false
           })
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Failed to fetch trips'
-          
+
           set((state) => {
             state.error = message
             state.isLoading = false
           })
-          
+
           toast.error(message)
         }
       },
@@ -165,6 +167,7 @@ export const useTripStore = create<TripState>()(
             headers: {
               'Content-Type': 'application/json',
             },
+            credentials: 'include', // Include cookies for authentication
             body: JSON.stringify(data),
           })
 

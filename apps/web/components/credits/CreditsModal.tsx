@@ -28,6 +28,7 @@ export function CreditsModal({ isOpen, onClose }: CreditsModalProps) {
       const response = await fetch('/api/credits/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Include cookies for authentication
         body: JSON.stringify({ packSize }),
       })
 

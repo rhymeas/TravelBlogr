@@ -63,7 +63,9 @@ export function CreditWidget() {
 
   const fetchCreditStats = async () => {
     try {
-      const response = await fetch('/api/credits/balance')
+      const response = await fetch('/api/credits/balance', {
+        credentials: 'include' // Include cookies for authentication
+      })
       if (response.ok) {
         const data = await response.json()
         setStats(data.data)
@@ -77,11 +79,12 @@ export function CreditWidget() {
 
   const handlePurchase = async (packSize: string) => {
     setPurchasing(packSize)
-    
+
     try {
       const response = await fetch('/api/credits/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Include cookies for authentication
         body: JSON.stringify({ packSize }),
       })
 

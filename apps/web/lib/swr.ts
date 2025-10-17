@@ -4,7 +4,9 @@ import type { Database } from '../../../infrastructure/database/types'
 
 // Generic fetcher function
 const fetcher = async (url: string) => {
-  const response = await fetch(url)
+  const response = await fetch(url, {
+    credentials: 'include' // Include cookies for authentication
+  })
   if (!response.ok) {
     throw new Error('Failed to fetch data')
   }

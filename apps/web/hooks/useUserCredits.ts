@@ -36,7 +36,9 @@ export function useUserCredits() {
       setLoading(true)
       setError(null)
 
-      const response = await fetch('/api/credits/balance')
+      const response = await fetch('/api/credits/balance', {
+        credentials: 'include' // Include cookies for authentication
+      })
 
       if (!response.ok) {
         throw new Error('Failed to fetch credits')
