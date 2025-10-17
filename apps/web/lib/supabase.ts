@@ -28,13 +28,37 @@ export const createBrowserSupabase = () => {
 
   // Use simple Supabase client with localStorage
   // This is the most reliable approach for client-side auth
-  return createClient(supabaseUrl, supabaseAnonKey, {
+  const client = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
     }
   })
+
+  // Mirror auth session to server via cookie so API routes can authenticate
+  // Attach once per browser session
+  if (typeof window !== 'undefined') {
+    // Use a flag on window to avoid duplicate listeners during HMR
+    const w = window as unknown as { __TB_authSyncAttached?: boolean }
+    if (!w.__TB_authSyncAttached) {
+      client.auth.onAuthStateChange(async (event, session) => {
+        try {
+          await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ event, session }),
+          })
+        } catch (e) {
+          console.error('Failed to sync auth session to server:', e)
+        }
+      })
+      w.__TB_authSyncAttached = true
+    }
+  }
+
+  return client
 }
 
 // Singleton instance for client-side usage
