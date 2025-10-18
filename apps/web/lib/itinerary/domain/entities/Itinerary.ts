@@ -52,6 +52,7 @@ export class plan {
     public readonly days: planDay[],
     public readonly totalCostEstimate: number,
     public readonly tips: string[],
+    public readonly transportMode?: 'car' | 'train' | 'bike' | 'flight' | 'bus' | 'mixed',
     public readonly createdAt: Date = new Date()
   ) {
     this.validate()
@@ -162,6 +163,7 @@ export class plan {
       days: this.days,
       totalCostEstimate: actualTotalCost, // Use calculated cost instead of AI estimate
       tips: this.tips,
+      transportMode: this.transportMode, // Include transport mode
       stats: {
         totalDays: this.getTotalDays(),
         stayDays: this.getStayDays(),
@@ -184,6 +186,7 @@ export class plan {
     days: planDay[]
     totalCostEstimate: number
     tips: string[]
+    transportMode?: 'car' | 'train' | 'bike' | 'flight' | 'bus' | 'mixed'
   }): plan {
     return new plan(
       crypto.randomUUID(),
@@ -191,7 +194,8 @@ export class plan {
       data.summary,
       data.days,
       data.totalCostEstimate,
-      data.tips
+      data.tips,
+      data.transportMode
     )
   }
 }

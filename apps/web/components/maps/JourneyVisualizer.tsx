@@ -54,6 +54,8 @@ export function JourneyVisualizer({
   const [journeyStats, setJourneyStats] = useState<JourneyStats | null>(null)
   const [timeRange, setTimeRange] = useState<[number, number]>([0, 100])
   const [selectedTypes, setSelectedTypes] = useState<string[]>(['waypoint', 'photo', 'accommodation', 'restaurant', 'attraction'])
+  const [routeProvider, setRouteProvider] = useState<'openrouteservice' | 'osrm' | 'cache' | null>(null)
+  const [externalPolyline, setExternalPolyline] = useState<[number, number][]>([])
 
   const supabase = createClientSupabase()
 
@@ -93,6 +95,45 @@ export function JourneyVisualizer({
       ])
 
       const allLocations: LocationPoint[] = []
+
+      // Load AI plan context for precomputed routing + POIs
+      const { data: planRow } = await supabase
+        .from('trip_plan')
+        .select('plan_data')
+        .eq('trip_id', tripId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle?.() ?? { data: null }
+
+      const ctx = (planRow as any)?.plan_data?.__context
+      if (ctx?.routing?.provider) {
+        setRouteProvider(ctx.routing.provider)
+      }
+      if (ctx?.routing?.geometry?.coordinates) {
+        try {
+          const latlng: [number, number][] = ctx.routing.geometry.coordinates.map((c: number[]) => [c[1], c[0]])
+          setExternalPolyline(latlng)
+        } catch {}
+      }
+      if (ctx?.poisByLocation) {
+        const poiPoints: LocationPoint[] = []
+        Object.entries(ctx.poisByLocation as Record<string, Array<{ name: string; latitude?: number; longitude?: number }>>).forEach(([locName, arr]) => {
+          arr.forEach((p, idx) => {
+            if (typeof p.latitude === 'number' && typeof p.longitude === 'number') {
+              poiPoints.push({
+                id: `poi-${locName}-${idx}`,
+                lat: p.latitude,
+                lng: p.longitude,
+                title: p.name,
+                type: 'attraction',
+                metadata: { source: 'prefetched_poi', location: locName }
+              })
+            }
+          })
+        })
+        // Append POIs to the map locations (filtered by type toggle)
+        allLocations.push(...poiPoints)
+      }
 
       // Process posts
       if (postsResult.data) {
@@ -446,6 +487,8 @@ export function JourneyVisualizer({
             showRoute={true}
             showControls={true}
             allowAddPoints={false}
+            externalPolyline={externalPolyline}
+            routeProvider={routeProvider || undefined}
             className="w-full"
           />
         ) : (

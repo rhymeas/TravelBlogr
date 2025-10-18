@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { addCredits } from '@/lib/services/creditService'
+import { addCreditsServer } from '@/lib/services/creditService.server'
 
 // Lazy initialize Stripe to avoid errors during build
 let stripe: Stripe | null = null
@@ -103,7 +103,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
 
     // Add credits to user account
-    const result = await addCredits(
+    const result = await addCreditsServer(
       userId,
       credits,
       'purchase',

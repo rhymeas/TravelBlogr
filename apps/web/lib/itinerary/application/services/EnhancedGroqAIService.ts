@@ -30,11 +30,19 @@ export class EnhancedGroqAIService {
     const startTime = Date.now()
 
     try {
-      // Select reasoning-capable model for Plus mode
-      const model = process.env.GROQ_REASONING_MODEL || 'openai/gpt-oss-20b'
+      // Select reasoning-capable model for Pro mode
+      // Default to a known-good Groq model
+      let model = process.env.GROQ_REASONING_MODEL || 'llama-3.3-70b-versatile'
       const effort = process.env.GROQ_REASONING_EFFORT || ''
       const isGptOss = model.startsWith('openai/gpt-oss')
       const isQwen = model.startsWith('qwen/')
+      // Guard against org-blocked or invalid models in Groq
+      const blockedPrefixes = ['openai/gpt-oss']
+      const invalidModels = ['qwen/qwen3-32b']
+      if (blockedPrefixes.some(p => model.startsWith(p)) || invalidModels.includes(model)) {
+        console.warn(`⚠️ Pro Mode model "${model}" is blocked/invalid. Overriding to llama-3.3-70b-versatile.`)
+        model = 'llama-3.3-70b-versatile'
+      }
 
       const messages = [
         {
@@ -64,15 +72,17 @@ Output Schema (STRICT JSON):
       "items": [
         {
           "time": "HH:MM - 24h format",
-          "title": "string - Activity/meal/travel name",
-          "type": "activity" | "meal" | "travel",
+          "title": "string - Activity/meal/travel/accommodation name",
+          "type": "activity" | "meal" | "travel" | "stay",
           "duration": number - hours as decimal,
           "description": "string - Detailed description",
           "costEstimate": number - USD,
           "from": "string - ONLY for travel items",
           "to": "string - ONLY for travel items",
           "mode": "string - ONLY for travel items (car/train/bike/flight)",
-          "distance": "string - ONLY for travel items (e.g., '120 km')"
+          "distance": "string - ONLY for travel items (e.g., '120 km')",
+          "accommodationType": "string - ONLY for stay items (hotel/hostel/guesthouse/airbnb)",
+          "reason": "string - ONLY for stay items (why stop here)"
         }
       ]
     }
@@ -86,6 +96,8 @@ Rules:
 - Travel items must include from, to, mode, distance
 - Activity items must have realistic durations
 - Meal items should be at appropriate times (breakfast 7-9am, lunch 12-2pm, dinner 6-9pm)
+- Stay items (overnight accommodations) must include accommodationType and reason
+- For long trips (>8 hours travel), include stay items for overnight stops
 - Cost estimates must be realistic for the budget level
 - Tips should be specific and actionable
 - For "stay" days, include ONE interesting "didYouKnow" fact (history, culture, or fun fact)
@@ -117,7 +129,21 @@ Rules:
       }
 
       console.log(`🚀 Pro Mode: Using reasoning model: ${model}${effort ? ` (effort=${effort})` : ''}`)
-      const completion = await this.groq.chat.completions.create(params)
+      let completion
+      try {
+        completion = await this.groq.chat.completions.create(params)
+      } catch (primaryErr: any) {
+        // If configured model fails, fallback to a stable default once
+        const fallbackModel = 'llama-3.3-70b-versatile'
+        if (model !== fallbackModel) {
+          console.warn(`⚠️ Pro Mode primary model failed (${model}). Falling back to ${fallbackModel}.`, primaryErr?.message || primaryErr)
+          model = fallbackModel
+          params.model = model
+          completion = await this.groq.chat.completions.create(params)
+        } else {
+          throw primaryErr
+        }
+      }
 
       const generationTime = Date.now() - startTime
       console.log(`✅ Pro Mode completed in ${generationTime}ms`)
@@ -170,12 +196,33 @@ Transport Mode: ${transportMode.toUpperCase()} (avg speed: ${avgSpeed} km/h)
 Start Date: ${startDate}
 Trip Duration: ${context.totalDays} days
 
+${(context as any).structuredContext?.routing ? `
+REAL ROUTE METRICS (precomputed)
+- Provider: ${(context as any).structuredContext.routing.provider || 'n/a'}
+- Distance: ${((context as any).structuredContext.routing.distanceKm ?? context.routeDistance).toFixed(1)} km
+- Duration: ${((context as any).structuredContext.routing.durationHours ?? context.routeDuration).toFixed(1)} hours
+` : ''}
+
+${(context as any).structuredContext?.aiFormattedData ? `
+═══════════════════════════════════════════════════════════════
+🎯 COMPREHENSIVE TRIP DATA (Multi-Source, Compressed)
+═══════════════════════════════════════════════════════════════
+${(context as any).structuredContext.aiFormattedData}
+
+⚠️ CRITICAL: Use ONLY the data above - do not hallucinate new locations!
+` : ''}
+
 ═══════════════════════════════════════════════════════════════
 TRAVELER PREFERENCES
 ═══════════════════════════════════════════════════════════════
 Budget Level: ${context.budget.toUpperCase()}
 Primary Interests: ${interests}
 ${context.maxTravelHoursPerDay ? `Max Travel Hours/Day: ${context.maxTravelHoursPerDay}h (user preference)` : 'No travel time restrictions'}
+
+${(context as any).structuredContext?.poisByLocation ? `
+POINTS OF INTEREST (pre-fetched - LEGACY)
+${Object.entries((context as any).structuredContext.poisByLocation).map(([name, pois]: any) => `• ${name}: ${pois.slice(0,6).map((p: any)=>p.name).join(', ')}`).join('\n')}
+` : ''}
 
 ═══════════════════════════════════════════════════════════════
 AVAILABLE ATTRACTIONS & DINING (DATABASE RESOURCES)
@@ -214,6 +261,48 @@ ${context.locationsData.map(loc => {
 TRANSPORTATION STRATEGY FOR ${transportMode.toUpperCase()}
 ═══════════════════════════════════════════════════════════════
 ${this.getTransportStrategy(transportMode, context)}
+
+═══════════════════════════════════════════════════════════════
+🏨 OVERNIGHT STOPS & ACCOMMODATION PLANNING
+═══════════════════════════════════════════════════════════════
+CRITICAL: For trips with ${Math.round(context.routeDuration)} hours of travel time, you MUST plan realistic overnight stops.
+
+📋 OVERNIGHT STOP RULES:
+1. **Max travel per day**:
+   - Car/Bus: 6-8 hours (480-640 km)
+   - Bike: 4-6 hours (80-120 km)
+   - Train: 8-10 hours (800-1000 km)
+   - Mixed: 6-8 hours average
+
+2. **Suggest intermediate cities/towns** along the route where travelers should stay overnight
+   - Use real cities/towns between ${context.fromLocation} and ${context.toLocation}
+   - Consider major highways and common travel routes
+   - Suggest cities with good accommodation options
+
+3. **Include "stay" items** with:
+   - Location name (real city/town along the route)
+   - Accommodation type (hotel, hostel, guesthouse, Airbnb)
+   - Budget-appropriate suggestions (${context.budget} budget)
+   - Brief reason why this is a good overnight stop
+
+4. **Balance travel days**:
+   - Don't make travelers drive/ride 12+ hours in one day
+   - Suggest rest stops every 2-3 hours of continuous travel
+   - Allow time for meals and breaks
+
+5. **POI Integration**:
+   - If POIs are available along the route, suggest overnight stops near interesting POIs
+   - This allows travelers to explore attractions without rushing
+   - Example: "Stay in [City] to visit [POI] in the evening/morning"
+
+Example for ${Math.round(context.routeDistance)} km trip:
+${context.routeDuration > 8 ? `
+⚠️ This trip requires ${Math.ceil(context.routeDuration / 8)} overnight stops!
+Suggested breakdown:
+- Day 1: ${context.fromLocation} → [Intermediate City 1] (${Math.round(context.routeDistance / (Math.ceil(context.routeDuration / 8) + 1))} km, ~6-8 hours) → Stay overnight
+${Math.ceil(context.routeDuration / 8) > 1 ? `- Day 2: [Intermediate City 1] → [Intermediate City 2] (${Math.round(context.routeDistance / (Math.ceil(context.routeDuration / 8) + 1))} km, ~6-8 hours) → Stay overnight` : ''}
+- Final Day: [Last Stop] → ${context.toLocation} (remaining distance)
+` : `✅ This trip can be completed in 1-2 days with proper rest stops.`}
 
 ═══════════════════════════════════════════════════════════════
 PRO PLANNER REQUIREMENTS

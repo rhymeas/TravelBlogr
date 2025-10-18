@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, MapPin, Calendar, DollarSign, Utensils, Compass, Plus, Share2, Download, Save, PlaneTakeoff, Car, Bike, Train, Plane, Bus } from 'lucide-react'
+import { X, MapPin, Calendar, DollarSign, Utensils, Compass, Plus, Share2, Download, Save, PlaneTakeoff, Car, Bike, Train, Plane, Bus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatLocationDisplay } from '@/lib/utils/locationFormatter'
 import Image from 'next/image'
 import { useAuth } from '@/hooks/useAuth'
@@ -20,14 +20,22 @@ import { QuickBookingLinks } from '@/components/locations/QuickBookingLinks'
 import { AnimatedTripReveal } from '@/components/trips/AnimatedTripReveal'
 import { saveAIGeneratedTrip, getTripPreviewData } from '@/lib/services/aiTripConversionService'
 import toast from 'react-hot-toast'
+import { ImageGallery } from './ImageGallery'
+import { useSwipe } from '@/hooks/useSwipe'
+import { POISection } from './POISection'
+import { RoutePoiSection } from './RoutePoiSection'
+import { HorizontalLocationCards, type LocationCardData } from '@/components/ui/HorizontalLocationCards'
+import { HorizontalActivityCards, type ActivityCardData } from '@/components/ui/HorizontalActivityCards'
 
 interface planModalProps {
   plan: any
-  locationImages?: Record<string, string>
+  locationImages?: Record<string, string | { featured: string; gallery: string[] }>
   transportMode?: string
   proMode?: boolean
   totalDistance?: number
   locationCoordinates?: Record<string, { latitude: number; longitude: number }>
+  // NEW: structured context for displaying route metrics and POIs
+  structuredContext?: any
   startDate?: string
   endDate?: string
   interests?: string[]
@@ -42,6 +50,8 @@ export function planModal({
   proMode = false,
   totalDistance,
   locationCoordinates,
+  // NEW
+  structuredContext,
   startDate,
   endDate,
   interests,
@@ -64,24 +74,75 @@ export function planModal({
   const { isAuthenticated, user } = useAuth()
   const router = useRouter()
 
+  // Debug: Log structured context to see what POI data we have
+  useEffect(() => {
+    if (structuredContext) {
+      console.log('📊 Structured Context:', structuredContext)
+      console.log('🗺️ Top Ranked POIs:', structuredContext.topRankedPOIs?.length || 0)
+      console.log('✨ Worthwhile POIs:', structuredContext.worthwhilePOIs?.length || 0)
+      console.log('🎯 Quick Stops:', structuredContext.quickStops?.length || 0)
+      console.log('🍽️ Meal Breaks:', structuredContext.mealBreaks?.length || 0)
+      console.log('🏛️ Major Attractions:', structuredContext.majorAttractions?.length || 0)
+    }
+  }, [structuredContext])
+
+  // Swipe gesture handlers for mobile navigation
+  const swipeHandlers = useSwipe({
+    onSwipedLeft: () => {
+      // Swipe left = next location
+      if (activeLocationIndex < locationGroups.length) {
+        setActiveLocationIndex(activeLocationIndex + 1)
+      }
+    },
+    onSwipedRight: () => {
+      // Swipe right = previous location
+      if (activeLocationIndex > 0) {
+        setActiveLocationIndex(activeLocationIndex - 1)
+      }
+    },
+    minSwipeDistance: 50
+  })
+
   // Helper function to find location image with flexible matching
   const getLocationImage = (locationName: string): string => {
     if (!propLocationImages) return '/placeholder-location.jpg'
 
     // Try exact match first
-    if (propLocationImages[locationName]) {
-      return propLocationImages[locationName]
+    const exactMatch = propLocationImages[locationName]
+    if (exactMatch) {
+      return typeof exactMatch === 'string' ? exactMatch : exactMatch.featured
     }
 
     // Try matching by first part (e.g., "New Jersey" matches "New Jersey, USA")
     const mainLocation = locationName.split(',')[0].trim()
     for (const [key, value] of Object.entries(propLocationImages)) {
       if (key.startsWith(mainLocation) || mainLocation.startsWith(key.split(',')[0].trim())) {
-        return value
+        return typeof value === 'string' ? value : value.featured
       }
     }
 
     return '/placeholder-location.jpg'
+  }
+
+  // Helper function to get gallery images for a location
+  const getLocationGallery = (locationName: string): string[] => {
+    if (!propLocationImages) return []
+
+    // Try exact match first
+    const exactMatch = propLocationImages[locationName]
+    if (exactMatch && typeof exactMatch !== 'string') {
+      return exactMatch.gallery
+    }
+
+    // Try matching by first part
+    const mainLocation = locationName.split(',')[0].trim()
+    for (const [key, value] of Object.entries(propLocationImages)) {
+      if (key.startsWith(mainLocation) || mainLocation.startsWith(key.split(',')[0].trim())) {
+        return typeof value !== 'string' ? value.gallery : [value]
+      }
+    }
+
+    return []
   }
 
   // Prevent body scroll when modal is open
@@ -176,8 +237,17 @@ export function planModal({
     return activities.slice(0, 3) // Top 3 activities
   }
 
+  // Get overnight stays per location
+  const getLocationStays = (group: any) => {
+    const stays = group.days.flatMap((day: any) =>
+      day.items.filter((item: any) => item.type === 'stay')
+    )
+    return stays
+  }
+
   const currentLocation = locationGroups[activeLocationIndex]
   const highlights = currentLocation ? getLocationHighlights(currentLocation) : []
+  const stays = currentLocation ? getLocationStays(currentLocation) : []
 
   // Format dates
   const formatDateRange = (start: string, end: string) => {
@@ -287,8 +357,8 @@ export function planModal({
     setCreatingTrip(true)
 
     try {
-      // Save AI-generated trip to database
-      const result = await saveAIGeneratedTrip(plan, user.id, propLocationImages)
+      // Save AI-generated trip to database (persist structured context too)
+      const result = await saveAIGeneratedTrip(plan, user.id, propLocationImages, structuredContext)
 
       if (!result.success) {
         toast.error(result.error || 'Failed to create trip')
@@ -335,13 +405,13 @@ export function planModal({
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.2 }}
-          className="relative w-full max-w-5xl max-h-[calc(100vh-48px)] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+          className="relative w-full max-w-7xl h-[calc(100vh-32px)] md:h-[calc(100vh-48px)] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Close Button */}
@@ -352,11 +422,11 @@ export function planModal({
             <X className="h-4 w-4 text-gray-600" />
           </button>
 
-          {/* Header with Title and Timeline */}
-          <div className="bg-gradient-to-br from-gray-50 to-white px-12 pt-4 pb-3 border-b border-gray-200">
+          {/* Fixed Header - Non-scrollable */}
+          <div className="bg-gradient-to-br from-gray-50 to-white px-4 md:px-12 pt-6 pb-4 border-b border-gray-200 flex-shrink-0">
             {/* Title and Meta Info */}
-            <div className="mb-3 pr-12">
-              <h1 className="text-2xl font-bold text-gray-900 mb-1.5">
+            <div className="mb-4 pr-12">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-3">
                 {plan.title}
               </h1>
 
@@ -420,15 +490,49 @@ export function planModal({
               </div>
             </div>
 
-            {/* Minimal Dot Timeline - with horizontal scroll for many waypoints */}
-            <div className="relative overflow-x-auto pb-2 -mx-4 px-4">
+            {/* Horizontal Location Cards - MOBILE ONLY */}
+            <div className="mt-4 mb-6 md:hidden">
+              <HorizontalLocationCards
+                locations={locationGroups.map((group: any, index: number) => {
+                  const formatted = formatLocationDisplay(group.location)
+                  const images = getLocationGallery(group.location)
+
+                  return {
+                    id: `location-${index}`,
+                    name: formatted.main,
+                    country: formatted.secondary,
+                    countryFlag: group.countryFlag || '🌍',
+                    image: images[0] || '/placeholder-location.jpg',
+                    dayNumber: index + 1,
+                    activitiesCount: group.days.reduce((total: number, day: any) =>
+                      total + day.items.filter((item: any) => item.type === 'activity').length, 0
+                    ),
+                    weather: group.weather ? {
+                      temp: group.weather.temp,
+                      icon: group.weather.icon
+                    } : undefined,
+                    distanceFromPrevious: index > 0 ? structuredContext?.routing?.distanceKm : undefined,
+                    isActive: index === activeLocationIndex
+                  } as LocationCardData
+                })}
+                activeIndex={activeLocationIndex}
+                onLocationClick={(index) => setActiveLocationIndex(index)}
+                variant="standard"
+                showArrows={true}
+                snapToCenter={true}
+                className="px-4"
+              />
+            </div>
+
+            {/* Minimal Dot Timeline - DESKTOP ONLY */}
+            <div className="relative overflow-x-auto pb-2 pt-3 -mx-4 px-4 hidden md:block">
               <div className="relative flex items-center justify-between min-w-max mx-auto" style={{ minWidth: `${Math.max(800, locationGroups.length * 150)}px` }}>
               {/* Connecting Line */}
-              <div className="absolute top-3 left-0 right-0 h-0.5 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200" style={{ zIndex: 0 }} />
+              <div className="absolute top-6 left-0 right-0 h-0.5 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200" style={{ zIndex: 0 }} />
 
               {/* Progress Line */}
               <div
-                className="absolute top-3 left-0 h-0.5 bg-gradient-to-r from-teal-400 to-teal-500 transition-all duration-700 ease-out"
+                className="absolute top-6 left-0 h-0.5 bg-gradient-to-r from-teal-400 to-teal-500 transition-all duration-700 ease-out"
                 style={{
                   width: `${(activeLocationIndex / locationGroups.length) * 100}%`,
                   zIndex: 1
@@ -542,7 +646,7 @@ export function planModal({
                 return elements
               })}
 
-              {/* Final Review Step - 10% bigger */}
+              {/* Final Summary Step - 10% bigger */}
               <button
                 onClick={() => {
                   // Trigger map reveal animation if not already revealed
@@ -587,7 +691,7 @@ export function planModal({
                   text-xs font-bold transition-all duration-200
                   ${activeLocationIndex === locationGroups.length ? 'text-gray-900' : 'text-gray-600 group-hover:text-gray-800'}
                 `}>
-                  Review
+                  Summary
                 </div>
               </button>
               </div>
@@ -595,7 +699,10 @@ export function planModal({
           </div> {/* Close header section */}
 
           {/* Content Area */}
-          <div className="bg-white px-12 py-4 flex-1 overflow-y-auto">
+          <div
+            className="bg-white px-4 md:px-12 py-4 flex-1 overflow-y-auto"
+            {...swipeHandlers}
+          >
             <AnimatePresence mode="wait">
               {activeLocationIndex < locationGroups.length ? (
                 <motion.div
@@ -608,16 +715,12 @@ export function planModal({
                 >
                   {/* Left: Location Card */}
                   <div className="space-y-3">
-                    {/* Hero Image */}
-                    <div className="relative h-48 rounded-xl overflow-hidden">
-                      <Image
-                        src={getLocationImage(currentLocation.location)}
-                        alt={currentLocation.location}
-                        fill
-                        className="object-cover"
-                        unoptimized
-                      />
-                    </div>
+                    {/* Hero Image with Gallery */}
+                    <ImageGallery
+                      images={getLocationGallery(currentLocation.location)}
+                      alt={currentLocation.location}
+                      className="h-48 rounded-xl overflow-hidden"
+                    />
 
                     {/* Location Info */}
                     <div>
@@ -642,39 +745,36 @@ export function planModal({
                       )}
                     </div>
 
-                    {/* Activities */}
-                    <div className="space-y-2">
-                      {highlights.map((activity: any, idx: number) => (
-                        <div key={idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                          {activity.image && (
-                            <div className="relative w-14 h-14 rounded-md overflow-hidden flex-shrink-0">
-                              <Image
-                                src={activity.image}
-                                alt={activity.title}
-                                fill
-                                className="object-cover"
-                              />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm text-gray-900 mb-0.5">{activity.title}</h3>
-                            <p className="text-xs text-gray-600">
-                              Duration: {activity.duration}h, Price: {activity.costEstimate ? `$${activity.costEstimate}` : 'Included'}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => handleAddToTrip(activity)}
-                            disabled={isActivityAdded(activity)}
-                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
-                              isActivityAdded(activity)
-                                ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                                : 'bg-teal-500 text-white hover:bg-teal-600'
-                            }`}
-                          >
-                            {isActivityAdded(activity) ? '✓ Added' : '+ Add to Trip'}
-                          </button>
-                        </div>
-                      ))}
+                    {/* Activities - Horizontal Swipable Cards */}
+                    <div className="space-y-3">
+                      <HorizontalActivityCards
+                        activities={highlights.map((activity: any) => ({
+                          id: activity.id || activity.title,
+                          name: activity.title,
+                          category: activity.category || 'other',
+                          image: activity.image || '/placeholder-activity.jpg',
+                          duration: activity.duration ? `${activity.duration}h` : undefined,
+                          price: activity.costEstimate ? `$${activity.costEstimate}` : 'Free',
+                          rating: activity.rating,
+                          isAdded: isActivityAdded(activity),
+                          description: activity.description
+                        } as ActivityCardData))}
+                        onActivityClick={(activity) => {
+                          // Could open detail modal here
+                          console.log('Activity clicked:', activity)
+                        }}
+                        onAddToggle={(activity) => {
+                          const originalActivity = highlights.find((a: any) =>
+                            (a.id || a.title) === activity.id
+                          )
+                          if (originalActivity) {
+                            handleAddToTrip(originalActivity)
+                          }
+                        }}
+                        variant="standard"
+                        showArrows={true}
+                        showAddButton={true}
+                      />
 
                       {/* More Experiences */}
                       <button
@@ -724,10 +824,103 @@ export function planModal({
                         </div>
                       )}
                     </div>
+
+                    {/* Overnight Stays - NEW! */}
+                    {stays.length > 0 && (
+                      <div className="mt-3 p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                        <p className="text-sm font-semibold text-purple-900 mb-3 flex items-center gap-2">
+                          🏨 Overnight Accommodation
+                        </p>
+                        <div className="space-y-3">
+                          {stays.map((stay: any, idx: number) => (
+                            <div key={idx} className="bg-white rounded-lg p-3 border border-purple-100">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-sm text-gray-900">{stay.title}</h4>
+                                  <p className="text-xs text-purple-600 mt-0.5">
+                                    {stay.accommodationType || 'Accommodation'} • ${stay.costEstimate || 0}/night
+                                  </p>
+                                </div>
+                                <span className="text-xs text-gray-500 whitespace-nowrap ml-2">{stay.time}</span>
+                              </div>
+                              {stay.description && (
+                                <p className="text-xs text-gray-600 mb-2">{stay.description}</p>
+                              )}
+                              {stay.reason && (
+                                <p className="text-xs text-purple-700 bg-purple-50 rounded px-2 py-1">
+                                  💡 {stay.reason}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Transportation & Travel Info */}
+                    {structuredContext?.routing && activeLocationIndex > 0 && (
+                      <div className="mt-3 p-3 bg-gradient-to-br from-teal-50 to-blue-50 rounded-lg border border-teal-200">
+                        <p className="text-xs font-semibold text-teal-900 mb-2 flex items-center gap-1">
+                          🚗 Getting Here
+                        </p>
+                        <div className="space-y-1.5 text-xs text-teal-800">
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-600">Distance from previous:</span>
+                            <span className="font-semibold">{structuredContext.routing.distanceKm?.toFixed(0)} km</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-600">Travel time:</span>
+                            <span className="font-semibold">{structuredContext.routing.durationHours?.toFixed(1)} hours</span>
+                          </div>
+                          {structuredContext.routing.provider && structuredContext.routing.provider !== 'cache' && (
+                            <div className="flex items-center justify-between pt-1 border-t border-teal-200">
+                              <span className="text-gray-600">Route by:</span>
+                              <a
+                                href={structuredContext.routing.provider === 'openrouteservice' ? 'https://openrouteservice.org/' : 'https://project-osrm.org/'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-semibold text-teal-600 hover:text-teal-700 hover:underline capitalize"
+                              >
+                                {structuredContext.routing.provider}
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* POI Section - Points of Interest */}
+                    {structuredContext?.poisByLocation?.[currentLocation.location] && (
+                      <POISection
+                        locationName={currentLocation.location}
+                        pois={structuredContext.poisByLocation[currentLocation.location]}
+                        className="mt-4"
+                      />
+                    )}
                   </div>
 
                   {/* Right: Location Mini Map (replaces "My Journey So Far") */}
                   <div className="space-y-3">
+                    {/* CTA Buttons - Proceed to Next / Jump to Summary */}
+                    <div className="flex flex-col gap-2">
+                      {activeLocationIndex < locationGroups.length - 1 && (
+                        <button
+                          onClick={() => setActiveLocationIndex(activeLocationIndex + 1)}
+                          className="w-full py-2 px-4 bg-white border border-teal-300 text-teal-700 rounded-lg font-medium text-sm hover:bg-teal-50 hover:border-teal-400 transition-all flex items-center justify-center gap-2"
+                        >
+                          Next Location
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setActiveLocationIndex(locationGroups.length)}
+                        className="w-full py-2 px-4 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50 hover:border-gray-400 transition-all flex items-center justify-center gap-2"
+                      >
+                        {activeLocationIndex === locationGroups.length - 1 ? 'View Summary' : 'Jump to Summary'}
+                        <Compass className="h-4 w-4" />
+                      </button>
+                    </div>
+
                     {/* Location Mini Map */}
                     {(() => {
                       // Find coordinates with flexible matching
@@ -791,7 +984,7 @@ export function planModal({
                   </div>
                 </motion.div>
               ) : (
-                /* Final Review Screen */
+                /* Final Summary Screen */
                 <motion.div
                   key="final-review"
                   initial={{ opacity: 0, x: 20 }}
@@ -801,47 +994,47 @@ export function planModal({
                   className="py-2"
                 >
                   {/* Animated Vehicle - Full Width */}
-                  <div className="relative h-8 mb-4 overflow-hidden -mx-12 z-0" style={{ marginTop: '-15px' }}>
-                    <motion.div
-                      initial={{ x: '-10%' }}
-                      animate={{ x: 'calc(100vw + 10%)' }}
-                      transition={{
-                        duration: 7,
-                        repeat: Infinity,
-                        ease: 'linear'
-                      }}
-                      className="absolute top-1/2 -translate-y-1/2 z-0"
-                    >
-                      {transportMode === 'bike' && <Bike className="h-6 w-6 text-teal-500" />}
-                      {transportMode === 'car' && <Car className="h-6 w-6 text-teal-500" />}
-                      {transportMode === 'train' && <Train className="h-6 w-6 text-teal-500" />}
-                      {transportMode === 'plane' && <Plane className="h-6 w-6 text-teal-500" />}
-                      {transportMode === 'bus' && <Bus className="h-6 w-6 text-teal-500" />}
-                      {!transportMode && <Car className="h-6 w-6 text-teal-500" />}
-                    </motion.div>
+                  <div className="relative h-12 mb-4 -mx-4 md:-mx-12 z-0">
+                    <div className="absolute inset-0 overflow-hidden">
+                      <motion.div
+                        initial={{ x: '-10%' }}
+                        animate={{ x: 'calc(100% + 10%)' }}
+                        transition={{
+                          duration: 7,
+                          repeat: Infinity,
+                          ease: 'linear'
+                        }}
+                        className="absolute top-1/2 -translate-y-1/2"
+                      >
+                        {transportMode === 'bike' && <Bike className="h-6 w-6 text-teal-500" />}
+                        {transportMode === 'car' && <Car className="h-6 w-6 text-teal-500" />}
+                        {transportMode === 'train' && <Train className="h-6 w-6 text-teal-500" />}
+                        {transportMode === 'plane' && <Plane className="h-6 w-6 text-teal-500" />}
+                        {transportMode === 'bus' && <Bus className="h-6 w-6 text-teal-500" />}
+                        {!transportMode && <Car className="h-6 w-6 text-teal-500" />}
+                      </motion.div>
+                    </div>
                   </div>
 
-                  <div className="text-center mb-4 relative z-10">
+                  <div className="text-center mb-6 relative z-10">
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Your Journey Awaits!</h2>
                     <p className="text-sm text-gray-600 max-w-2xl mx-auto">
                       You've planned an amazing {plan.stats?.totalDays || plan.days.length}-day adventure across {locationGroups.length} incredible destinations.
                     </p>
                   </div>
 
-                  {/* Location Images Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6 relative z-10">
+                  {/* Location Images Grid - Centered */}
+                  <div className="flex flex-wrap justify-center gap-3 mb-6 relative z-10 max-w-4xl mx-auto">
                     {locationGroups.map((group: any, index: number) => (
-                      <div key={index} className="relative group cursor-pointer" onClick={() => setActiveLocationIndex(index)}>
-                        <div className="relative h-36 rounded-xl overflow-hidden">
-                          <Image
-                            src={getLocationImage(group.location)}
+                      <div key={index} className="relative group cursor-pointer w-64" onClick={() => setActiveLocationIndex(index)}>
+                        <div className="relative h-40 rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow">
+                          <ImageGallery
+                            images={getLocationGallery(group.location)}
                             alt={group.location}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-300"
-                            unoptimized
+                            className="h-full w-full"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                          <div className="absolute bottom-0 left-0 right-0 p-3">
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
+                          <div className="absolute bottom-0 left-0 right-0 p-3 pointer-events-none">
                             <h3 className="text-white font-semibold text-sm mb-0.5">
                               {formatLocationDisplay(group.location).main}
                             </h3>
@@ -929,14 +1122,48 @@ export function planModal({
                     </div>
                   )}
 
+                  {/* Route metrics (from structuredContext) */}
+                  {structuredContext?.routing && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 max-w-3xl mx-auto">
+                      <div className="bg-white rounded-lg border p-3">
+                        <div className="text-xs text-gray-500">Distance</div>
+                        <div className="text-lg font-semibold text-gray-900">{structuredContext.routing.distanceKm?.toFixed(1)} km</div>
+                      </div>
+                      <div className="bg-white rounded-lg border p-3">
+                        <div className="text-xs text-gray-500">Estimated Duration</div>
+                        <div className="text-lg font-semibold text-gray-900">{structuredContext.routing.durationHours?.toFixed(1)} h</div>
+                      </div>
+                      <div className="bg-white rounded-lg border p-3">
+                        <div className="text-xs text-gray-500">Transport Mode</div>
+                        <div className="text-lg font-semibold text-gray-900 capitalize">
+                          {structuredContext.routing.transportMode || 'Car'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* POIs Along Route - NEW! */}
+                  {(() => {
+                    const topRankedPOIs = structuredContext?.topRankedPOIs || []
+                    const worthwhilePOIs = structuredContext?.worthwhilePOIs || []
+                    const allPOIs = topRankedPOIs.length > 0 ? topRankedPOIs : worthwhilePOIs
+
+                    if (allPOIs.length === 0) return null
+
+                    return (
+                      <div className="max-w-3xl mx-auto mb-6">
+                        <RoutePoiSection pois={allPOIs} />
+                      </div>
+                    )
+                  })()}
+
                   <p className="text-sm text-gray-600 text-center">Ready to embark on your adventure?</p>
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
 
-          {/* Footer Actions */}
-          <div className="bg-white border-t border-gray-200 px-4 md:px-12 py-4 pb-20 md:pb-4 flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-0 justify-between">
+            {/* Footer Actions - Sticky at bottom with mobile nav spacing */}
+            <div className="sticky bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 px-4 md:px-12 py-3 pb-24 md:pb-3 flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-0 justify-between mt-12 shadow-lg z-20">
             {/* Action Buttons - Hidden on mobile, shown on desktop */}
             <div className="hidden md:flex items-center gap-2">
               <button
@@ -991,7 +1218,8 @@ export function planModal({
                 </>
               )}
             </button>
-          </div>
+            </div> {/* Close footer */}
+          </div> {/* Close scrollable content area */}
         </motion.div>
       </div>
 

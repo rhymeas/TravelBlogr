@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LocationInput } from './LocationInput'
@@ -27,6 +27,7 @@ import toast from 'react-hot-toast'
 
 export function ItineraryGenerator() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const { isAuthenticated, isLoading: authLoading } = useAuth()
   const [showPlanningAuthModal, setShowPlanningAuthModal] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -35,8 +36,10 @@ export function ItineraryGenerator() {
   const [ctaBottomOffset, setCtaBottomOffset] = useState(24) // 24px = bottom-6
   // @ts-ignore - Kept for backend logging only
   const [resolvedLocations, setResolvedLocations] = useState<any[]>([])
-  const [locationImages, setLocationImages] = useState<Record<string, string>>({})
+  const [locationImages, setLocationImages] = useState<Record<string, string | { featured: string; gallery: string[] }>>({})
   const [locationCoordinates, setLocationCoordinates] = useState<Record<string, { latitude: number; longitude: number }>>({})
+  // NEW: structured context (routing metrics, POIs) from API for richer UI
+  const [structuredContext, setStructuredContext] = useState<any | null>(null)
 
   // Multi-location state with resolved names and metadata
   const [locations, setLocations] = useState<Array<{
@@ -64,6 +67,68 @@ export function ItineraryGenerator() {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
   const markers = useRef<maplibregl.Marker[]>([])
+
+  // Handle URL parameters for pre-filling (from location pages)
+  useEffect(() => {
+    const fromParam = searchParams.get('from')
+    const toParam = searchParams.get('to')
+    const fromLat = searchParams.get('from_lat')
+    const fromLng = searchParams.get('from_lng')
+    const toLat = searchParams.get('to_lat')
+    const toLng = searchParams.get('to_lng')
+
+    if (fromParam || toParam) {
+      console.log('🔗 Pre-filling from URL params:', { from: fromParam, to: toParam })
+
+      const newLocations = [...locations]
+
+      if (fromParam) {
+        newLocations[0] = {
+          id: '1',
+          value: fromParam,
+          resolvedName: fromParam,
+          latitude: fromLat ? parseFloat(fromLat) : undefined,
+          longitude: fromLng ? parseFloat(fromLng) : undefined
+        }
+      }
+
+      if (toParam) {
+        newLocations[1] = {
+          id: '2',
+          value: toParam,
+          resolvedName: toParam,
+          latitude: toLat ? parseFloat(toLat) : undefined,
+          longitude: toLng ? parseFloat(toLng) : undefined
+        }
+      }
+
+      setLocations(newLocations)
+
+      // Update map if coordinates provided
+      if ((fromLat && fromLng) || (toLat && toLng)) {
+        const mapLocs: typeof mapLocations = []
+        if (fromLat && fromLng) {
+          mapLocs.push({
+            id: '1',
+            lat: parseFloat(fromLat),
+            lng: parseFloat(fromLng),
+            title: fromParam || 'Start',
+            type: 'waypoint'
+          })
+        }
+        if (toLat && toLng) {
+          mapLocs.push({
+            id: '2',
+            lat: parseFloat(toLat),
+            lng: parseFloat(toLng),
+            title: toParam || 'Destination',
+            type: 'waypoint'
+          })
+        }
+        setMapLocations(mapLocs)
+      }
+    }
+  }, [searchParams])
 
   // Restore saved form data on mount (after login/signup)
   useEffect(() => {
@@ -134,6 +199,9 @@ export function ItineraryGenerator() {
   // Advanced settings modal
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
 
+  // Sticky buttons visibility (hide when near bottom to prevent overlap)
+  const [showStickyButtons, setShowStickyButtons] = useState(true)
+
   // Distance calculation state
   const [totalDistance, setTotalDistance] = useState<number | null>(null)
 
@@ -148,7 +216,7 @@ export function ItineraryGenerator() {
     return filledLocations.length >= 2 && dateRange !== null
   }
 
-  // Adjust CTA position to stay above footer
+  // Adjust CTA position to stay above footer and hide when near bottom
   useEffect(() => {
     const handleScroll = () => {
       // Find the footer element in the DOM (from root layout)
@@ -168,6 +236,16 @@ export function ItineraryGenerator() {
           setCtaBottomOffset(24)
         }
       }
+
+      // Hide sticky buttons when scrolled near bottom
+      const scrollPosition = window.scrollY + window.innerHeight
+      const pageHeight = document.documentElement.scrollHeight
+      const distanceFromBottom = pageHeight - scrollPosition
+
+      // Desktop: Hide when within 450px of bottom
+      // Mobile: Hide when within 400px of bottom
+      const threshold = window.innerWidth >= 1024 ? 450 : 400
+      setShowStickyButtons(distanceFromBottom > threshold)
     }
 
     window.addEventListener('scroll', handleScroll)
@@ -572,6 +650,14 @@ export function ItineraryGenerator() {
         setPlan(data.data)
         setResolvedLocations(data.resolvedLocations || [])
         setLocationImages(data.locationImages || {})
+        // NEW: grab structured context for UI and trip saving
+        setStructuredContext(data.structuredContext || null)
+
+        // Prefer real routing distance from structured context when available
+        const routing = data.structuredContext?.routing
+        if (routing?.distanceKm) {
+          setTotalDistance(routing.distanceKm)
+        }
 
         // Extract location coordinates from the plan
         const coords: Record<string, { latitude: number; longitude: number }> = {}
@@ -697,55 +783,58 @@ export function ItineraryGenerator() {
                 </div>
               </div>
 
-              {/* Desktop: Original Horizontal Layout */}
+              {/* Desktop: Compact Horizontal Layout */}
               <div className="hidden lg:flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <h1 className="text-3xl font-semibold">Plan your trip</h1>
-                  <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                    proMode
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'bg-gray-100 text-gray-700'
-                  }`}>
-                    {proMode ? 'Plus' : 'Basic'}
-                  </span>
-                </div>
+                <div className="flex items-center gap-4">
+                  <h1 className="text-2xl font-semibold text-gray-900">Plan your trip</h1>
 
-                {/* Planner Plus BETA Toggle */}
-                <div className="flex items-center gap-3 pr-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-700">Planner Plus</span>
-                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded-full">
-                      BETA
-                    </span>
-                    <div className="group relative">
-                      <Info className="h-4 w-4 text-gray-400 cursor-help" />
-                      <div className="absolute right-0 top-6 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                        <div className="font-semibold mb-1">✨ Plus Benefits:</div>
-                        <ul className="space-y-1 text-gray-300">
-                          <li>• Advanced AI reasoning model</li>
-                          <li>• Detailed route optimization</li>
-                          <li>• Better activity suggestions</li>
-                          <li>• Enhanced travel times</li>
-                        </ul>
-                        <div className="mt-2 pt-2 border-t border-gray-700 text-gray-400">
-                          Takes 10-15s longer to generate
-                        </div>
+                  {/* Mode Pills - Clear Selected State */}
+                  <div className="flex items-center gap-2 bg-gray-100 rounded-full p-1">
+                    <button
+                      type="button"
+                      onClick={() => setProMode(false)}
+                      className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all ${
+                        !proMode
+                          ? 'bg-black text-white shadow-md'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      Basic
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setProMode(true)}
+                      className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 ${
+                        proMode
+                          ? 'bg-purple-600 text-white shadow-md'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      Planner Plus
+                      <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded ${
+                        proMode ? 'bg-white/25' : 'bg-purple-100 text-purple-600'
+                      }`}>
+                        BETA
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Info Icon */}
+                  <div className="group relative">
+                    <Info className="h-4 w-4 text-gray-400 cursor-help hover:text-gray-600 transition-colors" />
+                    <div className="absolute left-0 top-7 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                      <div className="font-semibold mb-1.5">✨ Planner Plus Benefits:</div>
+                      <ul className="space-y-1 text-gray-300">
+                        <li>• Advanced AI reasoning model</li>
+                        <li>• Detailed route optimization</li>
+                        <li>• Better activity suggestions</li>
+                        <li>• Enhanced travel times</li>
+                      </ul>
+                      <div className="mt-2 pt-2 border-t border-gray-700 text-gray-400 text-[11px]">
+                        Takes 10-15s longer to generate
                       </div>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setProMode(!proMode)}
-                    className={`
-                      relative w-11 h-6 rounded-full transition-colors
-                      ${proMode ? 'bg-purple-500' : 'bg-gray-300'}
-                    `}
-                  >
-                    <div className={`
-                      absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform
-                      ${proMode ? 'translate-x-5' : 'translate-x-0.5'}
-                    `} />
-                  </button>
                 </div>
               </div>
             </div>
@@ -787,36 +876,35 @@ export function ItineraryGenerator() {
           />
         </div>
 
-        {/* Advanced Settings Button */}
+        {/* Transport Mode - Primary Selection (Moved out of Advanced Settings) */}
+        <div className="bg-white rounded-2xl shadow-sm border p-5">
+          <h3 className="text-base font-semibold mb-3">How will you travel?</h3>
+          <TransportModeSelector
+            value={transportMode}
+            onChange={setTransportMode}
+          />
+        </div>
+
+        {/* Advanced Settings Button - Compact */}
         <button
           type="button"
           onClick={() => setShowAdvancedSettings(true)}
-          className="w-full bg-white rounded-2xl shadow-sm border p-5 hover:bg-gray-50 transition-colors text-left"
+          className="w-full bg-white rounded-2xl shadow-sm border p-4 hover:bg-gray-50 transition-colors text-left"
         >
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <h3 className="text-base font-semibold mb-2">Advanced Settings</h3>
-              <div className="flex flex-wrap gap-2 text-xs text-gray-500">
-                {/* Transport Mode */}
-                <span className="px-2 py-1 bg-gray-100 rounded-full">
-                  {transportMode === 'car' && '🚗 Car'}
-                  {transportMode === 'flight' && '✈️ Flight'}
-                  {transportMode === 'train' && '🚂 Train'}
-                  {transportMode === 'bike' && '🚴 Bike'}
-                  {transportMode === 'bus' && '🚌 Bus'}
-                  {transportMode === 'mixed' && '🔄 Mixed'}
-                </span>
-
+              <h3 className="text-sm font-medium mb-1">More Options</h3>
+              <div className="flex flex-wrap gap-1.5 text-xs text-gray-500">
                 {/* Budget */}
-                <span className="px-2 py-1 bg-gray-100 rounded-full">
-                  {formData.budget === 'budget' && '💰 Budget-friendly'}
+                <span className="px-2 py-0.5 bg-gray-100 rounded-full">
+                  {formData.budget === 'budget' && '💰 Budget'}
                   {formData.budget === 'moderate' && '💵 Moderate'}
                   {formData.budget === 'luxury' && '💎 Luxury'}
                 </span>
 
                 {/* Interests - show first 2 */}
                 {formData.interests && formData.interests.trim() && (
-                  <span className="px-2 py-1 bg-gray-100 rounded-full">
+                  <span className="px-2 py-0.5 bg-gray-100 rounded-full">
                     {formData.interests.split(',').slice(0, 2).map(i => i.trim()).join(', ')}
                     {formData.interests.split(',').length > 2 && '...'}
                   </span>
@@ -824,57 +912,57 @@ export function ItineraryGenerator() {
 
                 {/* Travel Pace */}
                 {travelHoursPerDay && (
-                  <span className="px-2 py-1 bg-gray-100 rounded-full">
+                  <span className="px-2 py-0.5 bg-gray-100 rounded-full">
                     ⏱️ {travelHoursPerDay}h/day
                   </span>
                 )}
               </div>
             </div>
-            <ChevronDown className="h-5 w-5 text-gray-400 flex-shrink-0 ml-4" />
+            <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0 ml-2" />
           </div>
         </button>
 
             </div>
 
-            {/* Floating Sticky CTA Button - Mobile Safe Area Aware + Bottom Nav Bar */}
+            {/* Floating Sticky CTA Button - Centered on screen, lower position */}
             <div
-              className="fixed left-0 lg:left-auto lg:right-[42%] z-40 px-6 pointer-events-none transition-all duration-300 ease-out"
+              className={`fixed left-1/2 -translate-x-1/2 z-40 pointer-events-none w-full max-w-[400px] px-4 transition-all duration-300 ease-out ${
+                showStickyButtons ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+              }`}
               style={{
-                // Desktop: use ctaBottomOffset
-                // Mobile: add 64px (bottom nav height) + safe area
-                bottom: `max(${ctaBottomOffset}px, calc(64px + env(safe-area-inset-bottom)))`,
+                // Mobile: 16px from bottom + safe area (another 30px lower)
+                // Desktop: 16px from bottom (another 30px lower - very close to bottom edge)
+                bottom: 'max(16px, calc(16px + env(safe-area-inset-bottom)))',
               }}
             >
-              <div className="max-w-[800px] lg:max-w-[500px] mx-auto">
-                <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-gray-200 py-4 pl-6 pr-6 pointer-events-auto flex items-center justify-between gap-4">
-                  {/* Secondary Gray CTA */}
-                  <Button
-                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                    variant="outline"
-                    className="px-6 py-3 text-gray-700 border-gray-300 hover:bg-gray-50 rounded-xl font-medium"
-                  >
-                    Back to Top
-                  </Button>
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-gray-200 py-3 px-4 pointer-events-auto flex items-center justify-center gap-3">
+                {/* Secondary Gray CTA - Manual Planning */}
+                <Button
+                  onClick={() => router.push('/dashboard/trips/new')}
+                  variant="outline"
+                  className="px-4 py-2 text-sm text-gray-700 border-gray-300 hover:bg-gray-50 rounded-xl font-medium"
+                >
+                  Create Manual Plan
+                </Button>
 
-                  {/* Primary Red CTA */}
-                  <Button
-                    onClick={handleGenerate}
-                    disabled={loading || !isFormValid()}
-                    className="bg-rausch-500 hover:bg-rausch-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 px-6 rounded-xl text-base font-semibold shadow-lg hover:shadow-xl disabled:shadow-none transition-all"
-                  >
-                    {loading ? (
-                      <span className="flex items-center justify-center gap-3">
-                        <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Generating your plan...
-                      </span>
-                    ) : (
-                      'Generate plan'
-                    )}
-                  </Button>
-                </div>
+                {/* Primary Red CTA */}
+                <Button
+                  onClick={handleGenerate}
+                  disabled={loading || !isFormValid()}
+                  className="bg-rausch-500 hover:bg-rausch-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white disabled:text-gray-500 py-2 px-5 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl disabled:shadow-none transition-all"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-3">
+                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Generating your plan...
+                    </span>
+                  ) : (
+                    'Generate plan'
+                  )}
+                </Button>
               </div>
             </div>
           </div>
@@ -929,6 +1017,8 @@ export function ItineraryGenerator() {
           proMode={proMode}
           totalDistance={totalDistance || undefined}
           locationCoordinates={locationCoordinates}
+          // NEW: provide structured context for richer rendering and persistence
+          structuredContext={structuredContext || undefined}
           startDate={dateRange.startDate.toISOString().split('T')[0]}
           endDate={dateRange.endDate.toISOString().split('T')[0]}
           interests={formData.interests.split(',').map(i => i.trim()).filter(i => i)}
@@ -938,7 +1028,7 @@ export function ItineraryGenerator() {
 
       {/* Advanced Settings Modal */}
       {showAdvancedSettings && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -1017,15 +1107,6 @@ export function ItineraryGenerator() {
                     Click "Optional" to set
                   </div>
                 )}
-              </div>
-
-              {/* Transport Mode */}
-              <div>
-                <h3 className="text-base font-semibold mb-3">Transport Mode</h3>
-                <TransportModeSelector
-                  value={transportMode}
-                  onChange={setTransportMode}
-                />
               </div>
             </div>
 

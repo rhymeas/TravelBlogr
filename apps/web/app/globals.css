@@ -1,3 +1,8 @@
+/* Reusable small chip/badge for inline tags */
+.tb-chip {
+  @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-800 border border-gray-200;
+}
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap');
 @import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -561,7 +566,7 @@ input:-webkit-autofill:active {
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
   backdrop-filter: blur(20px);
   border: 1px solid rgba(244, 63, 94, 0.1);
-  box-shadow: 
+  box-shadow:
     0 4px 20px rgba(244, 63, 94, 0.08),
     0 1px 3px rgba(0, 0, 0, 0.05);
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
@@ -569,7 +574,7 @@ input:-webkit-autofill:active {
 
 .luxury-card:hover {
   transform: translateY(-8px) scale(1.02);
-  box-shadow: 
+  box-shadow:
     0 20px 40px rgba(244, 63, 94, 0.15),
     0 8px 16px rgba(0, 0, 0, 0.1);
   border-color: rgba(244, 63, 94, 0.2);

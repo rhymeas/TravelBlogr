@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
+import { getBrowserSupabase } from '@/lib/supabase'
 import { Coordinates } from '../../domain/value-objects/RouteInfo'
 
 function getSupabaseClient() {
@@ -66,86 +67,71 @@ export class LocationRepository {
     const images: Record<string, string> = {}
     const missingImages: string[] = []
 
-    // STEP 1: Batch query location_images table for all locations
+    // STEP 1: Batch query locations table (slug, featured_image, gallery_images)
     const slugs = locationNames.map(name => this.slugify(name))
 
-    const { data: imageData, error: imageError } = await supabase
-      .from('location_images')
-      .select('location_slug, image_url')
-      .in('location_slug', slugs)
-      .eq('is_featured', true)
+    const { data: locRows, error: locErr } = await supabase
+      .from('locations')
+      .select('slug, featured_image, gallery_images')
+      .in('slug', slugs)
 
-    if (!imageError && imageData) {
+    if (!locErr && locRows) {
       // Map slug back to location name
       const slugToName: Record<string, string> = {}
       locationNames.forEach(name => {
         slugToName[this.slugify(name)] = name
       })
 
-      imageData.forEach(img => {
-        const locationName = slugToName[img.location_slug]
-        if (locationName) {
-          images[locationName] = img.image_url
+      locRows.forEach((row: any) => {
+        const locationName = slugToName[row.slug]
+        const featured: string | null = row.featured_image || (Array.isArray(row.gallery_images) && row.gallery_images.length > 0 ? row.gallery_images[0] : null)
+        if (locationName && featured) {
+          images[locationName] = featured
         }
       })
-      console.log(`✅ Found ${imageData.length}/${locationNames.length} images in location_images table`)
+      console.log(`✅ Found ${Object.keys(images).length}/${locationNames.length} images in locations table`)
     }
 
-    // STEP 2: For locations without images, check featured_image column (legacy)
-    for (const name of locationNames) {
-      if (images[name]) continue // Already have image
-
-      const slug = this.slugify(name)
-      const { data } = await supabase
-        .from('locations')
-        .select('featured_image')
-        .eq('slug', slug)
-        .single()
-
-      if (data?.featured_image) {
-        images[name] = data.featured_image
-        console.log(`✅ Found legacy featured_image for "${name}"`)
-      } else {
-        missingImages.push(name)
-      }
-    }
-
-    // STEP 3: Only fetch externally for NEW locations (not in database)
-    if (missingImages.length > 0) {
-      console.log(`📸 ${missingImages.length} locations need external image fetch:`, missingImages)
-
-      for (const name of missingImages) {
-        try {
-          const { fetchLocationGalleryHighQuality } = await import('@/lib/services/enhancedImageService')
-          const mainLocation = name.split(',')[0].trim()
-          const region = name.split(',')[1]?.trim()
-          const country = name.split(',').pop()?.trim()
-
-          const galleryImages = await fetchLocationGalleryHighQuality(
-            mainLocation,
-            20,
-            region,
-            country
-          )
-
-          if (galleryImages.length > 0) {
-            images[name] = galleryImages[0]
-            console.log(`✅ Fetched ${galleryImages.length} images for NEW location "${name}"`)
-          } else {
-            images[name] = '/placeholder-location.jpg'
-            console.log(`⚠️ No images found for "${name}", using placeholder`)
-          }
-        } catch (error) {
-          console.error(`❌ Failed to fetch images for "${name}":`, error)
-          images[name] = '/placeholder-location.jpg'
-        }
-      }
-    } else {
-      console.log(`🎉 All ${locationNames.length} location images found in database - NO external API calls needed!`)
-    }
-
-    console.log(`🖼️ Final: ${Object.keys(images).length}/${locationNames.length} location images (${locationNames.length - missingImages.length} from DB, ${missingImages.length} from external APIs)`)
     return images
+  }
+
+  /**
+   * Get location images with gallery support
+   * Returns both featured image and gallery array
+   */
+  async getLocationImagesWithGallery(locationNames: string[]): Promise<Record<string, { featured: string; gallery: string[] }>> {
+    const supabase = getSupabaseClient()
+    const imagesData: Record<string, { featured: string; gallery: string[] }> = {}
+
+    const slugs = locationNames.map(name => this.slugify(name))
+
+    const { data: locRows, error: locErr } = await supabase
+      .from('locations')
+      .select('slug, featured_image, gallery_images')
+      .in('slug', slugs)
+
+    if (!locErr && locRows) {
+      const slugToName: Record<string, string> = {}
+      locationNames.forEach(name => {
+        slugToName[this.slugify(name)] = name
+      })
+
+      locRows.forEach((row: any) => {
+        const locationName = slugToName[row.slug]
+        const galleryArray = Array.isArray(row.gallery_images) ? row.gallery_images : []
+        const featured = row.featured_image || (galleryArray.length > 0 ? galleryArray[0] : null)
+
+        if (locationName && featured) {
+          imagesData[locationName] = {
+            featured,
+            gallery: galleryArray.length > 0 ? galleryArray : [featured]
+          }
+        }
+      })
+      console.log(`✅ Found ${Object.keys(imagesData).length}/${locationNames.length} locations with gallery data`)
+    }
+
+    return imagesData
   }
 
   /**

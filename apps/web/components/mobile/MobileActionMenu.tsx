@@ -208,40 +208,6 @@ export function MobileActionMenu({ className = '' }: MobileActionMenuProps) {
         <Plus className="h-7 w-7" strokeWidth={2.5} />
       </button>
 
-      {/* CSS Animations */}
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translate(-50%, 20px);
-          }
-          to {
-            opacity: 1;
-            transform: translate(-50%, 0);
-          }
-        }
-
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-      `}</style>
-
       {/* Feedback Modal */}
       <FeedbackModal
         isOpen={showFeedback}

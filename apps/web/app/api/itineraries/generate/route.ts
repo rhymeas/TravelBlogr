@@ -8,7 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GenerateplanUseCase } from '@/lib/itinerary/application/use-cases/GenerateItineraryUseCase'
 import { createServerSupabase } from '@/lib/supabase-server'
-import { canGenerateAI, useCredit, incrementAIUsage } from '@/lib/services/creditService'
+import { canGenerateAI } from '@/lib/services/creditService'
+import { useCreditServer, incrementAIUsageServer } from '@/lib/services/creditService.server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -109,16 +110,19 @@ export async function POST(request: NextRequest) {
     // 8. Increment monthly usage counter (for free tier tracking)
     // Skip for admins - they have unlimited usage
     if (!isAdmin) {
-      await incrementAIUsage(user.id)
+      await incrementAIUsageServer(user.id)
     }
 
     const generationTime = Date.now() - startTime
 
     return NextResponse.json({
       success: true,
-      data: result.plan?.toJSON(),
+      plan: result.plan?.toJSON(), // Use 'plan' instead of 'data' for clarity
+      data: result.plan?.toJSON(), // Keep 'data' for backward compatibility
       resolvedLocations: result.resolvedLocations || [],
       locationImages: result.locationImages || {},
+      // NEW: expose structured context so the client can render metrics/POIs
+      structuredContext: result.structuredContext || null,
       meta: {
         generationTimeMs: generationTime,
         generatedAt: new Date().toISOString(),

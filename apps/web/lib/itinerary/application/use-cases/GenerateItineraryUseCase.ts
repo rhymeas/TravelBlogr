@@ -39,7 +39,9 @@ export interface GenerateplanResult {
   plan?: Plan
   error?: string
   resolvedLocations?: ResolvedLocation[]
-  locationImages?: Record<string, string> // Map of location name to featured image URL
+  locationImages?: Record<string, { featured: string; gallery: string[] }> // Map of location name to image data with gallery
+  // NEW: structured context (routing, POIs, etc.) surfaced to API
+  structuredContext?: any
 }
 
 export class GenerateplanUseCase {
@@ -128,9 +130,9 @@ export class GenerateplanUseCase {
             tips: cachedPlan.planData.tips
           })
 
-          // Fetch location images even for cached plans
-          console.log('🖼️ Fetching location images for cached plan...')
-          const locationImages = await this.locationRepo.getLocationImages([
+          // Fetch location images even for cached plans WITH GALLERY SUPPORT
+          console.log('🖼️ Fetching location images with galleries for cached plan...')
+          const locationImages = await this.locationRepo.getLocationImagesWithGallery([
             routeInfo.fromLocation,
             ...routeInfo.stops.map(s => s.name),
             routeInfo.toLocation
@@ -184,6 +186,237 @@ export class GenerateplanUseCase {
         }
       }
 
+      // 6.2. Pre-compute structured context (routing + POIs) to maximize realism and enable DB reuse
+      let structuredContext: any = {}
+      try {
+        const fromSlug = routeInfo.fromSlug || command.from
+        const toSlug = routeInfo.toSlug || command.to
+
+        // Build quick lookup
+        const bySlug = new Map(locationsData.map(ld => [ld.slug, ld]))
+
+        // Coordinates list in travel order
+        const coords: Array<{ longitude: number; latitude: number }> = []
+        const fromLoc = bySlug.get(fromSlug)
+        if (fromLoc?.longitude && fromLoc?.latitude) {
+          coords.push({ longitude: fromLoc.longitude, latitude: fromLoc.latitude })
+        }
+        for (const s of routeInfo.stops) {
+          const stop = bySlug.get(s.slug)
+          if (stop?.longitude && stop?.latitude) {
+            coords.push({ longitude: stop.longitude, latitude: stop.latitude })
+          } else if (s.coordinates) {
+            coords.push({ longitude: s.coordinates.longitude, latitude: s.coordinates.latitude })
+          }
+        }
+        const toLoc = bySlug.get(toSlug)
+        if (toLoc?.longitude && toLoc?.latitude) {
+          coords.push({ longitude: toLoc.longitude, latitude: toLoc.latitude })
+        }
+
+        // Compute routing (cached via DB providers)
+        if (coords.length >= 2) {
+          const { getRoute } = await import('../../../services/routingService')
+          const profile = ((): 'driving-car' | 'cycling-regular' | 'foot-walking' | 'wheelchair' => {
+            switch (command.transportMode) {
+              case 'bike':
+                return 'cycling-regular'
+              case 'train':
+              case 'bus':
+              case 'car':
+              case 'mixed':
+              default:
+                return 'driving-car'
+            }
+          })()
+          const route = await getRoute(coords as any, profile)
+
+          // Extract geometry coordinates (handle both GeoJSON and plain array)
+          const routeGeometry = Array.isArray(route.geometry)
+            ? route.geometry
+            : route.geometry.coordinates
+
+          structuredContext.routing = {
+            distanceKm: route.distance / 1000,
+            durationHours: route.duration / 3600,
+            provider: route.provider,
+            geometry: route.geometry // GeoJSON LineString [lng, lat] pairs
+          }
+
+          // NEW: Route Segmentation (if maxTravelHoursPerDay specified)
+          if (command.maxTravelHoursPerDay && command.maxTravelHoursPerDay > 0) {
+            console.log(`🗺️ Segmenting route by ${command.maxTravelHoursPerDay}h/day...`)
+            const { segmentRouteByDrivingTime, calculateOvernightStops } = await import('../../../services/routeSegmentationService')
+
+            try {
+              const segments = segmentRouteByDrivingTime({
+                routeGeometry: routeGeometry,
+                totalDistanceKm: route.distance / 1000,
+                totalDurationHours: route.duration / 3600,
+                maxDrivingHoursPerDay: command.maxTravelHoursPerDay,
+                startDate: command.startDate,
+                startTime: '09:00', // Default departure time
+                locations: locationsData.map(loc => ({
+                  name: loc.name,
+                  coordinates: [loc.longitude, loc.latitude] as [number, number]
+                }))
+              })
+
+              const overnightStops = calculateOvernightStops(segments)
+
+              structuredContext.routeSegments = segments
+              structuredContext.overnightStops = overnightStops
+
+              console.log(`✅ Created ${segments.length} route segments with ${overnightStops.length} overnight stops`)
+            } catch (error) {
+              console.error('⚠️ Failed to segment route:', error)
+              structuredContext.routeSegments = []
+              structuredContext.overnightStops = []
+            }
+          }
+
+          // NEW: Gather comprehensive trip data from ALL sources
+          console.log('🔍 Gathering comprehensive trip data from ALL sources...')
+          const { gatherComprehensiveTripData } = await import('../../../services/comprehensiveTripDataService')
+          const {
+            compressTripDataForAI,
+            formatCompressedDataForAI,
+            fitsWithinTokenLimit,
+            compressTripDataForStorage
+          } = await import('../../../services/tripDataCompressor')
+
+          let comprehensiveData
+          let compressedData
+          let aiFormattedData
+
+          try {
+            // 1. Gather comprehensive data
+            comprehensiveData = await gatherComprehensiveTripData(
+              routeInfo.fromLocation,
+              routeInfo.toLocation,
+              routeGeometry,
+              route.distance / 1000, // Convert to km
+              route.duration / 3600  // Convert to hours
+            )
+
+            console.log('✅ Comprehensive data gathered:')
+            console.log(`   Total POIs: ${comprehensiveData.pois.total}`)
+            console.log(`   Activities: ${comprehensiveData.activities.length}`)
+            console.log(`   Restaurants: ${comprehensiveData.restaurants.length}`)
+            console.log(`   Facts: ${comprehensiveData.facts.length}`)
+
+            // 2. Compress data for AI processing
+            compressedData = compressTripDataForAI(comprehensiveData)
+
+            // 3. Format for AI prompt
+            aiFormattedData = formatCompressedDataForAI(
+              compressedData,
+              command.transportMode || 'car',
+              totalDays,
+              command.interests || []
+            )
+
+            // 4. Check token limit
+            if (!fitsWithinTokenLimit(aiFormattedData, 6000)) {
+              console.warn('⚠️ Compressed data still too large, using fallback')
+              aiFormattedData = null
+            }
+
+            // 5. Store compressed version in context (for database)
+            structuredContext.comprehensiveData = compressTripDataForStorage(comprehensiveData)
+            structuredContext.compressedData = compressedData
+            structuredContext.aiFormattedData = aiFormattedData
+
+          } catch (error) {
+            console.error('⚠️ Failed to gather comprehensive data:', error)
+          }
+
+          // FALLBACK: Also fetch POIs using the old method for redundancy
+          console.log('🗺️ Fetching POIs along route (fallback method)...')
+          const {
+            fetchPOIsAlongRoute,
+            filterPOIsByDistance,
+            getTopPOIs,
+            enrichPOIsWithDetourTime,
+            getWorthwhilePOIs,
+            getQuickStops,
+            getMealBreaks,
+            getMajorAttractions,
+            getHighlyRankedPOIs
+          } = await import('../../../services/routePOIService')
+
+          try {
+            const allRoutePOIs = await fetchPOIsAlongRoute(
+              routeGeometry,
+              150, // Sample every 150km (reduced from 50km to avoid rate limiting)
+              15, // Search within 15km radius (increased from 10km to compensate)
+              ['interesting_places', 'tourist_facilities', 'natural', 'foods']
+            )
+            const nearbyPOIs = filterPOIsByDistance(allRoutePOIs, 10) // Within 10km of route (increased from 5km)
+            const topPOIs = getTopPOIs(nearbyPOIs, 50) // Top 50 POIs (increased from 30)
+
+            // NEW: Enrich POIs with detour time calculations
+            console.log('⏱️ Calculating detour times for POIs...')
+            // Map transport mode to detour calculation mode
+            const detourMode = profile === 'wheelchair' ? 'foot-walking' : profile
+            const enrichedPOIs = await enrichPOIsWithDetourTime(
+              topPOIs,
+              routeGeometry,
+              command.interests || [],
+              detourMode
+            )
+
+            // Filter to only worthwhile POIs (< 15 min detour)
+            const worthwhilePOIs = getWorthwhilePOIs(enrichedPOIs, 15)
+
+            // Categorize by micro-experience
+            const quickStops = getQuickStops(worthwhilePOIs)
+            const mealBreaks = getMealBreaks(worthwhilePOIs)
+            const majorAttractions = getMajorAttractions(worthwhilePOIs)
+
+            // Get highly ranked POIs (score >= 70)
+            const topRankedPOIs = getHighlyRankedPOIs(worthwhilePOIs)
+
+            structuredContext.poisAlongRoute = enrichedPOIs
+            structuredContext.worthwhilePOIs = worthwhilePOIs
+            structuredContext.quickStops = quickStops
+            structuredContext.mealBreaks = mealBreaks
+            structuredContext.majorAttractions = majorAttractions
+            structuredContext.topRankedPOIs = topRankedPOIs
+
+            console.log(`✅ Found ${enrichedPOIs.length} POIs along route`)
+            console.log(`✅ ${worthwhilePOIs.length} POIs worth the detour`)
+            console.log(`   - ${quickStops.length} quick stops`)
+            console.log(`   - ${mealBreaks.length} meal breaks`)
+            console.log(`   - ${majorAttractions.length} major attractions`)
+            console.log(`   - ${topRankedPOIs.length} highly ranked (score >= 70)`)
+          } catch (error) {
+            console.error('⚠️ Failed to fetch POIs along route:', error)
+            structuredContext.poisAlongRoute = []
+            structuredContext.worthwhilePOIs = []
+          }
+        }
+
+        // Fetch POIs with hours cheaply per location (OpenTripMap/WikiVoyage-backed)
+        const { fetchCompleteLocationData } = await import('../../../services/locationDataService')
+        const poisByLocation: Record<string, Array<{ name: string; category?: string; latitude?: number; longitude?: number }>> = {}
+        for (const loc of locationsData) {
+          if (typeof loc.latitude === 'number' && typeof loc.longitude === 'number') {
+            const data = await fetchCompleteLocationData(loc.name, loc.latitude, loc.longitude)
+            const top = (data.attractions || []).slice(0, 12).map((a: any) => ({
+              name: a.name || a.title || 'POI',
+              category: (a.kinds || a.category || '').split(',')[0] || undefined,
+              latitude: a.latitude,
+              longitude: a.longitude
+            }))
+            poisByLocation[loc.name] = top
+          }
+        }
+        structuredContext.poisByLocation = poisByLocation
+      } catch (err) {
+        console.warn('⚠️ Structured context pre-compute failed (non-fatal):', err)
+      }
+
       // 6.5. Separate locations: COMPLETE (use DB) vs INCOMPLETE (need AI enrichment)
       const completeLocations = locationsData.filter(loc => loc.hasCompleteData)
       const incompleteLocations = locationsData.filter(loc => !loc.hasCompleteData)
@@ -234,7 +467,8 @@ export class GenerateplanUseCase {
             budget: command.budget || 'moderate',
             maxTravelHoursPerDay: command.maxTravelHoursPerDay,
             transportMode: command.transportMode,
-            locationsData
+            locationsData,
+            structuredContext
           },
           command.startDate
         )
@@ -252,7 +486,8 @@ export class GenerateplanUseCase {
             budget: command.budget || 'moderate',
             maxTravelHoursPerDay: command.maxTravelHoursPerDay,
             transportMode: command.transportMode, // ✅ ADDED: Pass transport mode to AI
-            locationsData
+            locationsData,
+            structuredContext
           },
           command.startDate
         )
@@ -268,7 +503,8 @@ export class GenerateplanUseCase {
         summary: aiResult.summary,
         days: aiResult.days,
         totalCostEstimate: aiResult.totalCostEstimate,
-        tips: aiResult.tips
+        tips: aiResult.tips,
+        transportMode: command.transportMode // Include transport mode
       })
 
       // 10. Save to cache for future reuse
@@ -288,15 +524,16 @@ export class GenerateplanUseCase {
         summary: aiResult.summary,
         days: aiResult.days,
         totalCostEstimate: aiResult.totalCostEstimate,
-        tips: aiResult.tips
+        tips: aiResult.tips,
+        __context: structuredContext // Persist structured context inside plan_data for reuse
       }).catch(error => {
         // Don't fail the request if caching fails
         console.error('⚠️ Failed to cache plan:', error)
       })
 
-      // 10. Fetch location images from database
-      console.log('🖼️ Fetching location images...')
-      const locationImages = await this.locationRepo.getLocationImages([
+      // 10. Fetch location images from database WITH GALLERY SUPPORT
+      console.log('🖼️ Fetching location images with galleries...')
+      const locationImages = await this.locationRepo.getLocationImagesWithGallery([
         routeInfo.fromLocation,
         ...routeInfo.stops.map(s => s.name),
         routeInfo.toLocation
@@ -326,7 +563,8 @@ export class GenerateplanUseCase {
         success: true,
         plan,
         resolvedLocations,
-        locationImages
+        locationImages,
+        structuredContext
       }
 
     } catch (error) {
@@ -420,11 +658,9 @@ export class GenerateplanUseCase {
     )
 
     const { data, error } = await supabase
-      .from('location_images')
-      .select('location_slug, image_url')
-      .in('location_slug', slugs)
-      .eq('is_featured', true)
-      .limit(slugs.length)
+      .from('locations')
+      .select('slug, featured_image, gallery_images')
+      .in('slug', slugs)
 
     if (error) {
       console.error('❌ Error fetching location images:', error)
@@ -432,11 +668,14 @@ export class GenerateplanUseCase {
     }
 
     const imageMap: Record<string, string> = {}
-    data?.forEach(img => {
-      imageMap[img.location_slug] = img.image_url
+    data?.forEach((row: any) => {
+      const url = row.featured_image || (Array.isArray(row.gallery_images) && row.gallery_images.length > 0 ? row.gallery_images[0] : null)
+      if (url) {
+        imageMap[row.slug] = url
+      }
     })
 
-    console.log(`🖼️ Found ${Object.keys(imageMap).length}/${slugs.length} featured images in database`)
+    console.log(`🖼️ Found ${Object.keys(imageMap).length}/${slugs.length} featured images from locations table`)
     return imageMap
   }
 

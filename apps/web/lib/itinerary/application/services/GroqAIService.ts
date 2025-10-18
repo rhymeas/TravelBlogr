@@ -24,6 +24,17 @@ export interface AIGenerationContext {
     activities: any[]
     restaurants: any[]
   }>
+  // Optional: precomputed structured context to maximize realism and reduce hallucinations
+  structuredContext?: {
+    routing?: {
+      distanceKm?: number
+      durationHours?: number
+      provider?: string
+      geometry?: { type: 'LineString'; coordinates: number[][] }
+    }
+    poisByLocation?: Record<string, Array<{ name: string; category?: string; latitude?: number; longitude?: number }>>
+    notes?: string[]
+  }
 }
 
 export interface AIGenerationResult {
@@ -449,6 +460,48 @@ ${i + 1}. ${loc.name} ${(loc as any).hasCompleteData ? '✅ COMPLETE DATA' : '�
 - CRITICAL: The final destination is ${context.toLocation} - the last day(s) MUST include activities in ${context.toLocation}, not just travel!
 - Allocate at least 1 full day for exploring ${context.toLocation} with actual activities and restaurants
 
+🗺️ POINTS OF INTEREST ALONG ROUTE:
+${this.formatPOIsForPrompt(context.structuredContext)}
+
+🏨 OVERNIGHT STOPS & ACCOMMODATION PLANNING:
+CRITICAL: For trips with ${Math.round(context.routeDuration)} hours of travel time, you MUST plan realistic overnight stops.
+
+📋 OVERNIGHT STOP RULES:
+1. **Max travel per day**:
+   - Car/Bus: 6-8 hours (480-640 km)
+   - Bike: 4-6 hours (80-120 km)
+   - Train: 8-10 hours (800-1000 km)
+   - Mixed: 6-8 hours average
+
+2. **Suggest intermediate cities/towns** along the route where travelers should stay overnight
+   - Use real cities/towns between ${context.fromLocation} and ${context.toLocation}
+   - Consider major highways and common travel routes
+   - Suggest cities with good accommodation options
+
+3. **Include "stay" items** with:
+   - Location name (real city/town along the route)
+   - Accommodation type (hotel, hostel, guesthouse, Airbnb)
+   - Budget-appropriate suggestions (${context.budget} budget)
+   - Brief reason why this is a good overnight stop
+
+4. **Balance travel days**:
+   - Don't make travelers drive/ride 12+ hours in one day
+   - Suggest rest stops every 2-3 hours of continuous travel
+   - Allow time for meals and breaks
+
+5. **POI Integration**:
+   - If POIs are available along the route, suggest overnight stops near interesting POIs
+   - This allows travelers to explore attractions without rushing
+   - Example: "Stay in [City] to visit [POI] in the evening/morning"
+
+${context.routeDuration > 8 ? `
+⚠️ This trip requires ${Math.ceil(context.routeDuration / 8)} overnight stops!
+Suggested breakdown:
+- Day 1: ${context.fromLocation} → [Intermediate City 1] (~6-8 hours) → Stay overnight
+${Math.ceil(context.routeDuration / 8) > 1 ? `- Day 2: [Intermediate City 1] → [Intermediate City 2] (~6-8 hours) → Stay overnight` : ''}
+- Final Day: [Last Stop] → ${context.toLocation} (remaining distance)
+` : `✅ This trip can be completed in 1-2 days with proper rest stops.`}
+
 TRAVEL PACING RULES:
 ${context.maxTravelHoursPerDay ? `- Maximum travel time per day: ${context.maxTravelHoursPerDay} hours
 - If a segment requires more than ${context.maxTravelHoursPerDay} hours of travel, split it across multiple days
@@ -458,6 +511,7 @@ ${context.maxTravelHoursPerDay ? `- Maximum travel time per day: ${context.maxTr
 - Suggest creative stops along the route (scenic towns, attractions, viewpoints)`}
 - When suggesting stops, use locations from the available list above if they're on the route
 - If no database locations are on the route, mention "Consider stopping at [interesting place name] along the way" in the day's description
+- PRIORITIZE highly ranked POIs (score >= 70) from the list above for stops along the route
 
 OUTPUT SCHEMA - MUST BE VALID JSON OBJECT (not array):
 {
@@ -493,6 +547,16 @@ OUTPUT SCHEMA - MUST BE VALID JSON OBJECT (not array):
           "duration": 1,
           "description": "Meal description",
           "costEstimate": 30
+        },
+        {
+          "time": "20:00",
+          "title": "Accommodation name (for overnight stops)",
+          "type": "stay",
+          "duration": 10,
+          "description": "Why stay here, what accommodation type",
+          "costEstimate": 80,
+          "accommodationType": "hotel/hostel/guesthouse/airbnb",
+          "reason": "Why this is a good overnight stop"
         }
       ],
       "didYouKnow": "One interesting fact about this location (history, culture, or fun fact)"
@@ -586,7 +650,7 @@ Ferry: "Seasonal ferry service (2h, $60-90). Book at ferrycompany.com in advance
 CRITICAL:
 - Root must be an OBJECT {...}, NOT an array [...]
 - All "time" values must be STRINGS like "09:00", "14:30" (with quotes)
-- All "type" values must be one of: "activity", "meal", or "travel"
+- All "type" values must be one of: "activity", "meal", "travel", or "stay"
 - Do NOT use pipe symbols (|) in the actual JSON output
 
 IMPORTANT:
@@ -595,6 +659,8 @@ IMPORTANT:
 - Include travel time between activities (15-30 min in same city)
 - Don't schedule more than 8-9 hours of activities per day
 - Leave buffer time for rest and spontaneous exploration
+- For long trips (>8 hours travel), include "stay" type items for overnight accommodations
+- Stay items should include accommodationType and reason fields
 
 DID YOU KNOW FACTS:
 - For each "stay" day, include ONE interesting fact in the "didYouKnow" field
@@ -604,6 +670,37 @@ DID YOU KNOW FACTS:
 - For "travel" days, you can omit this field or include a fact about the journey
 
 Generate the plan now:`
+  }
+
+  /**
+   * Format POIs for AI prompt
+   */
+  private formatPOIsForPrompt(structuredContext?: any): string {
+    if (!structuredContext?.topRankedPOIs || structuredContext.topRankedPOIs.length === 0) {
+      return 'No POIs available along route.'
+    }
+
+    const pois = structuredContext.topRankedPOIs.slice(0, 15) // Top 15 POIs
+
+    return `${pois.length} highly-ranked stops along your route (sorted by relevance):
+
+${pois.map((poi: any, i: number) => `
+${i + 1}. ${poi.name} ⭐ Score: ${poi.score}/100
+   Category: ${poi.category}
+   Detour: ${poi.detourTimeMinutes} min from route
+   Visit time: ${poi.visitDurationMinutes} min (${poi.microExperience})
+   Best time: ${poi.bestTimeOfDay}
+   ${poi.rating ? `Rating: ${poi.rating}/5` : ''}
+   ${poi.description ? `Info: ${poi.description}` : ''}
+`).join('\n')}
+
+💡 USAGE TIPS:
+- These are real POIs discovered along your route
+- Prioritize POIs with score >= 80 for best experience
+- Quick stops (< 30 min) are perfect for photo breaks
+- Meal breaks (1-2 hours) can replace generic "lunch" items
+- Consider detour time when planning daily schedule
+- Use "best time" to optimize your itinerary`
   }
 }
 

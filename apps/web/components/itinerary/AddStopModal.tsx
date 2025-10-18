@@ -31,7 +31,7 @@ export function AddStopModal({
     setIsLoading(true)
     try {
       await onAddStop(stopLocation)
-      onClose()
+      // Keep modal open to allow multiple additions without closing
       setStopLocation('')
     } catch (error) {
       console.error('Failed to add stop:', error)

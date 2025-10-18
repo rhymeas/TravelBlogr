@@ -78,7 +78,7 @@ interface TripData {
 /**
  * Convert AI plan to trip data format
  */
-export function convertAIPlanToTrip(plan: AIPlan, userId: string): TripData {
+export function convertAIPlanToTrip(plan: AIPlan, userId: string, structuredContext?: any): TripData {
   const firstDay = plan.days[0]
   const lastDay = plan.days[plan.days.length - 1]
 
@@ -101,13 +101,14 @@ export function convertAIPlanToTrip(plan: AIPlan, userId: string): TripData {
     .flatMap(day => day.items.filter(item => item.type === 'activity'))
     .slice(0, 3)
     .map(item => item.title)
-  
+
   const description = highlights.length > 0
     ? `Explore ${destination} with highlights including ${highlights.join(', ')}`
     : `A ${plan.days.length}-day adventure through ${destination}`
 
   // Store AI metadata in location_data JSONB field
-  const locationData = {
+  // Include structured context with POIs if provided
+  const locationData = structuredContext ? {
     aiGenerated: true,
     transportMode: plan.transportMode,
     interests: plan.interests,
@@ -115,7 +116,17 @@ export function convertAIPlanToTrip(plan: AIPlan, userId: string): TripData {
     totalCost: plan.stats?.totalCost,
     tips: plan.tips,
     destination, // Store destination in location_data
-    durationDays: plan.days.length // Store duration in location_data
+    durationDays: plan.days.length, // Store duration in location_data
+    __context: structuredContext // Store POIs and route data
+  } : {
+    aiGenerated: true,
+    transportMode: plan.transportMode,
+    interests: plan.interests,
+    budget: plan.budget,
+    totalCost: plan.stats?.totalCost,
+    tips: plan.tips,
+    destination,
+    durationDays: plan.days.length
   }
 
   return {
@@ -136,28 +147,36 @@ export function convertAIPlanToTrip(plan: AIPlan, userId: string): TripData {
 export async function saveAIGeneratedTrip(
   plan: AIPlan,
   userId: string,
-  locationImages?: Record<string, string>
+  locationImages?: Record<string, string | { featured: string; gallery: string[] }>,
+  // NEW: optional structured context to persist alongside plan
+  structuredContext?: any
 ): Promise<{ success: boolean; tripId?: string; error?: string }> {
   try {
     console.log('💾 Starting saveAIGeneratedTrip...', { userId, planTitle: plan.title })
     const supabase = getBrowserSupabase()
 
-    // Convert plan to trip data
+    // Convert plan to trip data (pass structuredContext)
     console.log('🔄 Converting plan to trip data...')
-    const tripData = convertAIPlanToTrip(plan, userId)
+    const tripData = convertAIPlanToTrip(plan, userId, structuredContext)
     console.log('✅ Trip data converted:', tripData)
 
     // Get cover image from location images or first activity image
     console.log('🖼️ Available location images:', locationImages)
     console.log('🖼️ First day location:', plan.days[0].location)
 
+    // Helper to extract image URL from string or object
+    const extractImageUrl = (img: string | { featured: string; gallery: string[] } | undefined): string | undefined => {
+      if (!img) return undefined
+      return typeof img === 'string' ? img : img.featured
+    }
+
     // Try to find image with flexible matching
-    let coverImage = locationImages?.[plan.days[0].location]
+    let coverImage = extractImageUrl(locationImages?.[plan.days[0].location])
 
     // If not found, try cleaned location name
     if (!coverImage) {
       const cleanedFirstLocation = cleanLocationName(plan.days[0].location)
-      coverImage = locationImages?.[cleanedFirstLocation]
+      coverImage = extractImageUrl(locationImages?.[cleanedFirstLocation])
       console.log('🖼️ Trying cleaned location name:', cleanedFirstLocation, '→', coverImage)
     }
 
@@ -165,7 +184,7 @@ export async function saveAIGeneratedTrip(
     if (!coverImage && locationImages) {
       const firstImageKey = Object.keys(locationImages)[0]
       if (firstImageKey) {
-        coverImage = locationImages[firstImageKey]
+        coverImage = extractImageUrl(locationImages[firstImageKey])
         console.log('🖼️ Using first available image from:', firstImageKey, '→', coverImage)
       }
     }
@@ -191,6 +210,31 @@ export async function saveAIGeneratedTrip(
     if (tripError) {
       console.error('❌ Error creating trip:', tripError)
       return { success: false, error: tripError.message }
+    }
+
+    // Persist full plan JSON to trip_plan table for map view/edits
+    // This is a single row with plan_data JSONB containing the full AI plan
+    try {
+      const fullPlan = structuredContext ? { ...plan, __context: structuredContext } : plan
+      const { error: planPersistError } = await supabase
+        .from('trip_plan')
+        .insert({
+          trip_id: trip.id,
+          user_id: userId,
+          day: 1, // Required field - use day 1 for AI plan storage
+          time: '00:00:00', // Required field - use midnight for AI plan storage
+          title: 'AI Generated Plan', // Required field
+          type: 'ai_plan', // Mark as AI plan
+          plan_data: fullPlan, // Full plan with __context
+        })
+
+      if (planPersistError) {
+        console.warn('⚠️ Could not persist trip plan JSON:', planPersistError)
+      } else {
+        console.log('✅ Trip plan JSON persisted to trip_plan table')
+      }
+    } catch (e) {
+      console.warn('⚠️ Skipping plan JSON persistence due to unexpected error:', e)
     }
 
     console.log('✅ Trip created successfully:', trip.id)
@@ -228,8 +272,8 @@ export async function saveAIGeneratedTrip(
         excerpt: `Day ${day.day} in ${cleanedLocation} - ${activities.length} activities`, // ✅ Add excerpt
         post_date: day.date,
         order_index: index,
-        featured_image: locationImages?.[cleanedLocation] ||
-          locationImages?.[day.location] ||
+        featured_image: extractImageUrl(locationImages?.[cleanedLocation]) ||
+          extractImageUrl(locationImages?.[day.location]) ||
           day.items.find(item => item.image)?.image ||
           null // ✅ Ensure null instead of undefined
         // Note: metadata column doesn't exist in posts table
@@ -253,9 +297,9 @@ export async function saveAIGeneratedTrip(
     return { success: true, tripId: trip.id }
   } catch (error) {
     console.error('Error saving AI trip:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
     }
   }
 }
@@ -263,7 +307,10 @@ export async function saveAIGeneratedTrip(
 /**
  * Get trip preview data for animation
  */
-export function getTripPreviewData(plan: AIPlan, locationImages?: Record<string, string>) {
+export function getTripPreviewData(
+  plan: AIPlan,
+  locationImages?: Record<string, string | { featured: string; gallery: string[] }>
+) {
   // Clean all location names
   const locations = [...new Set(plan.days.map(day => cleanLocationName(day.location)))]
   const totalActivities = plan.days.reduce(
@@ -273,6 +320,13 @@ export function getTripPreviewData(plan: AIPlan, locationImages?: Record<string,
 
   const firstDayLocation = cleanLocationName(plan.days[0].location)
 
+  // Helper to extract image URL from either format
+  const getImageUrl = (location: string): string | undefined => {
+    if (!locationImages) return undefined
+    const img = locationImages[location]
+    return typeof img === 'string' ? img : img?.featured
+  }
+
   return {
     title: plan.title,
     destination: locations.length === 1
@@ -280,8 +334,8 @@ export function getTripPreviewData(plan: AIPlan, locationImages?: Record<string,
       : `${locations[0]} → ${locations[locations.length - 1]}`,
     duration: `${plan.days.length} days`,
     activities: totalActivities,
-    coverImage: locationImages?.[firstDayLocation] ||
-      locationImages?.[plan.days[0].location] ||
+    coverImage: getImageUrl(firstDayLocation) ||
+      getImageUrl(plan.days[0].location) ||
       plan.days[0].items.find(item => item.image)?.image ||
       '/placeholder-trip.jpg',
     startDate: plan.days[0].date,

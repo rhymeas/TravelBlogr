@@ -77,18 +77,18 @@ interface TransportModeSelectorProps {
 
 export function TransportModeSelector({ value, onChange }: TransportModeSelectorProps) {
   return (
-    <div className="space-y-2">
+    <div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
         {TRANSPORT_MODES.map((mode) => {
           const isSelected = value === mode.id
-          
+
           return (
             <button
               key={mode.id}
               type="button"
               onClick={() => onChange(mode.id)}
               className={`
-                relative flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all
+                relative flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all
                 ${isSelected
                   ? 'border-black bg-gray-50 shadow-sm'
                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
@@ -100,28 +100,18 @@ export function TransportModeSelector({ value, onChange }: TransportModeSelector
               `}>
                 {mode.icon}
               </div>
-              <div className="text-center">
-                <div className={`text-xs font-semibold ${isSelected ? 'text-black' : 'text-gray-700'}`}>
-                  {mode.label}
-                </div>
-                <div className="text-[10px] text-gray-500 mt-0.5">
-                  {mode.description}
-                </div>
+              <div className={`text-[11px] font-semibold leading-tight ${isSelected ? 'text-black' : 'text-gray-700'}`}>
+                {mode.label}
               </div>
-              
+
               {/* Selected indicator */}
               {isSelected && (
-                <div className="absolute top-1 right-1 w-2 h-2 bg-black rounded-full" />
+                <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-black rounded-full" />
               )}
             </button>
           )
         })}
       </div>
-      
-      {/* Speed info */}
-      <p className="text-xs text-gray-500 pl-1">
-        Avg. speed: {TRANSPORT_MODES.find(m => m.id === value)?.avgSpeed} km/h
-      </p>
     </div>
   )
 }

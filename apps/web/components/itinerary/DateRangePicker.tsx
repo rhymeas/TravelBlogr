@@ -24,6 +24,16 @@ export function DateRangePicker({ startDate, endDate, onSelect }: DateRangePicke
   })
   const [isMobile, setIsMobile] = useState(false)
 
+  // Sync internal state with props (for date persistence after login)
+  useEffect(() => {
+    if (startDate && endDate) {
+      setRange({
+        from: startDate,
+        to: endDate
+      })
+    }
+  }, [startDate, endDate])
+
   // Detect mobile vs desktop
   useEffect(() => {
     const checkMobile = () => {

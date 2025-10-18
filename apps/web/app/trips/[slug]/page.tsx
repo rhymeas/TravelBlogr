@@ -1,5 +1,5 @@
 import { createServerSupabase } from '@/lib/supabase-server'
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { Card } from '@/components/ui/Card'
 import { SmartImage as Image } from '@/components/ui/SmartImage'
 import Link from 'next/link'
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { ViewTrackingPixel } from '@/components/analytics/ViewTrackingPixel'
 import { QuickBookingLinks } from '@/components/locations/QuickBookingLinks'
 import { TripPasswordForm } from '@/components/trips/TripPasswordForm'
-import { cookies, headers } from 'next/headers'
+import { TripPOISection } from '@/components/trips/TripPOISection'
 
 interface Trip {
   id: string
@@ -29,6 +29,7 @@ interface Trip {
   family_members: string[] | null
   start_date: string | null
   end_date: string | null
+  location_data: any
   created_at: string
 }
 
@@ -142,6 +143,25 @@ export default async function PublicTripPage({
 
   const posts = (tripData.posts || []).sort((a, b) => a.order_index - b.order_index)
   const totalViews = tripData.trip_stats?.[0]?.total_views || 0
+
+  // Extract POIs from BOTH sources (trip_plan.plan_data and trips.location_data)
+  // Try trip_plan first (newer), fallback to location_data (older)
+  const { data: planRow } = await supabase
+    .from('trip_plan')
+    .select('plan_data')
+    .eq('trip_id', tripData.id)
+    .eq('type', 'ai_plan')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const locationData = tripData.location_data as any
+  const structuredContext = (planRow as any)?.plan_data?.__context || locationData?.__context
+  const topRankedPOIs = structuredContext?.topRankedPOIs || []
+  const worthwhilePOIs = structuredContext?.worthwhilePOIs || []
+  const allPOIs = topRankedPOIs.length > 0 ? topRankedPOIs : worthwhilePOIs
+
+  const provider: string | undefined = structuredContext?.routing?.provider
 
   const tripTypeColors: Record<string, string> = {
     family: 'bg-blue-100 text-blue-700',
@@ -284,6 +304,11 @@ export default async function PublicTripPage({
                 </div>
               </Card>
             )}
+
+            {/* POIs Along Route */}
+            {allPOIs.length > 0 && (
+              <TripPOISection pois={allPOIs} showTopRankedOnly={false} />
+            )}
           </div>
 
           {/* Right Column - Sidebar */}
@@ -351,9 +376,49 @@ export default async function PublicTripPage({
                 <div>
                   <span className="text-gray-600">Total Days:</span>
                   <p className="font-medium text-gray-900">{posts.length || tripData.duration_days || 'N/A'}</p>
+              </div>
+              </div>
+
+            </Card>
+
+            {/* Data Sources & Routing */}
+            <Card className="p-6">
+              <h3 className="font-bold text-gray-900 mb-3">Data Sources & Routing</h3>
+              <div className="space-y-2 text-sm text-gray-700">
+                <div>
+                  <span className="text-gray-600">Routing:</span>
+                  <span className="ml-1">
+                    {provider ? (
+                      (() => {
+                        const url = provider === 'openrouteservice' ? 'https://openrouteservice.org/' : provider === 'osrm' ? 'https://project-osrm.org/' : undefined
+                        return url ? (
+                          <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline capitalize">{provider}</a>
+                        ) : (
+                          <span className="capitalize">{provider}</span>
+                        )
+                      })()
+                    ) : (
+                      <span>—</span>
+                    )}
+                  </span>
                 </div>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>
+                    Maps: <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">OpenStreetMap</a>
+                  </li>
+                  <li>
+                    Attractions: <a href="https://opentripmap.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">OpenTripMap</a>
+                  </li>
+                  <li>
+                    Guides: <a href="https://en.wikivoyage.org/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">WikiVoyage</a>
+                  </li>
+                  <li>
+                    Geo data: <a href="https://www.geonames.org/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">GeoNames</a>
+                  </li>
+                </ul>
               </div>
             </Card>
+
 
             {/* Booking Links - Affiliate Revenue */}
             {tripData.destination && (

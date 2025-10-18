@@ -41,6 +41,8 @@ interface InteractiveMapProps {
   onLocationAdd?: (location: LocationPoint) => void
   onLocationUpdate?: (location: LocationPoint) => void
   onLocationDelete?: (locationId: string) => void
+  externalPolyline?: [number, number][] // Optional: precomputed route geometry (lat,lng)
+  routeProvider?: 'openrouteservice' | 'osrm' | 'cache'
   className?: string
 }
 
@@ -152,6 +154,8 @@ export function InteractiveMap({
   onLocationAdd,
   onLocationUpdate,
   onLocationDelete,
+  externalPolyline,
+  routeProvider,
   className = ''
 }: InteractiveMapProps) {
   const [mapCenter, setMapCenter] = useState<[number, number]>(center)
@@ -369,6 +373,14 @@ export function InteractiveMap({
           attribution={getAttribution()}
         />
 
+        {/* External Route Geometry (precomputed) */}
+        {externalPolyline && externalPolyline.length >= 2 && (
+          <Polyline
+            positions={externalPolyline}
+            pathOptions={{ color: '#1d4ed8', weight: 5, opacity: 0.9 }}
+          />
+        )}
+
         {/* Location Markers */}
         {locations.map((location) => (
           <Marker
@@ -429,6 +441,21 @@ export function InteractiveMap({
           <MapEvents onLocationAdd={onLocationAdd} />
         )}
       </MapContainer>
+      {/* Routing Provider Badge */}
+      {routeProvider && (
+        <div className="absolute bottom-4 right-4 bg-white rounded shadow-lg p-2 z-[1000]">
+          {(() => {
+            const p = routeProvider
+            const url = p === 'openrouteservice' ? 'https://openrouteservice.org/' : p === 'osrm' ? 'https://project-osrm.org/' : undefined
+            return url ? (
+              <a href={url} target="_blank" rel="noopener noreferrer" className="tb-chip">Data: {p}</a>
+            ) : (
+              <span className="tb-chip">Data: {p}</span>
+            )
+          })()}
+        </div>
+      )}
+
 
       {/* Location Info Panel */}
       {selectedLocation && (

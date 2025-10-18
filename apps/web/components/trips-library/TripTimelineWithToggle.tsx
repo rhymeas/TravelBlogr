@@ -31,6 +31,8 @@ import { AccommodationRecommendations } from '@/components/trips-library/Accommo
 import { TransportOptions } from '@/components/trips-library/TransportOptions'
 import { ActivitiesAndTours } from '@/components/trips-library/ActivitiesAndTours'
 
+import { LiveTripUpdates } from '@/components/realtime/LiveTripUpdates'
+import { getBrowserSupabase } from '@/lib/supabase'
 // Dynamically import TripOverviewMap to avoid SSR issues (same as itinerary planner)
 const TripOverviewMap = dynamic(
   () => import('@/components/itinerary/TripOverviewMap').then(mod => ({ default: mod.TripOverviewMap })),
@@ -143,6 +145,14 @@ export function TripTimelineWithToggle({
   viewMode,
   setViewMode
 }: TripTimelineWithToggleProps) {
+  const [viewerId, setViewerId] = useState<string>('public-visitor')
+
+  useEffect(() => {
+    const supabase = getBrowserSupabase()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.id) setViewerId(user.id)
+    })
+  }, [])
 
   // Emotional images for each day (using Unsplash)
   const dayImages: Record<number, string> = {
@@ -432,131 +442,7 @@ export function TripTimelineWithToggle({
           {/* Live Feed View - Trip-Specific Feed (Matches Global Live Feed Template) */}
           {viewMode === 'live-feed' && (
             <div className="space-y-4">
-              {/* Feed Items - Matches Global FeedItem Component Structure */}
-              <div className="space-y-4">
-                {guideDays.map((day, index) => {
-                  const [liked, setLiked] = useState(false)
-                  const [likeCount, setLikeCount] = useState(Math.floor(Math.random() * 50) + 10)
-
-                  return (
-                    <Card key={day.id} className="hover:shadow-lg transition-all">
-                      {/* Card Header - User Info */}
-                      <div className="p-4 pb-3 border-b">
-                        <div className="flex items-start gap-4">
-                          {/* User Avatar */}
-                          <div className="flex-shrink-0">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rausch-500 to-rausch-600 flex items-center justify-center text-white font-bold shadow-md">
-                              {guideTitle.charAt(0)}
-                            </div>
-                          </div>
-
-                          {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            {/* Activity Header */}
-                            <div className="flex items-center gap-2 mb-2 flex-wrap">
-                              <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center">
-                                <MapPin className="h-4 w-4 text-blue-600" />
-                              </div>
-                              <span className="font-semibold text-gray-900">
-                                {guideTitle}
-                              </span>
-                              <span className="text-sm text-gray-600">
-                                visited {day.title}
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-500">
-                                Day {day.day_number} • {Math.floor(Math.random() * 24) + 1}h ago
-                              </span>
-                              {index < 2 && (
-                                <div className="bg-rausch-500 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
-                                  <TrendingUp className="h-3 w-3" />
-                                  New
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Card Content */}
-                      <div className="p-0">
-                        {/* Featured Image */}
-                        {dayImages[day.day_number] && (
-                          <div className="relative h-80 overflow-hidden">
-                            <Image
-                              src={dayImages[day.day_number]}
-                              alt={day.title}
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                        )}
-
-                        {/* Post Content */}
-                        <div className="p-4">
-                          {/* Location Info */}
-                          <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-                            <MapPin className="h-4 w-4" />
-                            <span>{day.title}</span>
-                            <span>•</span>
-                            <span>{destination}</span>
-                          </div>
-
-                          {/* Description */}
-                          <p className="text-gray-700 text-sm mb-3 line-clamp-3">
-                            {day.description}
-                          </p>
-
-                          {/* Activities Tags */}
-                          {day.activities && day.activities.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mb-3">
-                              {day.activities.slice(0, 3).map((activity, idx) => (
-                                <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                  {activity}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Action Buttons - Matches Global Template */}
-                          <div className="flex items-center gap-4 pt-3 border-t">
-                            <button
-                              onClick={() => {
-                                setLiked(!liked)
-                                setLikeCount(prev => liked ? prev - 1 : prev + 1)
-                              }}
-                              className={`flex items-center gap-2 text-sm ${liked ? 'text-red-600' : 'text-gray-600'} hover:text-red-600 transition-colors`}
-                            >
-                              <Heart className={`h-4 w-4 ${liked ? 'fill-red-600' : ''}`} />
-                              <span>{likeCount}</span>
-                            </button>
-
-                            <button className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition-colors">
-                              <MessageCircle className="h-4 w-4" />
-                              <span>Comment</span>
-                            </button>
-
-                            <button className="flex items-center gap-2 text-sm text-gray-600 hover:text-green-600 transition-colors">
-                              <Share2 className="h-4 w-4" />
-                              <span>Share</span>
-                            </button>
-
-                            <Link
-                              href={`/locations/${day.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`}
-                              className="ml-auto text-rausch-500 hover:text-rausch-600 font-medium text-sm flex items-center gap-1"
-                            >
-                              View Location
-                              <ArrowRight className="h-4 w-4" />
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  )
-                })}
-              </div>
+              <LiveTripUpdates tripId={guideId} userId={viewerId} />
 
               {/* CTA Card - Matches Global Template Style */}
               <Card className="p-8 text-center bg-gradient-to-br from-rose-50 to-pink-50 border-rose-200">
