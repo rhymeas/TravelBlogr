@@ -21,7 +21,9 @@ import {
   Newspaper,
   LayoutDashboard,
   Plane,
-  Coins
+  Coins,
+  FileText,
+  DollarSign
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { HeaderLogo } from '@/components/ui/Logo'
@@ -135,6 +137,13 @@ export function AuthAwareHeader() {
             className="px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
           >
             Plan your trip
+          </Link>
+
+          <Link
+            href="/blog"
+            className="px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            Blog
           </Link>
 
           {/* Trips Dropdown - TripAdvisor Style with improved hover */}
@@ -496,6 +505,14 @@ export function AuthAwareHeader() {
             >
               <BookOpen className="h-5 w-5 text-gray-600" />
               <span className="font-medium">Trips Library</span>
+            </Link>
+            <Link
+              href="/blog"
+              className="flex items-center gap-3 px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+              onClick={() => setShowMobileMenu(false)}
+            >
+              <FileText className="h-5 w-5 text-gray-600" />
+              <span className="font-medium">Blog</span>
             </Link>
 
             <div className="border-t border-gray-200 my-2" />

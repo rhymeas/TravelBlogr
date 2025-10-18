@@ -3,15 +3,17 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { 
-  MapPin, 
-  Plus, 
-  BarChart3, 
-  Settings, 
-  Share2, 
+import {
+  MapPin,
+  Plus,
+  BarChart3,
+  Settings,
+  Share2,
   Camera,
   Users,
-  Globe
+  Globe,
+  FileText,
+  DollarSign
 } from 'lucide-react'
 
 const navigation = [
@@ -29,6 +31,16 @@ const navigation = [
     name: 'Create Trip',
     href: '/dashboard/trips/new',
     icon: Plus,
+  },
+  {
+    name: 'Blog CMS',
+    href: '/blog-cms',
+    icon: FileText,
+  },
+  {
+    name: 'Earnings',
+    href: '/earnings',
+    icon: DollarSign,
   },
   {
     name: 'Share Links',
