@@ -118,14 +118,16 @@ export function generateViatorLink(locationName: string): string {
 }
 
 /**
- * Track affiliate click (Google Analytics)
- * This sends an event to GA4 for tracking affiliate link clicks
+ * Track affiliate click (Google Analytics + Database)
+ * This sends an event to GA4 and saves to database for revenue tracking
  */
-export function trackAffiliateClick(
+export async function trackAffiliateClick(
   provider: string,
   locationName: string,
-  context?: string
-): void {
+  context?: string,
+  postId?: string,
+  tripId?: string
+): Promise<void> {
   // Google Analytics 4 event
   if (typeof window !== 'undefined' && (window as any).gtag) {
     (window as any).gtag('event', 'affiliate_click', {
@@ -135,7 +137,37 @@ export function trackAffiliateClick(
       timestamp: new Date().toISOString(),
     })
   }
-  
+
+  // Save to database for revenue tracking
+  if (typeof window !== 'undefined') {
+    try {
+      // Get session ID
+      let sessionId = localStorage.getItem('visitor_session_id')
+      if (!sessionId) {
+        sessionId = crypto.randomUUID()
+        localStorage.setItem('visitor_session_id', sessionId)
+      }
+
+      // Track click in database
+      await fetch('/api/affiliate/track-click', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider,
+          locationName,
+          context: context || 'unknown',
+          postId,
+          tripId,
+          referrer: document.referrer || null,
+          userAgent: navigator.userAgent,
+          sessionId
+        })
+      })
+    } catch (error) {
+      console.error('Failed to track affiliate click:', error)
+    }
+  }
+
   // Console log for debugging (remove in production)
   if (process.env.NODE_ENV === 'development') {
     console.log(`[Affiliate Click] ${provider} - ${locationName} (${context})`)
