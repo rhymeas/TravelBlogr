@@ -11,6 +11,8 @@ import { useBlogPost } from '@/hooks/useBlogData'
 import { BlogLayout, BlogSection } from '@/components/blog/BlogLayout'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
+import { BlogCommentSection } from '@/components/blog/BlogCommentSection'
+import { SocialShare } from '@/components/blog/SocialShare'
 import { Calendar, Clock, Eye } from 'lucide-react'
 
 export default function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -137,7 +139,23 @@ export default function BlogPostPage({ params }: { params: Promise<{ slug: strin
             </div>
           </div>
         )}
+
+        {/* Social Share */}
+        <div className="mt-12 pt-8 border-t border-gray-200">
+          <SocialShare
+            url={typeof window !== 'undefined' ? window.location.href : ''}
+            title={post.title}
+            description={post.excerpt}
+            hashtags={post.tags || []}
+            variant="buttons"
+          />
+        </div>
       </article>
+
+      {/* Comments Section */}
+      <BlogSection className="pb-16">
+        <BlogCommentSection postId={post.id} />
+      </BlogSection>
     </BlogLayout>
   )
 }
