@@ -15,12 +15,14 @@
  */
 
 import { useState } from 'react'
-import { FileText, MapPin, MessageSquare, Users, BarChart3, Settings } from 'lucide-react'
+import Link from 'next/link'
+import { FileText, MapPin, MessageSquare, Users, BarChart3, Settings, Image, Plus } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { ContentBlockManager } from '@/components/blog/ContentBlockManager'
+import { MediaLibrary } from '@/components/blog/MediaLibrary'
 
-type TabType = 'posts' | 'destinations' | 'testimonials' | 'newsletter' | 'analytics' | 'settings'
+type TabType = 'posts' | 'destinations' | 'testimonials' | 'newsletter' | 'analytics' | 'media' | 'settings'
 
 export default function BlogCMSPage() {
   const [activeTab, setActiveTab] = useState<TabType>('posts')
@@ -30,6 +32,7 @@ export default function BlogCMSPage() {
     { id: 'destinations' as TabType, label: 'Destinations', icon: MapPin },
     { id: 'testimonials' as TabType, label: 'Testimonials', icon: MessageSquare },
     { id: 'newsletter' as TabType, label: 'Newsletter', icon: Users },
+    { id: 'media' as TabType, label: 'Media Library', icon: Image },
     { id: 'analytics' as TabType, label: 'Analytics', icon: BarChart3 },
     { id: 'settings' as TabType, label: 'Settings', icon: Settings }
   ]
@@ -73,6 +76,7 @@ export default function BlogCMSPage() {
         {activeTab === 'destinations' && <DestinationsTab />}
         {activeTab === 'testimonials' && <TestimonialsTab />}
         {activeTab === 'newsletter' && <NewsletterTab />}
+        {activeTab === 'media' && <MediaTab />}
         {activeTab === 'analytics' && <AnalyticsTab />}
         {activeTab === 'settings' && <SettingsTab />}
       </div>
@@ -87,17 +91,27 @@ function BlogPostsTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Blog Posts</h2>
-        <Button>
-          <FileText className="h-4 w-4 mr-2" />
-          New Post
-        </Button>
+        <Link href="/blog-cms/posts/new">
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            New Post
+          </Button>
+        </Link>
       </div>
 
       <Card className="p-6">
         <p className="text-gray-500 text-center py-12">
-          Blog post management coming soon...
+          Blog post list coming soon. Click "New Post" to create your first post.
         </p>
       </Card>
+    </div>
+  )
+}
+
+function MediaTab() {
+  return (
+    <div className="space-y-6">
+      <MediaLibrary />
     </div>
   )
 }
