@@ -189,7 +189,6 @@ export function ItineraryGenerator() {
   const [dateRange, setDateRange] = useState<{ startDate: Date; endDate: Date } | null>(null)
 
   // Travel time preference (optional)
-  const [showTravelPace, setShowTravelPace] = useState(false)
   const [travelHoursPerDay, setTravelHoursPerDay] = useState<number | null>(null)
 
   // Transport mode and Pro mode
@@ -243,8 +242,8 @@ export function ItineraryGenerator() {
       const distanceFromBottom = pageHeight - scrollPosition
 
       // Desktop: Hide when within 450px of bottom
-      // Mobile: Hide when within 400px of bottom
-      const threshold = window.innerWidth >= 1024 ? 450 : 400
+      // Mobile: Hide when within 150px of bottom (reduced from 400px to keep button visible longer)
+      const threshold = window.innerWidth >= 1024 ? 450 : 150
       setShowStickyButtons(distanceFromBottom > threshold)
     }
 
@@ -885,6 +884,18 @@ export function ItineraryGenerator() {
           />
         </div>
 
+        {/* Travel Pace - Always Visible */}
+        <div className="bg-white rounded-2xl shadow-sm border p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-semibold">Travel Pace</h3>
+            <span className="text-xs text-gray-500">Optional</span>
+          </div>
+          <TravelTimeSlider
+            value={travelHoursPerDay || 5}
+            onChange={setTravelHoursPerDay}
+          />
+        </div>
+
         {/* Advanced Settings Button - Compact */}
         <button
           type="button"
@@ -909,13 +920,6 @@ export function ItineraryGenerator() {
                     {formData.interests.split(',').length > 2 && '...'}
                   </span>
                 )}
-
-                {/* Travel Pace */}
-                {travelHoursPerDay && (
-                  <span className="px-2 py-0.5 bg-gray-100 rounded-full">
-                    ⏱️ {travelHoursPerDay}h/day
-                  </span>
-                )}
               </div>
             </div>
             <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0 ml-2" />
@@ -924,16 +928,11 @@ export function ItineraryGenerator() {
 
             </div>
 
-            {/* Floating Sticky CTA Button - Centered on screen, lower position */}
+            {/* Floating Sticky CTA Button - Centered on screen, above bottom nav */}
             <div
-              className={`fixed left-1/2 -translate-x-1/2 z-40 pointer-events-none w-full max-w-[400px] px-4 transition-all duration-300 ease-out ${
+              className={`fixed left-1/2 -translate-x-1/2 z-40 pointer-events-none w-full max-w-[400px] px-4 transition-all duration-300 ease-out bottom-20 lg:bottom-4 ${
                 showStickyButtons ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
               }`}
-              style={{
-                // Mobile: 16px from bottom + safe area (another 30px lower)
-                // Desktop: 16px from bottom (another 30px lower - very close to bottom edge)
-                bottom: 'max(16px, calc(16px + env(safe-area-inset-bottom)))',
-              }}
             >
               <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-gray-200 py-3 px-4 pointer-events-auto flex items-center justify-center gap-3">
                 {/* Secondary Gray CTA - Manual Planning */}
@@ -1078,35 +1077,6 @@ export function ItineraryGenerator() {
                   <option value="moderate">Moderate</option>
                   <option value="luxury">Luxury</option>
                 </select>
-              </div>
-
-              {/* Travel Pace */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-base font-semibold">Travel Pace</h3>
-                  <button
-                    type="button"
-                    onClick={() => setShowTravelPace(!showTravelPace)}
-                    className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
-                  >
-                    {showTravelPace ? 'Hide' : 'Optional'}
-                    {showTravelPace ? (
-                      <ChevronUp className="h-3 w-3" />
-                    ) : (
-                      <ChevronDown className="h-3 w-3" />
-                    )}
-                  </button>
-                </div>
-                {showTravelPace ? (
-                  <TravelTimeSlider
-                    value={travelHoursPerDay || 5}
-                    onChange={setTravelHoursPerDay}
-                  />
-                ) : (
-                  <div className="px-3 py-2 border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-500">
-                    Click "Optional" to set
-                  </div>
-                )}
               </div>
             </div>
 
