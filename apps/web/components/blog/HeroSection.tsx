@@ -12,13 +12,13 @@ import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 
-interface HeroImage {
+export interface HeroImage {
   src: string
   alt: string
   position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
 }
 
-interface HeroSectionProps {
+export interface HeroSectionProps {
   title: string
   subtitle?: string
   description?: string
