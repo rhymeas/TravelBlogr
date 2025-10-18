@@ -2,8 +2,9 @@
 
 /**
  * Blog Post Page
- * 
+ *
  * Individual blog post page with content, author info, and related posts.
+ * Includes SEO metadata, Open Graph tags, and structured data.
  */
 
 import { use } from 'react'
@@ -14,6 +15,7 @@ import { Badge } from '@/components/ui/Badge'
 import { BlogCommentSection } from '@/components/blog/BlogCommentSection'
 import { SocialShare } from '@/components/blog/SocialShare'
 import { Calendar, Clock, Eye } from 'lucide-react'
+import Head from 'next/head'
 
 export default function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params)
@@ -49,9 +51,45 @@ export default function BlogPostPage({ params }: { params: Promise<{ slug: strin
     )
   }
 
+  // Structured data for SEO
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.excerpt || '',
+    image: post.featured_image || '',
+    datePublished: post.published_at || post.created_at,
+    dateModified: post.updated_at,
+    author: {
+      '@type': 'Person',
+      name: post.profiles?.full_name || post.profiles?.username || 'Anonymous',
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'TravelBlogr',
+      logo: {
+        '@type': 'ImageObject',
+        url: `${process.env.NEXT_PUBLIC_SITE_URL}/logo.png`,
+      },
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': typeof window !== 'undefined' ? window.location.href : '',
+    },
+  }
+
   return (
-    <BlogLayout maxWidth="lg">
-      <article className="py-12">
+    <>
+      {/* Structured Data */}
+      <Head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+      </Head>
+
+      <BlogLayout maxWidth="lg">
+        <article className="py-12">
         {/* Header */}
         <header className="mb-12">
           {/* Category/Tags */}
@@ -152,11 +190,12 @@ export default function BlogPostPage({ params }: { params: Promise<{ slug: strin
         </div>
       </article>
 
-      {/* Comments Section */}
-      <BlogSection className="pb-16">
-        <BlogCommentSection postId={post.id} />
-      </BlogSection>
-    </BlogLayout>
+        {/* Comments Section */}
+        <BlogSection className="pb-16">
+          <BlogCommentSection postId={post.id} />
+        </BlogSection>
+      </BlogLayout>
+    </>
   )
 }
 
