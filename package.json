@@ -22,6 +22,7 @@
     "format:check": "prettier --check .",
     "crawler:install": "npm install crawlee playwright cheerio axios",
     "crawler:setup": "npx playwright install chromium",
+    "generate-blog-posts": "tsx scripts/generate-trip-blog-posts.ts",
     "prepare": "husky || true"
   },
   "dependencies": {

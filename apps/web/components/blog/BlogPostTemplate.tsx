@@ -2,29 +2,30 @@
 
 /**
  * BlogPostTemplate - Consistent template for trip-based blog posts
- * 
+ *
  * Inspired by /trips-library/family-tokyo-adventure
  * Features:
  * - Beautiful hero with cover image
  * - Trip metadata (duration, destination, type)
  * - Day-by-day itinerary with timeline
- * - Interactive map integration
+ * - Interactive map integration (TripOverviewMap)
  * - User-editable content sections
  * - Affiliate links integration
  * - Social sharing
  */
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { OptimizedImage } from '@/components/ui/OptimizedImage'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Avatar } from '@/components/ui/Avatar'
-import { 
-  MapPin, 
-  Calendar, 
-  Clock, 
-  DollarSign, 
-  Heart, 
+import {
+  MapPin,
+  Calendar,
+  Clock,
+  DollarSign,
+  Heart,
   Share2,
   ChevronDown,
   ChevronUp,
@@ -33,6 +34,12 @@ import {
   Compass
 } from 'lucide-react'
 import Link from 'next/link'
+
+// Dynamically import TripOverviewMap to avoid SSR issues
+const TripOverviewMap = dynamic(
+  () => import('@/components/itinerary/TripOverviewMap').then(mod => ({ default: mod.TripOverviewMap })),
+  { ssr: false, loading: () => <div className="h-[600px] bg-gray-100 animate-pulse rounded-lg" /> }
+)
 
 interface TripDay {
   day_number: number
@@ -264,16 +271,24 @@ export function BlogPostTemplate({
             </button>
           </div>
 
-          {/* Map Placeholder */}
+          {/* Interactive Map */}
           {showMap && (
-            <Card className="p-6 mb-8 bg-gray-50">
-              <div className="aspect-video bg-gray-200 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-600">Interactive map will be displayed here</p>
-                  <p className="text-sm text-gray-500 mt-1">Showing all {trip.days.length} stops</p>
-                </div>
+            <Card className="p-6 mb-8 bg-white shadow-lg">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Journey Map</h3>
+                <p className="text-sm text-gray-600">Explore all {trip.days.length} stops on the interactive map</p>
               </div>
+              <TripOverviewMap
+                locations={trip.days
+                  .filter(day => day.location?.coordinates)
+                  .map((day) => ({
+                    name: day.title,
+                    latitude: day.location!.coordinates!.lat,
+                    longitude: day.location!.coordinates!.lng
+                  }))}
+                transportMode="car"
+                className="h-[600px] rounded-lg"
+              />
             </Card>
           )}
 
