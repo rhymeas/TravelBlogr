@@ -77,7 +77,7 @@ export default function BlogPostsPage() {
       {/* Category Filters - Bubbly Pills */}
       <section className="sticky top-0 z-10 bg-white/80 backdrop-blur-lg border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+          <div className="flex items-center justify-center gap-2 overflow-x-auto scrollbar-hide">
             {categories.map((cat) => (
               <button
                 key={cat.id}
@@ -104,7 +104,7 @@ export default function BlogPostsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="animate-pulse space-y-4">
-                <div className="h-72 bg-gray-100 rounded-3xl" />
+                <div className="aspect-[4/3] bg-gray-100 rounded-3xl" />
                 <div className="h-6 bg-gray-100 rounded-full w-3/4" />
                 <div className="h-4 bg-gray-100 rounded-full w-1/2" />
               </div>
