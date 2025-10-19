@@ -9,9 +9,15 @@ const navigation = {
     { name: 'Examples', href: '/examples' },
     { name: 'Pricing', href: '/pricing' },
   ],
+  explore: [
+    { name: 'Blog', href: '/blog' },
+    { name: 'All Posts', href: '/blog/posts' },
+    { name: 'Destinations', href: '/locations' },
+    { name: 'Trips Library', href: '/trips-library' },
+  ],
   support: [
     { name: 'Contact Us', href: '/contact' },
-    { name: 'Trips Library', href: '/trips-library' },
+    { name: 'Help Center', href: '/help' },
   ],
   legal: [
     { name: 'Privacy', href: '/privacy' },
@@ -67,11 +73,23 @@ export function Footer() {
               ))}
             </div>
           </div>
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 xl:col-span-2 xl:mt-0">
+          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 xl:col-span-2 xl:mt-0">
             <div>
               <h3 className="text-sm font-semibold leading-6 text-white">Product</h3>
               <ul role="list" className="mt-6 space-y-4">
                 {navigation.product.map((item) => (
+                  <li key={item.name}>
+                    <Link href={item.href} className="text-sm leading-6 text-gray-300 hover:text-white">
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold leading-6 text-white">Explore</h3>
+              <ul role="list" className="mt-6 space-y-4">
+                {navigation.explore.map((item) => (
                   <li key={item.name}>
                     <Link href={item.href} className="text-sm leading-6 text-gray-300 hover:text-white">
                       {item.name}

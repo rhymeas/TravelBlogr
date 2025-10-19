@@ -7,7 +7,6 @@
  * Follows the design from the screenshot.
  */
 
-import { HeroSection } from '@/components/blog/HeroSection'
 import { DestinationsCarousel } from '@/components/blog/DestinationsCarousel'
 import { TestimonialCard } from '@/components/blog/TestimonialCard'
 import { FeatureList, TRIP_PLANNING_FEATURES } from '@/components/blog/FeatureList'
@@ -23,34 +22,16 @@ export default function BlogHomepage() {
 
   return (
     <BlogLayout maxWidth="2xl">
-      {/* Hero Section */}
-      <BlogSection className="pt-12 pb-16">
-        <HeroSection
-          title="Let's Create Memorable Journey"
-          subtitle="Discover Your Next Adventure"
-          description="Plan your perfect trip with AI-powered itineraries, local insights, and community-driven recommendations."
-          ctaText="Start Planning"
-          ctaLink="/trips/new"
-          images={[
-            {
-              src: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800',
-              alt: 'Mountain landscape'
-            },
-            {
-              src: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=400',
-              alt: 'Beach sunset'
-            },
-            {
-              src: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400',
-              alt: 'City skyline'
-            },
-            {
-              src: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400',
-              alt: 'Tropical beach'
-            }
-          ]}
-          variant="split"
-        />
+      {/* Page Header - Simple and Clean */}
+      <BlogSection className="pt-12 pb-8">
+        <div className="text-center max-w-3xl mx-auto">
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+            Travel Stories & Guides
+          </h1>
+          <p className="text-xl text-gray-600">
+            Discover inspiring journeys, expert tips, and destination guides from travelers around the world
+          </p>
+        </div>
       </BlogSection>
 
       {/* Trip Planning Features */}

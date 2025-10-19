@@ -90,6 +90,7 @@ const getRoleBadge = (role?: string, unlimitedUntil?: string, couponType?: strin
 export function AuthAwareHeader() {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showTripsMenu, setShowTripsMenu] = useState(false)
+  const [showBlogMenu, setShowBlogMenu] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showCreditsModal, setShowCreditsModal] = useState(false)
   const { user, profile, signOut, isAuthenticated, isLoading } = useAuth()
@@ -139,12 +140,56 @@ export function AuthAwareHeader() {
             Plan your trip
           </Link>
 
-          <Link
-            href="/blog"
-            className="px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+          {/* Blog Dropdown */}
+          <div
+            className="relative group"
+            onMouseEnter={() => setShowBlogMenu(true)}
+            onMouseLeave={() => setShowBlogMenu(false)}
           >
-            Blog
-          </Link>
+            <button
+              onClick={() => setShowBlogMenu(!showBlogMenu)}
+              className="flex items-center gap-1 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              Blog
+              <ChevronDown className={`h-4 w-4 transition-transform ${showBlogMenu ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Invisible bridge to prevent dropdown from closing */}
+            {showBlogMenu && (
+              <div className="absolute left-0 top-full h-2 w-full" />
+            )}
+
+            {showBlogMenu && (
+              <div className="absolute left-0 top-full pt-2 w-64 z-50">
+                <div className="bg-white rounded-2xl shadow-xl border border-gray-200 py-3">
+                  <Link
+                    href="/blog"
+                    className="block px-5 py-3 text-sm text-gray-900 hover:bg-gray-50 transition-colors"
+                    onClick={() => setShowBlogMenu(false)}
+                  >
+                    <div className="font-semibold">Blog Home</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Travel stories & guides</div>
+                  </Link>
+                  <Link
+                    href="/blog/posts"
+                    className="block px-5 py-3 text-sm text-gray-900 hover:bg-gray-50 transition-colors"
+                    onClick={() => setShowBlogMenu(false)}
+                  >
+                    <div className="font-semibold">All Posts</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Browse all blog posts</div>
+                  </Link>
+                  <Link
+                    href="/locations"
+                    className="block px-5 py-3 text-sm text-gray-900 hover:bg-gray-50 transition-colors"
+                    onClick={() => setShowBlogMenu(false)}
+                  >
+                    <div className="font-semibold">Destinations</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Explore locations worldwide</div>
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Trips Dropdown - TripAdvisor Style with improved hover */}
           <div
@@ -506,14 +551,24 @@ export function AuthAwareHeader() {
               <BookOpen className="h-5 w-5 text-gray-600" />
               <span className="font-medium">Trips Library</span>
             </Link>
-            <Link
-              href="/blog"
-              className="flex items-center gap-3 px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
-              onClick={() => setShowMobileMenu(false)}
-            >
-              <FileText className="h-5 w-5 text-gray-600" />
-              <span className="font-medium">Blog</span>
-            </Link>
+            {/* Blog Section with Submenu */}
+            <div className="space-y-1">
+              <Link
+                href="/blog"
+                className="flex items-center gap-3 px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+                onClick={() => setShowMobileMenu(false)}
+              >
+                <FileText className="h-5 w-5 text-gray-600" />
+                <span className="font-medium">Blog</span>
+              </Link>
+              <Link
+                href="/blog/posts"
+                className="flex items-center gap-3 px-4 py-3 pl-12 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                onClick={() => setShowMobileMenu(false)}
+              >
+                <span>All Posts</span>
+              </Link>
+            </div>
 
             <div className="border-t border-gray-200 my-2" />
 
