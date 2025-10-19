@@ -14,7 +14,7 @@
 
 import { useState, useEffect } from 'react'
 import { X, MapPin, Utensils, Camera, Hotel, Activity, Loader2, CheckCircle } from 'lucide-react'
-import { getLocationIntelligence, POISuggestion, TripActivity } from '@/lib/services/locationIntelligenceService'
+import type { POISuggestion, TripActivity } from '@/lib/services/locationIntelligenceService'
 
 interface POISuggestionsPanelProps {
   location: string
@@ -35,9 +35,19 @@ export function POISuggestionsPanel({ location, onSelectPOI, onSelectActivity, o
   const loadIntelligence = async () => {
     setIsLoading(true)
     try {
-      const data = await getLocationIntelligence(location, false)
-      setIntelligence(data)
-      console.log('Intelligence loaded:', data)
+      const response = await fetch('/api/location-intelligence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locationName: location })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to load intelligence')
+      }
+
+      const result = await response.json()
+      setIntelligence(result.data)
+      console.log('Intelligence loaded:', result.data)
     } catch (error) {
       console.error('Error loading intelligence:', error)
     } finally {

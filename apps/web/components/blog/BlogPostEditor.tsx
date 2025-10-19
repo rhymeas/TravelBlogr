@@ -16,7 +16,7 @@ import { useState } from 'react'
 import { Plus, MapPin, Image as ImageIcon, Sparkles, ChevronDown, ChevronUp, Search, Lightbulb, Wand2 } from 'lucide-react'
 import { POISuggestionsPanel } from '@/components/blog/POISuggestionsPanel'
 import { AIAssistantPanel } from '@/components/blog/AIAssistantPanel'
-import { POISuggestion, TripActivity } from '@/lib/services/locationIntelligenceService'
+import type { POISuggestion, TripActivity } from '@/lib/services/locationIntelligenceService'
 
 interface BlogPost {
   id: string

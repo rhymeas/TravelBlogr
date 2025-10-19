@@ -14,9 +14,17 @@
  * - Enhanced Image Service (location images)
  */
 
-import { createServiceSupabase } from '@/lib/supabase-server'
 import { getBrowserSupabase } from '@/lib/supabase'
 import { fetchLocationImageHighQuality } from './enhancedImageService'
+
+// Dynamic import for server-only code
+async function getSupabaseClient(useServerClient: boolean) {
+  if (useServerClient) {
+    const { createServiceSupabase } = await import('@/lib/supabase-server')
+    return createServiceSupabase()
+  }
+  return getBrowserSupabase()
+}
 
 export interface EnrichedLocation {
   name: string
@@ -41,7 +49,7 @@ export async function enrichLocation(
   locationName: string,
   useServerClient = false
 ): Promise<EnrichedLocation> {
-  const supabase = useServerClient ? createServiceSupabase() : getBrowserSupabase()
+  const supabase = await getSupabaseClient(useServerClient)
 
   console.log(`🔍 Enriching location: ${locationName}`)
 
@@ -143,7 +151,7 @@ async function fetchPOIs(
   lng: number,
   useServerClient = false
 ): Promise<EnrichedLocation['pois']> {
-  const supabase = useServerClient ? createServiceSupabase() : getBrowserSupabase()
+  const supabase = await getSupabaseClient(useServerClient)
 
   // 1. Try database first
   const { data: dbActivities } = await supabase

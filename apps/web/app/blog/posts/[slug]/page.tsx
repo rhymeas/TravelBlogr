@@ -11,7 +11,6 @@ import { useRouter } from 'next/navigation'
 import { useBlogPost } from '@/hooks/useBlogData'
 import { BlogPostTemplate } from '@/components/blog/BlogPostTemplate'
 import { useAuth } from '@/hooks/useAuth'
-import { enrichBlogPostDays } from '@/lib/services/blogEnrichmentService'
 import { Edit } from 'lucide-react'
 import Head from 'next/head'
 import { useState, useEffect } from 'react'
@@ -33,7 +32,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
     }
   }
 
-  // Enrich blog post days with location data
+  // Enrich blog post days with location data via API route
   useEffect(() => {
     async function enrichDays() {
       if (!post || !post.content) return
@@ -47,8 +46,18 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
 
       setEnriching(true)
       try {
-        const enriched = await enrichBlogPostDays(days, false)
-        setEnrichedDays(enriched)
+        const response = await fetch('/api/blog/enrich-days', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ days })
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to enrich days')
+        }
+
+        const data = await response.json()
+        setEnrichedDays(data.days)
       } catch (error) {
         console.error('Error enriching days:', error)
         setEnrichedDays(days) // Fallback to original days

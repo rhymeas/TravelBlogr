@@ -11,8 +11,16 @@
  * This ensures we leverage our own data before making external requests.
  */
 
-import { createServiceSupabase } from '@/lib/supabase-server'
 import { getBrowserSupabase } from '@/lib/supabase'
+
+// Dynamic import for server-only code
+async function getSupabaseClient(useServerClient: boolean) {
+  if (useServerClient) {
+    const { createServiceSupabase } = await import('@/lib/supabase-server')
+    return createServiceSupabase()
+  }
+  return getBrowserSupabase()
+}
 
 export interface LocationData {
   id?: string
@@ -78,7 +86,7 @@ export async function getLocationIntelligence(
   locationName: string,
   useServerClient = false
 ): Promise<LocationIntelligence> {
-  const supabase = useServerClient ? createServiceSupabase() : getBrowserSupabase()
+  const supabase = await getSupabaseClient(useServerClient)
 
   console.log(`🔍 Getting intelligence for: ${locationName}`)
 
