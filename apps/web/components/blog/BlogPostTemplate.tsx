@@ -31,7 +31,11 @@ import {
   ChevronUp,
   Star,
   Users,
-  Compass
+  Compass,
+  Bus,
+  Train,
+  ExternalLink,
+  Image as ImageIcon
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -50,6 +54,17 @@ interface TripDay {
   location?: {
     name: string
     coordinates?: { lat: number; lng: number }
+    image?: string
+    pois?: Array<{
+      name: string
+      category: string
+      description?: string
+      coordinates?: { lat: number; lng: number }
+    }>
+    transportation?: {
+      providers?: string[]
+      tips?: string
+    }
   }
 }
 
@@ -328,8 +343,60 @@ export function BlogPostTemplate({
                   {/* Day Content - Expandable */}
                   {isExpanded && (
                     <div className="px-6 pb-6 border-t border-gray-100">
+                      {/* Location Image */}
+                      {day.location?.image && (
+                        <div className="relative h-48 rounded-lg overflow-hidden mb-6 mt-6">
+                          <OptimizedImage
+                            src={day.location.image}
+                            alt={day.location.name}
+                            fill
+                            className="object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          <div className="absolute bottom-4 left-4 text-white">
+                            <p className="text-sm font-medium flex items-center gap-1">
+                              <MapPin className="h-4 w-4" />
+                              {day.location.name}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
                       <p className="text-gray-700 leading-relaxed mb-6 mt-6">{day.description}</p>
-                      
+
+                      {/* POIs - Points of Interest */}
+                      {day.location?.pois && day.location.pois.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            <Compass className="h-5 w-5 text-rausch-500" />
+                            Places to Explore
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {day.location.pois.map((poi, index) => (
+                              <Link
+                                key={index}
+                                href={`/locations/${encodeURIComponent(poi.name.toLowerCase().replace(/\s+/g, '-'))}`}
+                                className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-rausch-300 hover:bg-rausch-50 transition-all group"
+                              >
+                                <div className="flex-shrink-0 w-10 h-10 bg-rausch-100 rounded-lg flex items-center justify-center group-hover:bg-rausch-200 transition-colors">
+                                  <MapPin className="h-5 w-5 text-rausch-600" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-gray-900 group-hover:text-rausch-600 transition-colors flex items-center gap-1">
+                                    {poi.name}
+                                    <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </p>
+                                  {poi.description && (
+                                    <p className="text-sm text-gray-600 line-clamp-2 mt-1">{poi.description}</p>
+                                  )}
+                                  <p className="text-xs text-gray-500 mt-1">{poi.category}</p>
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Activities */}
                       {day.activities && day.activities.length > 0 && (
                         <div className="mb-6">
@@ -344,7 +411,36 @@ export function BlogPostTemplate({
                           </ul>
                         </div>
                       )}
-                      
+
+                      {/* Transportation Info */}
+                      {day.location?.transportation && (
+                        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                            <Bus className="h-5 w-5" />
+                            Getting Around
+                          </h4>
+                          {day.location.transportation.providers && day.location.transportation.providers.length > 0 && (
+                            <div className="mb-3">
+                              <p className="text-sm font-medium text-blue-800 mb-2">Public Transportation:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {day.location.transportation.providers.map((provider, index) => (
+                                  <span
+                                    key={index}
+                                    className="inline-flex items-center gap-1 px-3 py-1 bg-white border border-blue-300 rounded-full text-sm text-blue-700"
+                                  >
+                                    <Train className="h-3 w-3" />
+                                    {provider}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {day.location.transportation.tips && (
+                            <p className="text-sm text-blue-700">{day.location.transportation.tips}</p>
+                          )}
+                        </div>
+                      )}
+
                       {/* Pro Tips */}
                       {day.tips && (
                         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
