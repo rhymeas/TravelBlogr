@@ -42,7 +42,9 @@ const RATE_LIMITS = {
   opentripmap: 1000,
   foursquare: 950,
   yelp: 5000,
-  groq: 6000
+  groq: 6000,
+  wikidata: 10000, // No official limit, be conservative
+  nominatim: 3600  // 1 per second = 3600 per hour
 }
 
 export interface CacheOptions {

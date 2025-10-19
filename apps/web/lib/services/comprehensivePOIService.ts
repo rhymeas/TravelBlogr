@@ -1,34 +1,48 @@
 /**
  * Comprehensive POI Service
- * 
+ *
  * Multi-layered POI discovery system with GROQ AI as ultimate fallback.
  * Ensures we ALWAYS get relevant POIs, accommodations, and sightseeing elements.
- * 
+ *
  * Data Source Hierarchy:
  * 1. Database (our cached data) - FASTEST
  * 2. OpenTripMap API (attractions, POIs) - FREE
  * 3. Overpass API (OpenStreetMap data) - FREE
- * 4. GROQ AI (intelligent suggestions) - FALLBACK
- * 
+ * 4. Foursquare API (places, venues) - FREE (950/day)
+ * 5. Yelp API (businesses, restaurants) - FREE (5000/day)
+ * 6. Wikidata (landmarks, monuments) - FREE
+ * 7. Nominatim (OSM geocoding) - FREE (1/sec)
+ * 8. GROQ AI (intelligent suggestions) - FALLBACK
+ *
  * This ensures efficient trip planning from A to B (or C, D, etc.)
  * with proper POIs, accommodations, and sightseeing based on travel type.
  */
 
 import { createGroqClient } from '@/lib/groq'
+import { getFoursquarePOIs } from './foursquareService'
+import { getYelpPOIs } from './yelpService'
+import { getWikidataPOIs } from './wikidataService'
+import { getNominatimPOIs } from './nominatimService'
+import { isFeatureEnabled } from '@/lib/featureFlags'
 
 export interface ComprehensivePOI {
+  id?: string
   name: string
-  category: 'attraction' | 'accommodation' | 'restaurant' | 'activity' | 'viewpoint' | 'nature' | 'culture' | 'shopping'
+  category: string
   type?: string // More specific type (e.g., "museum", "hotel", "cafe")
   description?: string
+  lat?: number
+  lon?: number
   coordinates?: { lat: number; lng: number }
+  address?: string
   rating?: number
   visitDuration?: number // minutes
   bestTimeOfDay?: 'morning' | 'afternoon' | 'evening' | 'anytime'
   priceLevel?: 'budget' | 'moderate' | 'expensive' | 'luxury'
-  source: 'database' | 'opentripmap' | 'overpass' | 'groq'
+  source: string
   detourTime?: number // minutes from route
   relevanceScore?: number // 0-100
+  metadata?: any
 }
 
 export interface POISearchParams {
@@ -85,9 +99,41 @@ export async function getComprehensivePOIs(
     console.log(`   ✅ Found ${overpassPOIs.length} POIs from Overpass`)
   }
 
-  // LAYER 4: GROQ AI (ultimate fallback - always provides results)
+  // LAYER 4: Foursquare (places, venues) - if enabled
+  if (coordinates && allPOIs.length < limit && isFeatureEnabled('EXTERNAL_APIS')) {
+    console.log('🏢 Layer 4: Fetching from Foursquare...')
+    const foursquarePOIs = await getFoursquarePOIs(coordinates.lat, coordinates.lng, radius * 1000)
+    allPOIs.push(...foursquarePOIs)
+    console.log(`   ✅ Found ${foursquarePOIs.length} POIs from Foursquare`)
+  }
+
+  // LAYER 5: Yelp (businesses, restaurants) - if enabled
+  if (coordinates && allPOIs.length < limit && isFeatureEnabled('EXTERNAL_APIS')) {
+    console.log('⭐ Layer 5: Fetching from Yelp...')
+    const yelpPOIs = await getYelpPOIs(coordinates.lat, coordinates.lng, radius * 1000)
+    allPOIs.push(...yelpPOIs)
+    console.log(`   ✅ Found ${yelpPOIs.length} POIs from Yelp`)
+  }
+
+  // LAYER 6: Wikidata (landmarks, monuments) - if enabled
+  if (coordinates && allPOIs.length < limit && isFeatureEnabled('EXTERNAL_APIS')) {
+    console.log('📚 Layer 6: Fetching from Wikidata...')
+    const wikidataPOIs = await getWikidataPOIs(coordinates.lat, coordinates.lng, radius * 1000)
+    allPOIs.push(...wikidataPOIs)
+    console.log(`   ✅ Found ${wikidataPOIs.length} POIs from Wikidata`)
+  }
+
+  // LAYER 7: Nominatim (OSM geocoding) - if enabled
+  if (coordinates && allPOIs.length < limit && isFeatureEnabled('EXTERNAL_APIS')) {
+    console.log('🗺️ Layer 7: Fetching from Nominatim...')
+    const nominatimPOIs = await getNominatimPOIs(coordinates.lat, coordinates.lng, radius * 1000)
+    allPOIs.push(...nominatimPOIs)
+    console.log(`   ✅ Found ${nominatimPOIs.length} POIs from Nominatim`)
+  }
+
+  // LAYER 8: GROQ AI (ultimate fallback - always provides results)
   if (allPOIs.length < 5) {
-    console.log('🤖 Layer 4: Using GROQ AI fallback...')
+    console.log('🤖 Layer 8: Using GROQ AI fallback...')
     const groqPOIs = await fetchGroqPOIs(locationName, coordinates, travelType, budget, interests, limit)
     allPOIs.push(...groqPOIs)
     console.log(`   ✅ Generated ${groqPOIs.length} POIs from GROQ AI`)

@@ -49,6 +49,14 @@ export default function FeatureFlagsPage() {
       category: 'features'
     },
     {
+      key: 'NEXT_PUBLIC_ENABLE_EXTERNAL_APIS',
+      name: 'External APIs',
+      description: 'Enable Foursquare, Yelp, Wikidata, Nominatim for better POI coverage. Free tiers.',
+      enabled: false,
+      requiresRestart: true,
+      category: 'features'
+    },
+    {
       key: 'NEXT_PUBLIC_ENABLE_BATCH_PROCESSING',
       name: 'Batch Blog Processing',
       description: 'Process blog generation in batches (10 trips at a time). Prevents overload.',

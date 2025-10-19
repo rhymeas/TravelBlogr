@@ -17,6 +17,9 @@ export const FEATURE_FLAGS = {
   
   // Batch processing for blog generation
   BATCH_BLOG_PROCESSING: process.env.NEXT_PUBLIC_ENABLE_BATCH_PROCESSING === 'true',
+
+  // External APIs (Foursquare, Yelp, Wikidata, Nominatim)
+  EXTERNAL_APIS: process.env.NEXT_PUBLIC_ENABLE_EXTERNAL_APIS === 'true',
 } as const
 
 export function isFeatureEnabled(flag: keyof typeof FEATURE_FLAGS): boolean {
