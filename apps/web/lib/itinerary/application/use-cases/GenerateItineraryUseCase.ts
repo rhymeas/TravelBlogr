@@ -277,6 +277,7 @@ export class GenerateplanUseCase {
 
           // NEW: Gather comprehensive trip data from ALL sources
           console.log('🔍 Gathering comprehensive trip data from ALL sources...')
+          const { isFeatureEnabled } = await import('../../../featureFlags')
           const { gatherComprehensiveTripData } = await import('../../../services/comprehensiveTripDataService')
           const {
             compressTripDataForAI,
@@ -290,14 +291,34 @@ export class GenerateplanUseCase {
           let aiFormattedData
 
           try {
-            // 1. Gather comprehensive data
-            comprehensiveData = await gatherComprehensiveTripData(
-              routeInfo.fromLocation,
-              routeInfo.toLocation,
-              routeGeometry,
-              route.distance / 1000, // Convert to km
-              route.duration / 3600  // Convert to hours
-            )
+            // 1. Gather comprehensive data (with smart caching if enabled)
+            if (isFeatureEnabled('SMART_POI_SYSTEM')) {
+              const { smartFetch } = await import('../../../services/smartDataHandler')
+
+              comprehensiveData = await smartFetch(
+                `trip_data_${routeInfo.fromLocation}_${routeInfo.toLocation}`,
+                'pois',
+                async () => {
+                  return await gatherComprehensiveTripData(
+                    routeInfo.fromLocation,
+                    routeInfo.toLocation,
+                    routeGeometry,
+                    route.distance / 1000,
+                    route.duration / 3600
+                  )
+                },
+                { useServerClient: true }
+              )
+            } else {
+              // Fallback: Direct fetch without caching
+              comprehensiveData = await gatherComprehensiveTripData(
+                routeInfo.fromLocation,
+                routeInfo.toLocation,
+                routeGeometry,
+                route.distance / 1000,
+                route.duration / 3600
+              )
+            }
 
             console.log('✅ Comprehensive data gathered:')
             console.log(`   Total POIs: ${comprehensiveData.pois.total}`)
@@ -346,12 +367,35 @@ export class GenerateplanUseCase {
           } = await import('../../../services/routePOIService')
 
           try {
-            const allRoutePOIs = await fetchPOIsAlongRoute(
-              routeGeometry,
-              150, // Sample every 150km (reduced from 50km to avoid rate limiting)
-              15, // Search within 15km radius (increased from 10km to compensate)
-              ['interesting_places', 'tourist_facilities', 'natural', 'foods']
-            )
+            let allRoutePOIs
+
+            // Use smart caching for POI fetching if enabled
+            if (isFeatureEnabled('SMART_POI_SYSTEM')) {
+              const { smartFetch } = await import('../../../services/smartDataHandler')
+
+              allRoutePOIs = await smartFetch(
+                `route_pois_${routeInfo.fromLocation}_${routeInfo.toLocation}`,
+                'pois',
+                async () => {
+                  return await fetchPOIsAlongRoute(
+                    routeGeometry,
+                    150,
+                    15,
+                    ['interesting_places', 'tourist_facilities', 'natural', 'foods']
+                  )
+                },
+                { useServerClient: true, apiName: 'opentripmap' }
+              )
+            } else {
+              // Fallback: Direct fetch
+              allRoutePOIs = await fetchPOIsAlongRoute(
+                routeGeometry,
+                150,
+                15,
+                ['interesting_places', 'tourist_facilities', 'natural', 'foods']
+              )
+            }
+
             const nearbyPOIs = filterPOIsByDistance(allRoutePOIs, 10) // Within 10km of route (increased from 5km)
             const topPOIs = getTopPOIs(nearbyPOIs, 50) // Top 50 POIs (increased from 30)
 
