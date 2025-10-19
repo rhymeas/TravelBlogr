@@ -31,7 +31,10 @@ const CACHE_EXPIRY = {
   locations: 30 * 24 * 60 * 60 * 1000,  // 30 days
   images: 14 * 24 * 60 * 60 * 1000,     // 14 days
   groqValidation: 3 * 24 * 60 * 60 * 1000, // 3 days
-  groqGapFill: 1 * 24 * 60 * 60 * 1000  // 1 day
+  groqGapFill: 1 * 24 * 60 * 60 * 1000,  // 1 day
+  groq_gaps: 1 * 24 * 60 * 60 * 1000,    // 1 day
+  groq_gap_fill: 1 * 24 * 60 * 60 * 1000, // 1 day
+  groq_strategy: 7 * 24 * 60 * 60 * 1000  // 7 days
 }
 
 // API rate limits (per hour)
