@@ -152,22 +152,52 @@ async function fetchPOIs(
   useServerClient = false
 ): Promise<EnrichedLocation['pois']> {
   try {
-    // Use comprehensive POI service with GROQ fallback
-    const { getComprehensivePOIs } = await import('./comprehensivePOIService')
+    // Check feature flag
+    const { isFeatureEnabled } = await import('@/lib/featureFlags')
 
-    const pois = await getComprehensivePOIs({
-      locationName,
-      coordinates: { lat, lng },
-      travelType: 'city-break', // Default for blog posts
-      limit: 6
-    }, useServerClient)
+    if (isFeatureEnabled('SMART_POI_SYSTEM')) {
+      // NEW: Use smart data handler with caching
+      const { smartFetch } = await import('./smartDataHandler')
+      const { getComprehensivePOIs } = await import('./comprehensivePOIService')
 
-    return pois.map(poi => ({
-      name: poi.name,
-      category: poi.type || poi.category,
-      description: poi.description,
-      coordinates: poi.coordinates
-    }))
+      const pois = await smartFetch(
+        `blog_pois_${locationName}`,
+        'pois',
+        async () => {
+          return await getComprehensivePOIs({
+            locationName,
+            coordinates: { lat, lng },
+            travelType: 'city-break',
+            limit: 6
+          }, useServerClient)
+        },
+        { useServerClient }
+      )
+
+      return pois.map(poi => ({
+        name: poi.name,
+        category: poi.type || poi.category,
+        description: poi.description,
+        coordinates: poi.coordinates
+      }))
+    } else {
+      // FALLBACK: Use existing comprehensive POI service
+      const { getComprehensivePOIs } = await import('./comprehensivePOIService')
+
+      const pois = await getComprehensivePOIs({
+        locationName,
+        coordinates: { lat, lng },
+        travelType: 'city-break',
+        limit: 6
+      }, useServerClient)
+
+      return pois.map(poi => ({
+        name: poi.name,
+        category: poi.type || poi.category,
+        description: poi.description,
+        coordinates: poi.coordinates
+      }))
+    }
   } catch (error) {
     console.error('Comprehensive POI fetch error:', error)
     return []
