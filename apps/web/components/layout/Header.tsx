@@ -28,14 +28,14 @@ export function Header() {
             <Link href="/plan" className="text-gray-700 hover:text-rausch-500 transition-colors font-medium">
               Plan your trip
             </Link>
-            <Link href="/live-feed" className="text-gray-700 hover:text-rausch-500 transition-colors">
-              Live Feed
+            <Link href="/blog" className="text-gray-700 hover:text-rausch-500 transition-colors">
+              Blog
+            </Link>
+            <Link href="/how-it-works" className="text-gray-700 hover:text-rausch-500 transition-colors">
+              How It Works
             </Link>
             <Link href="/locations" className="text-gray-700 hover:text-rausch-500 transition-colors">
               Locations
-            </Link>
-            <Link href="/examples" className="text-gray-700 hover:text-rausch-500 transition-colors">
-              Examples
             </Link>
           </div>
 
@@ -81,11 +81,18 @@ export function Header() {
                 Plan your trip
               </Link>
               <Link
-                href="/live-feed"
+                href="/blog"
                 className="text-gray-700 hover:text-rausch-500 transition-colors px-2 py-1"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Live Feed
+                Blog
+              </Link>
+              <Link
+                href="/how-it-works"
+                className="text-gray-700 hover:text-rausch-500 transition-colors px-2 py-1"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                How It Works
               </Link>
               <Link
                 href="/locations"
