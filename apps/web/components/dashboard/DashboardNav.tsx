@@ -33,8 +33,8 @@ const navigation = [
     icon: Plus,
   },
   {
-    name: 'Blog CMS',
-    href: '/blog-cms',
+    name: 'Blog Posts',
+    href: '/dashboard/blog',
     icon: FileText,
   },
   {

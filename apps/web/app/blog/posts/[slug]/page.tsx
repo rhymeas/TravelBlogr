@@ -7,13 +7,27 @@
  * Renders trip-based blog posts with day-by-day timeline and interactive features.
  */
 
+import { useRouter } from 'next/navigation'
 import { useBlogPost } from '@/hooks/useBlogData'
 import { BlogPostTemplate } from '@/components/blog/BlogPostTemplate'
+import { useAuth } from '@/hooks/useAuth'
+import { Edit } from 'lucide-react'
 import Head from 'next/head'
 
 export default function BlogPostPage({ params }: { params: { slug: string } }) {
   const { slug } = params
+  const router = useRouter()
   const { post, isLoading, error } = useBlogPost(slug)
+  const { user } = useAuth()
+
+  // Check if current user is the author
+  const isAuthor = user && post && user.id === post.author_id
+
+  const handleEditClick = () => {
+    if (post) {
+      router.push(`/dashboard/blog/posts/${post.id}`)
+    }
+  }
 
   // Debug logging
   if (post && !isLoading) {
@@ -109,6 +123,19 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
       </Head>
+
+      {/* Edit Button (for authors only) */}
+      {isAuthor && (
+        <div className="fixed bottom-8 right-8 z-50">
+          <button
+            onClick={handleEditClick}
+            className="flex items-center gap-2 px-6 py-3 bg-rausch-600 text-white rounded-full shadow-lg hover:bg-rausch-700 transition-all hover:scale-105"
+          >
+            <Edit className="h-5 w-5" />
+            <span className="font-medium">Edit Post</span>
+          </button>
+        </div>
+      )}
 
       <BlogPostTemplate
         title={post.title}
