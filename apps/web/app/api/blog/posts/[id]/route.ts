@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createServerSupabase } from '@/lib/supabase-server'
+import { createServerSupabase, createServiceSupabase } from '@/lib/supabase-server'
 
 // Validation schema for blog post update
 const updateBlogPostSchema = z.object({
@@ -29,43 +29,48 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = await createServerSupabase()
-
-    // Try to fetch by ID first, then by slug
-    let query = supabase
-      .from('cms_posts')
-      .select(`
-        *,
-        profiles!author_id (
-          id,
-          full_name,
-          username,
-          avatar_url
-        )
-      `)
+    const supabase = createServiceSupabase()
 
     // Check if ID is UUID or slug
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.id)
-    
+
+    // Fetch blog post
+    let query = supabase
+      .from('blog_posts')
+      .select('*')
+
     if (isUUID) {
       query = query.eq('id', params.id)
     } else {
       query = query.eq('slug', params.id)
     }
 
-    const { data, error } = await query.single()
+    const { data: post, error } = await query.single()
 
     if (error) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 })
     }
 
+    // Fetch author profile separately
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, full_name, username, avatar_url')
+      .eq('id', post.author_id)
+      .single()
+
+    // Attach profile to post
+    const postWithProfile = {
+      ...post,
+      profiles: profile || null
+    }
+
     // Increment view count
     await supabase
-      .from('cms_posts')
-      .update({ view_count: (data.view_count || 0) + 1 })
-      .eq('id', data.id)
+      .from('blog_posts')
+      .update({ view_count: (post.view_count || 0) + 1 })
+      .eq('id', post.id)
 
-    return NextResponse.json(data)
+    return NextResponse.json(postWithProfile)
   } catch (error) {
     console.error('Error fetching blog post:', error)
     return NextResponse.json(
@@ -105,7 +110,7 @@ export async function PATCH(
 
     // Check if user owns the post or is admin
     const { data: post, error: fetchError } = await supabase
-      .from('cms_posts')
+      .from('blog_posts')
       .select('author_id')
       .eq('id', params.id)
       .single()
@@ -129,7 +134,7 @@ export async function PATCH(
 
     // Update blog post
     const { data, error } = await supabase
-      .from('cms_posts')
+      .from('blog_posts')
       .update({
         ...validation.data,
         updated_at: new Date().toISOString()
