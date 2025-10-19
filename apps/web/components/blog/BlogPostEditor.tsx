@@ -415,6 +415,11 @@ export function BlogPostEditor({ post, onChange, onSave }: BlogPostEditorProps) 
               onChange({ excerpt: description })
               setShowAIPanel(false)
             }}
+            onStreamContent={(streamedText) => {
+              // User can copy streamed content manually
+              // In future: could auto-insert into editor
+              console.log('Streamed content:', streamedText)
+            }}
             onClose={() => setShowAIPanel(false)}
           />
         </div>
