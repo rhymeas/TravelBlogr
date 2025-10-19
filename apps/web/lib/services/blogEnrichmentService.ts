@@ -143,7 +143,7 @@ async function geocodeLocation(locationName: string): Promise<{ lat: number; lng
 }
 
 /**
- * Fetch POIs from database or OpenTripMap
+ * Fetch POIs using comprehensive multi-source system with GROQ fallback
  */
 async function fetchPOIs(
   locationName: string,
@@ -151,50 +151,25 @@ async function fetchPOIs(
   lng: number,
   useServerClient = false
 ): Promise<EnrichedLocation['pois']> {
-  const supabase = await getSupabaseClient(useServerClient)
-
-  // 1. Try database first
-  const { data: dbActivities } = await supabase
-    .from('activities')
-    .select('*')
-    .ilike('location_name', `%${locationName}%`)
-    .limit(6)
-
-  if (dbActivities && dbActivities.length > 0) {
-    return dbActivities.map(activity => ({
-      name: activity.name,
-      category: activity.category || 'Attraction',
-      description: activity.description,
-      coordinates: activity.latitude && activity.longitude
-        ? { lat: activity.latitude, lng: activity.longitude }
-        : undefined
-    }))
-  }
-
-  // 2. Fetch from OpenTripMap
   try {
-    const apiKey = process.env.OPENTRIPMAP_API_KEY || '5ae2e3f221c38a28845f05b6f52aba26a4787b4b1eba825c24d4cbbd'
-    const radius = 5000 // 5km
-    
-    const response = await fetch(
-      `https://api.opentripmap.com/0.1/en/places/radius?radius=${radius}&lon=${lng}&lat=${lat}&kinds=interesting_places,tourist_facilities&limit=6&format=json&apikey=${apiKey}`
-    )
-    
-    if (!response.ok) return []
-    
-    const data = await response.json()
-    
-    return data.map((poi: any) => ({
-      name: poi.name || 'Unnamed Place',
-      category: poi.kinds?.split(',')[0] || 'Attraction',
-      description: undefined,
-      coordinates: {
-        lat: poi.point.lat,
-        lng: poi.point.lon
-      }
+    // Use comprehensive POI service with GROQ fallback
+    const { getComprehensivePOIs } = await import('./comprehensivePOIService')
+
+    const pois = await getComprehensivePOIs({
+      locationName,
+      coordinates: { lat, lng },
+      travelType: 'city-break', // Default for blog posts
+      limit: 6
+    }, useServerClient)
+
+    return pois.map(poi => ({
+      name: poi.name,
+      category: poi.type || poi.category,
+      description: poi.description,
+      coordinates: poi.coordinates
     }))
   } catch (error) {
-    console.error('OpenTripMap error:', error)
+    console.error('Comprehensive POI fetch error:', error)
     return []
   }
 }
