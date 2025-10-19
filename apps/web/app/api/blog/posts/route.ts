@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createServerSupabase } from '@/lib/supabase-server'
+import { createServerSupabase, createServiceSupabase } from '@/lib/supabase-server'
 
 // Validation schema for blog post
 const blogPostSchema = z.object({
@@ -33,7 +33,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    const supabase = await createServerSupabase()
+    // Use service role client to bypass RLS for public blog posts
+    const supabase = createServiceSupabase()
 
     let query = supabase
       .from('blog_posts')

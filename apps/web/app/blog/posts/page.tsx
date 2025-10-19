@@ -19,12 +19,15 @@ export default function BlogPostsPage() {
   const [currentPage, setCurrentPage] = useState(0)
   const postsPerPage = 12
 
-  const { posts, total, isLoading } = useBlogPosts({
+  const { posts, total, isLoading, error } = useBlogPosts({
     status: 'published',
     category: selectedCategory,
     limit: postsPerPage,
     offset: currentPage * postsPerPage
   })
+
+  // Debug logging
+  console.log('Blog Posts Debug:', { posts, total, isLoading, error })
 
   // Filter posts by search query (client-side)
   const filteredPosts = posts.filter((post: any) =>
@@ -100,7 +103,21 @@ export default function BlogPostsPage() {
 
       {/* Posts Grid - Beautiful Masonry-Style Layout */}
       <section className="max-w-7xl mx-auto px-6 lg:px-8 py-16">
-        {isLoading ? (
+        {error ? (
+          <div className="text-center py-32">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-red-100 rounded-full mb-6">
+              <span className="text-4xl">⚠️</span>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">Error loading posts</h3>
+            <p className="text-gray-600 mb-4">{error.message || 'Something went wrong'}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-rausch-500 text-white rounded-full font-medium hover:bg-rausch-600 transition-all"
+            >
+              Retry
+            </button>
+          </div>
+        ) : isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="animate-pulse space-y-4">
