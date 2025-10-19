@@ -7,7 +7,6 @@
  * Includes SEO metadata, Open Graph tags, and structured data.
  */
 
-import { use } from 'react'
 import { useBlogPost } from '@/hooks/useBlogData'
 import { BlogLayout, BlogSection } from '@/components/blog/BlogLayout'
 import { Avatar } from '@/components/ui/Avatar'
@@ -17,8 +16,8 @@ import { SocialShare } from '@/components/blog/SocialShare'
 import { Calendar, Clock, Eye } from 'lucide-react'
 import Head from 'next/head'
 
-export default function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params)
+export default function BlogPostPage({ params }: { params: { slug: string } }) {
+  const { slug } = params
   const { post, isLoading, error } = useBlogPost(slug)
 
   if (isLoading) {
