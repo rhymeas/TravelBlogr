@@ -1,15 +1,17 @@
 /**
  * AI Content Assistant Service
- * 
+ *
  * GROQ-powered content suggestions for blog posts:
  * - SEO optimization and keyword suggestions
  * - Headline variations
  * - Meta description generation
  * - Content improvement suggestions
  * - EEAT score checking
+ * - Content generation based on location intelligence
  */
 
 import Groq from 'groq-sdk'
+import { LocationIntelligence } from './locationIntelligenceService'
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -354,12 +356,195 @@ Return as JSON:
 }
 
 /**
+ * Generate SEO keyword suggestions based on location intelligence
+ */
+export async function generateKeywordSuggestions(
+  destination: string,
+  intelligence: LocationIntelligence
+): Promise<{ primary: string[], secondary: string[], longTail: string[] }> {
+  console.log(`🔍 Generating keyword suggestions for ${destination}...`)
+
+  const context = buildContextFromIntelligence(intelligence)
+
+  const prompt = `You are an SEO expert specializing in travel content.
+
+DESTINATION: ${destination}
+
+CONTEXT FROM OUR DATABASE:
+${context}
+
+TASK: Generate SEO keywords for a travel blog post about ${destination}.
+
+Provide:
+1. Primary keywords (3-5): High-volume, competitive keywords
+2. Secondary keywords (5-7): Medium-volume, less competitive
+3. Long-tail keywords (7-10): Specific, low-competition phrases
+
+Format as JSON:
+{
+  "primary": ["travel to ${destination}", "..."],
+  "secondary": ["best time to visit ${destination}", "..."],
+  "longTail": ["${destination} 7 day itinerary for first timers", "..."]
+}
+
+Base keywords on actual attractions, activities, and content from our database.`
+
+  try {
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an SEO expert who generates highly relevant, search-optimized keywords for travel content.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.5,
+      max_tokens: 1000,
+      response_format: { type: 'json_object' }
+    })
+
+    const content = completion.choices[0]?.message?.content
+    if (!content) {
+      throw new Error('No keywords generated')
+    }
+
+    const keywords = JSON.parse(content)
+    console.log('✅ Keywords generated:', keywords.primary.length + keywords.secondary.length + keywords.longTail.length, 'total')
+    return keywords
+  } catch (error) {
+    console.error('Error generating keywords:', error)
+    // Fallback keywords
+    return {
+      primary: [`${destination} travel guide`, `visit ${destination}`, `${destination} tourism`],
+      secondary: [`best time to visit ${destination}`, `${destination} attractions`, `${destination} hotels`],
+      longTail: [`${destination} 7 day itinerary`, `things to do in ${destination}`, `${destination} travel tips`]
+    }
+  }
+}
+
+/**
+ * Generate content suggestions based on location intelligence
+ */
+export async function generateContentFromIntelligence(
+  destination: string,
+  intelligence: LocationIntelligence,
+  numberOfDays?: number
+): Promise<{
+  introduction: string
+  highlights: string[]
+  dayDescriptions: string[]
+  practicalTips: string[]
+  conclusion: string
+}> {
+  console.log(`🤖 Generating content suggestions for ${destination}...`)
+
+  const context = buildContextFromIntelligence(intelligence)
+
+  const prompt = `You are a professional travel writer creating a blog post about ${destination}.
+
+CONTEXT FROM OUR DATABASE:
+${context}
+
+TASK: Generate engaging travel blog content for a ${numberOfDays || 7}-day trip to ${destination}.
+
+Please provide:
+1. An engaging introduction (2-3 paragraphs)
+2. 5 key highlights that make this destination special
+3. Brief descriptions for each day (${numberOfDays || 7} days)
+4. 5 practical tips for travelers
+5. A compelling conclusion
+
+Format your response as JSON:
+{
+  "introduction": "...",
+  "highlights": ["...", "...", ...],
+  "dayDescriptions": ["Day 1: ...", "Day 2: ...", ...],
+  "practicalTips": ["...", "...", ...],
+  "conclusion": "..."
+}
+
+Keep the tone friendly, informative, and inspiring. Use the context from our database to make it authentic.`
+
+  try {
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a professional travel writer who creates engaging, SEO-optimized blog content. You write in a friendly, informative tone and always provide practical value to readers.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.7,
+      max_tokens: 2000,
+      response_format: { type: 'json_object' }
+    })
+
+    const content = completion.choices[0]?.message?.content
+    if (!content) {
+      throw new Error('No content generated')
+    }
+
+    const suggestions = JSON.parse(content)
+    console.log('✅ Content suggestions generated')
+    return suggestions
+  } catch (error) {
+    console.error('Error generating content suggestions:', error)
+    throw error
+  }
+}
+
+/**
+ * Helper: Build context string from intelligence data
+ */
+function buildContextFromIntelligence(intelligence: LocationIntelligence): string {
+  const parts: string[] = []
+
+  if (intelligence.location) {
+    parts.push(`Location: ${intelligence.location.name}, ${intelligence.location.country}`)
+    if (intelligence.location.description) {
+      parts.push(`Description: ${intelligence.location.description}`)
+    }
+  }
+
+  if (intelligence.pois.length > 0) {
+    parts.push(`\nPOIs (${intelligence.pois.length}):`)
+    intelligence.pois.slice(0, 10).forEach(poi => {
+      parts.push(`- ${poi.name} (${poi.category})${poi.description ? ': ' + poi.description.substring(0, 100) : ''}`)
+    })
+  }
+
+  if (intelligence.activities.length > 0) {
+    parts.push(`\nActivities (${intelligence.activities.length}):`)
+    intelligence.activities.slice(0, 10).forEach(activity => {
+      parts.push(`- ${activity.name}${activity.description ? ': ' + activity.description.substring(0, 100) : ''}`)
+    })
+  }
+
+  if (intelligence.suggestions.highlights.length > 0) {
+    parts.push(`\nHighlights from existing content:`)
+    intelligence.suggestions.highlights.slice(0, 5).forEach(highlight => {
+      parts.push(`- ${highlight}`)
+    })
+  }
+
+  return parts.join('\n')
+}
+
+/**
  * Helper: Extract keywords from content
  */
 function extractKeywords(content: string): string[] {
   const words = content.toLowerCase().match(/\b\w{4,}\b/g) || []
   const frequency: { [key: string]: number } = {}
-  
+
   words.forEach(word => {
     frequency[word] = (frequency[word] || 0) + 1
   })

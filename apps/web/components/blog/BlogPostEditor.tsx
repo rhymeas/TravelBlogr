@@ -13,8 +13,9 @@
  */
 
 import { useState } from 'react'
-import { Plus, MapPin, Image as ImageIcon, Sparkles, ChevronDown, ChevronUp, Search, Lightbulb } from 'lucide-react'
+import { Plus, MapPin, Image as ImageIcon, Sparkles, ChevronDown, ChevronUp, Search, Lightbulb, Wand2 } from 'lucide-react'
 import { POISuggestionsPanel } from '@/components/blog/POISuggestionsPanel'
+import { AIAssistantPanel } from '@/components/blog/AIAssistantPanel'
 import { POISuggestion, TripActivity } from '@/lib/services/locationIntelligenceService'
 
 interface BlogPost {
@@ -55,6 +56,7 @@ interface BlogPostEditorProps {
 
 export function BlogPostEditor({ post, onChange, onSave }: BlogPostEditorProps) {
   const [showPOIPanel, setShowPOIPanel] = useState(false)
+  const [showAIPanel, setShowAIPanel] = useState(false)
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null)
   const [expandedDay, setExpandedDay] = useState<number | null>(null)
 
@@ -203,15 +205,22 @@ export function BlogPostEditor({ post, onChange, onSave }: BlogPostEditorProps) 
         )}
       </div>
 
-      {/* Title */}
-      <div>
+      {/* Title with AI Assistant Button */}
+      <div className="flex items-start gap-4">
         <input
           type="text"
           value={post.title}
           onChange={(e) => handleTitleChange(e.target.value)}
           placeholder="Enter your blog post title..."
-          className="w-full text-4xl font-bold text-gray-900 border-none focus:outline-none focus:ring-0 placeholder-gray-400"
+          className="flex-1 text-4xl font-bold text-gray-900 border-none focus:outline-none focus:ring-0 placeholder-gray-400"
         />
+        <button
+          onClick={() => setShowAIPanel(!showAIPanel)}
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg transition-all shadow-lg hover:shadow-xl"
+        >
+          <Wand2 className="h-5 w-5" />
+          <span className="font-medium">AI Assistant</span>
+        </button>
       </div>
 
       {/* Excerpt */}
@@ -390,6 +399,26 @@ export function BlogPostEditor({ post, onChange, onSave }: BlogPostEditorProps) 
           </div>
         )}
       </div>
+
+      {/* AI Assistant Panel */}
+      {showAIPanel && content.destination && (
+        <div className="mt-6">
+          <AIAssistantPanel
+            title={post.title}
+            content={JSON.stringify(content)}
+            destination={content.destination}
+            onSelectHeadline={(headline) => {
+              handleTitleChange(headline)
+              setShowAIPanel(false)
+            }}
+            onSelectMetaDescription={(description) => {
+              onChange({ excerpt: description })
+              setShowAIPanel(false)
+            }}
+            onClose={() => setShowAIPanel(false)}
+          />
+        </div>
+      )}
     </div>
   )
 }
