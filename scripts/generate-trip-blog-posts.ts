@@ -2,13 +2,16 @@
 
 /**
  * Generate Blog Posts from Existing Trips
- * 
+ *
  * This script:
  * 1. Fetches all published trips from the database
- * 2. For each trip, generates an engaging blog post using GROQ AI
+ * 2. For each trip, generates an engaging blog post from trip data
  * 3. Integrates trip data (itinerary, maps, photos, highlights)
  * 4. Saves blog posts to the blog_posts table
- * 
+ *
+ * Note: This creates blog posts directly from trip data.
+ * Users can enhance their posts using the GROQ writing assistant in the CMS.
+ *
  * Usage:
  *   npm run generate-blog-posts
  *   or
@@ -16,17 +19,11 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
-import Groq from 'groq-sdk'
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
-
-// Initialize Groq client
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY!
-})
 
 interface Trip {
   id: string
@@ -81,95 +78,217 @@ interface BlogPostContent {
 }
 
 /**
- * Generate engaging blog post content using GROQ AI
+ * Generate engaging blog post content directly from trip data
+ * (No AI - create content from existing trip information)
  */
-async function generateBlogPostContent(trip: Trip, posts: Post[]): Promise<BlogPostContent> {
-  const prompt = `You are a professional travel writer creating an engaging, emotional, and inspiring blog post.
+function generateBlogPostContent(trip: Trip, posts: Post[]): BlogPostContent {
+  // Extract destination from trip data
+  const destination = trip.location_data?.route?.to ||
+                     trip.location_data?.locations?.major?.[0]?.name ||
+                     posts[0]?.location ||
+                     'Unknown Destination'
 
-TRIP DETAILS:
-- Title: ${trip.title}
-- Description: ${trip.description}
-- Duration: ${posts.length} days
-- Dates: ${trip.start_date} to ${trip.end_date}
+  // Determine trip category based on trip data
+  const category = determineTripCategory(trip, posts)
 
-DAY-BY-DAY ITINERARY:
-${posts.map((post, index) => `
-Day ${index + 1}: ${post.title}
-Location: ${post.location || 'Not specified'}
-${post.content}
-${post.excerpt ? `Highlights: ${post.excerpt}` : ''}
-`).join('\n')}
+  // Create engaging title
+  const title = `${posts.length} Days in ${destination}: ${trip.title}`
 
-TASK:
-Create a compelling blog post (2000-3000 words) that:
-1. Has an emotional, inspiring introduction that makes readers want to visit
-2. Highlights the best moments and experiences
-3. Provides practical information (best time to visit, budget, packing tips)
-4. Includes engaging descriptions for each day
-5. Suggests activities and experiences
-6. Adds pro tips for travelers
-7. Has a conclusion that inspires action
+  // Create excerpt from description
+  const excerpt = trip.description
+    ? trip.description.substring(0, 180) + '...'
+    : `Discover the ultimate ${posts.length}-day journey through ${destination}. An unforgettable adventure awaits!`
 
-FORMAT YOUR RESPONSE AS JSON:
-{
-  "title": "Engaging blog post title (60-80 chars)",
-  "excerpt": "Compelling excerpt (150-200 chars)",
-  "introduction": "Emotional introduction paragraph (200-300 words)",
-  "highlights": ["Highlight 1", "Highlight 2", ...] (5-7 highlights),
-  "days": [
-    {
-      "day_number": 1,
-      "title": "Day title",
-      "description": "Engaging description (150-200 words)",
-      "activities": ["Activity 1", "Activity 2", ...],
-      "tips": "Pro tip for this day",
-      "location": {
-        "name": "Location name",
-        "coordinates": { "lat": 0, "lng": 0 }
-      }
+  // Create introduction
+  const introduction = `
+${trip.description || `Embark on an incredible ${posts.length}-day journey through ${destination}.`}
+
+This carefully crafted itinerary takes you through the best experiences, hidden gems, and must-see attractions. Whether you're seeking adventure, culture, or relaxation, this trip has something special for everyone.
+
+From the moment you arrive to your final farewell, every day is filled with memorable moments and authentic experiences that will stay with you long after you return home.
+  `.trim()
+
+  // Extract highlights from trip data
+  const highlights = extractHighlights(trip, posts)
+
+  // Create day-by-day content
+  const days = posts.map((post, index) => ({
+    day_number: index + 1,
+    title: post.title,
+    description: post.content || post.excerpt || `Explore ${post.location || 'amazing locations'} and discover unforgettable experiences.`,
+    activities: extractActivities(post),
+    tips: generateProTip(post, index),
+    location: {
+      name: post.location || destination,
+      coordinates: post.location_data?.coordinates
     }
-  ],
-  "practicalInfo": {
-    "bestTime": "Best time to visit",
-    "budget": "Budget estimate",
-    "packing": ["Item 1", "Item 2", ...]
-  },
-  "conclusion": "Inspiring conclusion (150-200 words)",
-  "tags": ["tag1", "tag2", ...] (5-10 tags),
-  "category": "Category (e.g., 'Adventure', 'Family', 'Cultural', 'Beach', 'Road Trip')"
+  }))
+
+  // Create practical information
+  const practicalInfo = {
+    bestTime: determineBestTime(trip),
+    budget: estimateBudget(posts.length),
+    packing: generatePackingList(category, posts.length)
+  }
+
+  // Create conclusion
+  const conclusion = `
+This ${posts.length}-day journey through ${destination} offers the perfect blend of adventure, culture, and unforgettable experiences. From ${posts[0]?.title || 'your first day'} to ${posts[posts.length - 1]?.title || 'your final day'}, every moment is designed to create lasting memories.
+
+Ready to embark on your own adventure? Start planning your trip today and discover why ${destination} should be at the top of your travel bucket list. The journey of a lifetime awaits!
+  `.trim()
+
+  // Generate tags
+  const tags = generateTags(trip, posts, destination, category)
+
+  return {
+    title,
+    excerpt,
+    introduction,
+    highlights,
+    days,
+    practicalInfo,
+    conclusion,
+    tags,
+    category
+  }
 }
 
-Make it emotional, engaging, and actionable. Use vivid descriptions and storytelling.`
+/**
+ * Helper functions for content generation
+ */
+function determineTripCategory(trip: Trip, posts: Post[]): string {
+  const title = trip.title.toLowerCase()
+  const description = (trip.description || '').toLowerCase()
 
-  try {
-    const completion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a professional travel writer who creates engaging, emotional, and inspiring blog posts. Always respond with valid JSON.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      model: 'llama-3.3-70b-versatile',
-      temperature: 0.8,
-      max_tokens: 8000,
-      response_format: { type: 'json_object' }
-    })
+  if (title.includes('family') || description.includes('family')) return 'Family'
+  if (title.includes('adventure') || description.includes('adventure')) return 'Adventure'
+  if (title.includes('beach') || description.includes('beach')) return 'Beach'
+  if (title.includes('cultural') || description.includes('culture')) return 'Cultural'
+  if (title.includes('road trip') || description.includes('road trip')) return 'Road Trip'
 
-    const content = completion.choices[0]?.message?.content
-    if (!content) {
-      throw new Error('No content generated from GROQ')
-    }
+  return 'Travel Guide'
+}
 
-    const parsed = JSON.parse(content)
-    return parsed as BlogPostContent
-  } catch (error) {
-    console.error('Error generating blog post content:', error)
-    throw error
+function extractHighlights(trip: Trip, posts: Post[]): string[] {
+  const highlights: string[] = []
+
+  // Add highlights from trip location_data
+  if (trip.location_data?.highlights) {
+    highlights.push(...trip.location_data.highlights)
   }
+
+  // Add highlights from posts
+  posts.forEach(post => {
+    if (post.excerpt) {
+      highlights.push(post.excerpt)
+    }
+  })
+
+  // If no highlights, create generic ones
+  if (highlights.length === 0) {
+    highlights.push(
+      `${posts.length} days of unforgettable experiences`,
+      'Carefully curated itinerary',
+      'Mix of popular attractions and hidden gems',
+      'Authentic local experiences',
+      'Perfect for all travel styles'
+    )
+  }
+
+  return highlights.slice(0, 7)
+}
+
+function extractActivities(post: Post): string[] {
+  const activities: string[] = []
+
+  // Try to extract from content
+  if (post.content) {
+    const lines = post.content.split('\n')
+    lines.forEach(line => {
+      if (line.trim().startsWith('-') || line.trim().startsWith('•')) {
+        activities.push(line.trim().replace(/^[-•]\s*/, ''))
+      }
+    })
+  }
+
+  // If no activities found, create generic ones
+  if (activities.length === 0) {
+    activities.push(
+      `Explore ${post.location || 'the area'}`,
+      'Visit local attractions',
+      'Experience authentic culture'
+    )
+  }
+
+  return activities.slice(0, 5)
+}
+
+function generateProTip(post: Post, dayIndex: number): string {
+  const tips = [
+    'Book accommodations in advance for better rates',
+    'Start early to avoid crowds at popular attractions',
+    'Try local restaurants for authentic cuisine',
+    'Bring comfortable walking shoes',
+    'Download offline maps before you go',
+    'Learn a few basic phrases in the local language',
+    'Keep your camera charged for amazing photo opportunities'
+  ]
+
+  return tips[dayIndex % tips.length]
+}
+
+function determineBestTime(trip: Trip): string {
+  if (trip.start_date) {
+    const month = new Date(trip.start_date).toLocaleString('en-US', { month: 'long' })
+    return `${month} is an excellent time to visit`
+  }
+  return 'Spring and fall offer pleasant weather and fewer crowds'
+}
+
+function estimateBudget(days: number): string {
+  const perDay = 100
+  const total = days * perDay
+  return `Approximately $${total}-${total * 1.5} for ${days} days (mid-range budget)`
+}
+
+function generatePackingList(category: string, days: number): string[] {
+  const baseItems = [
+    'Comfortable walking shoes',
+    'Weather-appropriate clothing',
+    'Travel adapter',
+    'Portable charger',
+    'Camera or smartphone',
+    'Reusable water bottle'
+  ]
+
+  if (category === 'Beach') {
+    baseItems.push('Sunscreen', 'Swimwear', 'Beach towel')
+  } else if (category === 'Adventure') {
+    baseItems.push('Hiking boots', 'Backpack', 'First aid kit')
+  } else if (category === 'Cultural') {
+    baseItems.push('Modest clothing', 'Guidebook', 'Phrasebook')
+  }
+
+  return baseItems
+}
+
+function generateTags(trip: Trip, posts: Post[], destination: string, category: string): string[] {
+  const tags = new Set<string>()
+
+  tags.add(destination.toLowerCase().replace(/\s+/g, '-'))
+  tags.add(category.toLowerCase().replace(/\s+/g, '-'))
+  tags.add('travel-guide')
+  tags.add(`${posts.length}-days`)
+
+  // Add location-based tags
+  posts.forEach(post => {
+    if (post.location) {
+      tags.add(post.location.toLowerCase().replace(/\s+/g, '-'))
+    }
+  })
+
+  return Array.from(tags).slice(0, 10)
 }
 
 /**
@@ -252,9 +371,9 @@ async function generateBlogPostForTrip(trip: Trip): Promise<void> {
 
   console.log(`   Found ${posts.length} days in itinerary`)
 
-  // Generate blog post content using GROQ
-  console.log(`   🤖 Generating content with GROQ AI...`)
-  const blogContent = await generateBlogPostContent(trip, posts)
+  // Generate blog post content from trip data
+  console.log(`   ✍️  Generating blog post content...`)
+  const blogContent = generateBlogPostContent(trip, posts)
 
   // Extract location coordinates for map
   const locationCoordinates = extractLocationCoordinates(trip, posts)
