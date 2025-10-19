@@ -95,11 +95,27 @@ interface BlogPostContent {
  * Creates diverse, authentic content by varying tone, perspective, and style
  */
 function generateBlogPostContent(trip: Trip, posts: Post[]): BlogPostContent {
-  // Extract destination from trip data
-  const destination = trip.location_data?.route?.to ||
-                     trip.location_data?.locations?.major?.[0]?.name ||
-                     posts[0]?.location ||
-                     "Unknown Destination"
+  // Extract destination from trip title or description
+  // Examples: "Family Adventure in Tokyo" → "Tokyo"
+  //           "European Road Trip: Paris to Rome" → "Europe"
+  //           "Vancouver Fun" → "Vancouver"
+
+  let destination = "Unknown Destination"
+
+  // Try to extract from title first
+  const titleMatch = trip.title.match(/in\s+([A-Z][a-zA-Z\s]+?)(?:\s*$|,|\s+-)/i) ||
+                     trip.title.match(/to\s+([A-Z][a-zA-Z\s]+?)(?:\s*$|,|\s+-)/i) ||
+                     trip.title.match(/^([A-Z][a-zA-Z\s]+?)\s+(?:Fun|Adventure|Trip|Journey)/i)
+
+  if (titleMatch) {
+    destination = titleMatch[1].trim()
+  } else if (trip.location_data?.route?.to) {
+    destination = trip.location_data.route.to
+  } else if (trip.location_data?.locations?.major?.[0]?.name) {
+    destination = trip.location_data.locations.major[0].name
+  } else if (posts[0]?.location) {
+    destination = posts[0].location
+  }
 
   // Determine trip category based on trip data
   const category = determineTripCategory(trip, posts)
