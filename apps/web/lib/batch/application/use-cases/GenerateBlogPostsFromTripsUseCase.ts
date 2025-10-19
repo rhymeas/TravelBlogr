@@ -117,39 +117,95 @@ export class GenerateBlogPostsFromTripsUseCase {
    */
   private async fetchTripsWithData(tripIds: string[]) {
     const supabase = await createServerSupabase()
+    const { isFeatureEnabled } = await import('@/lib/featureFlags')
 
-    const { data: trips, error } = await supabase
-      .from('trips')
-      .select(`
-        *,
-        posts (
-          id,
-          title,
-          content,
-          location,
-          post_date,
-          featured_image,
-          location_data
-        ),
-        trip_plan (
-          id,
-          day,
-          title,
-          description,
-          location,
-          type,
-          plan_data
-        )
-      `)
-      .in('id', tripIds)
-      .order('created_at', { ascending: false })
+    // Use batch processing if enabled
+    if (isFeatureEnabled('BATCH_BLOG_PROCESSING')) {
+      const { processBatch } = await import('@/lib/services/smartDataHandler')
 
-    if (error) {
-      console.error('Error fetching trips:', error)
-      throw new Error('Failed to fetch trips')
+      console.log(`📦 Fetching ${tripIds.length} trips in batches...`)
+
+      const trips = await processBatch(
+        tripIds,
+        async (tripId) => {
+          const { data, error } = await supabase
+            .from('trips')
+            .select(`
+              *,
+              posts (
+                id,
+                title,
+                content,
+                location,
+                post_date,
+                featured_image,
+                location_data
+              ),
+              trip_plan (
+                id,
+                day,
+                title,
+                description,
+                location,
+                type,
+                plan_data
+              )
+            `)
+            .eq('id', tripId)
+            .single()
+
+          if (error) {
+            console.error(`Error fetching trip ${tripId}:`, error)
+            return null
+          }
+
+          return data
+        },
+        {
+          batchSize: 10,  // Process 10 trips at a time
+          delayMs: 500,   // 500ms delay between batches
+          onProgress: (current, total) => {
+            console.log(`   Progress: ${current}/${total} trips`)
+          }
+        }
+      )
+
+      return trips.filter(Boolean) // Remove nulls
+    } else {
+      // Fallback: Fetch all at once
+      const { data: trips, error } = await supabase
+        .from('trips')
+        .select(`
+          *,
+          posts (
+            id,
+            title,
+            content,
+            location,
+            post_date,
+            featured_image,
+            location_data
+          ),
+          trip_plan (
+            id,
+            day,
+            title,
+            description,
+            location,
+            type,
+            plan_data
+          )
+        `)
+        .in('id', tripIds)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching trips:', error)
+        throw new Error('Failed to fetch trips')
+      }
+
+      return trips || []
     }
-
-    return trips || []
   }
 
   /**
@@ -212,7 +268,27 @@ export class GenerateBlogPostsFromTripsUseCase {
     if (trip.posts && trip.posts.length > 0) {
       const mainLocation = trip.posts[0].location
       if (mainLocation) {
-        const intelligence = await getLocationIntelligence(mainLocation, true)
+        const { isFeatureEnabled } = await import('@/lib/featureFlags')
+
+        let intelligence
+
+        // Use smart caching if enabled
+        if (isFeatureEnabled('SMART_POI_SYSTEM')) {
+          const { smartFetch } = await import('@/lib/services/smartDataHandler')
+
+          intelligence = await smartFetch(
+            `location_intel_${mainLocation}`,
+            'pois',
+            async () => {
+              return await getLocationIntelligence(mainLocation, true)
+            },
+            { useServerClient: true }
+          )
+        } else {
+          // Fallback: Direct fetch
+          intelligence = await getLocationIntelligence(mainLocation, true)
+        }
+
         context.locations.push(intelligence.location)
         context.pois = intelligence.pois
         context.activities = intelligence.activities
