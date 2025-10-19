@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { getBrowserSupabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
+import { isAdmin } from '@/lib/utils/adminCheck'
 import toast from 'react-hot-toast'
 import { formatDistanceToNow } from 'date-fns'
 
@@ -53,7 +54,7 @@ export function BatchGenerationDashboard() {
   const [selectedTrips, setSelectedTrips] = useState<string[]>([])
 
   // Check if user is admin
-  const isAdmin = user?.email?.includes('admin') || user?.email === 'admin@travelblogr.com'
+  const userIsAdmin = isAdmin(user?.email)
   const [availableTrips, setAvailableTrips] = useState<any[]>([])
 
   useEffect(() => {
@@ -177,7 +178,7 @@ export function BatchGenerationDashboard() {
 
         <div className="flex items-center gap-3">
           {/* Admin Button - Only visible to admins */}
-          {isAdmin && (
+          {userIsAdmin && (
             <Link href="/admin">
               <Button variant="outline" className="flex items-center gap-2">
                 <Shield className="h-4 w-4 text-red-600" />

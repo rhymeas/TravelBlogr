@@ -12,7 +12,8 @@ import {
   ArrowRight,
   Star,
   Eye,
-  Shield
+  Shield,
+  Zap
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -20,6 +21,7 @@ import { Badge } from '@/components/ui/Badge'
 import { useAuth } from '../../hooks/useAuth'
 import { UnifiedTripCard } from '@/components/trips/UnifiedTripCard'
 import { getBrowserSupabase } from '@/lib/supabase'
+import { isAdmin } from '@/lib/utils/adminCheck'
 
 const quickStats = [
   { label: 'Total Trips', value: '12', icon: MapPin, color: 'text-blue-600' },
@@ -35,7 +37,7 @@ export function DashboardLanding() {
   const adLoadedRef = useRef(false)
 
   // Check if user is admin
-  const isAdmin = user?.email?.includes('admin') || user?.email === 'admin@travelblogr.com'
+  const userIsAdmin = isAdmin(user?.email)
 
   useEffect(() => {
     if (user) {
@@ -111,14 +113,22 @@ export function DashboardLanding() {
             </p>
           </div>
 
-          {/* Admin Button - Only visible to admins */}
-          {isAdmin && (
-            <Link href="/admin">
-              <Button variant="outline" className="flex items-center gap-2 border-red-200 hover:bg-red-50">
-                <Shield className="h-4 w-4 text-red-600" />
-                <span className="text-red-600 font-medium">Admin Dashboard</span>
-              </Button>
-            </Link>
+          {/* Admin Buttons - Only visible to admins */}
+          {userIsAdmin && (
+            <div className="flex items-center gap-2">
+              <Link href="/dashboard/batch">
+                <Button variant="outline" className="flex items-center gap-2 border-purple-200 hover:bg-purple-50">
+                  <Zap className="h-4 w-4 text-purple-600" />
+                  <span className="text-purple-600 font-medium">Batch Generation</span>
+                </Button>
+              </Link>
+              <Link href="/admin">
+                <Button variant="outline" className="flex items-center gap-2 border-red-200 hover:bg-red-50">
+                  <Shield className="h-4 w-4 text-red-600" />
+                  <span className="text-red-600 font-medium">Admin Dashboard</span>
+                </Button>
+              </Link>
+            </div>
           )}
         </div>
 

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
+import { isAdmin } from '@/lib/utils/adminCheck'
 import {
   MapPin,
   Plus,
@@ -71,7 +72,7 @@ export function DashboardNav() {
   const { user } = useAuth()
 
   // Check if user is admin
-  const isAdmin = user?.email?.includes('admin') || user?.email === 'admin@travelblogr.com'
+  const userIsAdmin = isAdmin(user?.email)
 
   return (
     <nav className="w-64 bg-white shadow-sm border-r border-gray-200 min-h-screen">
@@ -128,7 +129,7 @@ export function DashboardNav() {
         </div>
 
         {/* Admin Section - Only visible to admins */}
-        {isAdmin && (
+        {userIsAdmin && (
           <div className="mt-8 pt-8 border-t border-gray-200">
             <h3 className="text-xs font-semibold text-red-600 uppercase tracking-wider mb-3 flex items-center gap-1">
               <Shield className="h-3 w-3" />

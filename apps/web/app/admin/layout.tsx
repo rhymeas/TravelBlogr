@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import { AdminNav } from '@/components/admin/AdminNav'
+import { isAdmin } from '@/lib/utils/adminCheck'
 
 export const metadata: Metadata = {
   title: 'Admin Dashboard | TravelBlogr',
@@ -19,15 +20,13 @@ export default async function AdminLayout({
   // Check authentication
   const supabase = await createServerSupabase()
   const { data: { user }, error } = await supabase.auth.getUser()
-  
+
   if (error || !user) {
     redirect('/auth/signin?redirect=/admin')
   }
 
   // Check admin permissions
-  const isAdmin = user.email?.includes('admin') || user.email === 'admin@travelblogr.com'
-  
-  if (!isAdmin) {
+  if (!isAdmin(user.email)) {
     redirect('/dashboard')
   }
 
