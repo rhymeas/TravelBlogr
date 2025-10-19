@@ -13,8 +13,9 @@
  */
 
 import { useState } from 'react'
-import { Plus, MapPin, Image as ImageIcon, Sparkles, ChevronDown, ChevronUp, Search } from 'lucide-react'
+import { Plus, MapPin, Image as ImageIcon, Sparkles, ChevronDown, ChevronUp, Search, Lightbulb } from 'lucide-react'
 import { POISuggestionsPanel } from '@/components/blog/POISuggestionsPanel'
+import { POISuggestion, TripActivity } from '@/lib/services/locationIntelligenceService'
 
 interface BlogPost {
   id: string
@@ -76,7 +77,61 @@ export function BlogPostEditor({ post, onChange, onSave }: BlogPostEditorProps) 
       }
     })
     setSelectedLocation(destination)
-    setShowPOIPanel(true)
+    // Auto-open suggestions panel when destination is set
+    if (destination && destination.length > 2) {
+      setShowPOIPanel(true)
+    }
+  }
+
+  const handleSelectPOI = (poi: POISuggestion) => {
+    console.log('Selected POI:', poi)
+    // Add POI as a new activity to the current day or create a new day
+    const newActivity = `${poi.name}${poi.description ? ` - ${poi.description}` : ''}`
+
+    if (days.length === 0) {
+      // Create first day with this POI
+      handleAddDay()
+    }
+
+    // Add to the last day
+    const lastDayIndex = days.length - 1
+    const lastDay = days[lastDayIndex]
+    const updatedDays = [...days]
+    updatedDays[lastDayIndex] = {
+      ...lastDay,
+      activities: [...(lastDay.activities || []), newActivity]
+    }
+
+    onChange({
+      content: {
+        ...content,
+        days: updatedDays
+      }
+    })
+  }
+
+  const handleSelectActivity = (activity: TripActivity) => {
+    console.log('Selected activity:', activity)
+    // Add activity to the current day or create a new day
+    if (days.length === 0) {
+      handleAddDay()
+    }
+
+    const lastDayIndex = days.length - 1
+    const lastDay = days[lastDayIndex]
+    const updatedDays = [...days]
+    updatedDays[lastDayIndex] = {
+      ...lastDay,
+      activities: [...(lastDay.activities || []), activity.name],
+      tips: activity.tips || lastDay.tips
+    }
+
+    onChange({
+      content: {
+        ...content,
+        days: updatedDays
+      }
+    })
   }
 
   const handleIntroductionChange = (introduction: string) => {
@@ -186,9 +241,18 @@ export function BlogPostEditor({ post, onChange, onSave }: BlogPostEditorProps) 
           />
         </div>
         {content.destination && (
-          <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
-            <MapPin className="h-4 w-4" />
-            <span>{content.destination}</span>
+          <div className="mt-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <MapPin className="h-4 w-4" />
+              <span>{content.destination}</span>
+            </div>
+            <button
+              onClick={() => setShowPOIPanel(!showPOIPanel)}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-rausch-600 hover:bg-rausch-50 rounded-lg transition-colors"
+            >
+              <Lightbulb className="h-4 w-4" />
+              {showPOIPanel ? 'Hide' : 'Show'} Smart Suggestions
+            </button>
           </div>
         )}
       </div>
@@ -197,10 +261,8 @@ export function BlogPostEditor({ post, onChange, onSave }: BlogPostEditorProps) 
       {showPOIPanel && selectedLocation && (
         <POISuggestionsPanel
           location={selectedLocation}
-          onSelectPOI={(poi) => {
-            // Add POI to content
-            console.log('Selected POI:', poi)
-          }}
+          onSelectPOI={handleSelectPOI}
+          onSelectActivity={handleSelectActivity}
           onClose={() => setShowPOIPanel(false)}
         />
       )}
