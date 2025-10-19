@@ -178,14 +178,6 @@ export function AuthAwareHeader() {
                     <div className="font-semibold">All Posts</div>
                     <div className="text-xs text-gray-500 mt-0.5">Browse all blog posts</div>
                   </Link>
-                  <Link
-                    href="/locations"
-                    className="block px-5 py-3 text-sm text-gray-900 hover:bg-gray-50 transition-colors"
-                    onClick={() => setShowBlogMenu(false)}
-                  >
-                    <div className="font-semibold">Destinations</div>
-                    <div className="text-xs text-gray-500 mt-0.5">Explore locations worldwide</div>
-                  </Link>
                 </div>
               </div>
             )}
