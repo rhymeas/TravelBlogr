@@ -32,16 +32,29 @@ interface AIAssistantPanelProps {
   onClose: () => void
 }
 
-export function AIAssistantPanel({ 
-  title, 
-  content, 
-  destination, 
-  onSelectHeadline, 
+interface AIAssistantPanelProps {
+  title: string
+  content: string
+  destination: string
+  onSelectHeadline: (headline: string) => void
+  onSelectMetaDescription: (description: string) => void
+  onStreamContent?: (content: string) => void
+  onClose: () => void
+}
+
+export function AIAssistantPanel({
+  title,
+  content,
+  destination,
+  onSelectHeadline,
   onSelectMetaDescription,
-  onClose 
+  onStreamContent,
+  onClose
 }: AIAssistantPanelProps) {
-  const [activeTab, setActiveTab] = useState<'seo' | 'headlines' | 'meta' | 'suggestions'>('seo')
+  const [activeTab, setActiveTab] = useState<'seo' | 'headlines' | 'meta' | 'suggestions' | 'stream'>('seo')
   const [isLoading, setIsLoading] = useState(false)
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [streamedContent, setStreamedContent] = useState('')
   const [seoAnalysis, setSeoAnalysis] = useState<SEOAnalysis | null>(null)
   const [headlines, setHeadlines] = useState<HeadlineVariation[]>([])
   const [metaDesc, setMetaDesc] = useState<MetaDescription | null>(null)
@@ -94,6 +107,56 @@ export function AIAssistantPanel({
       console.error('Suggestions error:', error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const streamContent = async (contentType: string = 'full') => {
+    setIsStreaming(true)
+    setStreamedContent('')
+
+    try {
+      const response = await fetch('/api/ai/stream-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destination,
+          numberOfDays: 7,
+          contentType
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to stream content')
+      }
+
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+
+      if (!reader) {
+        throw new Error('No reader available')
+      }
+
+      let accumulated = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+        accumulated += chunk
+        setStreamedContent(accumulated)
+
+        // Optionally call the callback for real-time updates
+        if (onStreamContent) {
+          onStreamContent(accumulated)
+        }
+      }
+
+    } catch (error) {
+      console.error('Streaming error:', error)
+      setStreamedContent('Error streaming content. Please try again.')
+    } finally {
+      setIsStreaming(false)
     }
   }
 
@@ -167,6 +230,17 @@ export function AIAssistantPanel({
         >
           <Sparkles className="h-4 w-4 mx-auto mb-1" />
           Tips
+        </button>
+        <button
+          onClick={() => setActiveTab('stream')}
+          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+            activeTab === 'stream'
+              ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <Loader2 className="h-4 w-4 mx-auto mb-1" />
+          Stream
         </button>
       </div>
 
@@ -391,6 +465,98 @@ export function AIAssistantPanel({
                   <p className="text-sm text-gray-900">{suggestion.suggestion}</p>
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {/* Stream Tab */}
+        {activeTab === 'stream' && (
+          <div className="space-y-4">
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
+              <h3 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                Real-Time Content Generation
+              </h3>
+              <p className="text-sm text-purple-700">
+                Watch AI generate content in real-time! Choose what to generate:
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => streamContent('introduction')}
+                disabled={isStreaming}
+                className="px-4 py-3 bg-white border-2 border-purple-200 hover:border-purple-400 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 transition-all disabled:opacity-50"
+              >
+                Introduction
+              </button>
+              <button
+                onClick={() => streamContent('highlights')}
+                disabled={isStreaming}
+                className="px-4 py-3 bg-white border-2 border-purple-200 hover:border-purple-400 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 transition-all disabled:opacity-50"
+              >
+                Highlights
+              </button>
+              <button
+                onClick={() => streamContent('practicalTips')}
+                disabled={isStreaming}
+                className="px-4 py-3 bg-white border-2 border-purple-200 hover:border-purple-400 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 transition-all disabled:opacity-50"
+              >
+                Practical Tips
+              </button>
+              <button
+                onClick={() => streamContent('conclusion')}
+                disabled={isStreaming}
+                className="px-4 py-3 bg-white border-2 border-purple-200 hover:border-purple-400 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 transition-all disabled:opacity-50"
+              >
+                Conclusion
+              </button>
+            </div>
+
+            <button
+              onClick={() => streamContent('full')}
+              disabled={isStreaming}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isStreaming ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Streaming...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-5 w-5" />
+                  Generate Full Content
+                </>
+              )}
+            </button>
+
+            {streamedContent && (
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 max-h-96 overflow-y-auto">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-semibold text-gray-900">Generated Content</h4>
+                  {isStreaming && (
+                    <span className="text-xs text-purple-600 flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Streaming...
+                    </span>
+                  )}
+                </div>
+                <div className="prose prose-sm max-w-none">
+                  <p className="text-gray-700 whitespace-pre-wrap">{streamedContent}</p>
+                </div>
+                {!isStreaming && (
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(streamedContent)
+                    }}
+                    className="mt-3 w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Copy to Clipboard
+                  </button>
+                )}
+              </div>
             )}
           </div>
         )}
