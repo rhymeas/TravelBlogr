@@ -15,6 +15,16 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
   const { slug } = params
   const { post, isLoading, error } = useBlogPost(slug)
 
+  // Debug logging
+  if (post && !isLoading) {
+    console.log('Post data:', {
+      title: post.title,
+      hasContent: !!post.content,
+      contentType: typeof post.content,
+      contentKeys: post.content ? Object.keys(post.content) : []
+    })
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
@@ -51,16 +61,16 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
   // Parse content from JSONB structure
   const content = typeof post.content === 'string'
     ? JSON.parse(post.content)
-    : post.content
+    : (post.content || {})
 
   // Extract trip data from content
   const tripData = {
-    destination: content.destination || 'Unknown Destination',
-    durationDays: content.days?.length || 0,
+    destination: content?.destination || 'Unknown Destination',
+    durationDays: content?.days?.length || 0,
     tripType: post.category?.toLowerCase().replace(' ', '-') || 'adventure',
-    budget: content.budget,
-    highlights: content.highlights || [],
-    days: content.days || []
+    budget: content?.budget,
+    highlights: content?.highlights || [],
+    days: content?.days || []
   }
 
   // Structured data for SEO
