@@ -48,25 +48,25 @@ export default function BlogPostsPage() {
     <div className="min-h-screen bg-white">
       {/* Hero Section - Minimal and Spacey */}
       <section className="relative overflow-hidden bg-gradient-to-b from-gray-50 to-white">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-24 pb-16">
-          <div className="text-center max-w-3xl mx-auto space-y-6">
-            <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-20 pb-12">
+          <div className="text-center max-w-3xl mx-auto space-y-5">
+            <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 leading-tight">
               Travel Stories
             </h1>
-            <p className="text-xl text-gray-600 leading-relaxed">
+            <p className="text-lg text-gray-600 leading-relaxed">
               Real journeys. Real experiences. Real inspiration.
             </p>
 
             {/* Search Bar - Sleek and Minimal */}
-            <div className="max-w-2xl mx-auto pt-4">
+            <div className="max-w-2xl mx-auto pt-3">
               <div className="relative group">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-rausch-500 transition-colors" />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-rausch-500 transition-colors" />
                 <input
                   type="text"
                   placeholder="Search stories..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-14 pr-6 py-5 text-lg border-2 border-gray-200 rounded-full focus:border-rausch-500 focus:outline-none transition-all shadow-sm hover:shadow-md"
+                  className="w-full pl-12 pr-5 py-4 text-base border-2 border-gray-200 rounded-full focus:border-rausch-500 focus:outline-none transition-all shadow-sm hover:shadow-md"
                 />
               </div>
             </div>
@@ -76,21 +76,21 @@ export default function BlogPostsPage() {
 
       {/* Category Filters - Bubbly Pills */}
       <section className="sticky top-0 z-10 bg-white/80 backdrop-blur-lg border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6">
-          <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
             {categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id === 'all' ? undefined : cat.id)}
                 className={`
-                  flex items-center gap-2 px-6 py-3 rounded-full font-medium whitespace-nowrap transition-all
+                  flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all
                   ${(!selectedCategory && cat.id === 'all') || selectedCategory === cat.id
                     ? 'bg-gray-900 text-white shadow-lg scale-105'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105'
                   }
                 `}
               >
-                <span className="text-lg">{cat.emoji}</span>
+                <span className="text-base">{cat.emoji}</span>
                 <span>{cat.label}</span>
               </button>
             ))}
@@ -156,13 +156,13 @@ export default function BlogPostsPage() {
                     </div>
 
                     {/* Content */}
-                    <div className="space-y-3 px-1">
-                      <h3 className="text-2xl font-bold text-gray-900 leading-tight line-clamp-2 group-hover:text-rausch-600 transition-colors">
+                    <div className="space-y-2.5 px-1">
+                      <h3 className="text-xl font-bold text-gray-900 leading-tight line-clamp-2 group-hover:text-rausch-600 transition-colors">
                         {post.title}
                       </h3>
 
                       {post.excerpt && (
-                        <p className="text-gray-600 leading-relaxed line-clamp-3">
+                        <p className="text-sm text-gray-600 leading-relaxed line-clamp-3">
                           {post.excerpt}
                         </p>
                       )}
@@ -259,12 +259,12 @@ export default function BlogPostsPage() {
       </section>
 
       {/* CTA Section - Inspire to Create */}
-      <section className="bg-gradient-to-b from-white to-gray-50 py-24">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center space-y-8">
-          <h2 className="text-4xl lg:text-5xl font-bold text-gray-900">
+      <section className="bg-gradient-to-b from-white to-gray-50 py-20">
+        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center space-y-6">
+          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">
             Ready to share your story?
           </h2>
-          <p className="text-xl text-gray-600 leading-relaxed">
+          <p className="text-lg text-gray-600 leading-relaxed">
             Join thousands of travelers turning their adventures into inspiring content—and earning money while doing it.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 pt-4">

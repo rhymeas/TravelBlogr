@@ -16,66 +16,66 @@ export default function BlogHomepage() {
     <div className="min-h-screen bg-white">
       {/* Hero Section - Beautiful and Spacey */}
       <section className="relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-20 pb-32">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-16 pb-24">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left: Text Content */}
-            <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-rausch-50 rounded-full">
-                <Sparkles className="h-4 w-4 text-rausch-500" />
-                <span className="text-sm font-medium text-rausch-700">Share Your Journey, Earn Money</span>
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-rausch-50 rounded-full">
+                <Sparkles className="h-3.5 w-3.5 text-rausch-500" />
+                <span className="text-xs font-medium text-rausch-700">Share Your Journey, Earn Money</span>
               </div>
 
-              <h1 className="text-6xl lg:text-7xl font-bold text-gray-900 leading-tight">
+              <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
                 Turn your travels into
                 <span className="block text-rausch-500">inspiring stories</span>
               </h1>
 
-              <p className="text-xl text-gray-600 leading-relaxed">
+              <p className="text-lg text-gray-600 leading-relaxed">
                 Create beautiful trip guides in minutes with our AI-powered tools. Share your adventures, inspire others, and earn money through our affiliate program. It's that simple.
               </p>
 
               {/* Value Props */}
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 bg-rausch-100 rounded-full flex items-center justify-center mt-0.5">
-                    <span className="text-rausch-600 text-sm font-bold">✓</span>
+              <div className="space-y-2.5">
+                <div className="flex items-start gap-2.5">
+                  <div className="flex-shrink-0 w-5 h-5 bg-rausch-100 rounded-full flex items-center justify-center mt-0.5">
+                    <span className="text-rausch-600 text-xs font-bold">✓</span>
                   </div>
                   <div>
-                    <p className="text-gray-900 font-medium">Create stunning trip guides with AI assistance</p>
-                    <p className="text-sm text-gray-600">Our smart tools help you write engaging content in minutes</p>
+                    <p className="text-gray-900 font-medium text-sm">Create stunning trip guides with AI assistance</p>
+                    <p className="text-xs text-gray-600">Our smart tools help you write engaging content in minutes</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 bg-rausch-100 rounded-full flex items-center justify-center mt-0.5">
-                    <span className="text-rausch-600 text-sm font-bold">✓</span>
+                <div className="flex items-start gap-2.5">
+                  <div className="flex-shrink-0 w-5 h-5 bg-rausch-100 rounded-full flex items-center justify-center mt-0.5">
+                    <span className="text-rausch-600 text-xs font-bold">✓</span>
                   </div>
                   <div>
-                    <p className="text-gray-900 font-medium">Earn 70% commission on affiliate sales</p>
-                    <p className="text-sm text-gray-600">Get paid when readers book through your recommendations</p>
+                    <p className="text-gray-900 font-medium text-sm">Earn 70% commission on affiliate sales</p>
+                    <p className="text-xs text-gray-600">Get paid when readers book through your recommendations</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 bg-rausch-100 rounded-full flex items-center justify-center mt-0.5">
-                    <span className="text-rausch-600 text-sm font-bold">✓</span>
+                <div className="flex items-start gap-2.5">
+                  <div className="flex-shrink-0 w-5 h-5 bg-rausch-100 rounded-full flex items-center justify-center mt-0.5">
+                    <span className="text-rausch-600 text-xs font-bold">✓</span>
                   </div>
                   <div>
-                    <p className="text-gray-900 font-medium">Join a community of passionate travelers</p>
-                    <p className="text-sm text-gray-600">Share tips, get feedback, and grow together</p>
+                    <p className="text-gray-900 font-medium text-sm">Join a community of passionate travelers</p>
+                    <p className="text-xs text-gray-600">Share tips, get feedback, and grow together</p>
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-wrap gap-3">
                 <Link
                   href="/plan"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-rausch-500 text-white rounded-full font-medium hover:bg-rausch-600 transition-all hover:scale-105 shadow-lg shadow-rausch-500/30"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-rausch-500 text-white rounded-full text-sm font-medium hover:bg-rausch-600 transition-all hover:scale-105 shadow-lg shadow-rausch-500/30"
                 >
                   Start Creating Free
-                  <ArrowRight className="h-5 w-5" />
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
                   href="/blog/posts"
-                  className="inline-flex items-center gap-2 px-8 py-4 border-2 border-gray-900 text-gray-900 rounded-full font-medium hover:bg-gray-50 transition-all"
+                  className="inline-flex items-center gap-2 px-6 py-3 border-2 border-gray-900 text-gray-900 rounded-full text-sm font-medium hover:bg-gray-50 transition-all"
                 >
                   Read Stories
                 </Link>
@@ -83,9 +83,9 @@ export default function BlogHomepage() {
             </div>
 
             {/* Right: Image Collage */}
-            <div className="relative h-[600px]">
+            <div className="relative h-[480px]">
               {/* Large Image */}
-              <div className="absolute top-0 right-0 w-3/4 h-3/5 rounded-3xl overflow-hidden shadow-2xl">
+              <div className="absolute top-0 right-0 w-3/4 h-3/5 rounded-2xl overflow-hidden shadow-2xl">
                 <OptimizedImage
                   src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800"
                   alt="Mountain landscape"
@@ -96,7 +96,7 @@ export default function BlogHomepage() {
               </div>
 
               {/* Small Image 1 */}
-              <div className="absolute bottom-20 left-0 w-2/5 h-2/5 rounded-3xl overflow-hidden shadow-xl">
+              <div className="absolute bottom-20 left-0 w-2/5 h-2/5 rounded-2xl overflow-hidden shadow-xl">
                 <OptimizedImage
                   src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=400"
                   alt="Beach sunset"

@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const supabase = await createServerSupabase()
 
     let query = supabase
-      .from('cms_posts')
+      .from('blog_posts')
       .select(`
         *,
         profiles!author_id (
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
 
     // Create blog post
     const { data, error } = await supabase
-      .from('cms_posts')
+      .from('blog_posts')
       .insert({
         ...validation.data,
         author_id: user.id
