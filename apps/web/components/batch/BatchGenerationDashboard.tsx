@@ -9,15 +9,17 @@
  */
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-import { 
-  Sparkles, FileText, Image as ImageIcon, Search, 
+import {
+  Sparkles, FileText, Image as ImageIcon, Search,
   CheckCircle, Clock, AlertCircle, Loader2, TrendingUp,
-  DollarSign, Zap, Calendar
+  DollarSign, Zap, Calendar, Shield
 } from 'lucide-react'
 import { getBrowserSupabase } from '@/lib/supabase'
+import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
 import { formatDistanceToNow } from 'date-fns'
 
@@ -44,10 +46,14 @@ interface BatchJob {
 }
 
 export function BatchGenerationDashboard() {
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<'generate' | 'history'>('generate')
   const [jobs, setJobs] = useState<BatchJob[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedTrips, setSelectedTrips] = useState<string[]>([])
+
+  // Check if user is admin
+  const isAdmin = user?.email?.includes('admin') || user?.email === 'admin@travelblogr.com'
   const [availableTrips, setAvailableTrips] = useState<any[]>([])
 
   useEffect(() => {
@@ -168,10 +174,22 @@ export function BatchGenerationDashboard() {
           <h1 className="text-3xl font-bold text-gray-900">Batch Content Generation</h1>
           <p className="text-gray-600 mt-1">Generate blog posts from your trips automatically</p>
         </div>
-        
-        <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-          <DollarSign className="h-5 w-5 text-purple-600" />
-          <span className="text-sm font-medium text-purple-900">50% Cost Savings</span>
+
+        <div className="flex items-center gap-3">
+          {/* Admin Button - Only visible to admins */}
+          {isAdmin && (
+            <Link href="/admin">
+              <Button variant="outline" className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-red-600" />
+                <span>Admin Dashboard</span>
+              </Button>
+            </Link>
+          )}
+
+          <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+            <DollarSign className="h-5 w-5 text-purple-600" />
+            <span className="text-sm font-medium text-purple-900">50% Cost Savings</span>
+          </div>
         </div>
       </div>
 

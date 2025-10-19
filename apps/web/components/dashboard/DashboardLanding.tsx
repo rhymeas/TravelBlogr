@@ -11,7 +11,8 @@ import {
   Calendar,
   ArrowRight,
   Star,
-  Eye
+  Eye,
+  Shield
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -32,6 +33,9 @@ export function DashboardLanding() {
   const [recentTrips, setRecentTrips] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const adLoadedRef = useRef(false)
+
+  // Check if user is admin
+  const isAdmin = user?.email?.includes('admin') || user?.email === 'admin@travelblogr.com'
 
   useEffect(() => {
     if (user) {
@@ -97,13 +101,25 @@ export function DashboardLanding() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30">
       <div className="mx-auto max-w-6xl px-4 lg:px-6 py-6">
         {/* Welcome Section - Compact */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">
-            {getGreeting()}, {profile?.full_name?.split(' ')[0] || 'Traveler'}!
-          </h1>
-          <p className="text-sm text-gray-600">
-            Ready to share your next adventure?
-          </p>
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">
+              {getGreeting()}, {profile?.full_name?.split(' ')[0] || 'Traveler'}!
+            </h1>
+            <p className="text-sm text-gray-600">
+              Ready to share your next adventure?
+            </p>
+          </div>
+
+          {/* Admin Button - Only visible to admins */}
+          {isAdmin && (
+            <Link href="/admin">
+              <Button variant="outline" className="flex items-center gap-2 border-red-200 hover:bg-red-50">
+                <Shield className="h-4 w-4 text-red-600" />
+                <span className="text-red-600 font-medium">Admin Dashboard</span>
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Quick Actions - With Clear CTAs */}

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   MapPin,
   Plus,
@@ -13,7 +14,8 @@ import {
   Users,
   Globe,
   FileText,
-  DollarSign
+  DollarSign,
+  Shield
 } from 'lucide-react'
 
 const navigation = [
@@ -66,6 +68,10 @@ const navigation = [
 
 export function DashboardNav() {
   const pathname = usePathname()
+  const { user } = useAuth()
+
+  // Check if user is admin
+  const isAdmin = user?.email?.includes('admin') || user?.email === 'admin@travelblogr.com'
 
   return (
     <nav className="w-64 bg-white shadow-sm border-r border-gray-200 min-h-screen">
@@ -77,9 +83,9 @@ export function DashboardNav() {
 
         <div className="space-y-1">
           {navigation.map((item) => {
-            const isActive = pathname === item.href || 
+            const isActive = pathname === item.href ||
               (item.href !== '/dashboard' && pathname.startsWith(item.href))
-            
+
             return (
               <Link
                 key={item.name}
@@ -120,6 +126,30 @@ export function DashboardNav() {
             </Link>
           </div>
         </div>
+
+        {/* Admin Section - Only visible to admins */}
+        {isAdmin && (
+          <div className="mt-8 pt-8 border-t border-gray-200">
+            <h3 className="text-xs font-semibold text-red-600 uppercase tracking-wider mb-3 flex items-center gap-1">
+              <Shield className="h-3 w-3" />
+              Admin
+            </h3>
+            <div className="space-y-1">
+              <Link
+                href="/admin"
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                  pathname.startsWith('/admin')
+                    ? 'bg-red-50 text-red-700 border-r-2 border-red-700'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                )}
+              >
+                <Shield className="h-4 w-4" />
+                Admin Dashboard
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   )
