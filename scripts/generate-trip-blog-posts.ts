@@ -155,8 +155,18 @@ function generateBlogPostContent(trip: Trip, posts: Post[]): BlogPostContent {
     tips: generateVariedProTip(post, index, selectedStyle),
     location: {
       name: post.location || destination,
-      coordinates: post.location_data?.coordinates
-    }
+      coordinates: post.location_data?.coordinates,
+      // ✅ CRITICAL: Include location image from post data
+      image: post.featured_image || post.location_data?.image
+    },
+    // ✅ CRITICAL: Include day images array for gallery
+    images: post.location_data?.images || (post.featured_image ? [{
+      url: post.featured_image,
+      alt: post.title,
+      caption: post.location || destination,
+      size: 'large' as const,
+      aspectRatio: '16:9' as const
+    }] : [])
   }))
 
   // Create practical information

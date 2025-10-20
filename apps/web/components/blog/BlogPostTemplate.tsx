@@ -219,6 +219,7 @@ export function BlogPostTemplate({
           src={coverImage}
           alt={title}
           fill
+          preset="hero"
           className="object-cover"
           priority
         />
