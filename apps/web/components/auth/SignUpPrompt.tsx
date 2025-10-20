@@ -1,12 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { 
-  Heart, 
-  MessageCircle, 
-  Bookmark, 
-  UserPlus, 
-  Star, 
+import {
+  Heart,
+  MessageCircle,
+  Bookmark,
+  UserPlus,
+  Star,
   Camera,
   MapPin,
   ArrowRight,
@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
+import { useAuthModal } from '@/contexts/AuthModalContext'
 
 interface SignUpPromptProps {
   context?: 'feed' | 'location' | 'interaction'
@@ -22,11 +23,13 @@ interface SignUpPromptProps {
   className?: string
 }
 
-export function SignUpPrompt({ 
-  context = 'feed', 
+export function SignUpPrompt({
+  context = 'feed',
   trigger = 'like',
   className = ""
 }: SignUpPromptProps) {
+  const { showSignIn } = useAuthModal()
+
   const getPromptContent = () => {
     switch (context) {
       case 'feed':
@@ -118,9 +121,12 @@ export function SignUpPrompt({
         
         <div className="text-body-small text-airbnb-gray">
           Already have an account?{' '}
-          <Link href="/auth/signin" className="text-rausch-500 hover:text-rausch-600 font-medium transition-colors">
+          <button
+            onClick={() => showSignIn()}
+            className="text-rausch-500 hover:text-rausch-600 font-medium transition-colors"
+          >
             Sign in
-          </Link>
+          </button>
         </div>
       </div>
 

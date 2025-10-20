@@ -11,9 +11,11 @@ import { useGuestTripSelectors, useGuestTripActions } from '@/stores/guestTripSt
 import { SignInPromptModal } from './SignInPromptModal'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
+import { useAuthModal } from '@/contexts/AuthModalContext'
 
 export function GuestTripDashboard() {
   const router = useRouter()
+  const { showSignIn } = useAuthModal()
   const { trips, canCreateTrip, remainingSlots, tripCount } = useGuestTripSelectors()
   const { deleteTrip } = useGuestTripActions()
 
@@ -228,7 +230,7 @@ export function GuestTripDashboard() {
                   Create Free Account
                 </Button>
                 <Button
-                  onClick={() => router.push('/auth/signin')}
+                  onClick={() => showSignIn()}
                   variant="outline"
                   className="border-white text-white hover:bg-white/10"
                 >

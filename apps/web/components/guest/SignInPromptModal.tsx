@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { X, Lock, Sparkles, Share2, BarChart3, Globe } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { useAuthModal } from '@/contexts/AuthModalContext'
 
 export type PromptReason = 
   | 'trip_limit'
@@ -102,13 +103,14 @@ const PROMPT_CONTENT = {
   },
 }
 
-export function SignInPromptModal({ 
-  isOpen, 
-  onClose, 
+export function SignInPromptModal({
+  isOpen,
+  onClose,
   reason,
-  tripCount = 0 
+  tripCount = 0
 }: SignInPromptModalProps) {
   const router = useRouter()
+  const { showSignIn } = useAuthModal()
   const [isClosing, setIsClosing] = useState(false)
 
   if (!isOpen) return null
@@ -125,15 +127,16 @@ export function SignInPromptModal({
   }
 
   const handleSignIn = () => {
-    // Store current path to redirect back after sign-in
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('redirectAfterAuth', window.location.pathname)
-    }
-    router.push('/auth/signin')
+    // Close this modal first
+    handleClose()
+    // Show auth modal instead of redirecting to page
+    // User stays on current page!
+    showSignIn()
   }
 
   const handleSignUp = () => {
-    // Store current path to redirect back after sign-up
+    // For sign-up, still redirect to page (more complex form)
+    // But store current path to redirect back after sign-up
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('redirectAfterAuth', window.location.pathname)
     }
