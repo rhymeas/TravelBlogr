@@ -70,7 +70,12 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
       },
-      // Cloudinary CDN - MUST BE FIRST for image optimization
+      // ImageKit CDN - MUST BE FIRST for image optimization
+      {
+        protocol: 'https',
+        hostname: 'ik.imagekit.io',
+      },
+      // OLD: Cloudinary CDN (replaced by ImageKit)
       {
         protocol: 'https',
         hostname: 'res.cloudinary.com',
