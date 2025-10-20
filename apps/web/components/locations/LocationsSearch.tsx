@@ -82,11 +82,24 @@ export function LocationsSearch({ categories }: LocationsSearchProps) {
             className="pl-10"
           />
         </div>
-        
+
         <Button onClick={handleSearch}>
+          <Search className="h-4 w-4 mr-2" />
           Search
         </Button>
-        
+
+        {/* Clear Button - Only show when there are active filters or search query */}
+        {(searchQuery || activeFiltersCount > 0) && (
+          <Button
+            variant="outline"
+            onClick={clearFilters}
+            className="flex items-center gap-2"
+          >
+            <X className="h-4 w-4" />
+            Clear
+          </Button>
+        )}
+
         <Button
           variant="outline"
           onClick={() => setShowFilters(!showFilters)}
