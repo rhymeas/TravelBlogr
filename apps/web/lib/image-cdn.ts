@@ -1,13 +1,21 @@
 /**
- * Cloudinary Image CDN
- * Routes all external images through Cloudinary's global CDN for maximum performance
- * 
- * FREE TIER: 25GB/month bandwidth, 25K transformations
- * Perfect for Railway deployment - adds global CDN without changing deployment
+ * ImageKit.io Image CDN
+ * Routes all external images through ImageKit's global CDN for maximum performance
+ *
+ * FREE TIER: 20GB/month bandwidth, UNLIMITED transformations, 20GB storage
+ * PAID TIER: $49/month (vs Cloudinary $89/month)
+ *
+ * Why ImageKit over Cloudinary:
+ * ✅ Unlimited transformations (Cloudinary limits to 25K)
+ * ✅ Cheaper paid plans ($49 vs $89/month)
+ * ✅ Built-in Media Library
+ * ✅ AWS CloudFront CDN (faster global delivery)
+ * ✅ Better for scaling
  */
 
-// Get cloud name from environment variable
-const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'demo'
+// Get ImageKit credentials from environment variables
+const IMAGEKIT_URL_ENDPOINT = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || ''
+const IMAGEKIT_PUBLIC_KEY = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || ''
 
 interface ImageOptions {
   width?: number
@@ -16,12 +24,12 @@ interface ImageOptions {
 }
 
 /**
- * Convert any image URL to Cloudinary CDN URL
+ * Convert any image URL to ImageKit CDN URL
  * Automatically optimizes format (WebP/AVIF) and size
  *
  * @param originalUrl - Original image URL (external or local)
  * @param options - Transformation options
- * @returns Cloudinary CDN URL or original URL for local images
+ * @returns ImageKit CDN URL or original URL for local images
  */
 export function getCDNUrl(
   originalUrl: string,
@@ -32,8 +40,8 @@ export function getCDNUrl(
     return originalUrl
   }
 
-  // Skip if already a Cloudinary URL
-  if (originalUrl.includes('cloudinary.com')) {
+  // Skip if already an ImageKit URL
+  if (originalUrl.includes('imagekit.io')) {
     return originalUrl
   }
 
@@ -47,11 +55,9 @@ export function getCDNUrl(
     return originalUrl
   }
 
-  // ✅ CRITICAL FIX: Skip Cloudinary if not properly configured
-  // 'demo' is Cloudinary's demo account which blocks production domains with 401
-  // Return original URL to use Next.js Image Optimization instead
-  if (!isCloudinaryConfigured()) {
-    console.warn('⚠️ Cloudinary not configured - using original image URLs')
+  // ✅ Check if ImageKit is configured
+  if (!isImageKitConfigured()) {
+    console.warn('⚠️ ImageKit not configured - using original image URLs')
     return originalUrl
   }
 
@@ -61,19 +67,20 @@ export function getCDNUrl(
     format = 'auto'
   } = options
 
-  // Cloudinary fetch URL format:
-  // https://res.cloudinary.com/{cloud_name}/image/fetch/{transformations}/{encoded_url}
+  // ImageKit transformation parameters
+  // Docs: https://docs.imagekit.io/features/image-transformations
   const transformations = [
-    `w_${width}`,           // Resize to width
-    `q_${quality}`,         // Quality (1-100)
-    `f_${format}`,          // Format (auto = WebP/AVIF based on browser support)
-    'c_limit',              // Don't upscale images
-    'dpr_auto',             // Auto device pixel ratio (retina displays)
-    'fl_progressive',       // ✅ Progressive loading (loads fast, then refines)
-    'fl_lossy',             // ✅ Lossy compression (smaller files, imperceptible quality loss)
+    `w-${width}`,           // Width
+    `q-${quality}`,         // Quality (1-100)
+    `f-${format}`,          // Format (auto = WebP/AVIF based on browser support)
+    'c-at_max',             // Don't upscale images
+    'dpr-auto',             // Auto device pixel ratio (retina displays)
+    'pr-true',              // Progressive loading (loads fast, then refines)
   ].join(',')
 
-  return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/fetch/${transformations}/${encodeURIComponent(originalUrl)}`
+  // ImageKit URL format:
+  // https://ik.imagekit.io/{imagekit_id}/tr:{transformations}/{encoded_url}
+  return `${IMAGEKIT_URL_ENDPOINT}/tr:${transformations}/${encodeURIComponent(originalUrl)}`
 }
 
 /**
@@ -129,18 +136,26 @@ export function getCDNUrlWithPreset(
 }
 
 /**
- * Check if Cloudinary is configured
- * @returns true if cloud name is set and not 'demo'
+ * Check if ImageKit is configured
+ * @returns true if URL endpoint and public key are set
  */
-export function isCloudinaryConfigured(): boolean {
-  return CLOUDINARY_CLOUD_NAME !== 'demo' && CLOUDINARY_CLOUD_NAME.length > 0
+export function isImageKitConfigured(): boolean {
+  return IMAGEKIT_URL_ENDPOINT.length > 0 && IMAGEKIT_PUBLIC_KEY.length > 0
 }
 
 /**
- * Get Cloudinary cloud name
- * @returns Current cloud name
+ * Get ImageKit URL endpoint
+ * @returns Current URL endpoint
  */
-export function getCloudName(): string {
-  return CLOUDINARY_CLOUD_NAME
+export function getImageKitEndpoint(): string {
+  return IMAGEKIT_URL_ENDPOINT
+}
+
+/**
+ * Get ImageKit public key
+ * @returns Current public key
+ */
+export function getImageKitPublicKey(): string {
+  return IMAGEKIT_PUBLIC_KEY
 }
 

@@ -1,7 +1,7 @@
 /**
  * Smart Image Component
  * Automatically handles SVG files and Next.js Image optimization
- * Routes external images through Cloudinary CDN for performance
+ * Routes external images through ImageKit CDN for performance
  */
 
 import Image, { ImageProps } from 'next/image'
@@ -14,13 +14,13 @@ interface SmartImageProps extends Omit<ImageProps, 'src'> {
 
 /**
  * SmartImage component that automatically detects SVG files
- * and routes external images through Cloudinary CDN for optimization
+ * and routes external images through ImageKit CDN for optimization
  */
 export function SmartImage({ src, alt, ...props }: SmartImageProps) {
   // Check if the image is an SVG
   const isSVG = src.endsWith('.svg')
 
-  // ✅ Route through Cloudinary CDN (except SVGs and local images)
+  // ✅ Route through ImageKit CDN (except SVGs and local images)
   const cdnSrc = isSVG || src.startsWith('/') ? src : getCDNUrl(src)
 
   // For SVG files, use unoptimized mode
@@ -35,7 +35,7 @@ export function SmartImage({ src, alt, ...props }: SmartImageProps) {
     )
   }
 
-  // For other images, use Cloudinary CDN URL
+  // For other images, use ImageKit CDN URL
   return (
     <Image
       src={cdnSrc}

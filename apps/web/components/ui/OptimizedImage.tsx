@@ -43,7 +43,7 @@ export function OptimizedImage({
   priority = false,
   ...props
 }: OptimizedImageProps) {
-  // ✅ Route through Cloudinary CDN for external images
+  // ✅ Route through ImageKit CDN for external images
   // Only apply CDN to string URLs (not StaticImport objects)
   const qualityNum = typeof quality === 'number' ? quality : parseInt(quality as string, 10)
   const cdnSrc = typeof src === 'string'
