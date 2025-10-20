@@ -1,12 +1,12 @@
 # ImageKit External URL Setup
 
-## 🚨 CRITICAL: Enable External URL Feature
+## 🚨 CRITICAL: Add "Web Proxy" Origin
 
 **Problem:** All images showing as broken/404 errors
 
-**Cause:** ImageKit requires "External URL" feature to be enabled to fetch and transform external images
+**Cause:** ImageKit requires a "Web Proxy" origin to fetch and transform external images from any domain
 
-**Solution:** Enable External URL in ImageKit dashboard (2 minutes)
+**Solution:** Add Web Proxy origin in ImageKit dashboard (3 minutes)
 
 ---
 
@@ -17,29 +17,35 @@
 1. Open https://imagekit.io/dashboard
 2. Log in with your account
 
-### Step 2: Navigate to Settings
+### Step 2: Add "Web Proxy" Origin
 
-1. Click **Settings** in the left sidebar
-2. Click **URL Endpoints** tab
+1. Click **"External storage"** in the left sidebar (under CONFIGURATION)
+2. Click **"+ Add new"**
+3. Select **"Web Proxy"** as the origin type
+4. Configure:
+   - **Name:** `External Images` (or any name you prefer)
+   - **Base URL:** Leave blank or use `https://` (accepts any domain)
+   - **Enable:** Toggle ON
+5. Click **"Save"**
 
-### Step 3: Enable External URL
+### Step 3: Attach Origin to URL Endpoint
 
-1. Look for **"External URL"** section
-2. Toggle **"Enable External URL"** to ON
-3. Click **"Save"**
-
-**Alternative path:**
-- Settings → Images → External URL → Enable
+1. Click **"URL endpoints"** in the left sidebar
+2. Click on your endpoint: `https://ik.imagekit.io/travelblogr`
+3. Click **"Attach an existing origin"** (blue link)
+4. Select **"External Images"** (the Web Proxy you just created)
+5. Drag it to **1st priority** (above "ImageKit Media Library")
+6. Click **"Save"**
 
 ---
 
 ## ✅ Verification
 
-After enabling External URL:
+After adding Web Proxy origin:
 
 1. **Test URL in browser:**
    ```
-   https://ik.imagekit.io/travelblogr/tr:w-800,q-85,f-auto/https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg
+   https://ik.imagekit.io/travelblogr/https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg?tr=w-800,q-85,f-auto
    ```
 
 2. **Should see:**
@@ -48,7 +54,8 @@ After enabling External URL:
    - ✅ Image is transformed (800px width)
 
 3. **If still 404:**
-   - Check that External URL is enabled
+   - Check that Web Proxy origin is attached to URL endpoint
+   - Check that Web Proxy is set as 1st priority
    - Wait 1-2 minutes for settings to propagate
    - Clear browser cache
    - Try a different image URL

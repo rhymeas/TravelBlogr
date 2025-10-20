@@ -78,9 +78,10 @@ export function getCDNUrl(
     'pr-true',              // Progressive loading (loads fast, then refines)
   ].join(',')
 
-  // ImageKit URL format:
-  // https://ik.imagekit.io/{imagekit_id}/tr:{transformations}/{encoded_url}
-  return `${IMAGEKIT_URL_ENDPOINT}/tr:${transformations}/${encodeURIComponent(originalUrl)}`
+  // ImageKit URL format with Web Proxy origin:
+  // https://ik.imagekit.io/{imagekit_id}/{external_url}?tr={transformations}
+  // Note: External URL is NOT encoded, transformations are in query params
+  return `${IMAGEKIT_URL_ENDPOINT}/${originalUrl}?tr=${transformations}`
 }
 
 /**
