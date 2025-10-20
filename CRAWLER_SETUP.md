@@ -220,28 +220,24 @@ CRON_SECRET
 ADMIN_SECRET
 ```
 
-### 3. Verify Cron Job
+### 3. Setup Cron Job (Railway)
 
-The cron job is configured in `vercel.json`:
+Configure cron job in Railway:
 
-```json
-{
-  "crons": [
-    {
-      "path": "/api/cron/sync-weather",
-      "schedule": "0 */6 * * *"
-    }
-  ]
-}
-```
+1. Go to Railway Dashboard → Your Project
+2. Click on "Cron Jobs" tab
+3. Add new cron job:
+   - **Path**: `/api/cron/sync-weather`
+   - **Schedule**: `0 */6 * * *` (every 6 hours)
+   - **Authorization**: Add `CRON_SECRET` header
 
 **Schedule:** Every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
 
-Check cron job status:
-1. Go to Vercel Dashboard
-2. Select your project
-3. Navigate to "Cron Jobs" tab
-4. View execution logs
+**Manual Trigger (for testing):**
+```bash
+curl -X POST https://your-app.railway.app/api/cron/sync-weather \
+  -H "Authorization: Bearer YOUR_CRON_SECRET"
+```
 
 ---
 

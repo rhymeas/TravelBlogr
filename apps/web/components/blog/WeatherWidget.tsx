@@ -37,14 +37,7 @@ export function WeatherWidget({ location, autoLoad = false }: WeatherWidgetProps
     setError(null)
 
     try {
-      const response = await fetch('/api/ai/weather', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location,
-          query: `What's the current weather in ${location}?`
-        })
-      })
+      const response = await fetch(`/api/locations/weather?location=${encodeURIComponent(location)}`)
 
       if (!response.ok) {
         throw new Error('Failed to fetch weather')
@@ -52,8 +45,8 @@ export function WeatherWidget({ location, autoLoad = false }: WeatherWidgetProps
 
       const data = await response.json()
 
-      if (data.success && data.weatherData) {
-        setWeather(data.weatherData)
+      if (data.success && data.data) {
+        setWeather(data.data)
       } else {
         throw new Error('No weather data received')
       }
