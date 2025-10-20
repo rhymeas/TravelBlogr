@@ -23,7 +23,8 @@ import {
   Plane,
   Coins,
   FileText,
-  DollarSign
+  DollarSign,
+  Lightbulb
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { HeaderLogo } from '@/components/ui/Logo'
@@ -264,6 +265,13 @@ export function AuthAwareHeader() {
             className="px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
           >
             Live Feed
+          </Link>
+
+          <Link
+            href="/how-it-works"
+            className="px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            How It Works
           </Link>
         </div>
 
@@ -580,6 +588,14 @@ export function AuthAwareHeader() {
             >
               <Newspaper className="h-5 w-5 text-gray-500" />
               <span>Live Feed</span>
+            </Link>
+            <Link
+              href="/how-it-works"
+              className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+              onClick={() => setShowMobileMenu(false)}
+            >
+              <Lightbulb className="h-5 w-5 text-gray-500" />
+              <span>How It Works</span>
             </Link>
 
             <div className="border-t border-gray-200 my-2" />
