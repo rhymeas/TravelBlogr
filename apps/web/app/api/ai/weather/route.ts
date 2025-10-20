@@ -71,6 +71,11 @@ export async function POST(request: NextRequest) {
     if (toolCalls && toolCalls.length > 0) {
       // LLM decided to call the weather function
       const functionCall = toolCalls[0]
+
+      if (!functionCall.function) {
+        return NextResponse.json({ error: 'Invalid function call' }, { status: 500 })
+      }
+
       const functionArgs = JSON.parse(functionCall.function.arguments)
 
       console.log(`📞 LLM calling function: ${functionCall.function.name}`)
