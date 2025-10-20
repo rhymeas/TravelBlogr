@@ -337,6 +337,8 @@ export class BlogPostEnhancer {
   /**
    * Distribute images throughout content with varying sizes
    * AND generate smart affiliate links for activities
+   *
+   * ✅ CRITICAL FIX: Each image used ONLY ONCE (no duplicates)
    */
   private static distributeImages(
     days: DayContent[],
@@ -347,10 +349,25 @@ export class BlogPostEnhancer {
     // Skip first image (used as featured)
     const availableImages = images.slice(1)
 
-    return days.map((day, index) => {
-      const dayImages = availableImages.filter(img =>
-        img.position === index + 1 || img.position === index + 2
-      )
+    // ✅ Track which images have been used to prevent duplicates
+    const usedImageIndices = new Set<number>()
+
+    return days.map((day, dayIndex) => {
+      // ✅ Find ONE unique image for this day (not used yet)
+      const dayImage = availableImages.find((img, imgIndex) => {
+        // Skip if already used
+        if (usedImageIndices.has(imgIndex)) return false
+
+        // Assign images sequentially to days
+        // Day 0 gets image 0, Day 1 gets image 1, etc.
+        return imgIndex === dayIndex
+      })
+
+      // ✅ Mark image as used
+      if (dayImage) {
+        const imgIndex = availableImages.indexOf(dayImage)
+        usedImageIndices.add(imgIndex)
+      }
 
       // Generate smart affiliate links for this day's activities
       const smartAffiliateLinks = day.activities && day.location?.name
@@ -359,7 +376,8 @@ export class BlogPostEnhancer {
 
       return {
         ...day,
-        images: dayImages.length > 0 ? dayImages : undefined,
+        // ✅ CRITICAL: Only ONE image per day (or undefined if no image available)
+        images: dayImage ? [dayImage] : undefined,
         smartAffiliateLinks: smartAffiliateLinks.length > 0 ? smartAffiliateLinks : undefined
       }
     })

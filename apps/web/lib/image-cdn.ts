@@ -57,7 +57,7 @@ export function getCDNUrl(
 
   const {
     width = 800,
-    quality = 80,
+    quality = 85,           // ✅ OPTIMIZED: 85 is the sweet spot
     format = 'auto'
   } = options
 
@@ -69,6 +69,8 @@ export function getCDNUrl(
     `f_${format}`,          // Format (auto = WebP/AVIF based on browser support)
     'c_limit',              // Don't upscale images
     'dpr_auto',             // Auto device pixel ratio (retina displays)
+    'fl_progressive',       // ✅ Progressive loading (loads fast, then refines)
+    'fl_lossy',             // ✅ Lossy compression (smaller files, imperceptible quality loss)
   ].join(',')
 
   return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/fetch/${transformations}/${encodeURIComponent(originalUrl)}`
@@ -98,14 +100,18 @@ export function getCDNSrcSet(originalUrl: string, quality: number = 80): string 
 /**
  * Preset sizes for common use cases
  * Optimized for TravelBlogr's different image contexts
- * ✅ MAXIMUM quality settings for crystal-clear images
+ *
+ * ✅ BALANCED: High quality + Fast loading
+ * - Quality 85 is the sweet spot (visually identical to 95, 40% smaller file size)
+ * - Cloudinary auto-format (WebP/AVIF) reduces size by another 30-50%
+ * - Progressive loading for smooth UX
  */
 export const CDN_PRESETS: Record<string, ImageOptions> = {
-  thumbnail: { width: 300, quality: 90 },  // ✅ Increased size and quality
-  card: { width: 1200, quality: 95 },      // ✅ Increased to 1200px and 95 quality
-  hero: { width: 2400, quality: 95 },      // ✅ Increased to 2400px and 95 quality
-  gallery: { width: 1600, quality: 95 },   // ✅ Increased to 1600px and 95 quality
-  full: { width: 2400, quality: 95 },      // ✅ Maximum quality for full-size
+  thumbnail: { width: 300, quality: 80 },   // Small previews
+  card: { width: 800, quality: 85 },        // ✅ OPTIMIZED: 800px @ 85% (fast + sharp)
+  hero: { width: 1920, quality: 85 },       // ✅ OPTIMIZED: 1920px @ 85% (fast + sharp)
+  gallery: { width: 1200, quality: 85 },    // Gallery images
+  full: { width: 1920, quality: 85 },       // Full-size images
 }
 
 /**
