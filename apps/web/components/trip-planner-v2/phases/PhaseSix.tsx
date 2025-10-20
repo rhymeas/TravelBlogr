@@ -111,7 +111,7 @@ export function PhaseSix({ data, updateData, onNext, onBack }: PhaseProps) {
           </p>
           <Button
             onClick={handleNext}
-            className="px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold"
+            className="px-8 py-3 bg-[#2C5F6F] text-white rounded-lg hover:bg-[#1e4a56] font-semibold"
           >
             Generate Trip Plan →
           </Button>
@@ -131,7 +131,7 @@ export function PhaseSix({ data, updateData, onNext, onBack }: PhaseProps) {
       {/* Waypoint Strategy */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Route className="w-5 h-5 text-emerald-600" />
+          <Route className="w-5 h-5 text-[#2C5F6F]" />
           Route Strategy
         </h3>
 
@@ -142,7 +142,7 @@ export function PhaseSix({ data, updateData, onNext, onBack }: PhaseProps) {
               onClick={() => setSelectedStrategy(strategy.id)}
               className={`p-6 rounded-xl border-2 transition-all text-left ${
                 selectedStrategy === strategy.id
-                  ? 'border-emerald-600 bg-emerald-50 shadow-md'
+                  ? 'border-[#2C5F6F] bg-emerald-50 shadow-md'
                   : 'border-gray-200 hover:border-gray-300 bg-white'
               }`}
             >
@@ -163,7 +163,7 @@ export function PhaseSix({ data, updateData, onNext, onBack }: PhaseProps) {
         <>
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-emerald-600" />
+              <MapPin className="w-5 h-5 text-[#2C5F6F]" />
               What types of stops interest you?
             </h3>
 
@@ -174,7 +174,7 @@ export function PhaseSix({ data, updateData, onNext, onBack }: PhaseProps) {
                   onClick={() => toggleStopType(type.id)}
                   className={`p-4 rounded-xl border-2 transition-all text-center ${
                     selectedStopTypes.includes(type.id)
-                      ? 'border-emerald-600 bg-emerald-50 shadow-md'
+                      ? 'border-[#2C5F6F] bg-emerald-50 shadow-md'
                       : 'border-gray-200 hover:border-gray-300 bg-white'
                   }`}
                 >
@@ -187,7 +187,7 @@ export function PhaseSix({ data, updateData, onNext, onBack }: PhaseProps) {
 
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-emerald-600" />
+              <Clock className="w-5 h-5 text-[#2C5F6F]" />
               Preferred Stop Duration
             </h3>
 
@@ -198,7 +198,7 @@ export function PhaseSix({ data, updateData, onNext, onBack }: PhaseProps) {
                   onClick={() => setSelectedDuration(duration.id)}
                   className={`p-4 rounded-xl border-2 transition-all text-left ${
                     selectedDuration === duration.id
-                      ? 'border-emerald-600 bg-emerald-50 shadow-md'
+                      ? 'border-[#2C5F6F] bg-emerald-50 shadow-md'
                       : 'border-gray-200 hover:border-gray-300 bg-white'
                   }`}
                 >
@@ -215,7 +215,7 @@ export function PhaseSix({ data, updateData, onNext, onBack }: PhaseProps) {
                 type="checkbox"
                 checked={bufferTime}
                 onChange={(e) => setBufferTime(e.target.checked)}
-                className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                className="w-4 h-4 text-[#2C5F6F] border-gray-300 rounded focus:ring-emerald-500"
               />
               <div>
                 <div className="font-medium text-gray-900">Include buffer time for spontaneity</div>

@@ -66,7 +66,7 @@ export function PhaseFour({ data, updateData, onNext, onBack }: PhaseProps) {
       {/* Daily Pace */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Gauge className="w-5 h-5 text-emerald-600" />
+          <Gauge className="w-5 h-5 text-[#2C5F6F]" />
           Daily Travel Pace
         </h3>
 
@@ -82,12 +82,12 @@ export function PhaseFour({ data, updateData, onNext, onBack }: PhaseProps) {
               }}
               className={`p-4 rounded-xl border-2 transition-all text-center ${
                 selectedPace === pace.id
-                  ? 'border-emerald-600 bg-emerald-50 shadow-md'
+                  ? 'border-[#2C5F6F] bg-emerald-50 shadow-md'
                   : 'border-gray-200 hover:border-gray-300 bg-white'
               }`}
             >
               <div className="font-semibold text-gray-900 mb-1">{pace.label}</div>
-              <div className="text-sm text-emerald-600 font-medium mb-2">{pace.hours}</div>
+              <div className="text-sm text-[#2C5F6F] font-medium mb-2">{pace.hours}</div>
               <div className="text-xs text-gray-600">{pace.description}</div>
             </button>
           ))}
@@ -97,7 +97,7 @@ export function PhaseFour({ data, updateData, onNext, onBack }: PhaseProps) {
         <div className="p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center justify-between mb-3">
             <label className="text-sm font-medium text-gray-700">Fine-tune daily travel time</label>
-            <span className="text-lg font-bold text-emerald-600">{dailyHours}h/day</span>
+            <span className="text-lg font-bold text-[#2C5F6F]">{dailyHours}h/day</span>
           </div>
           <input
             type="range"
@@ -121,7 +121,7 @@ export function PhaseFour({ data, updateData, onNext, onBack }: PhaseProps) {
       {/* Travel Style */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Heart className="w-5 h-5 text-emerald-600" />
+          <Heart className="w-5 h-5 text-[#2C5F6F]" />
           What interests you? (Select all that apply)
         </h3>
 
@@ -132,7 +132,7 @@ export function PhaseFour({ data, updateData, onNext, onBack }: PhaseProps) {
               onClick={() => toggleStyle(style.id)}
               className={`p-4 rounded-xl border-2 transition-all text-left ${
                 selectedStyles.includes(style.id)
-                  ? 'border-emerald-600 bg-emerald-50 shadow-md'
+                  ? 'border-[#2C5F6F] bg-emerald-50 shadow-md'
                   : 'border-gray-200 hover:border-gray-300 bg-white'
               }`}
             >
@@ -167,7 +167,7 @@ export function PhaseFour({ data, updateData, onNext, onBack }: PhaseProps) {
         </Button>
         <Button
           onClick={handleNext}
-          className="px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold"
+          className="px-8 py-3 bg-[#2C5F6F] text-white rounded-lg hover:bg-[#1e4a56] font-semibold"
         >
           Continue →
         </Button>

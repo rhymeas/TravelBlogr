@@ -72,7 +72,7 @@ export function PhaseFive({ data, updateData, onNext, onBack }: PhaseProps) {
       {/* Budget Range */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <DollarSign className="w-5 h-5 text-emerald-600" />
+          <DollarSign className="w-5 h-5 text-[#2C5F6F]" />
           Budget Range
         </h3>
 
@@ -83,7 +83,7 @@ export function PhaseFive({ data, updateData, onNext, onBack }: PhaseProps) {
               onClick={() => setSelectedBudget(budget.id)}
               className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
                 selectedBudget === budget.id
-                  ? 'border-emerald-600 bg-emerald-50 shadow-md'
+                  ? 'border-[#2C5F6F] bg-emerald-50 shadow-md'
                   : 'border-gray-200 hover:border-gray-300 bg-white'
               }`}
             >
@@ -93,7 +93,7 @@ export function PhaseFive({ data, updateData, onNext, onBack }: PhaseProps) {
                   <div className="text-sm text-gray-600">{budget.description}</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-semibold text-emerald-600">{budget.range}</div>
+                  <div className="text-sm font-semibold text-[#2C5F6F]">{budget.range}</div>
                 </div>
               </div>
             </button>
@@ -104,7 +104,7 @@ export function PhaseFive({ data, updateData, onNext, onBack }: PhaseProps) {
       {/* Accommodation Preferences */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Hotel className="w-5 h-5 text-emerald-600" />
+          <Hotel className="w-5 h-5 text-[#2C5F6F]" />
           Accommodation Preferences (Select all that apply)
         </h3>
 
@@ -115,7 +115,7 @@ export function PhaseFive({ data, updateData, onNext, onBack }: PhaseProps) {
               onClick={() => toggleAccommodation(type.id)}
               className={`p-4 rounded-xl border-2 transition-all text-center ${
                 selectedAccommodations.includes(type.id)
-                  ? 'border-emerald-600 bg-emerald-50 shadow-md'
+                  ? 'border-[#2C5F6F] bg-emerald-50 shadow-md'
                   : 'border-gray-200 hover:border-gray-300 bg-white'
               }`}
             >
@@ -129,7 +129,7 @@ export function PhaseFive({ data, updateData, onNext, onBack }: PhaseProps) {
       {/* Dining Preferences */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Utensils className="w-5 h-5 text-emerald-600" />
+          <Utensils className="w-5 h-5 text-[#2C5F6F]" />
           Dining Preferences
         </h3>
 
@@ -140,7 +140,7 @@ export function PhaseFive({ data, updateData, onNext, onBack }: PhaseProps) {
               onClick={() => setSelectedDining(pref.id)}
               className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
                 selectedDining === pref.id
-                  ? 'border-emerald-600 bg-emerald-50 shadow-md'
+                  ? 'border-[#2C5F6F] bg-emerald-50 shadow-md'
                   : 'border-gray-200 hover:border-gray-300 bg-white'
               }`}
             >
@@ -162,7 +162,7 @@ export function PhaseFive({ data, updateData, onNext, onBack }: PhaseProps) {
         </Button>
         <Button
           onClick={handleNext}
-          className="px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold"
+          className="px-8 py-3 bg-[#2C5F6F] text-white rounded-lg hover:bg-[#1e4a56] font-semibold"
         >
           Continue →
         </Button>

@@ -18,6 +18,10 @@ export interface Destination {
   name: string
   type: 'start' | 'stop' | 'end'
   coordinates?: { lat: number; lng: number }
+  latitude?: number
+  longitude?: number
+  region?: string
+  country?: string
 }
 
 export interface DateRange {

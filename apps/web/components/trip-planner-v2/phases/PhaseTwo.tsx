@@ -114,7 +114,7 @@ export function PhaseTwo({ data, updateData, onNext, onBack }: PhaseProps) {
                 onClick={() => setSelectedCompanion(type.id)}
                 className={`p-6 rounded-xl border-2 transition-all text-left ${
                   selectedCompanion === type.id
-                    ? 'border-emerald-600 bg-emerald-50 shadow-md'
+                    ? 'border-[#2C5F6F] bg-emerald-50 shadow-md'
                     : 'border-gray-200 hover:border-gray-300 bg-white'
                 }`}
               >
@@ -123,7 +123,7 @@ export function PhaseTwo({ data, updateData, onNext, onBack }: PhaseProps) {
                     selectedCompanion === type.id ? 'bg-emerald-100' : 'bg-gray-100'
                   }`}>
                     <Icon className={`w-6 h-6 ${
-                      selectedCompanion === type.id ? 'text-emerald-600' : 'text-gray-600'
+                      selectedCompanion === type.id ? 'text-[#2C5F6F]' : 'text-gray-600'
                     }`} />
                   </div>
                   <div className="flex-1">
@@ -186,7 +186,7 @@ export function PhaseTwo({ data, updateData, onNext, onBack }: PhaseProps) {
 
           <button
             onClick={addChildAge}
-            className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+            className="text-sm text-[#2C5F6F] hover:text-emerald-700 font-medium"
           >
             + Add another child
           </button>
@@ -209,7 +209,7 @@ export function PhaseTwo({ data, updateData, onNext, onBack }: PhaseProps) {
                   type="checkbox"
                   checked={specialNeeds.includes(need)}
                   onChange={() => toggleSpecialNeed(need)}
-                  className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                  className="w-4 h-4 text-[#2C5F6F] border-gray-300 rounded focus:ring-emerald-500"
                 />
                 <span className="text-sm text-gray-700">{need}</span>
               </label>
@@ -229,7 +229,7 @@ export function PhaseTwo({ data, updateData, onNext, onBack }: PhaseProps) {
         </Button>
         <Button
           onClick={handleNext}
-          className="px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold"
+          className="px-8 py-3 bg-[#2C5F6F] text-white rounded-lg hover:bg-[#1e4a56] font-semibold"
         >
           Continue →
         </Button>

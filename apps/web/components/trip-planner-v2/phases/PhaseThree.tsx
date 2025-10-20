@@ -82,7 +82,7 @@ export function PhaseThree({ data, updateData, onNext, onBack }: PhaseProps) {
                   name="vehicle"
                   checked={details.hasVehicle === true}
                   onChange={() => setDetails({ ...details, hasVehicle: true })}
-                  className="w-4 h-4 text-emerald-600"
+                  className="w-4 h-4 text-[#2C5F6F]"
                 />
                 <span className="text-sm text-gray-700">I have my own vehicle</span>
               </label>
@@ -93,7 +93,7 @@ export function PhaseThree({ data, updateData, onNext, onBack }: PhaseProps) {
                   name="vehicle"
                   checked={details.hasVehicle === false}
                   onChange={() => setDetails({ ...details, hasVehicle: false })}
-                  className="w-4 h-4 text-emerald-600"
+                  className="w-4 h-4 text-[#2C5F6F]"
                 />
                 <span className="text-sm text-gray-700">I'll rent a vehicle</span>
               </label>
@@ -121,7 +121,7 @@ export function PhaseThree({ data, updateData, onNext, onBack }: PhaseProps) {
                 type="checkbox"
                 checked={details.scenicRoutes || false}
                 onChange={(e) => setDetails({ ...details, scenicRoutes: e.target.checked })}
-                className="w-4 h-4 text-emerald-600 rounded"
+                className="w-4 h-4 text-[#2C5F6F] rounded"
               />
               <span className="text-sm text-gray-700">Prioritize scenic routes</span>
             </label>
@@ -138,7 +138,7 @@ export function PhaseThree({ data, updateData, onNext, onBack }: PhaseProps) {
                 type="checkbox"
                 checked={details.railPass || false}
                 onChange={(e) => setDetails({ ...details, railPass: e.target.checked })}
-                className="w-4 h-4 text-emerald-600 rounded"
+                className="w-4 h-4 text-[#2C5F6F] rounded"
               />
               <span className="text-sm text-gray-700">Consider rail passes (Eurail, JR Pass, etc.)</span>
             </label>
@@ -161,7 +161,7 @@ export function PhaseThree({ data, updateData, onNext, onBack }: PhaseProps) {
                 type="checkbox"
                 checked={details.scenicTrains || false}
                 onChange={(e) => setDetails({ ...details, scenicTrains: e.target.checked })}
-                className="w-4 h-4 text-emerald-600 rounded"
+                className="w-4 h-4 text-[#2C5F6F] rounded"
               />
               <span className="text-sm text-gray-700">Include scenic train routes</span>
             </label>
@@ -195,7 +195,7 @@ export function PhaseThree({ data, updateData, onNext, onBack }: PhaseProps) {
                   name="bike-ownership"
                   checked={details.ownBike === true}
                   onChange={() => setDetails({ ...details, ownBike: true })}
-                  className="w-4 h-4 text-emerald-600"
+                  className="w-4 h-4 text-[#2C5F6F]"
                 />
                 <span className="text-sm text-gray-700">Bringing my own bike</span>
               </label>
@@ -206,7 +206,7 @@ export function PhaseThree({ data, updateData, onNext, onBack }: PhaseProps) {
                   name="bike-ownership"
                   checked={details.ownBike === false}
                   onChange={() => setDetails({ ...details, ownBike: false })}
-                  className="w-4 h-4 text-emerald-600"
+                  className="w-4 h-4 text-[#2C5F6F]"
                 />
                 <span className="text-sm text-gray-700">Renting a bike</span>
               </label>
@@ -250,7 +250,7 @@ export function PhaseThree({ data, updateData, onNext, onBack }: PhaseProps) {
                 type="checkbox"
                 checked={details.directFlights || false}
                 onChange={(e) => setDetails({ ...details, directFlights: e.target.checked })}
-                className="w-4 h-4 text-emerald-600 rounded"
+                className="w-4 h-4 text-[#2C5F6F] rounded"
               />
               <span className="text-sm text-gray-700">Prefer direct flights</span>
             </label>
@@ -286,12 +286,12 @@ export function PhaseThree({ data, updateData, onNext, onBack }: PhaseProps) {
                 }}
                 className={`p-6 rounded-xl border-2 transition-all ${
                   selectedMode === mode.id
-                    ? 'border-emerald-600 bg-emerald-50 shadow-md'
+                    ? 'border-[#2C5F6F] bg-emerald-50 shadow-md'
                     : 'border-gray-200 hover:border-gray-300 bg-white'
                 }`}
               >
                 <Icon className={`w-8 h-8 mx-auto mb-3 ${
-                  selectedMode === mode.id ? 'text-emerald-600' : 'text-gray-600'
+                  selectedMode === mode.id ? 'text-[#2C5F6F]' : 'text-gray-600'
                 }`} />
                 <div className="font-semibold text-gray-900 text-sm mb-1">{mode.label}</div>
                 <div className="text-xs text-gray-600">{mode.description}</div>
@@ -315,7 +315,7 @@ export function PhaseThree({ data, updateData, onNext, onBack }: PhaseProps) {
         </Button>
         <Button
           onClick={handleNext}
-          className="px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold"
+          className="px-8 py-3 bg-[#2C5F6F] text-white rounded-lg hover:bg-[#1e4a56] font-semibold"
         >
           Continue →
         </Button>

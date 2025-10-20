@@ -23,9 +23,9 @@ export function ProgressIndicator({ phases, currentPhase, onPhaseClick }: Progre
   return (
     <div className="relative">
       {/* Progress Bar */}
-      <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-200">
+      <div className="absolute top-4 left-0 right-0 h-0.5 bg-gray-200">
         <div
-          className="h-full bg-emerald-600 transition-all duration-500"
+          className="h-full bg-[#2C5F6F] transition-all duration-500"
           style={{ width: `${((currentPhase - 1) / (phases.length - 1)) * 100}%` }}
         />
       </div>
@@ -48,20 +48,20 @@ export function ProgressIndicator({ phases, currentPhase, onPhaseClick }: Progre
             >
               {/* Circle */}
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${
+                className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
                   isCompleted
-                    ? 'bg-emerald-600 border-emerald-600'
+                    ? 'bg-[#2C5F6F] border-[#2C5F6F]'
                     : isCurrent
-                    ? 'bg-white border-emerald-600 ring-4 ring-emerald-100'
+                    ? 'bg-white border-[#2C5F6F] ring-2 ring-[#2C5F6F]/20'
                     : 'bg-white border-gray-300'
-                } ${isClickable ? 'group-hover:scale-110' : ''}`}
+                } ${isClickable ? 'group-hover:scale-105' : ''}`}
               >
                 {isCompleted ? (
-                  <Check className="w-5 h-5 text-white" />
+                  <Check className="w-4 h-4 text-white" />
                 ) : (
                   <span
-                    className={`text-sm font-semibold ${
-                      isCurrent ? 'text-emerald-600' : 'text-gray-400'
+                    className={`text-xs font-semibold ${
+                      isCurrent ? 'text-[#2C5F6F]' : 'text-gray-400'
                     }`}
                   >
                     {phase.id}
@@ -70,15 +70,15 @@ export function ProgressIndicator({ phases, currentPhase, onPhaseClick }: Progre
               </div>
 
               {/* Label */}
-              <div className="mt-2 text-center max-w-[120px]">
+              <div className="mt-1.5 text-center max-w-[100px]">
                 <div
-                  className={`text-xs font-semibold ${
-                    isCurrent ? 'text-emerald-600' : isCompleted ? 'text-gray-700' : 'text-gray-400'
+                  className={`text-[10px] font-semibold ${
+                    isCurrent ? 'text-[#2C5F6F]' : isCompleted ? 'text-gray-700' : 'text-gray-400'
                   }`}
                 >
                   {phase.name}
                 </div>
-                <div className="text-xs text-gray-500 mt-0.5">{phase.description}</div>
+                <div className="text-[9px] text-gray-500 mt-0.5 hidden sm:block">{phase.description}</div>
               </div>
             </button>
           )

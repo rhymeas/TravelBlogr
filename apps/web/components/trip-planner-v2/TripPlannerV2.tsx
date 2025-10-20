@@ -2,12 +2,12 @@
 
 /**
  * Trip Planner V2 - Progressive Workflow Component
- * 
+ *
  * Implements a comprehensive travel planning experience by progressively
  * gathering information through contextual, conversational steps.
  */
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { PhaseOne } from './phases/PhaseOne'
 import { PhaseTwo } from './phases/PhaseTwo'
 import { PhaseThree } from './phases/PhaseThree'
@@ -17,6 +17,8 @@ import { PhaseSix } from './phases/PhaseSix'
 import { ResultsView } from './ResultsView'
 import { ProgressIndicator } from './ProgressIndicator'
 import { TripSummary } from './TripSummary'
+import { Logo } from '@/components/ui/Logo'
+import maplibregl from 'maplibre-gl'
 import type { TripPlanData } from './types'
 
 const PHASES = [
@@ -32,7 +34,12 @@ export function TripPlannerV2() {
   const [currentPhase, setCurrentPhase] = useState(1)
   const [showResults, setShowResults] = useState(false)
   const [generatedPlan, setGeneratedPlan] = useState<any>(null)
-  
+
+  // Map state
+  const mapContainer = useRef<HTMLDivElement>(null)
+  const map = useRef<maplibregl.Map | null>(null)
+  const markers = useRef<maplibregl.Marker[]>([])
+
   const [tripData, setTripData] = useState<TripPlanData>({
     // Phase 1: Journey Foundation
     destinations: [],
@@ -66,6 +73,63 @@ export function TripPlannerV2() {
   const updateTripData = (updates: Partial<TripPlanData>) => {
     setTripData(prev => ({ ...prev, ...updates }))
   }
+
+  // Initialize map
+  useEffect(() => {
+    if (!mapContainer.current || map.current) return
+
+    map.current = new maplibregl.Map({
+      container: mapContainer.current,
+      style: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+      center: [0, 20],
+      zoom: 1.5,
+      attributionControl: false
+    })
+
+    map.current.addControl(new maplibregl.NavigationControl(), 'top-right')
+
+    return () => {
+      map.current?.remove()
+      map.current = null
+    }
+  }, [])
+
+  // Update map markers when destinations change
+  useEffect(() => {
+    if (!map.current) return
+
+    // Clear existing markers
+    markers.current.forEach(marker => marker.remove())
+    markers.current = []
+
+    // Add markers for destinations with coordinates
+    const validDestinations = tripData.destinations.filter(
+      dest => dest.latitude && dest.longitude
+    )
+
+    if (validDestinations.length === 0) return
+
+    validDestinations.forEach((dest, index) => {
+      const el = document.createElement('div')
+      el.className = 'w-8 h-8 bg-[#2C5F6F] rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg'
+      el.textContent = String.fromCharCode(65 + index) // A, B, C...
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([dest.longitude!, dest.latitude!])
+        .addTo(map.current!)
+
+      markers.current.push(marker)
+    })
+
+    // Fit bounds to show all markers
+    if (validDestinations.length > 0) {
+      const bounds = new maplibregl.LngLatBounds()
+      validDestinations.forEach(dest => {
+        bounds.extend([dest.longitude!, dest.latitude!])
+      })
+      map.current.fitBounds(bounds, { padding: 50, maxZoom: 10 })
+    }
+  }, [tripData.destinations])
 
   const goToPhase = (phase: number) => {
     setCurrentPhase(phase)
@@ -199,23 +263,23 @@ export function TripPlannerV2() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-emerald-600">TravelBlogr</h1>
-              <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
+            <div className="flex items-center gap-3">
+              <Logo size="small" />
+              <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-semibold rounded">
                 V2 Experimental
               </span>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => window.location.href = '/plan'}
-                className="text-sm text-gray-600 hover:text-gray-900"
+                className="text-xs text-gray-600 hover:text-gray-900"
               >
-                ← Back to Classic Planner
+                ← Classic Planner
               </button>
             </div>
           </div>
@@ -224,7 +288,7 @@ export function TripPlannerV2() {
 
       {/* Progress Indicator */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-6xl mx-auto px-4 py-3">
           <ProgressIndicator
             phases={PHASES}
             currentPhase={currentPhase}
@@ -234,18 +298,28 @@ export function TripPlannerV2() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left: Current Phase */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-lg p-8">
+          <div className="lg:col-span-7">
+            <div className="bg-white rounded-lg shadow p-6">
               {renderPhase()}
             </div>
           </div>
 
-          {/* Right: Trip Summary */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-32">
+          {/* Right: Map & Summary */}
+          <div className="lg:col-span-5">
+            <div className="sticky top-24 space-y-4">
+              {/* Map */}
+              <div className="bg-white rounded-lg shadow overflow-hidden">
+                <div
+                  ref={mapContainer}
+                  className="w-full h-64"
+                  style={{ minHeight: '256px' }}
+                />
+              </div>
+
+              {/* Trip Summary */}
               <TripSummary data={tripData} currentPhase={currentPhase} />
             </div>
           </div>
