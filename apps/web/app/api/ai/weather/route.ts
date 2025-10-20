@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
         content: query || `What's the weather like in ${location}?`
       }],
       tools: tools,
-      tool_choice: "auto"
+      tool_choice: { type: "auto" } as any
     })
 
     const responseMessage = response.choices[0]?.message

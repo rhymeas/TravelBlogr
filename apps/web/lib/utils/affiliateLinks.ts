@@ -175,6 +175,46 @@ export async function trackAffiliateClick(
 }
 
 /**
+ * Generate Travelpayouts hotel link
+ * Commission: Variable based on hotel bookings
+ */
+export function generateTravelpayoutsHotelLink(params: AffiliateParams): string {
+  const marker = process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ''
+
+  const baseUrl = 'https://search.hotellook.com'
+
+  const urlParams = new URLSearchParams({
+    location: params.locationName,
+    ...(params.latitude && { lat: params.latitude.toString() }),
+    ...(params.longitude && { lon: params.longitude.toString() }),
+    ...(params.checkIn && { checkIn: params.checkIn }),
+    ...(params.checkOut && { checkOut: params.checkOut }),
+    ...(marker && { marker }),
+  })
+
+  return `${baseUrl}?${urlParams.toString()}`
+}
+
+/**
+ * Generate Travelpayouts activities link
+ * Commission: Variable based on activity bookings
+ */
+export function generateTravelpayoutsActivitiesLink(locationName: string): string {
+  const marker = process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ''
+
+  const baseUrl = 'https://tp.media/click'
+
+  const urlParams = new URLSearchParams({
+    location: locationName,
+    ...(marker && { marker }),
+    utm_source: 'travelblogr',
+    utm_medium: 'affiliate',
+  })
+
+  return `${baseUrl}?${urlParams.toString()}`
+}
+
+/**
  * Get all affiliate links for a location
  * Convenience function to generate all links at once
  */
@@ -182,8 +222,10 @@ export function getAllAffiliateLinks(params: AffiliateParams) {
   return {
     booking: generateBookingLink(params),
     airbnb: generateAirbnbLink(params),
+    travelpayoutsHotel: generateTravelpayoutsHotelLink(params),
     activities: generateGetYourGuideLink(params.locationName),
     tours: generateViatorLink(params.locationName),
+    travelpayoutsActivities: generateTravelpayoutsActivitiesLink(params.locationName),
   }
 }
 
