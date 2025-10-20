@@ -254,13 +254,10 @@ export default function TripDetailsPage({ params }: TripDetailsPageProps) {
   // Show loading state while auth is checking
   if (authLoading || !authChecked) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-6xl mx-auto px-6 py-8">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-64 bg-gray-200 rounded-xl"></div>
-            <div className="h-32 bg-gray-200 rounded-xl"></div>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-rausch-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg font-medium">Loading trip...</p>
         </div>
       </div>
     )
@@ -274,13 +271,10 @@ export default function TripDetailsPage({ params }: TripDetailsPageProps) {
   // Show loading while fetching trip
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-6xl mx-auto px-6 py-8">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-64 bg-gray-200 rounded-xl"></div>
-            <div className="h-32 bg-gray-200 rounded-xl"></div>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-rausch-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg font-medium">Loading trip...</p>
         </div>
       </div>
     )

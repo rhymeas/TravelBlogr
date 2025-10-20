@@ -187,13 +187,8 @@ export function BlogPostCardSkeleton({ featured = false }: { featured?: boolean 
   if (featured) {
     return (
       <div className="card-elevated overflow-hidden">
-        <div className="relative h-64 lg:h-80 bg-gray-100 flex items-center justify-center">
-          <div className="w-12 h-12 border-4 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
-        </div>
-        <div className="p-6">
-          <div className="h-4 bg-gray-100 rounded w-3/4 mb-4" />
-          <div className="h-3 bg-gray-100 rounded w-full mb-2" />
-          <div className="h-3 bg-gray-100 rounded w-2/3" />
+        <div className="relative h-64 lg:h-80 bg-gray-50 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-3 border-rausch-500"></div>
         </div>
       </div>
     )
@@ -201,21 +196,8 @@ export function BlogPostCardSkeleton({ featured = false }: { featured?: boolean 
 
   return (
     <div className="card-elevated overflow-hidden h-full">
-      <div className="relative h-48 bg-gray-100 flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
-      </div>
-      <div className="p-4">
-        <div className="h-3 bg-gray-100 rounded w-3/4 mb-3" />
-        <div className="h-2 bg-gray-100 rounded w-full mb-2" />
-        <div className="h-2 bg-gray-100 rounded w-2/3 mb-3" />
-        <div className="flex gap-2 mb-3">
-          <div className="h-5 bg-gray-100 rounded w-16" />
-          <div className="h-5 bg-gray-100 rounded w-16" />
-        </div>
-        <div className="flex justify-between">
-          <div className="h-3 bg-gray-100 rounded w-20" />
-          <div className="h-3 bg-gray-100 rounded w-16" />
-        </div>
+      <div className="relative h-48 bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-3 border-rausch-500"></div>
       </div>
     </div>
   )

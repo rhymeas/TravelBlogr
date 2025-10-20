@@ -72,9 +72,11 @@ export function OptimizedImage({
 
   return (
     <div className="relative w-full h-full">
-      {/* Loading Skeleton */}
+      {/* Loading Spinner */}
       {showSkeleton && isLoading && (
-        <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+        <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rausch-500"></div>
+        </div>
       )}
 
       {/* Optimized Image */}

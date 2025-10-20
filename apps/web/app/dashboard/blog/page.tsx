@@ -137,10 +137,8 @@ export default function DashboardBlogPage() {
         {isLoading ? (
           <div className="grid gap-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
-                <div className="h-6 bg-gray-200 rounded w-3/4 mb-4" />
-                <div className="h-4 bg-gray-200 rounded w-full mb-2" />
-                <div className="h-4 bg-gray-200 rounded w-2/3" />
+              <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-3 border-rausch-500"></div>
               </div>
             ))}
           </div>

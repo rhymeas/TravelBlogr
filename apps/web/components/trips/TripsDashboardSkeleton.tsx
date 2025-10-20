@@ -31,37 +31,9 @@ export function TripsDashboardSkeleton() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="bg-white rounded-2xl overflow-hidden border shadow-sm">
-              {/* Image skeleton with shimmer effect */}
-              <div className="aspect-[4/3] bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer" />
-
-              {/* Content skeleton */}
-              <div className="p-4 space-y-3">
-                {/* Title */}
-                <div className="h-6 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded w-3/4" />
-
-                {/* Description lines */}
-                <div className="space-y-2">
-                  <div className="h-4 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded w-full" />
-                  <div className="h-4 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded w-2/3" />
-                </div>
-
-                {/* Stats */}
-                <div className="flex justify-between pt-2">
-                  <div className="h-4 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded w-20" />
-                  <div className="h-4 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded w-24" />
-                </div>
-              </div>
-
-              {/* Footer skeleton */}
-              <div className="px-4 py-3 bg-gray-50 border-t">
-                <div className="flex justify-between items-center">
-                  <div className="flex gap-1">
-                    {[...Array(4)].map((_, j) => (
-                      <div key={j} className="w-6 h-6 bg-gray-200 rounded" />
-                    ))}
-                  </div>
-                  <div className="h-3 bg-gray-200 rounded w-16" />
-                </div>
+              {/* Image skeleton with spinner */}
+              <div className="aspect-[4/3] bg-gray-50 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-3 border-rausch-500"></div>
               </div>
             </div>
           ))}

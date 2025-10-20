@@ -211,42 +211,21 @@ export function TestimonialCard({
  * TestimonialCardSkeleton - Loading state for TestimonialCard
  */
 export function TestimonialCardSkeleton({ variant = 'default' }: { variant?: 'default' | 'compact' | 'featured' }) {
-  if (variant === 'compact') {
-    return (
-      <Card className="p-4 animate-pulse">
-        <div className="flex items-start gap-3">
-          <div className="h-10 w-10 rounded-full bg-gray-200" />
-          <div className="flex-1">
-            <div className="h-3 bg-gray-200 rounded w-full mb-2" />
-            <div className="h-3 bg-gray-200 rounded w-3/4 mb-3" />
-            <div className="h-3 bg-gray-200 rounded w-1/2" />
-          </div>
-        </div>
-      </Card>
-    )
+  const heights = {
+    compact: 'h-24',
+    default: 'h-32',
+    featured: 'h-40'
   }
 
-  const padding = variant === 'featured' ? 'p-8' : 'p-6'
+  const spinnerSizes = {
+    compact: 'h-6 w-6',
+    default: 'h-8 w-8',
+    featured: 'h-10 w-10'
+  }
 
   return (
-    <Card className={`${padding} animate-pulse`}>
-      <div className="flex items-center gap-1 mb-4">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-4 w-4 bg-gray-200 rounded" />
-        ))}
-      </div>
-      <div className="space-y-2 mb-4">
-        <div className="h-4 bg-gray-200 rounded w-full" />
-        <div className="h-4 bg-gray-200 rounded w-5/6" />
-        <div className="h-4 bg-gray-200 rounded w-4/6" />
-      </div>
-      <div className="flex items-center gap-3">
-        <div className="h-12 w-12 rounded-full bg-gray-200" />
-        <div className="flex-1">
-          <div className="h-4 bg-gray-200 rounded w-1/3 mb-2" />
-          <div className="h-3 bg-gray-200 rounded w-1/4" />
-        </div>
-      </div>
+    <Card className={`${heights[variant]} flex items-center justify-center bg-gray-50`}>
+      <div className={`animate-spin rounded-full ${spinnerSizes[variant]} border-b-2 border-rausch-500`}></div>
     </Card>
   )
 }

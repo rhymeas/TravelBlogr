@@ -13,15 +13,12 @@ import { BlogPostTemplate } from '@/components/blog/BlogPostTemplate'
 import { useAuth } from '@/hooks/useAuth'
 import { Edit } from 'lucide-react'
 import Head from 'next/head'
-import { useState, useEffect } from 'react'
 
 export default function BlogPostPage({ params }: { params: { slug: string } }) {
   const { slug } = params
   const router = useRouter()
   const { post, isLoading, error } = useBlogPost(slug)
   const { user } = useAuth()
-  const [enrichedDays, setEnrichedDays] = useState<any[]>([])
-  const [enriching, setEnriching] = useState(false)
 
   // Check if current user is the author
   const isAuthor = user && post && user.id === post.author_id
@@ -31,43 +28,6 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
       router.push(`/dashboard/blog/posts/${post.id}`)
     }
   }
-
-  // Enrich blog post days with location data via API route
-  useEffect(() => {
-    async function enrichDays() {
-      if (!post || !post.content) return
-
-      const content = typeof post.content === 'string'
-        ? JSON.parse(post.content)
-        : post.content
-
-      const days = content?.days || []
-      if (days.length === 0) return
-
-      setEnriching(true)
-      try {
-        const response = await fetch('/api/blog/enrich-days', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ days })
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to enrich days')
-        }
-
-        const data = await response.json()
-        setEnrichedDays(data.days)
-      } catch (error) {
-        console.error('Error enriching days:', error)
-        setEnrichedDays(days) // Fallback to original days
-      } finally {
-        setEnriching(false)
-      }
-    }
-
-    enrichDays()
-  }, [post])
 
   // Debug logging
   if (post && !isLoading) {
@@ -79,26 +39,12 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
     })
   }
 
-  if (isLoading || enriching) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-white">
-        <div className="animate-pulse">
-          <div className="h-[500px] bg-gray-200" />
-          <div className="max-w-5xl mx-auto px-6 py-12 space-y-8">
-            <div className="h-12 bg-gray-200 rounded w-3/4" />
-            <div className="h-96 bg-gray-200 rounded" />
-            <div className="space-y-4">
-              <div className="h-4 bg-gray-200 rounded" />
-              <div className="h-4 bg-gray-200 rounded w-5/6" />
-              <div className="h-4 bg-gray-200 rounded w-4/6" />
-            </div>
-          </div>
-          {enriching && (
-            <div className="fixed bottom-8 right-8 bg-white rounded-lg shadow-lg p-4 flex items-center gap-3">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-rausch-600"></div>
-              <span className="text-sm text-gray-700">Enriching with location data...</span>
-            </div>
-          )}
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-rausch-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg font-medium">Loading blog post...</p>
         </div>
       </div>
     )
@@ -123,17 +69,14 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
     ? JSON.parse(post.content)
     : (post.content || {})
 
-  // Extract trip data from content
-  // Use enriched days if available, otherwise use original days
-  const daysToUse = enrichedDays.length > 0 ? enrichedDays : (content?.days || [])
-
+  // Extract trip data from content - use data directly from database
   const tripData = {
     destination: content?.destination || 'Unknown Destination',
-    durationDays: daysToUse.length || 0,
+    durationDays: content?.days?.length || 0,
     tripType: post.category?.toLowerCase().replace(' ', '-') || 'adventure',
     budget: content?.budget,
     highlights: content?.highlights || [],
-    days: daysToUse
+    days: content?.days || []
   }
 
   // Structured data for SEO

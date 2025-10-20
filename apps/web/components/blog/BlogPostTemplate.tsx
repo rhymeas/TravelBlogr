@@ -42,7 +42,14 @@ import Link from 'next/link'
 // Dynamically import TripOverviewMap to avoid SSR issues
 const TripOverviewMap = dynamic(
   () => import('@/components/itinerary/TripOverviewMap').then(mod => ({ default: mod.TripOverviewMap })),
-  { ssr: false, loading: () => <div className="h-[600px] bg-gray-100 animate-pulse rounded-lg" /> }
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[600px] bg-gray-50 rounded-lg flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-3 border-rausch-500"></div>
+      </div>
+    )
+  }
 )
 
 interface TripDay {

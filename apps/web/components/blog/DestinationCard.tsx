@@ -180,25 +180,15 @@ export function DestinationCardSkeleton({ variant = 'default' }: { variant?: 'de
     featured: 'h-80'
   }
 
-  const imageHeights = {
-    compact: 'h-32',
-    default: 'h-40',
-    featured: 'h-56'
+  const spinnerSizes = {
+    compact: 'h-8 w-8',
+    default: 'h-10 w-10',
+    featured: 'h-12 w-12'
   }
 
   return (
-    <Card className={`overflow-hidden ${heights[variant]} flex flex-col animate-pulse`}>
-      <div className={`${imageHeights[variant]} bg-gray-200`} />
-      <div className="p-4 flex-1">
-        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
-        <div className="h-3 bg-gray-200 rounded w-1/2 mb-3" />
-        {variant !== 'compact' && (
-          <>
-            <div className="h-3 bg-gray-200 rounded w-full mb-2" />
-            <div className="h-3 bg-gray-200 rounded w-5/6" />
-          </>
-        )}
-      </div>
+    <Card className={`overflow-hidden ${heights[variant]} flex items-center justify-center bg-gray-50`}>
+      <div className={`animate-spin rounded-full ${spinnerSizes[variant]} border-b-3 border-rausch-500`}></div>
     </Card>
   )
 }

@@ -120,10 +120,8 @@ export default function BlogPostsPage() {
         ) : isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="animate-pulse space-y-4">
-                <div className="aspect-[4/3] bg-gray-100 rounded-3xl" />
-                <div className="h-6 bg-gray-100 rounded-full w-3/4" />
-                <div className="h-4 bg-gray-100 rounded-full w-1/2" />
+              <div key={i} className="aspect-[4/3] bg-gray-50 rounded-3xl flex items-center justify-center">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-3 border-rausch-500"></div>
               </div>
             ))}
           </div>
