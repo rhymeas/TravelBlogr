@@ -31,14 +31,12 @@ export function mapSupabaseLocationToFrontend(
     ? getLocationFallbackImage(supabaseData.name, supabaseData.country)
     : rawFeaturedImage
 
-  // Filter out placeholder images from gallery and replace with fallbacks if needed
+  // CRITICAL FIX: Don't add fallback images to gallery!
+  // Only use images that are actually in the database.
+  // Filter out placeholder images completely (don't replace them).
   const galleryImages = (supabaseData.gallery_images || [])
     .filter(img => img && img !== featuredImage) // Don't duplicate featured image
-    .map(img =>
-      isPlaceholderImage(img)
-        ? getLocationFallbackImage(supabaseData.name, supabaseData.country)
-        : img
-    )
+    .filter(img => !isPlaceholderImage(img)) // Remove placeholder images completely
 
   // Always start with featured image, then add real gallery images
   const images = [featuredImage, ...galleryImages]

@@ -90,6 +90,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <ImagePreconnect />
+
+        {/* ImageKit CDN - Preconnect for faster image loading */}
+        <link rel="preconnect" href="https://ik.imagekit.io" />
+        <link rel="dns-prefetch" href="https://ik.imagekit.io" />
+
         {/* Google AdSense - Site Verification */}
         <meta name="google-adsense-account" content="ca-pub-5985120367077865" />
         {/* Google AdSense - Ad Script */}

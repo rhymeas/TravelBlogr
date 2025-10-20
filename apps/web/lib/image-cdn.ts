@@ -73,15 +73,12 @@ export function getCDNUrl(
     `w-${width}`,           // Width
     `q-${quality}`,         // Quality (1-100)
     `f-${format}`,          // Format (auto = WebP/AVIF based on browser support)
-    'c-at_max',             // Don't upscale images
-    'dpr-auto',             // Auto device pixel ratio (retina displays)
-    'pr-true',              // Progressive loading (loads fast, then refines)
   ].join(',')
 
-  // ImageKit URL format with Web Proxy origin:
-  // https://ik.imagekit.io/{imagekit_id}/{external_url}?tr={transformations}
-  // Note: External URL is NOT encoded, transformations are in query params
-  return `${IMAGEKIT_URL_ENDPOINT}/${originalUrl}?tr=${transformations}`
+  // ImageKit URL format with Web Proxy origin (PATH-BASED):
+  // https://ik.imagekit.io/{imagekit_id}/tr:{transformations}/{external_url}
+  // Note: Use path-based transformations, NOT query params
+  return `${IMAGEKIT_URL_ENDPOINT}/tr:${transformations}/${originalUrl}`
 }
 
 /**
