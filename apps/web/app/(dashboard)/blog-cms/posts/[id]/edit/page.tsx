@@ -2,17 +2,16 @@
 
 /**
  * Edit Blog Post Page
- * 
+ *
  * Edit an existing blog post using the Novel editor.
  */
 
-import { use } from 'react'
 import { useRouter } from 'next/navigation'
 import { NovelEditor } from '@/components/cms/NovelEditor'
 import { useAuth } from '@/hooks/useAuth'
 
-export default function EditBlogPostPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function EditBlogPostPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const router = useRouter()
   const { user } = useAuth()
 

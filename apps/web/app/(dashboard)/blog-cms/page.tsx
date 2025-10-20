@@ -16,11 +16,13 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { FileText, MapPin, MessageSquare, Users, BarChart3, Settings, Image, Plus } from 'lucide-react'
+import { FileText, MapPin, MessageSquare, Users, BarChart3, Settings, Image, Plus, Eye, Edit, Calendar } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
 import { ContentBlockManager } from '@/components/blog/ContentBlockManager'
 import { MediaLibrary } from '@/components/blog/MediaLibrary'
+import { useBlogPosts } from '@/hooks/useBlogData'
 
 type TabType = 'posts' | 'destinations' | 'testimonials' | 'newsletter' | 'analytics' | 'media' | 'settings'
 
@@ -87,6 +89,31 @@ export default function BlogCMSPage() {
 // Tab Components
 
 function BlogPostsTab() {
+  const { posts, isLoading } = useBlogPosts()
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-900">Blog Posts</h2>
+          <Link href="/blog-cms/posts/new">
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Post
+            </Button>
+          </Link>
+        </div>
+        <Card className="p-6">
+          <div className="animate-pulse space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-24 bg-gray-200 rounded" />
+            ))}
+          </div>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -99,11 +126,55 @@ function BlogPostsTab() {
         </Link>
       </div>
 
-      <Card className="p-6">
-        <p className="text-gray-500 text-center py-12">
-          Blog post list coming soon. Click "New Post" to create your first post.
-        </p>
-      </Card>
+      {posts && posts.length > 0 ? (
+        <div className="grid gap-4">
+          {posts.map((post: any) => (
+            <Card key={post.id} className="p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-xl font-bold text-gray-900">{post.title}</h3>
+                    <Badge variant={post.status === 'published' ? 'default' : 'secondary'} className={post.status === 'published' ? 'bg-green-100 text-green-800' : ''}>
+                      {post.status}
+                    </Badge>
+                  </div>
+                  <p className="text-gray-600 mb-3 line-clamp-2">{post.excerpt}</p>
+                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      {new Date(post.created_at).toLocaleDateString()}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Eye className="h-4 w-4" />
+                      {post.view_count || 0} views
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link href={`/blog/posts/${post.slug}`}>
+                    <Button variant="outline" size="sm">
+                      <Eye className="h-4 w-4 mr-2" />
+                      View
+                    </Button>
+                  </Link>
+                  <Link href={`/blog-cms/posts/${post.id}/edit`}>
+                    <Button size="sm">
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card className="p-6">
+          <p className="text-gray-500 text-center py-12">
+            No blog posts yet. Click "New Post" to create your first post.
+          </p>
+        </Card>
+      )}
     </div>
   )
 }
