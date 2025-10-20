@@ -98,13 +98,14 @@ export function getCDNSrcSet(originalUrl: string, quality: number = 80): string 
 /**
  * Preset sizes for common use cases
  * Optimized for TravelBlogr's different image contexts
+ * ✅ INCREASED quality settings for sharper images
  */
 export const CDN_PRESETS: Record<string, ImageOptions> = {
-  thumbnail: { width: 200, quality: 75 },
-  card: { width: 800, quality: 80 },
-  hero: { width: 1920, quality: 85 },
-  gallery: { width: 1200, quality: 80 },
-  full: { width: 1600, quality: 85 },
+  thumbnail: { width: 200, quality: 85 }, // ✅ Increased from 75 to 85
+  card: { width: 800, quality: 90 },      // ✅ Increased from 80 to 90
+  hero: { width: 1920, quality: 92 },     // ✅ Increased from 85 to 92
+  gallery: { width: 1200, quality: 90 },  // ✅ Increased from 80 to 90
+  full: { width: 1600, quality: 92 },     // ✅ Increased from 85 to 92
 }
 
 /**

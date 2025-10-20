@@ -25,6 +25,7 @@ export interface GenerateBlogPostsCommand {
   autoPublish: boolean
   includeAffiliate: boolean
   seoOptimize: boolean
+  useRandomPersona?: boolean // If true, assigns random persona instead of trip owner
 }
 
 export interface GenerateBlogPostsResult {
@@ -213,10 +214,22 @@ export class GenerateBlogPostsFromTripsUseCase {
    */
   private async buildBatchRequests(trips: any[], command: GenerateBlogPostsCommand) {
     const requests = []
+    const useRandomPersona = (command as any).useRandomPersona || false
 
     for (const trip of trips) {
       // Build rich context from trip data
       const context = await this.buildTripContext(trip, command)
+
+      // Get persona for this trip (either trip owner or random)
+      const persona = await this.getPersonaForTrip(trip, useRandomPersona)
+
+      // Build persona-specific prompt
+      const prompt = await this.buildPrompt(trip, context, command, persona)
+
+      // Extract system instructions from prompt
+      const systemInstructions = persona && persona.writing_style
+        ? `You are ${persona.full_name}, a ${persona.writing_style.personality} travel writer with expertise in ${persona.expertise?.slice(0, 3).join(', ')}. Write COMPELLING, EMOTIONAL stories that resonate deeply with readers. Provide real value while staying true to your unique voice.`
+        : 'You are a professional travel writer creating SEO-optimized blog posts from trip data. Write engaging, informative content that provides real value to readers.'
 
       // Create GROQ request
       requests.push({
@@ -228,15 +241,15 @@ export class GenerateBlogPostsFromTripsUseCase {
           messages: [
             {
               role: 'system',
-              content: 'You are a professional travel writer creating SEO-optimized blog posts from trip data. Write engaging, informative content that provides real value to readers.'
+              content: systemInstructions
             },
             {
               role: 'user',
-              content: this.buildPrompt(trip, context, command)
+              content: prompt
             }
           ],
           temperature: 0.7,
-          max_tokens: 3000,
+          max_tokens: 4000, // Increased for more detailed content
           response_format: { type: 'json_object' }
         }
       })
@@ -308,10 +321,105 @@ export class GenerateBlogPostsFromTripsUseCase {
   }
 
   /**
-   * Build prompt for GROQ
+   * Get random team persona for blog post authoring
+   * If useRandomPersona is true, selects a random persona instead of trip owner
    */
-  private buildPrompt(trip: any, context: any, command: GenerateBlogPostsCommand): string {
-    return `Generate a comprehensive travel blog post from this trip data:
+  private async getRandomTeamPersona(useRandomPersona: boolean = false) {
+    const supabase = await createServerSupabase()
+
+    const { data: personas, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, username, writing_style, expertise, travel_preferences')
+      .in('username', ['emma_chen', 'marcus_rodriguez', 'yuki_tanaka', 'sophie_laurent', 'alex_thompson'])
+
+    if (error || !personas || personas.length === 0) {
+      console.warn('⚠️ No team personas found, using default style')
+      return null
+    }
+
+    // Select random persona
+    const randomIndex = Math.floor(Math.random() * personas.length)
+    const selectedPersona = personas[randomIndex]
+
+    if (useRandomPersona) {
+      console.log(`🎲 Using random persona: ${selectedPersona.full_name}`)
+    }
+
+    return selectedPersona
+  }
+
+  /**
+   * Get persona for trip (either trip owner or random)
+   */
+  private async getPersonaForTrip(trip: any, useRandomPersona: boolean = false) {
+    if (useRandomPersona) {
+      return await this.getRandomTeamPersona(true)
+    }
+
+    // Get trip owner's persona
+    const supabase = await createServerSupabase()
+    const { data: persona } = await supabase
+      .from('profiles')
+      .select('id, full_name, username, writing_style, expertise, travel_preferences')
+      .eq('id', trip.user_id)
+      .single()
+
+    return persona || await this.getRandomTeamPersona(true)
+  }
+
+  /**
+   * Build prompt for GROQ with persona-specific writing style
+   */
+  private async buildPrompt(trip: any, context: any, command: GenerateBlogPostsCommand, persona: any): Promise<string> {
+    let systemInstructions = 'You are a professional travel writer creating SEO-optimized blog posts from trip data.'
+    let writingStyleGuidance = 'Write in a friendly, informative tone. Focus on practical value and authentic experiences.'
+    let emotionalGuidance = ''
+
+    if (persona && persona.writing_style) {
+      const style = persona.writing_style
+      systemInstructions = `You are ${persona.full_name}, a ${style.personality} travel writer with expertise in ${persona.expertise?.slice(0, 3).join(', ')}.`
+
+      // Emotional storytelling guidance based on trip type
+      const tripType = trip.trip_type || 'adventure'
+      const emotionalHooks: Record<string, string> = {
+        adventure: "Start with a heart-racing moment that captures the thrill and adrenaline. Make readers feel the excitement!",
+        luxury: "Begin with a sensory detail that evokes sophistication and indulgence. Transport readers to a world of refined elegance.",
+        cultural: "Open with a quiet, contemplative observation that reveals deeper meaning. Invite readers to see beyond the surface.",
+        family: "Start with a genuine family moment that captures joy and connection. Help parents see themselves in your story.",
+        'digital-nomad': "Begin with the freedom and flexibility of remote work. Show the perfect work-life integration.",
+        backpacking: "Open with the raw authenticity of budget travel. Celebrate the freedom of minimalism.",
+        wellness: "Start with a moment of transformation or release. Guide readers toward inner peace.",
+        photography: "Begin with a visual moment that captures light, composition, or emotion. Paint with words.",
+        educational: "Open with a moment of discovery or learning. Spark curiosity and wonder.",
+        workation: "Start with the balance between productivity and paradise. Show how work enhances travel."
+      }
+
+      emotionalGuidance = emotionalHooks[tripType] || emotionalHooks.adventure
+
+      writingStyleGuidance = `
+WRITING STYLE REQUIREMENTS:
+- Tone: ${style.tone}
+- Personality: ${style.personality}
+- Characteristics: ${style.characteristics?.join(', ')}
+- Writing patterns: ${style.writing_patterns?.join('; ')}
+- Preferred vocabulary: ${style.vocabulary?.join(', ')}
+- Sentence structure: ${style.sentence_structure}
+- Emoji usage: ${style.emoji_usage}
+
+EMOTIONAL STORYTELLING:
+${emotionalGuidance}
+
+Your expertise areas: ${persona.expertise?.join(', ')}
+Your travel style: ${persona.travel_preferences?.travel_style}
+Your budget preference: ${persona.travel_preferences?.budget_preference}
+
+Write as ${persona.full_name} would write - authentic to your unique voice and perspective.
+Create a COMPELLING, EMOTIONAL story that resonates with readers on a personal level.`
+    }
+
+    return `${systemInstructions}
+
+Generate a comprehensive travel blog post from this trip data:
 
 TRIP INFORMATION:
 ${JSON.stringify(context.trip, null, 2)}
@@ -333,23 +441,38 @@ Generate a blog post with this structure (return as JSON):
   "excerpt": "Compelling excerpt (150-160 characters)",
   "content": {
     "destination": "Main destination name",
-    "introduction": "Engaging introduction (2-3 paragraphs)",
+    "introduction": "EMOTIONAL, COMPELLING introduction that hooks readers immediately (2-3 paragraphs). Start with a powerful moment or feeling.",
     "highlights": ["Key highlight 1", "Key highlight 2", ...],
     "days": [
       {
         "day_number": 1,
         "title": "Day title",
-        "description": "Rich description with details",
+        "description": "Rich, EMOTIONAL description with sensory details and personal moments",
         "activities": ["Activity 1", "Activity 2"],
-        "tips": "Pro tip for this day"
+        "tips": "Pro tip for this day",
+        "location": {
+          "name": "Location name",
+          "coordinates": { "lat": 0, "lng": 0 }
+        }
       }
     ],
     "practicalInfo": {
       "bestTime": "Best time to visit",
-      "budget": "Budget estimate",
+      "budget": "Budget estimate with specific numbers",
       "packing": ["Item 1", "Item 2"]
     },
-    "conclusion": "Inspiring conclusion"
+    "mapData": {
+      "center": { "lat": 0, "lng": 0 },
+      "zoom": 10,
+      "markers": [
+        {
+          "position": { "lat": 0, "lng": 0 },
+          "title": "Location name",
+          "description": "Brief description"
+        }
+      ]
+    },
+    "conclusion": "Inspiring, emotional conclusion that resonates"
   },
   "seo_title": "SEO title",
   "seo_description": "SEO meta description",
@@ -358,10 +481,18 @@ Generate a blog post with this structure (return as JSON):
   "category": "adventure|culture|food|nature|city"
 }
 
+IMPORTANT REQUIREMENTS:
+- Include GPS coordinates for each day's location (for map integration)
+- If destination is in Asia (Japan, China, Korea, Thailand, Vietnam), include romanized versions of place names
+- Write COMPELLING, EMOTIONAL stories that make readers FEEL the experience
+- Use sensory details: what you saw, heard, smelled, tasted, felt
+- Include personal moments and genuine reactions
+- Make it authentic and relatable
+
 ${command.seoOptimize ? 'Optimize for SEO with relevant keywords, internal linking opportunities, and engaging meta descriptions.' : ''}
 ${command.includeAffiliate ? 'Include natural mentions of booking options where appropriate.' : ''}
 
-Write in a friendly, informative tone. Focus on practical value and authentic experiences.`
+${writingStyleGuidance}`
   }
 
   /**

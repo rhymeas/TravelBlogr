@@ -37,7 +37,7 @@ export function OptimizedImage({
   preset,
   showSkeleton = true,
   fallbackSrc = '/placeholder-location.jpg',
-  quality = 75,
+  quality = 90, // ✅ INCREASED from 75 to 90 for sharper images
   loading = 'lazy',
   sizes,
   priority = false,

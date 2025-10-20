@@ -1,17 +1,17 @@
 /**
  * Blog Enrichment Service
- * 
+ *
  * Enriches blog post data with:
- * - Location images
+ * - Location images (via Reddit ULTRA → Pexels → Flickr ULTRA)
  * - POIs (Points of Interest)
  * - Public transportation information
  * - Location coordinates
- * 
+ *
  * Uses existing data sources:
  * - Supabase database (locations, activities)
  * - OpenTripMap API (POIs)
  * - OpenStreetMap Overpass API (transportation)
- * - Enhanced Image Service (location images)
+ * - Enhanced Image Service with Reddit ULTRA priority (location images)
  */
 
 import { getBrowserSupabase } from '@/lib/supabase'

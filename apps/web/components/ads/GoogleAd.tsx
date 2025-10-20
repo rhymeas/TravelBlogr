@@ -125,3 +125,46 @@ export function GoogleAd({
   )
 }
 
+/**
+ * Convenience components for common ad formats
+ */
+
+export function HorizontalAd({ slot, className = '' }: { slot: string; className?: string }) {
+  return (
+    <GoogleAd
+      slot={slot}
+      format="horizontal"
+      width={728}
+      height={90}
+      page="blog"
+      className={className}
+    />
+  )
+}
+
+export function VerticalAd({ slot, className = '' }: { slot: string; className?: string }) {
+  return (
+    <GoogleAd
+      slot={slot}
+      format="auto"
+      width={160}
+      height={600}
+      page="blog"
+      className={className}
+    />
+  )
+}
+
+export function RectangularAd({ slot, className = '' }: { slot: string; className?: string }) {
+  return (
+    <GoogleAd
+      slot={slot}
+      format="rectangle"
+      width={336}
+      height={280}
+      page="blog"
+      className={className}
+    />
+  )
+}
+

@@ -22,6 +22,12 @@ CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON public.feedback(created_at
 -- Enable RLS
 ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Anyone can submit feedback" ON public.feedback;
+DROP POLICY IF EXISTS "Users can view own feedback" ON public.feedback;
+DROP POLICY IF EXISTS "Admins can view all feedback" ON public.feedback;
+DROP POLICY IF EXISTS "Admins can update feedback" ON public.feedback;
+
 -- Policy: Anyone can insert feedback (guests and authenticated users)
 CREATE POLICY "Anyone can submit feedback"
   ON public.feedback
@@ -79,6 +85,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger to auto-update updated_at
+DROP TRIGGER IF EXISTS feedback_updated_at ON public.feedback;
 CREATE TRIGGER feedback_updated_at
   BEFORE UPDATE ON public.feedback
   FOR EACH ROW

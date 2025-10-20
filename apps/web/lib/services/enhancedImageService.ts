@@ -158,12 +158,20 @@ async function fetchPexelsHighRes(searchTerm: string): Promise<string | null> {
     const filteredPhotos = data.photos.filter((p: any) => {
       const alt = (p.alt || '').toLowerCase()
 
-      // REJECT: People, interiors, close-ups, food, statues, night, street, B&W, military, silhouettes, bridges, nature close-ups
+      // REJECT: People, interiors, close-ups, food, statues, night, street, B&W, military, silhouettes, bridges, nature close-ups, stadiums, objects, sky-only
+      // PRIORITY: ONLY locations and environments - NO people, NO objects, NO things
       const rejectKeywords = [
-        // People (EXPANDED)
+        // People (AGGRESSIVE - reject ALL people)
         'person', 'woman', 'man', 'people', 'portrait', 'face', 'selfie', 'crowd',
         'human', 'lady', 'gentleman', 'boy', 'girl', 'child', 'tourist', 'traveler',
-        'laughing', 'smiling', 'nude', 'naked',
+        'laughing', 'smiling', 'nude', 'naked', 'model', 'couple', 'family', 'group',
+        'walking', 'standing', 'sitting', 'running', 'jumping',
+        // Sports & Stadiums (CRITICAL: Filter out all sports venues)
+        'stadium', 'stadiums', 'arena', 'arenas', 'sports', 'football', 'soccer', 'baseball',
+        'basketball', 'tennis', 'field', 'pitch', 'court', 'track', 'game', 'match',
+        // Objects & Things (NEW - reject objects, not environments)
+        'car', 'cars', 'vehicle', 'bike', 'bicycle', 'motorcycle', 'boat', 'ship',
+        'plane', 'airplane', 'train', 'bus', 'tram',
         // Interiors
         'bedroom', 'living room', 'interior', 'furniture', 'couch', 'bed', 'room',
         // Vehicles & Transport
@@ -190,13 +198,15 @@ async function fetchPexelsHighRes(searchTerm: string): Promise<string | null> {
         'facade', 'building facade', 'wall', 'door',
         // Image Quality
         'transparent', 'png', 'cutout', 'isolated',
-        // Nature Close-ups (NEW)
+        // Nature Close-ups (AGGRESSIVE - no close-ups, only environments)
         'tree', 'trees', 'leaf', 'leaves', 'branch', 'trunk', 'forest floor', 'cedar',
         'animal', 'animals', 'bird', 'birds', 'wildlife', 'dog', 'cat', 'pet',
         'insect', 'insects', 'bug', 'bugs', 'butterfly', 'bee', 'spider',
-        'sky only', 'clouds only', 'sunset', 'sunrise', 'dawn', 'dusk',
+        // Sky-Only & Sunset (AGGRESSIVE - no sky-only images)
+        'sky only', 'clouds only', 'cloud', 'sunset', 'sunrise', 'dawn', 'dusk',
+        'twilight', 'golden hour', 'magic hour', 'dramatic sky',
         // Signs & Text
-        'sign', 'signs', 'signage', 'text', 'billboard'
+        'sign', 'signs', 'signage', 'text', 'billboard', 'graffiti', 'writing'
       ]
       if (rejectKeywords.some(kw => alt.includes(kw))) {
         return false
@@ -208,10 +218,20 @@ async function fetchPexelsHighRes(searchTerm: string): Promise<string | null> {
         return false
       }
 
-      // PREFER: Cityscape, skyline, aerial, landmark, architecture (daytime)
-      const preferKeywords = ['city', 'skyline', 'aerial', 'view', 'cityscape', 'landmark',
-                             'architecture', 'building', 'tower', 'cathedral', 'monument',
-                             'panorama', 'downtown', 'urban', 'daytime', 'day', 'blue sky']
+      // PREFER: PRIORITY - Locations and environments ONLY
+      // NO people, NO objects, NO sky-only, NO stadiums - JUST locations and environments
+      const preferKeywords = [
+        // Cityscapes & Urban Environments
+        'city', 'skyline', 'aerial', 'view', 'cityscape', 'panorama', 'downtown', 'urban',
+        // Architecture & Buildings (as part of environment)
+        'architecture', 'building', 'tower', 'cathedral', 'monument', 'landmark',
+        'palace', 'castle', 'temple', 'mosque', 'church',
+        // Natural Landscapes & Environments
+        'landscape', 'mountain', 'valley', 'coastline', 'beach', 'ocean', 'lake', 'river',
+        'forest', 'countryside', 'hills', 'cliffs',
+        // Daytime & Clear Views
+        'daytime', 'day', 'blue sky', 'sunny'
+      ]
       return preferKeywords.some(kw => alt.includes(kw))
     })
 
@@ -258,12 +278,20 @@ async function fetchUnsplashHighRes(searchTerm: string): Promise<string | null> 
     const filteredResults = data.results.filter((r: any) => {
       const description = (r.description || r.alt_description || '').toLowerCase()
 
-      // REJECT: People, interiors, close-ups, food, statues, night, street, B&W, military, silhouettes, bridges, sports, facades, nature close-ups
+      // REJECT: People, interiors, close-ups, food, statues, night, street, B&W, military, silhouettes, bridges, sports, facades, nature close-ups, stadiums, objects, sky-only
+      // PRIORITY: ONLY locations and environments - NO people, NO objects, NO things
       const rejectKeywords = [
-        // People (EXPANDED)
+        // People (AGGRESSIVE - reject ALL people)
         'person', 'woman', 'man', 'people', 'portrait', 'face', 'selfie', 'crowd',
         'human', 'lady', 'gentleman', 'boy', 'girl', 'child', 'tourist', 'traveler',
-        'laughing', 'smiling', 'nude', 'naked',
+        'laughing', 'smiling', 'nude', 'naked', 'model', 'couple', 'family', 'group',
+        'walking', 'standing', 'sitting', 'running', 'jumping',
+        // Sports & Stadiums (CRITICAL: Filter out all sports venues)
+        'stadium', 'stadiums', 'arena', 'arenas', 'sports', 'football', 'soccer', 'baseball',
+        'basketball', 'tennis', 'field', 'pitch', 'court', 'track', 'game', 'match',
+        // Objects & Things (NEW - reject objects, not environments)
+        'car', 'cars', 'vehicle', 'bike', 'bicycle', 'motorcycle', 'boat', 'ship',
+        'plane', 'airplane', 'train', 'bus', 'tram',
         // Interiors
         'bedroom', 'living room', 'interior', 'furniture', 'couch', 'bed', 'room',
         // Vehicles & Transport
@@ -290,13 +318,15 @@ async function fetchUnsplashHighRes(searchTerm: string): Promise<string | null> 
         'facade', 'building facade', 'wall', 'door',
         // Image Quality
         'transparent', 'png', 'cutout', 'isolated',
-        // Nature Close-ups (NEW)
+        // Nature Close-ups (AGGRESSIVE - no close-ups, only environments)
         'tree', 'trees', 'leaf', 'leaves', 'branch', 'trunk', 'forest floor', 'cedar',
         'animal', 'animals', 'bird', 'birds', 'wildlife', 'dog', 'cat', 'pet',
         'insect', 'insects', 'bug', 'bugs', 'butterfly', 'bee', 'spider',
-        'sky only', 'clouds only', 'sunset', 'sunrise', 'dawn', 'dusk',
+        // Sky-Only & Sunset (AGGRESSIVE - no sky-only images)
+        'sky only', 'clouds only', 'cloud', 'sunset', 'sunrise', 'dawn', 'dusk',
+        'twilight', 'golden hour', 'magic hour', 'dramatic sky',
         // Signs & Text
-        'sign', 'signs', 'signage', 'text', 'billboard'
+        'sign', 'signs', 'signage', 'text', 'billboard', 'graffiti', 'writing'
       ]
       if (rejectKeywords.some(kw => description.includes(kw))) {
         return false
@@ -307,10 +337,20 @@ async function fetchUnsplashHighRes(searchTerm: string): Promise<string | null> 
         return false
       }
 
-      // PREFER: Cityscape, skyline, aerial, landmark, architecture (daytime)
-      const preferKeywords = ['city', 'skyline', 'aerial', 'view', 'cityscape', 'landmark',
-                             'architecture', 'building', 'tower', 'cathedral', 'monument',
-                             'panorama', 'downtown', 'urban', 'daytime', 'day', 'blue sky']
+      // PREFER: PRIORITY - Locations and environments ONLY
+      // NO people, NO objects, NO sky-only, NO stadiums - JUST locations and environments
+      const preferKeywords = [
+        // Cityscapes & Urban Environments
+        'city', 'skyline', 'aerial', 'view', 'cityscape', 'panorama', 'downtown', 'urban',
+        // Architecture & Buildings (as part of environment)
+        'architecture', 'building', 'tower', 'cathedral', 'monument', 'landmark',
+        'palace', 'castle', 'temple', 'mosque', 'church',
+        // Natural Landscapes & Environments
+        'landscape', 'mountain', 'valley', 'coastline', 'beach', 'ocean', 'lake', 'river',
+        'forest', 'countryside', 'hills', 'cliffs',
+        // Daytime & Clear Views
+        'daytime', 'day', 'blue sky', 'sunny'
+      ]
       return preferKeywords.some(kw => description.includes(kw))
     })
 
@@ -326,6 +366,212 @@ async function fetchUnsplashHighRes(searchTerm: string): Promise<string | null> 
   } catch (error) {
     console.error('Unsplash error:', error)
     return null
+  }
+}
+
+/**
+ * Reddit ULTRA-FILTERED - Fetch ONLY city/architecture/landscape images (NO API KEY!)
+ * Uses 10 STRICT FILTERS to remove ALL non-environment content
+ * UPGRADED: Same filtering as test page Reddit ULTRA method
+ */
+async function fetchRedditImages(locationName: string, count: number = 20): Promise<string[]> {
+  const images: string[] = []
+
+  // STRATEGY: Search travel photography subreddits for location name
+  const travelSubreddits = [
+    'CityPorn',        // Urban landscapes
+    'EarthPorn',       // Natural landscapes
+    'ArchitecturePorn', // Buildings
+    'VillagePorn',     // Small towns
+    'TravelPics',      // Travel photography
+    'travel',          // General travel
+    'itookapicture',   // Photography
+    'pics'             // General high-quality photos
+  ]
+
+  try {
+    for (const subreddit of travelSubreddits) {
+      if (images.length >= count) break
+
+      // Search subreddit for location name
+      const searchUrl = `https://www.reddit.com/r/${subreddit}/search.json?q=${encodeURIComponent(locationName)}&restrict_sr=1&sort=top&t=all&limit=50`
+
+      const response = await fetch(searchUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; TravelBlogr/1.0; +https://travelblogr.com)'
+        }
+      })
+
+      if (!response.ok) continue
+
+      const data = await response.json()
+      const posts = data?.data?.children || []
+
+      for (const post of posts) {
+        if (images.length >= count) break
+
+        const postData = post.data
+        const imageUrl = postData.url
+        const title = (postData.title || '').toLowerCase()
+
+        // Only accept direct image URLs
+        if (!imageUrl || !imageUrl.match(/\.(jpg|jpeg|png|webp)$/i)) continue
+
+        // ULTRA-STRICT FILTERING - 10 FILTERS
+
+        // 1. REJECT: People, faces, selfies, portraits
+        const rejectPeople = [
+          'selfie', 'portrait', 'me ', 'my ', 'face', 'person', 'people', 'crowd', 'tourist',
+          'wedding', 'bride', 'groom', 'couple', 'family', 'cosplay', 'costume', 'wearing'
+        ]
+        if (rejectPeople.some(kw => title.includes(kw))) continue
+
+        // 2. REJECT: Food, restaurants, meals
+        const rejectFood = [
+          'food', 'meal', 'dish', 'restaurant', 'cafe', 'coffee',
+          'breakfast', 'lunch', 'dinner', 'dessert', 'pizza',
+          'burger', 'sushi', 'ramen', 'cuisine', 'recipe',
+          'cooking', 'ate', 'eating', 'delicious', 'tasty'
+        ]
+        if (rejectFood.some(kw => title.includes(kw))) continue
+
+        // 3. REJECT: Art, drawings, renders, digital content
+        const rejectArt = [
+          'drawing', 'painting', 'art', 'sketch', 'illustration',
+          'render', 'rendered', '3d', 'digital', 'photoshop',
+          'edited', 'composite', 'manipulation', 'ai generated',
+          'midjourney', 'dalle', 'stable diffusion', 'anime', 'manga',
+          'cartoon', 'comic', 'meme', 'funny', 'lol'
+        ]
+        if (rejectArt.some(kw => title.includes(kw))) continue
+
+        // 4. REJECT: Animals, pets, wildlife
+        const rejectAnimals = [
+          'dog', 'cat', 'pet', 'puppy', 'kitten', 'bird',
+          'animal', 'wildlife', 'zoo', 'aquarium', 'fish'
+        ]
+        if (rejectAnimals.some(kw => title.includes(kw))) continue
+
+        // 5. REJECT: Indoor, interiors, museums
+        const rejectIndoor = [
+          'museum', 'gallery', 'exhibition', 'interior', 'inside',
+          'room', 'bedroom', 'bathroom', 'kitchen', 'office',
+          'hotel room', 'apartment', 'airbnb'
+        ]
+        if (rejectIndoor.some(kw => title.includes(kw))) continue
+
+        // 6. REJECT: Screenshots, graphs, maps, diagrams
+        const rejectDigital = [
+          'screenshot', 'graph', 'chart', 'map', 'diagram',
+          'infographic', 'data', 'statistics', 'guide'
+        ]
+        if (rejectDigital.some(kw => title.includes(kw))) continue
+
+        // 7. REJECT: Questions, discussions, text posts
+        const rejectText = [
+          'question', 'help', 'advice', 'recommend', 'suggestion',
+          'what', 'where', 'how', 'why', 'when', 'should i',
+          'anyone know', 'does anyone', 'can someone'
+        ]
+        if (rejectText.some(kw => title.includes(kw))) continue
+
+        // 8. POSITIVE SIGNALS: Prefer these keywords
+        const preferKeywords = [
+          'view', 'skyline', 'cityscape', 'landscape', 'architecture',
+          'building', 'street', 'downtown', 'city', 'town',
+          'sunset', 'sunrise', 'night', 'evening', 'morning',
+          'aerial', 'panorama', 'vista', 'scenery', 'beautiful'
+        ]
+        const hasPositiveSignal = preferKeywords.some(kw => title.includes(kw))
+
+        // 9. QUALITY SCORE: Prefer posts with higher scores
+        const score = postData.score || 0
+        if (score < 50 && !hasPositiveSignal) continue // Skip low-quality posts without positive signals
+
+        images.push(imageUrl)
+      }
+    }
+
+    console.log(`✅ Reddit ULTRA: Found ${images.length} ULTRA-FILTERED images for "${locationName}"`)
+    return images
+
+  } catch (error) {
+    console.error('❌ Reddit ULTRA error:', error)
+    return images
+  }
+}
+
+/**
+ * Flickr ULTRA-FILTERED - Fetch ONLY city/architecture/landscape images (NO API KEY!)
+ * Uses same 10 STRICT FILTERS as Reddit ULTRA
+ * NEW: Added to production image service
+ */
+async function fetchFlickrImages(locationName: string, count: number = 20): Promise<string[]> {
+  const images: string[] = []
+
+  try {
+    console.log(`Fetching Flickr ULTRA images for "${locationName}"`)
+
+    // Flickr public feed - NO API KEY REQUIRED!
+    const searchUrl = `https://api.flickr.com/services/feeds/photos_public.gne?tags=${encodeURIComponent(locationName)}&format=json&nojsoncallback=1`
+
+    const response = await fetch(searchUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; TravelBlogr/1.0; +https://travelblogr.com)'
+      }
+    })
+
+    if (!response.ok) {
+      console.error('Flickr API error:', response.status)
+      return []
+    }
+
+    const data = await response.json()
+    const items = data?.items || []
+
+    console.log(`Found ${items.length} Flickr photos for "${locationName}"`)
+
+    // ULTRA-STRICT FILTERING (same as Reddit ULTRA)
+    for (const item of items) {
+      if (images.length >= count) break
+
+      // Get image URL (use larger size if available)
+      const imageUrl = item.media?.m
+      if (!imageUrl) continue
+
+      // Replace _m.jpg with _b.jpg for larger size
+      const largerUrl = imageUrl.replace('_m.jpg', '_b.jpg').replace('_m.png', '_b.png')
+
+      const title = (item.title || '').toLowerCase()
+      const tags = (item.tags || '').toLowerCase()
+      const description = (item.description || '').toLowerCase()
+      const combined = `${title} ${tags} ${description}`
+
+      // LIGHTER FILTERING for Flickr (only reject obvious bad content)
+      // Flickr tags are usually good, so we don't need to be as strict as Reddit
+
+      // 1. REJECT: People portraits (but allow cityscapes with people in background)
+      const rejectPeople = ['selfie', 'portrait', 'face', 'wedding', 'bride', 'groom']
+      if (rejectPeople.some(kw => combined.includes(kw))) continue
+
+      // 2. REJECT: Food close-ups
+      const rejectFood = ['food', 'meal', 'dish', 'pizza', 'burger', 'sushi', 'recipe', 'cooking']
+      if (rejectFood.some(kw => combined.includes(kw))) continue
+
+      // 3. REJECT: Art/digital content
+      const rejectArt = ['drawing', 'painting', 'sketch', 'render', '3d', 'digital art', 'anime', 'cartoon', 'meme']
+      if (rejectArt.some(kw => combined.includes(kw))) continue
+
+      // If passed basic filters, include the image
+      images.push(largerUrl)
+    }
+
+    console.log(`✅ Flickr ULTRA: Filtered to ${images.length} images for "${locationName}"`)
+    return images
+
+  } catch (error) {
+    console.error('❌ Flickr ULTRA error:', error)
+    return []
   }
 }
 
@@ -758,52 +1004,24 @@ export async function fetchLocationGalleryHighQuality(
 
   const primaryLocation = searchNames[0] // Use first (most specific) for search terms
 
-  // 1. Openverse (800M+ images, NO API KEY NEEDED!)
-  console.log('📸 Querying Openverse (api.openverse.engineering)...')
-  const openverseTerms = [
-    `${primaryLocation} cityscape`,
-    `${primaryLocation} landmark`,
-    `${primaryLocation} architecture`,
-    `${primaryLocation} travel`
-  ]
+  // PRIORITY #1: Reddit ULTRA (BEST location-specific images with 10 STRICT FILTERS!)
+  console.log('🥇 PRIORITY #1: Reddit ULTRA (travel photography subreddits with ULTRA-FILTERING)...')
+  fetchPromises.push(
+    fetchRedditImages(primaryLocation, 20)
+      .then(urls => {
+        if (urls.length > 0) {
+          console.log(`✅ Reddit ULTRA: Found ${urls.length} ULTRA-FILTERED images`)
+          allImages.push(...urls)
+        }
+      })
+      .catch(err => console.error('Reddit ULTRA error:', err))
+  )
 
-  for (const term of openverseTerms) {
-    fetchPromises.push(
-      fetchOpenverseImages(term, 5)
-        .then(urls => {
-          if (urls.length > 0) {
-            allImages.push(...urls)
-          }
-        })
-        .catch(err => console.error('Openverse error:', err))
-    )
-  }
-
-  // 2. Europeana (50M+ cultural heritage images, NO API KEY NEEDED!)
-  console.log('📸 Querying Europeana (museums & archives)...')
-  const europeanaTerms = [
-    `${primaryLocation}`,
-    `${primaryLocation} monument`,
-    `${primaryLocation} historic`
-  ]
-
-  for (const term of europeanaTerms) {
-    fetchPromises.push(
-      fetchEuropeanaImages(term, 5)
-        .then(urls => {
-          if (urls.length > 0) {
-            allImages.push(...urls)
-          }
-        })
-        .catch(err => console.error('Europeana error:', err))
-    )
-  }
-
-  // 3. Pexels (high quality, unlimited) - WITH SMART FILTERING
+  // PRIORITY #2: Pexels (high quality stock photos with smart filtering)
   const pexelsKey = process.env.PEXELS_API_KEY
   if (pexelsKey) {
-    console.log('📸 Querying Pexels for high-res images...')
-    const searchTerms = [
+    console.log('🥈 PRIORITY #2: Pexels (high-res images with smart filtering)...')
+    const pexelsSearchTerms = [
       `${primaryLocation} cityscape`,
       `${primaryLocation} skyline`,
       `${primaryLocation} architecture`,
@@ -811,7 +1029,7 @@ export async function fetchLocationGalleryHighQuality(
       `${primaryLocation} aerial view`
     ]
 
-    for (const term of searchTerms) {
+    for (const term of pexelsSearchTerms) {
       fetchPromises.push(
         fetch(
           `https://api.pexels.com/v1/search?query=${encodeURIComponent(term)}&per_page=15&orientation=landscape`,
@@ -825,12 +1043,15 @@ export async function fetchLocationGalleryHighQuality(
                 const alt = (p.alt || '').toLowerCase()
                 const locationLower = primaryLocation.toLowerCase()
 
-                // REJECT: People, interiors, statues, night, street level, B&W, military, silhouettes, bridges, sports, facades, nature close-ups
+                // REJECT: People, interiors, statues, night, street level, B&W, military, silhouettes, bridges, sports, facades, nature close-ups, stadiums
                 const rejectKeywords = [
                   // People (EXPANDED)
                   'person', 'woman', 'man', 'people', 'portrait', 'face', 'selfie', 'crowd',
                   'human', 'lady', 'gentleman', 'boy', 'girl', 'child', 'tourist', 'traveler',
                   'laughing', 'smiling', 'nude', 'naked',
+                  // Sports & Stadiums
+                  'stadium', 'stadiums', 'arena', 'arenas', 'sports', 'football', 'soccer', 'baseball',
+                  'basketball', 'tennis', 'field', 'pitch', 'court', 'track',
                   // Interiors
                   'bedroom', 'living room', 'interior', 'furniture', 'couch', 'bed', 'room',
                   // Vehicles
@@ -855,13 +1076,15 @@ export async function fetchLocationGalleryHighQuality(
                   'facade', 'building facade', 'wall', 'door',
                   // Image Quality
                   'transparent', 'png', 'cutout', 'isolated',
-                  // Nature Close-ups (NEW)
+                  // Nature Close-ups (AGGRESSIVE - no close-ups, only environments)
                   'tree', 'trees', 'leaf', 'leaves', 'branch', 'trunk', 'forest floor', 'cedar',
                   'animal', 'animals', 'bird', 'birds', 'wildlife', 'dog', 'cat', 'pet',
                   'insect', 'insects', 'bug', 'bugs', 'butterfly', 'bee', 'spider',
-                  'sky only', 'clouds only', 'sunset', 'sunrise', 'dawn', 'dusk',
+                  // Sky-Only & Sunset (AGGRESSIVE - no sky-only images)
+                  'sky only', 'clouds only', 'cloud', 'sunset', 'sunrise', 'dawn', 'dusk',
+                  'twilight', 'golden hour', 'magic hour', 'dramatic sky',
                   // Signs & Text
-                  'sign', 'signs', 'signage', 'text', 'billboard'
+                  'sign', 'signs', 'signage', 'text', 'billboard', 'graffiti', 'writing'
                 ]
                 if (rejectKeywords.some(kw => alt.includes(kw))) {
                   return false
@@ -872,11 +1095,20 @@ export async function fetchLocationGalleryHighQuality(
                   return false
                 }
 
-                // ACCEPT: Images that mention the location OR relevant keywords
-                const acceptKeywords = ['city', 'building', 'architecture', 'skyline', 'landmark',
-                                       'aerial', 'view', 'town', 'cathedral', 'church',
-                                       'square', 'tower', 'castle', 'monument', 'panorama',
-                                       'cityscape', 'downtown', 'daytime', 'blue sky']
+                // ACCEPT: PRIORITY - Locations and environments ONLY
+                // NO people, NO objects, NO sky-only - JUST locations and environments
+                const acceptKeywords = [
+                  // Cityscapes & Urban Environments
+                  'city', 'skyline', 'aerial', 'view', 'cityscape', 'panorama', 'downtown', 'urban',
+                  // Architecture & Buildings (as part of environment)
+                  'architecture', 'building', 'tower', 'cathedral', 'monument', 'landmark',
+                  'palace', 'castle', 'temple', 'mosque', 'church', 'square', 'town',
+                  // Natural Landscapes & Environments
+                  'landscape', 'mountain', 'valley', 'coastline', 'beach', 'ocean', 'lake', 'river',
+                  'forest', 'countryside', 'hills', 'cliffs',
+                  // Daytime & Clear Views
+                  'daytime', 'day', 'blue sky', 'sunny'
+                ]
                 const hasLocation = alt.includes(locationLower)
                 const hasRelevantKeyword = acceptKeywords.some(kw => alt.includes(kw))
 
@@ -893,7 +1125,61 @@ export async function fetchLocationGalleryHighQuality(
     }
   }
 
-  // 4. Unsplash API (high quality, 50/hour limit) - WITH SMART FILTERING
+  // PRIORITY #3: Flickr ULTRA (NO API KEY! Lighter filtering than Reddit)
+  console.log('🥉 PRIORITY #3: Flickr ULTRA (NO API KEY with lighter filtering)...')
+  fetchPromises.push(
+    fetchFlickrImages(primaryLocation, 20)
+      .then(urls => {
+        if (urls.length > 0) {
+          console.log(`✅ Flickr ULTRA: Found ${urls.length} filtered images`)
+          allImages.push(...urls)
+        }
+      })
+      .catch(err => console.error('Flickr ULTRA error:', err))
+  )
+
+  // 4. Openverse (800M+ images, NO API KEY NEEDED!)
+  console.log('📸 Querying Openverse (api.openverse.engineering)...')
+  const openverseTerms = [
+    `${primaryLocation} cityscape`,
+    `${primaryLocation} landmark`,
+    `${primaryLocation} architecture`,
+    `${primaryLocation} travel`
+  ]
+
+  for (const term of openverseTerms) {
+    fetchPromises.push(
+      fetchOpenverseImages(term, 5)
+        .then(urls => {
+          if (urls.length > 0) {
+            allImages.push(...urls)
+          }
+        })
+        .catch(err => console.error('Openverse error:', err))
+    )
+  }
+
+  // 5. Europeana (50M+ cultural heritage images, NO API KEY NEEDED!)
+  console.log('📸 Querying Europeana (museums & archives)...')
+  const europeanaTerms = [
+    `${primaryLocation}`,
+    `${primaryLocation} monument`,
+    `${primaryLocation} historic`
+  ]
+
+  for (const term of europeanaTerms) {
+    fetchPromises.push(
+      fetchEuropeanaImages(term, 5)
+        .then(urls => {
+          if (urls.length > 0) {
+            allImages.push(...urls)
+          }
+        })
+        .catch(err => console.error('Europeana error:', err))
+    )
+  }
+
+  // 6. Unsplash API (high quality, 50/hour limit) - WITH SMART FILTERING
   const unsplashKey = process.env.UNSPLASH_ACCESS_KEY
   if (unsplashKey) {
     console.log('📸 Querying Unsplash for high-res images...')
@@ -917,12 +1203,15 @@ export async function fetchLocationGalleryHighQuality(
                 const description = (r.description || r.alt_description || '').toLowerCase()
                 const locationLower = primaryLocation.toLowerCase()
 
-                // REJECT: People, interiors, statues, night, street level, B&W, military, silhouettes, bridges, sports, facades, nature close-ups
+                // REJECT: People, interiors, statues, night, street level, B&W, military, silhouettes, bridges, sports, facades, nature close-ups, stadiums
                 const rejectKeywords = [
                   // People (EXPANDED)
                   'person', 'woman', 'man', 'people', 'portrait', 'face', 'selfie', 'crowd',
                   'human', 'lady', 'gentleman', 'boy', 'girl', 'child', 'tourist', 'traveler',
                   'laughing', 'smiling', 'nude', 'naked',
+                  // Sports & Stadiums
+                  'stadium', 'stadiums', 'arena', 'arenas', 'sports', 'football', 'soccer', 'baseball',
+                  'basketball', 'tennis', 'field', 'pitch', 'court', 'track',
                   // Interiors
                   'bedroom', 'living room', 'interior', 'furniture', 'couch', 'bed', 'room',
                   // Vehicles
@@ -947,13 +1236,15 @@ export async function fetchLocationGalleryHighQuality(
                   'facade', 'building facade', 'wall', 'door',
                   // Image Quality
                   'transparent', 'png', 'cutout', 'isolated',
-                  // Nature Close-ups (NEW)
+                  // Nature Close-ups (AGGRESSIVE - no close-ups, only environments)
                   'tree', 'trees', 'leaf', 'leaves', 'branch', 'trunk', 'forest floor', 'cedar',
                   'animal', 'animals', 'bird', 'birds', 'wildlife', 'dog', 'cat', 'pet',
                   'insect', 'insects', 'bug', 'bugs', 'butterfly', 'bee', 'spider',
-                  'sky only', 'clouds only', 'sunset', 'sunrise', 'dawn', 'dusk',
+                  // Sky-Only & Sunset (AGGRESSIVE - no sky-only images)
+                  'sky only', 'clouds only', 'cloud', 'sunset', 'sunrise', 'dawn', 'dusk',
+                  'twilight', 'golden hour', 'magic hour', 'dramatic sky',
                   // Signs & Text
-                  'sign', 'signs', 'signage', 'text', 'billboard'
+                  'sign', 'signs', 'signage', 'text', 'billboard', 'graffiti', 'writing'
                 ]
                 if (rejectKeywords.some(kw => description.includes(kw))) {
                   return false
@@ -964,11 +1255,20 @@ export async function fetchLocationGalleryHighQuality(
                   return false
                 }
 
-                // ACCEPT: Images that mention the location OR relevant keywords
-                const acceptKeywords = ['city', 'building', 'architecture', 'skyline', 'landmark',
-                                       'aerial', 'view', 'town', 'cathedral', 'church',
-                                       'square', 'tower', 'castle', 'monument', 'historic',
-                                       'panorama', 'cityscape', 'downtown', 'daytime', 'blue sky']
+                // ACCEPT: PRIORITY - Locations and environments ONLY
+                // NO people, NO objects, NO sky-only - JUST locations and environments
+                const acceptKeywords = [
+                  // Cityscapes & Urban Environments
+                  'city', 'skyline', 'aerial', 'view', 'cityscape', 'panorama', 'downtown', 'urban',
+                  // Architecture & Buildings (as part of environment)
+                  'architecture', 'building', 'tower', 'cathedral', 'monument', 'landmark',
+                  'palace', 'castle', 'temple', 'mosque', 'church', 'square', 'town', 'historic',
+                  // Natural Landscapes & Environments
+                  'landscape', 'mountain', 'valley', 'coastline', 'beach', 'ocean', 'lake', 'river',
+                  'forest', 'countryside', 'hills', 'cliffs',
+                  // Daytime & Clear Views
+                  'daytime', 'day', 'blue sky', 'sunny'
+                ]
                 const hasLocation = description.includes(locationLower)
                 const hasRelevantKeyword = acceptKeywords.some(kw => description.includes(kw))
 

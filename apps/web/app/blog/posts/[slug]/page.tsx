@@ -136,9 +136,14 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         publishedAt={post.published_at || post.created_at}
         readTime={content.readTime || 10}
         author={{
+          id: post.author_id,
           name: post.profiles?.full_name || post.profiles?.username || 'Anonymous',
+          username: post.profiles?.username,
           avatar: post.profiles?.avatar_url,
-          bio: post.profiles?.bio
+          bio: post.profiles?.bio,
+          expertise: post.profiles?.expertise,
+          writing_style: post.profiles?.writing_style,
+          travel_preferences: post.profiles?.travel_preferences
         }}
         trip={tripData}
         introduction={content.introduction}
@@ -147,6 +152,9 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         category={post.category}
         viewCount={post.view_count || 0}
         likeCount={0}
+        postId={post.id}
+        enableAffiliateLinks={true}
+        enableGoogleAds={true}
       />
     </>
   )

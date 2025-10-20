@@ -17,6 +17,7 @@ export interface AffiliateParams {
 let hasWarnedBooking = false
 let hasWarnedGetYourGuide = false
 let hasWarnedViator = false
+let hasWarnedTravelpayouts = false
 
 /**
  * Generate Booking.com affiliate link
@@ -175,40 +176,99 @@ export async function trackAffiliateClick(
 }
 
 /**
- * Generate Travelpayouts hotel link
- * Commission: Variable based on hotel bookings
+ * Generate Travelpayouts hotel search link
+ * Travelpayouts is a FREE affiliate aggregator with access to 100+ travel brands
+ * Commission: 25-40% on hotels (via Booking.com, Agoda, Hotels.com)
  */
 export function generateTravelpayoutsHotelLink(params: AffiliateParams): string {
   const marker = process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ''
 
+  if (!marker && !hasWarnedTravelpayouts && process.env.NODE_ENV === 'development') {
+    console.warn('NEXT_PUBLIC_TRAVELPAYOUTS_MARKER not set - no commission will be earned')
+    hasWarnedTravelpayouts = true
+  }
+
+  // Travelpayouts hotel search widget
   const baseUrl = 'https://search.hotellook.com'
 
   const urlParams = new URLSearchParams({
-    location: params.locationName,
-    ...(params.latitude && { lat: params.latitude.toString() }),
-    ...(params.longitude && { lon: params.longitude.toString() }),
+    marker: marker || 'travelblogr',
+    locale: 'en',
+    currency: 'USD',
+    destination: params.locationName,
     ...(params.checkIn && { checkIn: params.checkIn }),
     ...(params.checkOut && { checkOut: params.checkOut }),
-    ...(marker && { marker }),
   })
 
   return `${baseUrl}?${urlParams.toString()}`
 }
 
 /**
- * Generate Travelpayouts activities link
- * Commission: Variable based on activity bookings
+ * Generate Travelpayouts activities/tours link
+ * Commission: 8-12% on tours and activities (via GetYourGuide, Viator)
  */
 export function generateTravelpayoutsActivitiesLink(locationName: string): string {
   const marker = process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ''
 
-  const baseUrl = 'https://tp.media/click'
+  // Travelpayouts GetYourGuide integration
+  const baseUrl = 'https://www.getyourguide.com/s'
 
   const urlParams = new URLSearchParams({
-    location: locationName,
-    ...(marker && { marker }),
+    q: locationName,
+    partner_id: marker || 'travelblogr',
     utm_source: 'travelblogr',
     utm_medium: 'affiliate',
+    utm_campaign: 'travelpayouts',
+  })
+
+  return `${baseUrl}?${urlParams.toString()}`
+}
+
+/**
+ * Generate Travelpayouts flight search link
+ * Commission: Up to 70% on flight bookings (via Aviasales, Kiwi.com)
+ */
+export function generateTravelpayoutsFlightLink(
+  origin: string,
+  destination: string,
+  departDate?: string,
+  returnDate?: string
+): string {
+  const marker = process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ''
+
+  // Travelpayouts Aviasales integration
+  const baseUrl = 'https://www.aviasales.com/search'
+
+  const urlParams = new URLSearchParams({
+    origin_iata: origin,
+    destination_iata: destination,
+    marker: marker || 'travelblogr',
+    ...(departDate && { depart_date: departDate }),
+    ...(returnDate && { return_date: returnDate }),
+  })
+
+  return `${baseUrl}?${urlParams.toString()}`
+}
+
+/**
+ * Generate Travelpayouts car rental link
+ * Commission: Up to 70% on car rentals (via Rentalcars.com, Discover Cars)
+ */
+export function generateTravelpayoutsCarRentalLink(
+  locationName: string,
+  pickupDate?: string,
+  dropoffDate?: string
+): string {
+  const marker = process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ''
+
+  // Travelpayouts Rentalcars integration
+  const baseUrl = 'https://www.rentalcars.com/SearchResults.do'
+
+  const urlParams = new URLSearchParams({
+    city: locationName,
+    affiliateCode: marker || 'travelblogr',
+    ...(pickupDate && { pickUpDate: pickupDate }),
+    ...(dropoffDate && { dropOffDate: dropoffDate }),
   })
 
   return `${baseUrl}?${urlParams.toString()}`
@@ -220,11 +280,15 @@ export function generateTravelpayoutsActivitiesLink(locationName: string): strin
  */
 export function getAllAffiliateLinks(params: AffiliateParams) {
   return {
+    // Direct providers
     booking: generateBookingLink(params),
     airbnb: generateAirbnbLink(params),
     travelpayoutsHotel: generateTravelpayoutsHotelLink(params),
     activities: generateGetYourGuideLink(params.locationName),
     tours: generateViatorLink(params.locationName),
+
+    // Travelpayouts aggregator (recommended - easier setup)
+    travelpayoutsHotels: generateTravelpayoutsHotelLink(params),
     travelpayoutsActivities: generateTravelpayoutsActivitiesLink(params.locationName),
   }
 }

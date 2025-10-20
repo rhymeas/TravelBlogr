@@ -51,10 +51,10 @@ export async function GET(
       return NextResponse.json({ error: 'Post not found' }, { status: 404 })
     }
 
-    // Fetch author profile separately
+    // Fetch author profile separately with all fields for author modal
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id, full_name, username, avatar_url')
+      .select('id, full_name, username, avatar_url, bio, expertise, writing_style, travel_preferences')
       .eq('id', post.author_id)
       .single()
 

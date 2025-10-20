@@ -21,12 +21,14 @@ CREATE INDEX IF NOT EXISTS idx_route_cache_created_at ON route_cache(created_at)
 ALTER TABLE route_cache ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Anyone can read cached routes (public data)
+DROP POLICY IF EXISTS "Anyone can read route cache" ON route_cache;
 CREATE POLICY "Anyone can read route cache"
   ON route_cache
   FOR SELECT
   USING (true);
 
 -- Policy: Only service role can insert/update cache
+DROP POLICY IF EXISTS "Service role can manage route cache" ON route_cache;
 CREATE POLICY "Service role can manage route cache"
   ON route_cache
   FOR ALL

@@ -1,7 +1,8 @@
 /**
  * API Route: Fetch Location Images
  * Fetches images from multiple sources with quality filtering
- * NOW INCLUDES: Reddit, Pinterest, Flickr (NO API KEYS!)
+ * PRIORITY: Reddit ULTRA → Pexels → Flickr ULTRA → Openverse → Europeana → Unsplash
+ * ALL FREE - NO API KEYS REQUIRED for top 3 sources!
  */
 
 import { NextRequest, NextResponse } from 'next/server'

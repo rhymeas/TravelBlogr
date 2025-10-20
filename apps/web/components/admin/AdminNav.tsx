@@ -2,16 +2,18 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { 
-  LayoutDashboard, 
-  Activity, 
-  Globe, 
-  Wand2, 
-  Image as ImageIcon, 
-  Users, 
+import {
+  LayoutDashboard,
+  Activity,
+  Globe,
+  Wand2,
+  Image as ImageIcon,
+  Users,
   BarChart3,
   DollarSign,
-  Shield
+  Shield,
+  TestTube2,
+  FileText
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -70,6 +72,18 @@ const navItems: NavItem[] = [
     href: '/admin/costs',
     icon: DollarSign,
     description: 'Monitor service costs'
+  },
+  {
+    name: 'Reddit Images',
+    href: '/test/reddit-images',
+    icon: TestTube2,
+    description: 'Test Reddit ULTRA image fetching'
+  },
+  {
+    name: 'Blog CMS',
+    href: '/blog-cms',
+    icon: FileText,
+    description: 'Edit and manage blog posts'
   }
 ]
 

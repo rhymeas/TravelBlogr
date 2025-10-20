@@ -3,15 +3,29 @@
 /**
  * Blog Homepage - Redesigned
  *
- * Sleek, bubbly, emotional, spacey Airbnb-inspired design
- * Minimal colors, lots of white space, beautiful imagery
+ * Modern, sleek, minimal design with integrated monetization
+ * Features: Blog cards, Google Ads, affiliate CTAs, planning promotion
  */
 
 import Link from 'next/link'
 import { OptimizedImage } from '@/components/ui/OptimizedImage'
-import { ArrowRight, Sparkles, Heart, Globe } from 'lucide-react'
+import { BlogPostCard, BlogPostCardSkeleton } from '@/components/blog/BlogPostCard'
+import { useBlogPosts } from '@/hooks/useBlogData'
+import { ArrowRight, Sparkles, DollarSign, Zap, TrendingUp } from 'lucide-react'
 
 export default function BlogHomepage() {
+  // Fetch latest blog posts
+  const { posts: latestPosts, isLoading: loadingLatest } = useBlogPosts({
+    status: 'published',
+    limit: 6
+  })
+
+  // Fetch featured posts
+  const { posts: featuredPosts, isLoading: loadingFeatured } = useBlogPosts({
+    status: 'published',
+    limit: 2
+  })
+
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section - Beautiful and Spacey */}
@@ -121,51 +135,112 @@ export default function BlogHomepage() {
         </div>
       </section>
 
-      {/* Featured Stories - Clean Grid */}
-      <section className="py-24 bg-gray-50">
+      {/* Featured Stories */}
+      <section className="py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+          <div className="text-center mb-12">
+            <h2 className="text-display-medium font-bold text-airbnb-black mb-4">
+              Featured Stories
+            </h2>
+            <p className="text-body-medium text-airbnb-dark-gray">
+              Handpicked travel stories that inspire
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
+            {loadingFeatured ? (
+              <>
+                <BlogPostCardSkeleton featured />
+                <BlogPostCardSkeleton featured />
+              </>
+            ) : (
+              featuredPosts.slice(0, 2).map((post: any) => {
+                const content = typeof post.content === 'string'
+                  ? JSON.parse(post.content)
+                  : post.content
+
+                return (
+                  <BlogPostCard
+                    key={post.id}
+                    id={post.id}
+                    title={post.title}
+                    slug={post.slug}
+                    excerpt={post.excerpt || ''}
+                    featuredImage={post.featured_image || '/images/placeholder-trip.jpg'}
+                    author={{
+                      name: post.profiles?.full_name || post.profiles?.username || 'Anonymous',
+                      avatar: post.profiles?.avatar_url
+                    }}
+                    destination={content?.destination || 'Unknown'}
+                    duration={content?.days?.length ? `${content.days.length} days` : undefined}
+                    tags={post.tags || []}
+                    stats={{
+                      views: post.view_count || 0,
+                      likes: 0,
+                      shares: 0
+                    }}
+                    publishedAt={post.published_at || post.created_at}
+                    featured
+                  />
+                )
+              })
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Latest Adventures */}
+      <section className="py-16 lg:py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-display-medium font-bold text-airbnb-black mb-4">
               Latest Adventures
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-body-medium text-airbnb-dark-gray">
               Fresh stories from travelers around the world
             </p>
           </div>
 
-          {/* Story Cards Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Placeholder cards - will be replaced with real blog posts */}
-            {[1, 2, 3].map((i) => (
-              <Link
-                key={i}
-                href="/blog/posts"
-                className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-              >
-                <div className="aspect-[4/3] bg-gray-200 relative overflow-hidden">
-                  <OptimizedImage
-                    src={`https://images.unsplash.com/photo-${1469854523086 + i}?w=600`}
-                    alt="Travel destination"
-                    width={600}
-                    height={450}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {loadingLatest ? (
+              <>
+                <BlogPostCardSkeleton />
+                <BlogPostCardSkeleton />
+                <BlogPostCardSkeleton />
+                <BlogPostCardSkeleton />
+                <BlogPostCardSkeleton />
+                <BlogPostCardSkeleton />
+              </>
+            ) : (
+              latestPosts.map((post: any) => {
+                const content = typeof post.content === 'string'
+                  ? JSON.parse(post.content)
+                  : post.content
+
+                return (
+                  <BlogPostCard
+                    key={post.id}
+                    id={post.id}
+                    title={post.title}
+                    slug={post.slug}
+                    excerpt={post.excerpt || ''}
+                    featuredImage={post.featured_image || '/images/placeholder-trip.jpg'}
+                    author={{
+                      name: post.profiles?.full_name || post.profiles?.username || 'Anonymous',
+                      avatar: post.profiles?.avatar_url
+                    }}
+                    destination={content?.destination || 'Unknown'}
+                    duration={content?.days?.length ? `${content.days.length} days` : undefined}
+                    tags={post.tags || []}
+                    stats={{
+                      views: post.view_count || 0,
+                      likes: 0
+                    }}
+                    publishedAt={post.published_at || post.created_at}
                   />
-                </div>
-                <div className="p-6 space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <span>5 min read</span>
-                    <span>•</span>
-                    <span>2 days ago</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 group-hover:text-rausch-500 transition-colors">
-                    Amazing Journey Through Europe
-                  </h3>
-                  <p className="text-gray-600 line-clamp-2">
-                    Discover the hidden gems and unforgettable experiences from a 2-week adventure across Europe.
-                  </p>
-                </div>
-              </Link>
-            ))}
+                )
+              })
+            )}
           </div>
 
           <div className="text-center mt-12">
@@ -180,140 +255,166 @@ export default function BlogHomepage() {
         </div>
       </section>
 
-      {/* How It Works - Step by Step */}
-      <section className="py-24 bg-gray-50">
+      {/* Planning CTA - Promote Trip Planner */}
+      <section className="py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
-              How It Works
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-8 lg:p-12 text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full mb-6">
+              <Zap className="h-4 w-4 text-white" />
+              <span className="text-sm font-medium text-white">AI-Powered Planning</span>
+            </div>
+            <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
+              Plan Your Next Adventure in Minutes
             </h2>
-            <p className="text-lg text-gray-600">
-              Start earning from your travel experiences in 3 simple steps
+            <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
+              Our AI trip planner creates personalized itineraries with activities, restaurants, and hidden gems. Turn your plan into a blog post and start earning.
+            </p>
+            <div className="flex flex-wrap gap-4 justify-center">
+              <Link
+                href="/plan"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-white text-gray-900 rounded-full font-medium hover:bg-gray-100 transition-all hover:scale-105"
+              >
+                Start Planning Free
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+              <Link
+                href="/examples"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 text-white rounded-full font-medium hover:bg-white/20 transition-all border border-white/20"
+              >
+                See Examples
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Monetization Features */}
+      <section className="py-16 lg:py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-display-medium font-bold text-airbnb-black mb-4">
+              Earn Money from Your Stories
+            </h2>
+            <p className="text-body-medium text-airbnb-dark-gray">
+              Multiple ways to monetize your travel content
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-12">
-            {/* Step 1 */}
-            <div className="relative">
-              <div className="text-center space-y-4">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-rausch-500 text-white rounded-full text-2xl font-bold">
-                  1
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900">Plan Your Trip</h3>
-                <p className="text-gray-600">
-                  Use our AI-powered trip planner to create a detailed itinerary. Add destinations, activities, and personal tips from your journey.
-                </p>
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Affiliate Commissions */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-8">
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                <DollarSign className="h-6 w-6 text-gray-700" />
               </div>
-              {/* Connector Line */}
-              <div className="hidden lg:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-rausch-300 to-transparent" />
-            </div>
-
-            {/* Step 2 */}
-            <div className="relative">
-              <div className="text-center space-y-4">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-rausch-500 text-white rounded-full text-2xl font-bold">
-                  2
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900">Publish & Share</h3>
-                <p className="text-gray-600">
-                  Transform your trip into a beautiful blog post with photos, maps, and recommendations. Our AI helps you write engaging content.
-                </p>
-              </div>
-              {/* Connector Line */}
-              <div className="hidden lg:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-rausch-300 to-transparent" />
-            </div>
-
-            {/* Step 3 */}
-            <div className="text-center space-y-4">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-rausch-500 text-white rounded-full text-2xl font-bold">
-                3
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900">Earn Money</h3>
-              <p className="text-gray-600">
-                Get 70% commission when readers book hotels, tours, or flights through your affiliate links. Track your earnings in real-time.
+              <h3 className="text-xl font-bold text-gray-900 mb-3">70% Affiliate Commission</h3>
+              <p className="text-gray-600 mb-4">
+                Earn when readers book hotels, tours, or flights through your recommendations. Integrated with Booking.com, Airbnb, GetYourGuide, and more.
               </p>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li className="flex items-center gap-2">
+                  <span className="text-gray-400">•</span>
+                  Hotels: 25-40% commission
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-gray-400">•</span>
+                  Tours: 8-12% commission
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-gray-400">•</span>
+                  Flights: Up to 70% commission
+                </li>
+              </ul>
+            </div>
+
+            {/* Google Ads */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-8">
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                <TrendingUp className="h-6 w-6 text-gray-700" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Google AdSense Revenue</h3>
+              <p className="text-gray-600 mb-4">
+                Automatically placed ads on your blog posts. Earn $2-5 per 1,000 views with strategic ad placement that doesn't disrupt reading experience.
+              </p>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li className="flex items-center gap-2">
+                  <span className="text-gray-400">•</span>
+                  Automatic ad optimization
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-gray-400">•</span>
+                  Non-intrusive placement
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-gray-400">•</span>
+                  Monthly payouts
+                </li>
+              </ul>
+            </div>
+
+            {/* Premium Features */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-8">
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                <Sparkles className="h-6 w-6 text-gray-700" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Buy Credits for AI Features</h3>
+              <p className="text-gray-600 mb-4">
+                Unlock advanced AI writing, unlimited trip planning, and premium analytics. Pay only for what you use with our flexible credit system.
+              </p>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li className="flex items-center gap-2">
+                  <span className="text-gray-400">•</span>
+                  AI content generation
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-gray-400">•</span>
+                  Unlimited planning
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-gray-400">•</span>
+                  Advanced analytics
+                </li>
+              </ul>
             </div>
           </div>
 
           <div className="text-center mt-12">
             <Link
-              href="/how-it-works"
-              className="inline-flex items-center gap-2 text-rausch-500 hover:text-rausch-600 font-medium"
+              href="/dashboard"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gray-900 text-white rounded-full font-medium hover:bg-gray-800 transition-all hover:scale-105"
             >
-              Learn more about earning with TravelBlogr
+              Start Earning Today
               <ArrowRight className="h-5 w-5" />
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Community Engagement */}
-      <section className="py-24">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="grid lg:grid-cols-3 gap-12">
-            <div className="text-center space-y-4">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-rausch-50 rounded-full">
-                <Heart className="h-8 w-8 text-rausch-500" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900">Supportive Community</h3>
-              <p className="text-gray-600">
-                Join thousands of travel creators sharing tips, feedback, and inspiration. Get help from experienced bloggers.
-              </p>
-            </div>
-
-            <div className="text-center space-y-4">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-rausch-50 rounded-full">
-                <Globe className="h-8 w-8 text-rausch-500" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900">Global Reach</h3>
-              <p className="text-gray-600">
-                Your stories reach travelers worldwide. Build your audience and establish yourself as a trusted travel expert.
-              </p>
-            </div>
-
-            <div className="text-center space-y-4">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-rausch-50 rounded-full">
-                <Sparkles className="h-8 w-8 text-rausch-500" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900">AI-Powered Tools</h3>
-              <p className="text-gray-600">
-                Our smart writing assistant helps you create professional content faster. Focus on your experiences, we handle the rest.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section - Simple and Elegant */}
-      <section className="py-24 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center space-y-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full mb-4">
-            <Sparkles className="h-4 w-4 text-rausch-400" />
-            <span className="text-sm font-medium text-white">Free to start, easy to earn</span>
-          </div>
-          <h2 className="text-4xl lg:text-5xl font-bold text-white">
-            Your next adventure could pay for itself
+      {/* Final CTA - Simple and Clean */}
+      <section className="py-16 lg:py-24">
+        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
+          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            Ready to Share Your Story?
           </h2>
-          <p className="text-xl text-gray-300">
-            Join 10,000+ travel creators earning money from their journeys. Start creating your first trip guide today—it's completely free.
+          <p className="text-lg text-gray-600 mb-8">
+            Join thousands of travel creators earning money from their journeys. Start creating your first trip guide today—it's completely free.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Link
               href="/plan"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-rausch-500 text-white rounded-full font-medium hover:bg-rausch-600 transition-all hover:scale-105 shadow-lg shadow-rausch-500/30"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gray-900 text-white rounded-full font-medium hover:bg-gray-800 transition-all hover:scale-105"
             >
               Create Your First Trip
               <ArrowRight className="h-5 w-5" />
             </Link>
             <Link
-              href="/how-it-works"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 text-white rounded-full font-medium hover:bg-white/20 transition-all border border-white/20"
+              href="/dashboard"
+              className="inline-flex items-center gap-2 px-8 py-4 border-2 border-gray-900 text-gray-900 rounded-full font-medium hover:bg-gray-50 transition-all"
             >
-              See How It Works
+              View Dashboard
             </Link>
           </div>
-          <p className="text-sm text-gray-400 mt-4">
-            No credit card required • 70% commission rate • Instant payouts
+          <p className="text-sm text-gray-500 mt-6">
+            No credit card required • 70% commission rate • Free to start
           </p>
         </div>
       </section>

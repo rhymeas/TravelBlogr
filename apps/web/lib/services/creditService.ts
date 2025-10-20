@@ -62,10 +62,14 @@ export async function getUserCredits(userId: string): Promise<number> {
 }
 
 /**
- * Get full credit details for a user (client-side)
+ * Get full credit details for a user
+ * Can be used client-side or server-side by passing a supabase client
  */
-export async function getUserCreditDetails(userId: string): Promise<UserCredits | null> {
-  const supabase = getBrowserSupabase()
+export async function getUserCreditDetails(
+  userId: string,
+  supabaseClient?: any
+): Promise<UserCredits | null> {
+  const supabase = supabaseClient || getBrowserSupabase()
 
   const { data, error } = await supabase
     .from('user_credits')
@@ -93,12 +97,17 @@ export async function hasCredits(userId: string, required: number = 1): Promise<
 // have been moved to creditService.server.ts for server-side use only
 
 /**
- * Get user's monthly AI usage count (client-side)
+ * Get user's monthly AI usage count
+ * Can be used client-side or server-side by passing a supabase client
  * @param userId - User ID
+ * @param supabaseClient - Optional Supabase client (for server-side use)
  */
-export async function getMonthlyAIUsage(userId: string): Promise<number> {
-  const supabase = getBrowserSupabase()
-  
+export async function getMonthlyAIUsage(
+  userId: string,
+  supabaseClient?: any
+): Promise<number> {
+  const supabase = supabaseClient || getBrowserSupabase()
+
   try {
     const { data, error } = await supabase.rpc('get_current_month_usage', {
       p_user_id: userId,
@@ -170,8 +179,12 @@ export async function canGenerateAI(userId: string, proMode: boolean = false): P
 
 /**
  * Get credit usage statistics
+ * Can be used client-side or server-side by passing a supabase client
  */
-export async function getCreditStats(userId: string): Promise<{
+export async function getCreditStats(
+  userId: string,
+  supabaseClient?: any
+): Promise<{
   totalPurchased: number
   totalUsed: number
   remaining: number
@@ -180,8 +193,8 @@ export async function getCreditStats(userId: string): Promise<{
   remainingFree: number
 }> {
   const [details, monthlyUsage] = await Promise.all([
-    getUserCreditDetails(userId),
-    getMonthlyAIUsage(userId),
+    getUserCreditDetails(userId, supabaseClient),
+    getMonthlyAIUsage(userId, supabaseClient),
   ])
 
   return {

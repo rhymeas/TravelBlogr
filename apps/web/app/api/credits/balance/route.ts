@@ -21,8 +21,8 @@ export async function GET() {
       )
     }
 
-    // Get credit statistics
-    const stats = await getCreditStats(user.id)
+    // Get credit statistics (pass supabase client for server-side use)
+    const stats = await getCreditStats(user.id, supabase)
 
     return NextResponse.json({
       success: true,

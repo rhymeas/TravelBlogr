@@ -526,56 +526,132 @@ function generateTags(trip: Trip, posts: Post[], destination: string, category: 
 }
 
 /**
- * Extract location coordinates from trip data
+ * Geocode a location name to coordinates using GeoNames API
+ * CRITICAL: This ensures we ALWAYS have coordinates for maps
  */
-function extractLocationCoordinates(trip: Trip, posts: Post[]): Array<{ lat: number; lng: number; name: string }> {
-  const coordinates: Array<{ lat: number; lng: number; name: string }> = []
+async function geocodeLocation(locationName: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const username = process.env.GEONAMES_USERNAME || 'travelblogr'
+    const response = await fetch(
+      `http://api.geonames.org/searchJSON?q=${encodeURIComponent(locationName)}&maxRows=1&username=${username}`
+    )
 
-  // Try to extract from location_data JSONB
-  if (trip.location_data) {
-    if (trip.location_data.route?.geometry) {
-      // Extract from route geometry
-      const geometry = trip.location_data.route.geometry
-      if (Array.isArray(geometry) && geometry.length > 0) {
-        geometry.forEach((coord: number[], index: number) => {
-          if (coord.length === 2) {
-            coordinates.push({
-              lat: coord[1],
-              lng: coord[0],
-              name: `Stop ${index + 1}`
-            })
-          }
-        })
-      }
-    }
+    if (!response.ok) return null
 
-    if (trip.location_data.locations?.major) {
-      // Extract from major locations
-      trip.location_data.locations.major.forEach((loc: any) => {
-        if (loc.lat && loc.lng) {
-          coordinates.push({
-            lat: loc.lat,
-            lng: loc.lng,
-            name: loc.name || "Location"
-          })
-        }
-      })
+    const data = await response.json()
+    const result = data.geonames?.[0]
+
+    if (!result) return null
+
+    return {
+      lat: parseFloat(result.lat),
+      lng: parseFloat(result.lng)
     }
+  } catch (error) {
+    console.error(`❌ Geocoding error for "${locationName}":`, error)
+    return null
+  }
+}
+
+/**
+ * Extract ACTUAL location name from post or trip data
+ * CRITICAL: Returns the city/place name, NOT descriptive titles
+ */
+function extractActualLocationName(post: Post, trip: Trip, destination: string): string {
+  // Priority 1: Post location (if it's a real place name, not a title)
+  if (post.location && post.location.length < 50 && !post.location.includes(':')) {
+    return post.location
   }
 
-  // Extract from posts location_data
-  posts.forEach((post) => {
-    if (post.location_data?.coordinates) {
-      const { lat, lng } = post.location_data.coordinates
-      if (lat && lng) {
+  // Priority 2: Trip location_data
+  if (trip.location_data?.locations?.major?.[0]?.name) {
+    return trip.location_data.locations.major[0].name
+  }
+
+  // Priority 3: Trip destination
+  if (trip.location_data?.route?.to) {
+    return trip.location_data.route.to
+  }
+
+  // Priority 4: Extracted destination from title
+  return destination
+}
+
+/**
+ * Extract location coordinates from trip data WITH GEOCODING
+ * CRITICAL: This ensures ALL blog posts have working maps at scale
+ */
+async function extractLocationCoordinates(
+  trip: Trip,
+  posts: Post[],
+  destination: string
+): Promise<Array<{ lat: number; lng: number; name: string }>> {
+  const coordinates: Array<{ lat: number; lng: number; name: string }> = []
+
+  console.log(`   🗺️  Geocoding locations for map...`)
+
+  // Try to extract from location_data JSONB first
+  if (trip.location_data?.locations?.major) {
+    trip.location_data.locations.major.forEach((loc: any) => {
+      if (loc.lat && loc.lng && loc.name) {
         coordinates.push({
-          lat,
-          lng,
-          name: post.location || post.title
+          lat: loc.lat,
+          lng: loc.lng,
+          name: loc.name
+        })
+      }
+    })
+  }
+
+  // If we have coordinates from trip data, use them
+  if (coordinates.length > 0) {
+    console.log(`   ✅ Found ${coordinates.length} coordinates from trip data`)
+    return coordinates
+  }
+
+  // Otherwise, geocode each post's location
+  for (let i = 0; i < posts.length; i++) {
+    const post = posts[i]
+    const locationName = extractActualLocationName(post, trip, destination)
+
+    console.log(`   🔍 Geocoding Day ${i + 1}: ${locationName}`)
+
+    // Try to get coordinates from post data first
+    if (post.location_data?.coordinates) {
+      coordinates.push({
+        lat: post.location_data.coordinates.lat,
+        lng: post.location_data.coordinates.lng,
+        name: locationName
+      })
+      console.log(`   ✅ Day ${i + 1}: Using existing coordinates`)
+      continue
+    }
+
+    // Geocode the location
+    const coords = await geocodeLocation(locationName)
+    if (coords) {
+      coordinates.push({
+        lat: coords.lat,
+        lng: coords.lng,
+        name: locationName
+      })
+      console.log(`   ✅ Day ${i + 1}: ${coords.lat}, ${coords.lng}`)
+    } else {
+      console.log(`   ⚠️  Day ${i + 1}: Could not geocode, using destination fallback`)
+      // Fallback: Use destination coordinates
+      const destCoords = await geocodeLocation(destination)
+      if (destCoords) {
+        coordinates.push({
+          lat: destCoords.lat,
+          lng: destCoords.lng,
+          name: locationName
         })
       }
     }
-  })
+
+    // Add delay to avoid rate limiting (GeoNames free tier)
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
 
   return coordinates
 }
@@ -609,17 +685,22 @@ async function generateBlogPostForTrip(trip: Trip): Promise<void> {
   console.log(`   ✍️  Generating blog post content...`)
   const blogContent = generateBlogPostContent(trip, posts)
 
-  // Extract location coordinates for map
-  const locationCoordinates = extractLocationCoordinates(trip, posts)
+  // Extract location coordinates for map WITH GEOCODING
+  // CRITICAL: This ensures ALL blog posts have working maps
+  const locationCoordinates = await extractLocationCoordinates(trip, posts, blogContent.destination)
   console.log(`   📍 Extracted ${locationCoordinates.length} location coordinates`)
 
   // Enrich days with location coordinates
+  // CRITICAL: Use actual location names, not descriptive titles
   const enrichedDays = blogContent.days.map((day, index) => {
     const coords = locationCoordinates[index] || locationCoordinates[0]
+    // Use the geocoded location name, not the day title
+    const actualLocationName = coords?.name || extractActualLocationName(posts[index], trip, blogContent.destination)
+
     return {
       ...day,
       location: {
-        name: day.location?.name || coords?.name || posts[index]?.location || "Unknown",
+        name: actualLocationName, // CRITICAL: Actual location name for geocoding
         coordinates: coords ? { lat: coords.lat, lng: coords.lng } : undefined
       }
     }

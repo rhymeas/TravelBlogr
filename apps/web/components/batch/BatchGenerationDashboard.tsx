@@ -52,6 +52,7 @@ export function BatchGenerationDashboard() {
   const [jobs, setJobs] = useState<BatchJob[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedTrips, setSelectedTrips] = useState<string[]>([])
+  const [useRandomPersona, setUseRandomPersona] = useState(false)
 
   // Check if user is admin
   const userIsAdmin = isAdmin(user?.email)
@@ -65,19 +66,40 @@ export function BatchGenerationDashboard() {
   const loadAvailableTrips = async () => {
     const supabase = getBrowserSupabase()
     const { data: { user } } = await supabase.auth.getUser()
-    
+
     if (!user) return
 
-    // Get trips without blog posts
+    // Get all published trips with their blog post count
     const { data: trips } = await supabase
       .from('trips')
-      .select('id, title, description, start_date, end_date, posts(count)')
+      .select(`
+        id,
+        title,
+        description,
+        start_date,
+        end_date,
+        trip_type,
+        destination
+      `)
       .eq('user_id', user.id)
       .eq('status', 'published')
-      .is('blog_post_id', null)
       .order('created_at', { ascending: false })
 
-    setAvailableTrips(trips || [])
+    if (!trips) {
+      setAvailableTrips([])
+      return
+    }
+
+    // Filter out trips that already have blog posts
+    const { data: blogPosts } = await supabase
+      .from('blog_posts')
+      .select('trip_id')
+      .in('trip_id', trips.map(t => t.id))
+
+    const tripIdsWithBlogs = new Set(blogPosts?.map(bp => bp.trip_id) || [])
+    const tripsWithoutBlogs = trips.filter(trip => !tripIdsWithBlogs.has(trip.id))
+
+    setAvailableTrips(tripsWithoutBlogs)
   }
 
   const loadBatchJobs = async () => {
@@ -109,15 +131,18 @@ export function BatchGenerationDashboard() {
           tripIds: selectedTrips,
           autoPublish: false,
           includeAffiliate: true,
-          seoOptimize: true
+          seoOptimize: true,
+          useRandomPersona: useRandomPersona
         })
       })
 
       const data = await response.json()
 
       if (data.success) {
-        toast.success(`Batch job created for ${selectedTrips.length} trips!`)
+        const personaMsg = useRandomPersona ? ' with random personas' : ''
+        toast.success(`Batch job created for ${selectedTrips.length} trips${personaMsg}!`)
         setSelectedTrips([])
+        setUseRandomPersona(false)
         loadBatchJobs()
         setActiveTab('history')
       } else {
@@ -292,23 +317,34 @@ export function BatchGenerationDashboard() {
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="font-medium text-gray-900">{trip.title}</h3>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-medium text-gray-900">{trip.title}</h3>
+                            {trip.trip_type && (
+                              <Badge variant="secondary" className="text-xs">
+                                {trip.trip_type}
+                              </Badge>
+                            )}
+                          </div>
                           {trip.description && (
                             <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                               {trip.description}
                             </p>
                           )}
                           <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                            {trip.destination && (
+                              <span className="flex items-center gap-1">
+                                📍 {trip.destination}
+                              </span>
+                            )}
                             {trip.start_date && (
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
                                 {new Date(trip.start_date).toLocaleDateString()}
                               </span>
                             )}
-                            <span>{trip.posts?.[0]?.count || 0} days</span>
                           </div>
                         </div>
-                        
+
                         {selectedTrips.includes(trip.id) && (
                           <CheckCircle className="h-5 w-5 text-rausch-500 flex-shrink-0" />
                         )}
@@ -317,28 +353,52 @@ export function BatchGenerationDashboard() {
                   ))}
                 </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                  <div className="text-sm text-gray-600">
-                    {selectedTrips.length} trip{selectedTrips.length !== 1 ? 's' : ''} selected
+                <div className="space-y-4 pt-4 border-t border-gray-200">
+                  {/* Random Persona Option (Admin Only) */}
+                  {userIsAdmin && (
+                    <div className="flex items-center gap-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                      <input
+                        type="checkbox"
+                        id="randomPersona"
+                        checked={useRandomPersona}
+                        onChange={(e) => setUseRandomPersona(e.target.checked)}
+                        className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor="randomPersona" className="flex-1 cursor-pointer">
+                        <span className="text-sm font-medium text-purple-900">
+                          🎲 Use Random Persona
+                        </span>
+                        <p className="text-xs text-purple-700 mt-0.5">
+                          Assign a random team member (Emma, Marcus, Yuki, Sophie, or Alex) to write each blog post instead of the trip owner
+                        </p>
+                      </label>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      {selectedTrips.length} trip{selectedTrips.length !== 1 ? 's' : ''} selected
+                      {useRandomPersona && <span className="ml-2 text-purple-600">• Random personas</span>}
+                    </div>
+
+                    <Button
+                      onClick={handleGenerateBatch}
+                      disabled={loading || selectedTrips.length === 0}
+                      className="flex items-center gap-2"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Creating Batch...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4" />
+                          Generate {selectedTrips.length} Blog Post{selectedTrips.length !== 1 ? 's' : ''}
+                        </>
+                      )}
+                    </Button>
                   </div>
-                  
-                  <Button
-                    onClick={handleGenerateBatch}
-                    disabled={loading || selectedTrips.length === 0}
-                    className="flex items-center gap-2"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Creating Batch...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4" />
-                        Generate {selectedTrips.length} Blog Post{selectedTrips.length !== 1 ? 's' : ''}
-                      </>
-                    )}
-                  </Button>
                 </div>
               </>
             )}

@@ -11,7 +11,9 @@ import {
   DollarSign,
   TrendingUp,
   Database,
-  Zap
+  Zap,
+  TestTube2,
+  FileText
 } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -177,6 +179,20 @@ export default async function AdminPage() {
             icon={DollarSign}
             href="/admin/costs"
             color="bg-yellow-600"
+          />
+          <QuickAction
+            title="Reddit Images Test"
+            description="Test Reddit ULTRA image fetching for locations and trips"
+            icon={TestTube2}
+            href="/test/reddit-images"
+            color="bg-cyan-600"
+          />
+          <QuickAction
+            title="Blog CMS"
+            description="Edit and manage blog posts with rich text editor"
+            icon={FileText}
+            href="/blog-cms"
+            color="bg-teal-600"
           />
         </div>
       </div>
