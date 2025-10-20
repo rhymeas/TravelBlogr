@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 // Number of locations to load per batch (infinite scroll)
 const LOCATIONS_PER_PAGE = 20
@@ -54,6 +55,7 @@ interface LocationsGridProps {
 }
 
 export function LocationsGrid({ locations }: LocationsGridProps) {
+  const searchParams = useSearchParams()
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [displayedCount, setDisplayedCount] = useState(LOCATIONS_PER_PAGE)
   const [isLoading, setIsLoading] = useState(false)
@@ -63,10 +65,47 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
   const { profile } = useAuth()
   const isAdmin = (profile as any)?.role === 'admin'
 
+  // Filter locations based on search params
+  const filteredLocations = locations.filter(location => {
+    const searchQuery = searchParams.get('q')?.toLowerCase()
+    const category = searchParams.get('category')
+    const country = searchParams.get('country')
+    const rating = searchParams.get('rating')
+
+    // Search query filter
+    if (searchQuery) {
+      const matchesSearch =
+        location.name.toLowerCase().includes(searchQuery) ||
+        location.country.toLowerCase().includes(searchQuery) ||
+        location.region.toLowerCase().includes(searchQuery) ||
+        location.description.toLowerCase().includes(searchQuery)
+
+      if (!matchesSearch) return false
+    }
+
+    // Country filter
+    if (country && location.country.toLowerCase() !== country.toLowerCase()) {
+      return false
+    }
+
+    // Rating filter
+    if (rating && location.rating) {
+      const minRating = parseFloat(rating)
+      if (location.rating < minRating) return false
+    }
+
+    return true
+  })
+
+  // Reset displayed count when filters change
+  useEffect(() => {
+    setDisplayedCount(LOCATIONS_PER_PAGE)
+  }, [searchParams])
+
   // Infinite scroll: Load more when user scrolls near bottom
   useEffect(() => {
     if (!loadMoreRef.current) return
-    if (displayedCount >= locations.length) return // All loaded
+    if (displayedCount >= filteredLocations.length) return // All loaded
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -74,7 +113,7 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
           setIsLoading(true)
           // Simulate loading delay for smooth UX
           setTimeout(() => {
-            setDisplayedCount(prev => Math.min(prev + LOCATIONS_PER_PAGE, locations.length))
+            setDisplayedCount(prev => Math.min(prev + LOCATIONS_PER_PAGE, filteredLocations.length))
             setIsLoading(false)
           }, 300)
         }
@@ -84,13 +123,13 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
 
     observer.observe(loadMoreRef.current)
     return () => observer.disconnect()
-  }, [displayedCount, locations.length, isLoading])
+  }, [displayedCount, filteredLocations.length, isLoading])
 
   // Get currently displayed locations
-  const displayedLocations = locations.slice(0, displayedCount)
-  const hasMore = displayedCount < locations.length
+  const displayedLocations = filteredLocations.slice(0, displayedCount)
+  const hasMore = displayedCount < filteredLocations.length
 
-  if (!locations.length) {
+  if (!filteredLocations.length) {
     return (
       <div className="text-center py-12">
         <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -110,7 +149,10 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
       {/* View Mode Toggle */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-600">
-          Showing {displayedCount} of {locations.length} location{locations.length !== 1 ? 's' : ''}
+          Showing {displayedCount} of {filteredLocations.length} location{filteredLocations.length !== 1 ? 's' : ''}
+          {filteredLocations.length !== locations.length && (
+            <span className="text-gray-400"> (filtered from {locations.length} total)</span>
+          )}
         </p>
 
         <div className="flex items-center gap-2">

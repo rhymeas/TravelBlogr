@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Eye, EyeOff, Mail, Lock, X } from 'lucide-react'
@@ -35,6 +35,10 @@ export function SignInModal({ isOpen, onClose, redirectTo, heroContent }: SignIn
   const [isLoading, setIsLoading] = useState(false)
   const { signIn, signInWithProvider } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
+
+  // Use current page as redirect if not explicitly provided
+  const actualRedirectTo = redirectTo || pathname || undefined
 
   if (!isOpen) return null
 
@@ -49,12 +53,12 @@ export function SignInModal({ isOpen, onClose, redirectTo, heroContent }: SignIn
         toast.success('Welcome back!')
         onClose(true) // Pass true to indicate user signed in
 
-        // Only redirect if redirectTo is explicitly provided
+        // If redirectTo was explicitly provided, redirect there
+        // Otherwise, stay on current page (modal will close)
         if (redirectTo) {
           await new Promise(resolve => setTimeout(resolve, 100))
           router.push(redirectTo)
         }
-        // Otherwise, stay on current page (modal will close)
       } else {
         toast.error(result.error || 'Failed to sign in')
       }
@@ -68,11 +72,13 @@ export function SignInModal({ isOpen, onClose, redirectTo, heroContent }: SignIn
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
     try {
-      const result = await signInWithProvider('google', redirectTo)
+      // Pass current page as redirect so user returns to where they were
+      const result = await signInWithProvider('google', actualRedirectTo)
       if (result.success) {
         toast.success('Signing in with Google...')
         onClose(true) // Pass true to indicate user signed in
         // OAuth will handle redirect automatically via callback URL
+        // User will return to the page they were on!
       } else {
         toast.error(result.error || 'Failed to sign in with Google')
       }
