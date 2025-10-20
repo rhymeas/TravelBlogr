@@ -72,6 +72,12 @@ export function SignInModal({ isOpen, onClose, redirectTo, heroContent }: SignIn
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
     try {
+      // Store current page in localStorage before OAuth redirect
+      // This survives the OAuth redirect flow
+      if (actualRedirectTo) {
+        localStorage.setItem('oauth_redirect_to', actualRedirectTo)
+      }
+
       // Pass current page as redirect so user returns to where they were
       const result = await signInWithProvider('google', actualRedirectTo)
       if (result.success) {

@@ -15,9 +15,25 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Check for redirect parameter in URL
+        // Check for redirect parameter in multiple places:
+        // 1. URL search params (redirect or redirect_to)
+        // 2. localStorage (set before OAuth redirect)
+        // 3. Default to home page
         const searchParams = new URLSearchParams(window.location.search)
-        const redirectTo = searchParams.get('redirect') || '/dashboard'
+        const urlRedirect = searchParams.get('redirect') || searchParams.get('redirect_to')
+        const storageRedirect = localStorage.getItem('oauth_redirect_to')
+        const redirectTo = urlRedirect || storageRedirect || '/'
+
+        console.log('OAuth callback - Full URL:', window.location.href)
+        console.log('OAuth callback - Search params:', window.location.search)
+        console.log('OAuth callback - URL redirect:', urlRedirect)
+        console.log('OAuth callback - Storage redirect:', storageRedirect)
+        console.log('OAuth callback - Final redirect to:', redirectTo)
+
+        // Clear the stored redirect
+        if (storageRedirect) {
+          localStorage.removeItem('oauth_redirect_to')
+        }
 
         // Check if we have hash params (implicit flow)
         const hashParams = new URLSearchParams(window.location.hash.substring(1))
@@ -27,6 +43,7 @@ export default function AuthCallbackPage() {
           // Supabase client automatically processes hash params and sets session
           // Just wait a moment for the session to be established
           await new Promise(resolve => setTimeout(resolve, 1000))
+          console.log('OAuth callback - Redirecting to:', redirectTo)
           router.push(redirectTo)
           return
         }
@@ -42,8 +59,10 @@ export default function AuthCallbackPage() {
         }
 
         if (session) {
+          console.log('OAuth callback - Session found, redirecting to:', redirectTo)
           router.push(redirectTo)
         } else {
+          console.log('OAuth callback - No session, redirecting to sign in')
           setTimeout(() => router.push('/auth/signin'), 2000)
         }
       } catch (error) {
