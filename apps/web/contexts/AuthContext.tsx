@@ -207,10 +207,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
-      // Build callback URL with redirect parameter if provided
-      const callbackUrl = redirectTo
-        ? `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`
-        : `${window.location.origin}/auth/callback`
+      // CRITICAL FIX: Supabase site_url is set to production (https://www.travelblogr.com)
+      // This causes OAuth to redirect to production even from localhost
+      // Solution: Don't use redirectTo parameter - use hash fragment instead
+      // Store redirect path in localStorage and let callback page handle it
+
+      const currentOrigin = window.location.origin
+      const isLocalhost = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')
+
+      // Store the redirect path for after OAuth completes
+      if (redirectTo) {
+        localStorage.setItem('oauth_redirect_to', redirectTo)
+      }
+
+      // For localhost: Use localhost callback URL explicitly
+      // For production: Use production callback URL
+      const callbackUrl = isLocalhost
+        ? 'http://localhost:3000/auth/callback'
+        : 'https://www.travelblogr.com/auth/callback'
+
+      console.log('🔐 OAuth Sign-In:', {
+        provider,
+        currentOrigin,
+        isLocalhost,
+        callbackUrl,
+        redirectTo,
+        storedRedirect: localStorage.getItem('oauth_redirect_to')
+      })
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
@@ -224,13 +247,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
 
       if (error) {
+        console.error('❌ OAuth error:', error)
         setState(prev => ({ ...prev, error: error.message, loading: false }))
         return { success: false, error: error.message }
       }
 
+      console.log('✅ OAuth initiated successfully')
       return { success: true, data }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'An error occurred'
+      console.error('❌ OAuth exception:', error)
       setState(prev => ({ ...prev, error: message, loading: false }))
       return { success: false, error: message }
     }

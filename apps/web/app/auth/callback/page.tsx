@@ -15,6 +15,18 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        // CRITICAL: Check if we're on the wrong domain (production site_url redirect)
+        const currentOrigin = window.location.origin
+        const isLocalhost = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')
+        const isProduction = currentOrigin.includes('travelblogr.com')
+
+        console.log('🔐 OAuth Callback:', {
+          currentOrigin,
+          isLocalhost,
+          isProduction,
+          fullURL: window.location.href
+        })
+
         // Check for redirect parameter in multiple places:
         // 1. URL search params (redirect or redirect_to)
         // 2. localStorage (set before OAuth redirect)
@@ -24,7 +36,6 @@ export default function AuthCallbackPage() {
         const storageRedirect = localStorage.getItem('oauth_redirect_to')
         const redirectTo = urlRedirect || storageRedirect || '/'
 
-        console.log('OAuth callback - Full URL:', window.location.href)
         console.log('OAuth callback - Search params:', window.location.search)
         console.log('OAuth callback - URL redirect:', urlRedirect)
         console.log('OAuth callback - Storage redirect:', storageRedirect)
@@ -40,10 +51,11 @@ export default function AuthCallbackPage() {
         const accessToken = hashParams.get('access_token')
 
         if (accessToken) {
+          console.log('✅ OAuth callback - Access token found in hash')
           // Supabase client automatically processes hash params and sets session
           // Just wait a moment for the session to be established
           await new Promise(resolve => setTimeout(resolve, 1000))
-          console.log('OAuth callback - Redirecting to:', redirectTo)
+          console.log('✅ OAuth callback - Redirecting to:', redirectTo)
           router.push(redirectTo)
           return
         }
@@ -52,21 +64,21 @@ export default function AuthCallbackPage() {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
         if (sessionError) {
-          console.error('OAuth callback error:', sessionError)
+          console.error('❌ OAuth callback error:', sessionError)
           setError(sessionError.message)
           setTimeout(() => router.push('/auth/signin?error=oauth_failed'), 2000)
           return
         }
 
         if (session) {
-          console.log('OAuth callback - Session found, redirecting to:', redirectTo)
+          console.log('✅ OAuth callback - Session found, redirecting to:', redirectTo)
           router.push(redirectTo)
         } else {
-          console.log('OAuth callback - No session, redirecting to sign in')
+          console.log('⚠️ OAuth callback - No session, redirecting to sign in')
           setTimeout(() => router.push('/auth/signin'), 2000)
         }
       } catch (error) {
-        console.error('OAuth callback error:', error)
+        console.error('❌ OAuth callback error:', error)
         setError(error instanceof Error ? error.message : 'Unknown error')
         setTimeout(() => router.push('/auth/signin?error=oauth_failed'), 2000)
       }
