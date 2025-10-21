@@ -159,15 +159,9 @@ export function TripSummary({ data, currentPhase }: TripSummaryProps) {
       <div className="pt-4 border-t border-gray-200 space-y-2">
         <button
           onClick={() => window.location.href = '/trips/new'}
-          className="w-full px-3 py-2 bg-[#2C5F6F] text-white text-xs font-semibold rounded hover:bg-[#1e4a56] transition-colors"
+          className="w-full px-3 py-2 bg-gray-100 text-gray-700 text-xs font-semibold rounded hover:bg-gray-200 transition-colors border border-gray-300"
         >
           Manual Trip Planner
-        </button>
-        <button
-          onClick={() => window.location.href = '/plan'}
-          className="w-full px-3 py-2 bg-gray-100 text-gray-700 text-xs font-semibold rounded hover:bg-gray-200 transition-colors"
-        >
-          ← Classic Planner
         </button>
         <div className="text-center">
           <span className="inline-block px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-semibold rounded">

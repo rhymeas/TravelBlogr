@@ -242,20 +242,20 @@ export function TripPlannerV2() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left: Current Phase */}
-          <div className="lg:col-span-7">
+      {/* Main Content - 50/50 Split */}
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left: Current Phase (50%) */}
+          <div>
             <div className="bg-white rounded-lg shadow p-6">
               {renderPhase()}
             </div>
           </div>
 
-          {/* Right: Map & Summary */}
-          <div className="lg:col-span-5">
-            <div className="sticky top-24 space-y-4">
-              {/* Map - Increased height for 50/50 visual balance */}
+          {/* Right: Map Only (50%) */}
+          <div>
+            <div className="sticky top-24">
+              {/* Map */}
               <div className="bg-white rounded-lg shadow overflow-hidden">
                 <div
                   ref={mapContainer}
@@ -264,8 +264,10 @@ export function TripPlannerV2() {
                 />
               </div>
 
-              {/* Trip Summary - Removed header text */}
-              <TripSummary data={tripData} currentPhase={currentPhase} />
+              {/* Trip Summary - Only in sidebar */}
+              <div className="mt-4">
+                <TripSummary data={tripData} currentPhase={currentPhase} />
+              </div>
             </div>
           </div>
         </div>

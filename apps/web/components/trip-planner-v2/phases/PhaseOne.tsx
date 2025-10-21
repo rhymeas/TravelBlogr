@@ -152,7 +152,7 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
         </div>
       </div>
 
-      {/* Dates + CTA inline */}
+      {/* Dates + CTA inline - Aligned width with trip type boxes */}
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
           <Calendar className="w-3.5 h-3.5 text-gray-900" />
@@ -160,8 +160,8 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
         </h3>
 
         <div className="flex gap-3 items-start">
-          {/* Date picker - not full width */}
-          <div className="flex-1">
+          {/* Date picker - same width as trip type grid */}
+          <div className="w-[calc(100%-140px)]">
             <DateRangePicker
               startDate={dateRange.startDate ? new Date(dateRange.startDate) : undefined}
               endDate={dateRange.endDate ? new Date(dateRange.endDate) : undefined}

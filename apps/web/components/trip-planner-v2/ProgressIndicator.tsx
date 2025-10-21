@@ -22,16 +22,16 @@ interface ProgressIndicatorProps {
 export function ProgressIndicator({ phases, currentPhase, onPhaseClick }: ProgressIndicatorProps) {
   return (
     <div className="relative">
-      {/* Progress Bar */}
-      <div className="absolute top-4 left-0 right-0 h-0.5 bg-gray-200">
+      {/* Progress Bar - Bolder */}
+      <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full">
         <div
-          className="h-full bg-[#2C5F6F] transition-all duration-500"
+          className="h-full bg-[#2C5F6F] transition-all duration-500 rounded-full"
           style={{ width: `${((currentPhase - 1) / (phases.length - 1)) * 100}%` }}
         />
       </div>
 
-      {/* Phase Steps */}
-      <div className="relative flex justify-between">
+      {/* Phase Steps - Bolder and closer */}
+      <div className="relative flex justify-center gap-32">
         {phases.map((phase) => {
           const isCompleted = phase.id < currentPhase
           const isCurrent = phase.id === currentPhase
@@ -46,21 +46,21 @@ export function ProgressIndicator({ phases, currentPhase, onPhaseClick }: Progre
                 isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
               }`}
             >
-              {/* Circle */}
+              {/* Circle - Bolder */}
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center border-3 transition-all shadow-md ${
                   isCompleted
                     ? 'bg-[#2C5F6F] border-[#2C5F6F]'
                     : isCurrent
-                    ? 'bg-white border-[#2C5F6F] ring-2 ring-[#2C5F6F]/20'
+                    ? 'bg-white border-[#2C5F6F] ring-4 ring-[#2C5F6F]/30'
                     : 'bg-white border-gray-300'
-                } ${isClickable ? 'group-hover:scale-105' : ''}`}
+                } ${isClickable ? 'group-hover:scale-110' : ''}`}
               >
                 {isCompleted ? (
-                  <Check className="w-4 h-4 text-white" />
+                  <Check className="w-5 h-5 text-white" />
                 ) : (
                   <span
-                    className={`text-xs font-semibold ${
+                    className={`text-sm font-bold ${
                       isCurrent ? 'text-[#2C5F6F]' : 'text-gray-400'
                     }`}
                   >
@@ -70,15 +70,15 @@ export function ProgressIndicator({ phases, currentPhase, onPhaseClick }: Progre
               </div>
 
               {/* Label */}
-              <div className="mt-1.5 text-center max-w-[100px]">
+              <div className="mt-2 text-center">
                 <div
-                  className={`text-[10px] font-semibold ${
+                  className={`text-xs font-bold ${
                     isCurrent ? 'text-[#2C5F6F]' : isCompleted ? 'text-gray-700' : 'text-gray-400'
                   }`}
                 >
                   {phase.name}
                 </div>
-                <div className="text-[9px] text-gray-500 mt-0.5 hidden sm:block">{phase.description}</div>
+                <div className="text-[10px] text-gray-500 mt-0.5">{phase.description}</div>
               </div>
             </button>
           )
