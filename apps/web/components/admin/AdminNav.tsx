@@ -13,7 +13,8 @@ import {
   DollarSign,
   Shield,
   TestTube2,
-  FileText
+  FileText,
+  Settings
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -30,6 +31,12 @@ const navItems: NavItem[] = [
     href: '/admin',
     icon: LayoutDashboard,
     description: 'Overview and quick stats'
+  },
+  {
+    name: 'Feature Flags',
+    href: '/admin/feature-flags',
+    icon: Settings,
+    description: 'Toggle experimental features'
   },
   {
     name: 'AI Monitoring',
