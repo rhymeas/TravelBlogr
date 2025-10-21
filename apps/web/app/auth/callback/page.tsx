@@ -71,14 +71,32 @@ export default function AuthCallbackPage() {
         }
 
         if (code) {
-          console.log('✅ OAuth callback - Code found (PKCE flow), waiting for session exchange...')
-          // Wait for Supabase to exchange code for session (PKCE flow)
-          // This happens automatically via Supabase client
-          await new Promise(resolve => setTimeout(resolve, 2000))
+          console.log('✅ OAuth callback - Code found (PKCE flow), exchanging for session...')
+          // CRITICAL: Manually exchange code for session
+          // Supabase's detectSessionInUrl doesn't always work reliably
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+
+          if (exchangeError) {
+            console.error('❌ Code exchange error:', exchangeError)
+            setError(exchangeError.message)
+            setTimeout(() => router.push('/auth/signin?error=code_exchange_failed'), 2000)
+            return
+          }
+
+          if (data.session) {
+            console.log('✅ Session created successfully, redirecting to:', redirectTo)
+            router.push(redirectTo)
+            return
+          }
         }
 
-        // Check if we have a session
+        // Check if we have a session (for implicit flow or already-established sessions)
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+        console.log('🔍 OAuth callback - Session check:', {
+          hasSession: !!session,
+          error: sessionError?.message
+        })
 
         if (sessionError) {
           console.error('❌ OAuth callback error:', sessionError)
