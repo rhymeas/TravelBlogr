@@ -2,11 +2,20 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Globe, Menu, X, Plane } from 'lucide-react'
+import { Globe, Menu, X, Plane, User, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { useAuth } from '@/contexts/AuthContext'
+import { useRouter } from 'next/navigation'
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const { user, profile, isAuthenticated, signOut } = useAuth()
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    await signOut()
+    router.push('/')
+  }
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -45,12 +54,43 @@ export function Header() {
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span>Live</span>
             </div>
-            <Button variant="outline" size="sm">
-              Sign In
-            </Button>
-            <Button size="sm" className="bg-rausch-500 hover:bg-rausch-600">
-              Share Story
-            </Button>
+            {isAuthenticated ? (
+              <>
+                <Link href="/trips">
+                  <Button variant="outline" size="sm">
+                    My Trips
+                  </Button>
+                </Link>
+                <div className="flex items-center gap-2">
+                  <Link href="/profile" className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-100 transition-colors">
+                    {profile?.avatar_url ? (
+                      <img src={profile.avatar_url} alt={profile.full_name || 'User'} className="w-8 h-8 rounded-full" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-rausch-500 flex items-center justify-center">
+                        <User className="h-4 w-4 text-white" />
+                      </div>
+                    )}
+                    <span className="text-sm font-medium text-gray-700">
+                      {profile?.full_name || profile?.username || user?.email?.split('@')[0]}
+                    </span>
+                  </Link>
+                  <Button variant="outline" size="sm" onClick={handleSignOut}>
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/signin">
+                  <Button variant="outline" size="sm">
+                    Sign In
+                  </Button>
+                </Link>
+                <Button size="sm" className="bg-rausch-500 hover:bg-rausch-600">
+                  Share Story
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -109,12 +149,44 @@ export function Header() {
                 Examples
               </Link>
               <div className="flex flex-col gap-2 pt-4 border-t border-gray-200">
-                <Button variant="outline" size="sm" className="w-full">
-                  Sign In
-                </Button>
-                <Button size="sm" className="w-full bg-rausch-500 hover:bg-rausch-600">
-                  Share Story
-                </Button>
+                {isAuthenticated ? (
+                  <>
+                    <Link href="/trips" onClick={() => setIsMenuOpen(false)}>
+                      <Button variant="outline" size="sm" className="w-full">
+                        My Trips
+                      </Button>
+                    </Link>
+                    <Link href="/profile" onClick={() => setIsMenuOpen(false)}>
+                      <Button variant="outline" size="sm" className="w-full">
+                        <User className="h-4 w-4 mr-2" />
+                        {profile?.full_name || profile?.username || 'Profile'}
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        handleSignOut()
+                        setIsMenuOpen(false)
+                      }}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/auth/signin" onClick={() => setIsMenuOpen(false)}>
+                      <Button variant="outline" size="sm" className="w-full">
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Button size="sm" className="w-full bg-rausch-500 hover:bg-rausch-600">
+                      Share Story
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>

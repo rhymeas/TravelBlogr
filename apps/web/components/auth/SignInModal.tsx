@@ -37,9 +37,6 @@ export function SignInModal({ isOpen, onClose, redirectTo, heroContent }: SignIn
   const router = useRouter()
   const pathname = usePathname()
 
-  // Use current page as redirect if not explicitly provided
-  const actualRedirectTo = redirectTo || pathname || undefined
-
   if (!isOpen) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,14 +69,14 @@ export function SignInModal({ isOpen, onClose, redirectTo, heroContent }: SignIn
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
     try {
-      // Store current page in localStorage before OAuth redirect
-      // This survives the OAuth redirect flow
-      if (actualRedirectTo) {
-        localStorage.setItem('oauth_redirect_to', actualRedirectTo)
+      // Only store redirect path if explicitly provided
+      // Otherwise, user will stay on current page after OAuth
+      if (redirectTo) {
+        localStorage.setItem('oauth_redirect_to', redirectTo)
       }
 
-      // Pass current page as redirect so user returns to where they were
-      const result = await signInWithProvider('google', actualRedirectTo)
+      // Pass redirect path (or undefined to stay on current page)
+      const result = await signInWithProvider('google', redirectTo)
       if (result.success) {
         toast.success('Signing in with Google...')
         onClose(true) // Pass true to indicate user signed in

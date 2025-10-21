@@ -27,6 +27,9 @@ export default function AuthCallbackPage() {
 
     const handleCallback = async () => {
       try {
+        // Check if we're in popup mode
+        const isPopupMode = localStorage.getItem('oauth_popup_mode') === 'true'
+
         const searchParams = new URLSearchParams(window.location.search)
         const code = searchParams.get('code')
         const hashParams = new URLSearchParams(window.location.hash.substring(1))
@@ -58,6 +61,7 @@ export default function AuthCallbackPage() {
         console.log('🔐 OAuth Callback:', {
           hasCode: !!code,
           hasAccessToken: !!accessToken,
+          isPopupMode,
           fullURL: window.location.href
         })
 
@@ -110,22 +114,44 @@ export default function AuthCallbackPage() {
           })
 
           if (sessionCreated) {
-            console.log('✅ Session created successfully, redirecting to:', redirectTo)
+            console.log('✅ Session created successfully')
             if (isMounted) {
-              setIsProcessing(false)
-              window.location.href = redirectTo
+              if (isPopupMode && window.opener) {
+                // Send success message to parent window IMMEDIATELY
+                console.log('📤 Sending success message to parent window')
+                window.opener.postMessage({ type: 'OAUTH_SUCCESS' }, window.location.origin)
+                localStorage.removeItem('oauth_popup_mode')
+
+                // Close popup immediately - parent will handle the rest
+                console.log('🔐 Closing popup window immediately')
+                window.close()
+              } else {
+                // Normal redirect flow
+                setIsProcessing(false)
+                setSuccess(true)
+                console.log('✅ Redirecting to:', redirectTo)
+                window.location.href = redirectTo
+              }
             }
             return
           } else {
             console.warn('⚠️ Session creation timed out')
             if (isMounted) {
-              setError('Authentication timed out. Please try again.')
-              setTimeout(() => {
-                if (isMounted) {
-                  setIsProcessing(false)
-                  window.location.href = '/auth/signin?error=timeout'
-                }
-              }, 2000)
+              const errorMsg = 'Authentication timed out. Please try again.'
+              setError(errorMsg)
+
+              if (isPopupMode && window.opener) {
+                window.opener.postMessage({ type: 'OAUTH_ERROR', error: errorMsg }, window.location.origin)
+                localStorage.removeItem('oauth_popup_mode')
+                setTimeout(() => window.close(), 1000)
+              } else {
+                setTimeout(() => {
+                  if (isMounted) {
+                    setIsProcessing(false)
+                    window.location.href = '/auth/signin?error=timeout'
+                  }
+                }, 2000)
+              }
             }
             return
           }
@@ -169,20 +195,18 @@ export default function AuthCallbackPage() {
         if (session) {
           console.log('✅ OAuth callback - Session found')
           if (isMounted) {
-            setIsProcessing(false)
-            setSuccess(true)
+            if (isPopupMode && window.opener) {
+              console.log('✅ OAuth callback in popup - sending success message')
+              window.opener.postMessage({ type: 'OAUTH_SUCCESS' }, window.location.origin)
+              localStorage.removeItem('oauth_popup_mode')
 
-            // Check if we're in a popup window
-            const isPopup = window.opener && window.opener !== window
-
-            if (isPopup) {
-              console.log('✅ OAuth callback in popup - closing window')
-              // Close popup after short delay to show success
-              setTimeout(() => {
-                window.close()
-              }, 1500)
+              // Close popup immediately - parent will handle the rest
+              console.log('🔐 Closing popup window immediately')
+              window.close()
             } else {
               // Regular redirect if not in popup
+              setIsProcessing(false)
+              setSuccess(true)
               console.log('✅ OAuth callback - Redirecting to:', redirectTo)
               setTimeout(() => {
                 window.location.href = redirectTo

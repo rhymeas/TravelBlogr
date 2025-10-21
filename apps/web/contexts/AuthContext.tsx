@@ -210,10 +210,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const currentOrigin = window.location.origin
       const isLocalhost = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')
 
-      // Store the redirect path for after OAuth completes
+      // Store the redirect path for after OAuth completes (only if provided)
       if (redirectTo) {
+        console.log('📍 Storing redirect path:', redirectTo)
         localStorage.setItem('oauth_redirect_to', redirectTo)
+      } else {
+        console.log('📍 No redirect path - will stay on current page')
       }
+
+      // Mark that we're using popup mode
+      localStorage.setItem('oauth_popup_mode', 'true')
 
       // For localhost: Use localhost callback URL explicitly
       // For production: Use production callback URL
@@ -245,12 +251,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('❌ OAuth error:', error)
+        localStorage.removeItem('oauth_popup_mode')
         setState(prev => ({ ...prev, error: error.message, loading: false }))
         return { success: false, error: error.message }
       }
 
       if (!data?.url) {
         console.error('❌ No OAuth URL returned')
+        localStorage.removeItem('oauth_popup_mode')
         setState(prev => ({ ...prev, error: 'Failed to get OAuth URL', loading: false }))
         return { success: false, error: 'Failed to get OAuth URL' }
       }
@@ -269,38 +277,115 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!popup) {
         console.error('❌ Popup blocked')
+        localStorage.removeItem('oauth_popup_mode')
         setState(prev => ({ ...prev, error: 'Popup blocked. Please allow popups for this site.', loading: false }))
         return { success: false, error: 'Popup blocked' }
       }
 
       console.log('✅ OAuth popup opened')
 
-      // Listen for OAuth callback completion
-      const checkPopupClosed = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(checkPopupClosed)
-          console.log('🔐 OAuth popup closed')
-          setState(prev => ({ ...prev, loading: false }))
-        }
-      }, 500)
+      // Listen for messages from popup
+      const handleMessage = async (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) return
 
-      // Listen for auth state changes (session created)
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          console.log('✅ OAuth sign-in successful!')
-          clearInterval(checkPopupClosed)
-          if (popup && !popup.closed) {
-            popup.close()
+        if (event.data.type === 'OAUTH_SUCCESS') {
+          console.log('✅ OAuth success message received from popup')
+          localStorage.removeItem('oauth_popup_mode')
+          try {
+            if (popup && !popup.closed) {
+              popup.close()
+            }
+          } catch (e) {
+            // Ignore COOP errors when trying to close popup
+            console.log('Note: Could not close popup (COOP policy), it will close itself')
           }
-          subscription.unsubscribe()
-          setState(prev => ({ ...prev, loading: false }))
+
+          // Keep loading state and wait for session to be established
+          console.log('⏳ Waiting for session to be established...')
+
+          // First check if session already exists
+          const { data: { session: existingSession } } = await supabase.auth.getSession()
+
+          let sessionEstablished = false
+
+          if (existingSession) {
+            console.log('✅ Session already exists!')
+            sessionEstablished = true
+          } else {
+            // Wait for auth state change
+            sessionEstablished = await new Promise<boolean>((resolve) => {
+              const timeout = setTimeout(() => {
+                console.warn('⚠️ Session establishment timeout')
+                resolve(false)
+              }, 10000) // 10 second timeout
+
+              const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+                console.log('🔐 Auth state change after popup:', event, session ? '✅ Session' : '❌ No session')
+
+                if (event === 'SIGNED_IN' && session) {
+                  clearTimeout(timeout)
+                  subscription.unsubscribe()
+                  resolve(true)
+                }
+              })
+            })
+          }
+
+          if (sessionEstablished) {
+            console.log('✅ Session established successfully')
+            setState(prev => ({ ...prev, loading: false }))
+
+            // Get redirect path
+            const redirectPath = localStorage.getItem('oauth_redirect_to')
+            localStorage.removeItem('oauth_redirect_to')
+
+            // Only redirect if a specific path was requested
+            // Otherwise, stay on current page and let the UI update naturally
+            if (redirectPath && redirectPath !== window.location.pathname) {
+              console.log('🔐 Redirecting to:', redirectPath)
+              router.push(redirectPath)
+            } else {
+              console.log('✅ Staying on current page, UI will update automatically')
+            }
+          } else {
+            console.error('❌ Failed to establish session')
+            setState(prev => ({
+              ...prev,
+              error: 'Failed to complete sign in. Please try again.',
+              loading: false
+            }))
+          }
+
+          window.removeEventListener('message', handleMessage)
+          clearTimeout(timeoutId)
+        } else if (event.data.type === 'OAUTH_ERROR') {
+          console.error('❌ OAuth error message received from popup:', event.data.error)
+          localStorage.removeItem('oauth_popup_mode')
+          setState(prev => ({ ...prev, error: event.data.error, loading: false }))
+          window.removeEventListener('message', handleMessage)
+          clearTimeout(timeoutId)
         }
-      })
+      }
+
+      window.addEventListener('message', handleMessage)
+
+      // Timeout: If no message received after 60 seconds, assume failure
+      const timeoutId = setTimeout(() => {
+        console.warn('⚠️ OAuth timeout - no response from popup after 60 seconds')
+        localStorage.removeItem('oauth_popup_mode')
+        setState(prev => ({
+          ...prev,
+          error: 'Authentication timed out. Please try again.',
+          loading: false
+        }))
+        window.removeEventListener('message', handleMessage)
+      }, 60000)
 
       return { success: true, data }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'An error occurred'
       console.error('❌ OAuth exception:', error)
+      localStorage.removeItem('oauth_popup_mode')
       setState(prev => ({ ...prev, error: message, loading: false }))
       return { success: false, error: message }
     }
