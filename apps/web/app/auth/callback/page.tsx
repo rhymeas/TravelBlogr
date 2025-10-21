@@ -18,6 +18,27 @@ export default function AuthCallbackPage() {
 
     const handleCallback = async () => {
       try {
+        // CRITICAL: Quick check if we already have a session in localStorage
+        // This prevents the hanging getSession() call in React Strict Mode
+        const storageKey = 'travelblogr-auth-token'
+        const storedSession = localStorage.getItem(storageKey)
+
+        if (storedSession) {
+          try {
+            const parsed = JSON.parse(storedSession)
+            if (parsed?.access_token && parsed?.expires_at) {
+              const expiresAt = parsed.expires_at * 1000 // Convert to milliseconds
+              if (expiresAt > Date.now()) {
+                console.log('✅ Valid session found in storage, redirecting to home')
+                window.location.href = '/'
+                return
+              }
+            }
+          } catch (e) {
+            console.warn('Failed to parse stored session:', e)
+          }
+        }
+
         // CRITICAL: Check if we're on the wrong domain (production site_url redirect)
         const currentOrigin = window.location.origin
         const isLocalhost = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')
@@ -84,7 +105,8 @@ export default function AuthCallbackPage() {
               setTimeout(() => {
                 if (isMounted) {
                   setIsProcessing(false)
-                  router.push('/auth/signin?error=code_exchange_failed')
+                  // Use window.location for hard redirect (more reliable than router.push)
+                  window.location.href = '/auth/signin?error=code_exchange_failed'
                 }
               }, 2000)
             }
@@ -95,7 +117,8 @@ export default function AuthCallbackPage() {
             console.log('✅ Session created successfully, redirecting to:', redirectTo)
             if (isMounted) {
               setIsProcessing(false)
-              router.push(redirectTo)
+              // Use window.location for hard redirect (more reliable than router.push)
+              window.location.href = redirectTo
             }
             return
           } else {
@@ -104,10 +127,30 @@ export default function AuthCallbackPage() {
         }
 
         // Check if we have a session (for implicit flow or already-established sessions)
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        console.log('🔍 About to check session...')
+
+        // Add timeout to prevent hanging
+        const sessionPromise = supabase.auth.getSession()
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Session check timeout')), 5000)
+        )
+
+        let session = null
+        let sessionError = null
+
+        try {
+          const result = await Promise.race([sessionPromise, timeoutPromise]) as any
+          session = result.data?.session
+          sessionError = result.error
+        } catch (error) {
+          console.error('❌ Session check failed:', error)
+          sessionError = error as Error
+        }
 
         console.log('🔍 OAuth callback - Session check:', {
           hasSession: !!session,
+          hasUser: !!session?.user,
+          userId: session?.user?.id,
           error: sessionError?.message
         })
 
@@ -122,7 +165,8 @@ export default function AuthCallbackPage() {
           console.log('✅ OAuth callback - Session found, redirecting to:', redirectTo)
           if (isMounted) {
             setIsProcessing(false)
-            router.push(redirectTo)
+            // Use window.location for hard redirect (more reliable than router.push)
+            window.location.href = redirectTo
           }
         } else {
           console.log('⚠️ OAuth callback - No session, redirecting to sign in')
@@ -130,7 +174,8 @@ export default function AuthCallbackPage() {
             setTimeout(() => {
               if (isMounted) {
                 setIsProcessing(false)
-                router.push('/auth/signin')
+                // Use window.location for hard redirect (more reliable than router.push)
+                window.location.href = '/auth/signin'
               }
             }, 2000)
           }
@@ -142,7 +187,8 @@ export default function AuthCallbackPage() {
           setTimeout(() => {
             if (isMounted) {
               setIsProcessing(false)
-              router.push('/auth/signin?error=oauth_failed')
+              // Use window.location for hard redirect (more reliable than router.push)
+              window.location.href = '/auth/signin?error=oauth_failed'
             }
           }, 2000)
         }
