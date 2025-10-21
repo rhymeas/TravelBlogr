@@ -7,9 +7,10 @@
  */
 
 import { useState, useMemo } from 'react'
-import { Calendar, Car, MapPin, Clock, Hotel, Camera, Coffee, Edit, Utensils, Navigation, DollarSign, TrendingUp, Info } from 'lucide-react'
+import { Calendar, Car, MapPin, Clock, Hotel, Camera, Coffee, Edit, Utensils, Navigation, DollarSign, TrendingUp, Info, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import type { TripPlanData } from './types'
+import { generateBookingLink, generateGetYourGuideLink, trackAffiliateClick, type AffiliateParams } from '@/lib/utils/affiliateLinks'
 
 interface ResultsViewProps {
   plan: any // V1 API response
@@ -279,7 +280,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                   {/* Accommodation - 20% more compact */}
                   {day.accommodation && (
                     <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow mb-4">
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-start justify-between mb-3">
                         <div className="flex gap-3 flex-1">
                           <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg flex items-center justify-center">
                             <Hotel className="w-8 h-8 text-orange-400" />
@@ -304,6 +305,30 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                           <div className="text-[10px] text-gray-500">per night</div>
                         </div>
                       </div>
+
+                      {/* Affiliate Booking Buttons */}
+                      <div className="flex gap-2">
+                        <a
+                          href={generateBookingLink({ locationName: day.location, checkIn: tripData.dateRange?.startDate.toISOString().split('T')[0], checkOut: tripData.dateRange?.endDate.toISOString().split('T')[0] })}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => trackAffiliateClick('booking.com', day.location, 'v2_results_accommodation')}
+                          className="flex-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Book on Booking.com
+                        </a>
+                        <a
+                          href={`https://www.airbnb.com/s/${encodeURIComponent(day.location)}/homes`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => trackAffiliateClick('airbnb', day.location, 'v2_results_accommodation')}
+                          className="flex-1 px-3 py-1.5 bg-pink-600 hover:bg-pink-700 text-white text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Book on Airbnb
+                        </a>
+                      </div>
                     </div>
                   )}
 
@@ -314,13 +339,27 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                         <Camera className="w-4 h-4 text-gray-400" />
                         Don't Miss
                       </h3>
-                      <div className="space-y-2">
+                      <div className="space-y-2 mb-3">
                         {day.highlights.map((highlight: string, idx: number) => (
                           <div key={idx} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
                             <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
                             <span className="text-xs text-gray-700">{highlight}</span>
                           </div>
                         ))}
+                      </div>
+
+                      {/* Activity Booking Buttons */}
+                      <div className="flex gap-2 pt-2 border-t border-gray-100">
+                        <a
+                          href={generateGetYourGuideLink(day.location)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => trackAffiliateClick('getyourguide', day.location, 'v2_results_activities')}
+                          className="flex-1 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Book Activities
+                        </a>
                       </div>
                     </div>
                   )}
