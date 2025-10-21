@@ -11,16 +11,10 @@ export default function AuthCallbackPage() {
   const router = useRouter()
   const supabase = useSupabase()
   const [error, setError] = useState<string | null>(null)
-  const hasRunRef = useRef(false)
+  const [isProcessing, setIsProcessing] = useState(true)
 
   useEffect(() => {
-    // Prevent infinite loop - only run once using ref (persists across renders)
-    if (hasRunRef.current) {
-      console.log('⏭️ Callback already ran, skipping')
-      return
-    }
-    hasRunRef.current = true
-    console.log('🚀 Running callback for the first time')
+    let isMounted = true
 
     const handleCallback = async () => {
       try {
@@ -76,17 +70,36 @@ export default function AuthCallbackPage() {
           // Supabase's detectSessionInUrl doesn't always work reliably
           const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
+          console.log('🔍 Code exchange result:', {
+            hasData: !!data,
+            hasSession: !!data?.session,
+            hasUser: !!data?.user,
+            error: exchangeError?.message
+          })
+
           if (exchangeError) {
             console.error('❌ Code exchange error:', exchangeError)
-            setError(exchangeError.message)
-            setTimeout(() => router.push('/auth/signin?error=code_exchange_failed'), 2000)
+            if (isMounted) {
+              setError(exchangeError.message)
+              setTimeout(() => {
+                if (isMounted) {
+                  setIsProcessing(false)
+                  router.push('/auth/signin?error=code_exchange_failed')
+                }
+              }, 2000)
+            }
             return
           }
 
-          if (data.session) {
+          if (data?.session) {
             console.log('✅ Session created successfully, redirecting to:', redirectTo)
-            router.push(redirectTo)
+            if (isMounted) {
+              setIsProcessing(false)
+              router.push(redirectTo)
+            }
             return
+          } else {
+            console.warn('⚠️ Code exchange succeeded but no session returned')
           }
         }
 
@@ -107,19 +120,40 @@ export default function AuthCallbackPage() {
 
         if (session) {
           console.log('✅ OAuth callback - Session found, redirecting to:', redirectTo)
-          router.push(redirectTo)
+          if (isMounted) {
+            setIsProcessing(false)
+            router.push(redirectTo)
+          }
         } else {
           console.log('⚠️ OAuth callback - No session, redirecting to sign in')
-          setTimeout(() => router.push('/auth/signin'), 2000)
+          if (isMounted) {
+            setTimeout(() => {
+              if (isMounted) {
+                setIsProcessing(false)
+                router.push('/auth/signin')
+              }
+            }, 2000)
+          }
         }
       } catch (error) {
         console.error('❌ OAuth callback error:', error)
-        setError(error instanceof Error ? error.message : 'Unknown error')
-        setTimeout(() => router.push('/auth/signin?error=oauth_failed'), 2000)
+        if (isMounted) {
+          setError(error instanceof Error ? error.message : 'Unknown error')
+          setTimeout(() => {
+            if (isMounted) {
+              setIsProcessing(false)
+              router.push('/auth/signin?error=oauth_failed')
+            }
+          }, 2000)
+        }
       }
     }
 
     handleCallback()
+
+    return () => {
+      isMounted = false
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Empty deps - only run on mount
 
