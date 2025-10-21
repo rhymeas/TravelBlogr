@@ -11,8 +11,13 @@ export default function AuthCallbackPage() {
   const router = useRouter()
   const supabase = useSupabase()
   const [error, setError] = useState<string | null>(null)
+  const [hasRun, setHasRun] = useState(false)
 
   useEffect(() => {
+    // Prevent infinite loop - only run once
+    if (hasRun) return
+    setHasRun(true)
+
     const handleCallback = async () => {
       try {
         // CRITICAL: Check if we're on the wrong domain (production site_url redirect)
@@ -85,7 +90,7 @@ export default function AuthCallbackPage() {
     }
 
     handleCallback()
-  }, [router, supabase])
+  }, [router, supabase, hasRun])
 
   if (error) {
     return (
