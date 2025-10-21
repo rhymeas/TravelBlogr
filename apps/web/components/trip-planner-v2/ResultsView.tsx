@@ -7,13 +7,15 @@
  */
 
 import { useState, useMemo } from 'react'
-import { Calendar, Car, MapPin, Clock, Hotel, Camera, Coffee, Edit, Utensils, Navigation } from 'lucide-react'
+import { Calendar, Car, MapPin, Clock, Hotel, Camera, Coffee, Edit, Utensils, Navigation, DollarSign, TrendingUp, Info } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import type { TripPlanData } from './types'
 
 interface ResultsViewProps {
   plan: any // V1 API response
   tripData: TripPlanData
+  locationImages?: Record<string, { featured: string; gallery: string[] }>
+  structuredContext?: any
   onEdit: () => void
 }
 
@@ -31,8 +33,9 @@ const DAY_GRADIENTS = [
 // Emojis for different location types
 const LOCATION_EMOJIS = ['🗼', '🍷', '🏛️', '🎨', '🏟️', '🌊', '🏔️', '🌆', '🎭', '🍕']
 
-export function ResultsView({ plan, tripData, onEdit }: ResultsViewProps) {
+export function ResultsView({ plan, tripData, locationImages = {}, structuredContext, onEdit }: ResultsViewProps) {
   const [selectedDay, setSelectedDay] = useState(1)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
 
   // Transform V1 API data to results layout format
   const itinerary = useMemo(() => {
@@ -68,6 +71,12 @@ export function ResultsView({ plan, tripData, onEdit }: ResultsViewProps) {
         ?.slice(0, 3)
         ?.map((item: any) => item.title) || []
 
+      // Get location images (featured + gallery)
+      const locationKey = day.location.toLowerCase().replace(/\s+/g, '-')
+      const images = locationImages[day.location] || locationImages[locationKey]
+      const featuredImage = images?.featured
+      const gallery = images?.gallery || []
+
       return {
         day: day.day,
         date: new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -75,14 +84,15 @@ export function ResultsView({ plan, tripData, onEdit }: ResultsViewProps) {
         emoji: LOCATION_EMOJIS[index % LOCATION_EMOJIS.length],
         distance: day.travelInfo?.distance ? `${Math.round(day.travelInfo.distance)} km` : undefined,
         duration: day.travelInfo?.duration ? `${Math.round(day.travelInfo.duration)}h` : undefined,
-        image: DAY_GRADIENTS[index % DAY_GRADIENTS.length],
+        image: featuredImage || DAY_GRADIENTS[index % DAY_GRADIENTS.length], // Use real image or fallback to gradient
+        gallery, // Image gallery
         stops,
         accommodation,
         highlights,
         didYouKnow: day.didYouKnow
       }
     })
-  }, [plan])
+  }, [plan, locationImages])
 
   return (
     <div className="min-h-screen bg-white">
@@ -139,7 +149,7 @@ export function ResultsView({ plan, tripData, onEdit }: ResultsViewProps) {
         {/* Main Content - 20% more compact */}
         <div className="grid grid-cols-12 gap-5">
           {/* Left Sidebar - Day Navigation - 20% more compact */}
-          <div className="col-span-3">
+          <div className="col-span-12 lg:col-span-2">
             <div className="sticky top-20 space-y-1.5">
               <div className="text-xs font-semibold text-gray-500 mb-2 px-2">YOUR ITINERARY</div>
               {itinerary.map((day: any) => (
@@ -168,23 +178,59 @@ export function ResultsView({ plan, tripData, onEdit }: ResultsViewProps) {
           </div>
 
           {/* Main Content - Day Details - 20% more compact */}
-          <div className="col-span-9">
+          <div className="col-span-12 lg:col-span-7">
             <div className="space-y-4">
               {itinerary.filter((day: any) => day.day === selectedDay).map((day: any) => (
                 <div key={day.day}>
-                  {/* Hero Image - 20% smaller */}
-                  <div
-                    className="h-64 rounded-xl mb-4 flex items-center justify-center text-white shadow-lg"
-                    style={{ background: day.image }}
-                  >
-                    <div className="text-center">
-                      <div className="text-5xl mb-3">{day.emoji}</div>
-                      <div className="text-2xl font-semibold mb-1.5">{day.location}</div>
-                      {day.distance && (
-                        <div className="text-base opacity-90">{day.distance} • {day.duration}</div>
-                      )}
+                  {/* Hero Image - Real image or gradient fallback */}
+                  <div className="relative h-64 rounded-xl mb-4 overflow-hidden shadow-lg">
+                    {day.image.startsWith('http') ? (
+                      // Real image from database
+                      <>
+                        <img
+                          src={day.image}
+                          alt={day.location}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                      </>
+                    ) : (
+                      // Gradient fallback
+                      <div className="w-full h-full" style={{ background: day.image }} />
+                    )}
+
+                    {/* Overlay content */}
+                    <div className="absolute inset-0 flex items-center justify-center text-white">
+                      <div className="text-center">
+                        <div className="text-5xl mb-3 drop-shadow-lg">{day.emoji}</div>
+                        <div className="text-2xl font-semibold mb-1.5 drop-shadow-lg">{day.location}</div>
+                        {day.distance && (
+                          <div className="text-base opacity-90 drop-shadow-lg">{day.distance} • {day.duration}</div>
+                        )}
+                      </div>
                     </div>
                   </div>
+
+                  {/* Image Gallery - Show if available */}
+                  {day.gallery && day.gallery.length > 0 && (
+                    <div className="mb-4">
+                      <div className="grid grid-cols-4 gap-2">
+                        {day.gallery.slice(0, 4).map((img: string, idx: number) => (
+                          <div
+                            key={idx}
+                            className="relative h-24 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => setSelectedImageIndex(idx)}
+                          >
+                            <img
+                              src={img}
+                              alt={`${day.location} ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Schedule - 20% more compact */}
                   <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm mb-4">
@@ -262,8 +308,8 @@ export function ResultsView({ plan, tripData, onEdit }: ResultsViewProps) {
                   )}
 
                   {/* Highlights - 20% more compact */}
-                  {day.highlights && (
-                    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                  {day.highlights && day.highlights.length > 0 && (
+                    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm mb-4">
                       <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
                         <Camera className="w-4 h-4 text-gray-400" />
                         Don't Miss
@@ -278,8 +324,92 @@ export function ResultsView({ plan, tripData, onEdit }: ResultsViewProps) {
                       </div>
                     </div>
                   )}
+
+                  {/* Did You Know? - Interesting Facts */}
+                  {day.didYouKnow && (
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-4 shadow-sm">
+                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5 text-blue-900">
+                        <Info className="w-4 h-4 text-blue-600" />
+                        Did You Know?
+                      </h3>
+                      <p className="text-xs text-blue-800 leading-relaxed">{day.didYouKnow}</p>
+                    </div>
+                  )}
                 </div>
               ))}
+            </div>
+
+            {/* Right Sidebar - Trip Stats & Cost Breakdown */}
+            <div className="col-span-3 lg:block hidden">
+              <div className="sticky top-20 space-y-4">
+                {/* Trip Stats */}
+                {plan.stats && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
+                      <TrendingUp className="w-4 h-4 text-gray-400" />
+                      Trip Overview
+                    </h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-600">Total Days</span>
+                        <span className="font-semibold text-gray-900">{plan.stats.totalDays}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-600">Activities</span>
+                        <span className="font-semibold text-gray-900">{plan.stats.totalActivities}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-600">Meals</span>
+                        <span className="font-semibold text-gray-900">{plan.stats.totalMeals}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-600">Locations</span>
+                        <span className="font-semibold text-gray-900">{plan.stats.locations?.length || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Cost Breakdown */}
+                {plan.totalCostEstimate && plan.totalCostEstimate > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
+                      <DollarSign className="w-4 h-4 text-gray-400" />
+                      Budget Estimate
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-xs text-gray-600">Total Trip Cost</span>
+                        <span className="text-lg font-bold text-gray-900">€{plan.totalCostEstimate}</span>
+                      </div>
+                      {plan.stats?.averageCostPerDay && (
+                        <div className="flex justify-between items-center text-xs pt-2 border-t border-gray-100">
+                          <span className="text-gray-600">Per Day</span>
+                          <span className="font-semibold text-gray-900">€{plan.stats.averageCostPerDay}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Travel Tips */}
+                {plan.tips && plan.tips.length > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
+                      <Info className="w-4 h-4 text-gray-400" />
+                      Travel Tips
+                    </h3>
+                    <div className="space-y-2">
+                      {plan.tips.slice(0, 5).map((tip: string, idx: number) => (
+                        <div key={idx} className="flex items-start gap-2">
+                          <div className="w-1 h-1 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                          <span className="text-xs text-gray-700 leading-relaxed">{tip}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -29,6 +29,8 @@ export function TripPlannerV2() {
   const [currentPhase, setCurrentPhase] = useState(1)
   const [showResults, setShowResults] = useState(false)
   const [generatedPlan, setGeneratedPlan] = useState<any>(null)
+  const [locationImages, setLocationImages] = useState<Record<string, { featured: string; gallery: string[] }>>({})
+  const [structuredContext, setStructuredContext] = useState<any>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -136,7 +138,12 @@ export function TripPlannerV2() {
 
       if (data.success && data.plan) {
         console.log('✅ V2 - Plan generated successfully, showing results')
+        console.log('📸 V2 - Location images:', data.locationImages)
+        console.log('🗺️ V2 - Structured context:', data.structuredContext)
+
         setGeneratedPlan(data.plan)
+        setLocationImages(data.locationImages || {})
+        setStructuredContext(data.structuredContext || null)
         setShowResults(true)
       } else {
         console.error('❌ V2 - API returned error:', data.error)
@@ -190,6 +197,8 @@ export function TripPlannerV2() {
       <ResultsView
         plan={generatedPlan}
         tripData={tripData}
+        locationImages={locationImages}
+        structuredContext={structuredContext}
         onEdit={() => setShowResults(false)}
       />
     )
