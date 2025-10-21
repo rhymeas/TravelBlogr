@@ -96,12 +96,12 @@ export default function AuthCallbackPage() {
           // Instead, Supabase's detectSessionInUrl will handle it automatically
           // We just need to wait for the SIGNED_IN event via onAuthStateChange
 
-          // Wait up to 5 seconds for session to be created
+          // Wait up to 15 seconds for session to be created
           const sessionCreated = await new Promise<boolean>((resolve) => {
             const timeout = setTimeout(() => {
-              console.warn('⚠️ Session creation timeout after 5 seconds')
+              console.warn('⚠️ Session creation timeout after 15 seconds')
               resolve(false)
-            }, 5000)
+            }, 15000)
 
             // Listen for SIGNED_IN event
             const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {

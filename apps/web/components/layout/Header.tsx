@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation'
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const { user, profile, isAuthenticated, signOut } = useAuth()
+  const { user, profile, isAuthenticated, isLoading, signOut } = useAuth()
   const router = useRouter()
 
   const handleSignOut = async () => {
@@ -54,7 +54,13 @@ export function Header() {
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span>Live</span>
             </div>
-            {isAuthenticated ? (
+            {isLoading ? (
+              // Loading skeleton - prevents buttons from disappearing during auth state changes
+              <>
+                <div className="h-9 w-20 bg-gray-200 rounded-md animate-pulse"></div>
+                <div className="h-9 w-24 bg-gray-200 rounded-md animate-pulse"></div>
+              </>
+            ) : isAuthenticated ? (
               <>
                 <Link href="/trips">
                   <Button variant="outline" size="sm">
