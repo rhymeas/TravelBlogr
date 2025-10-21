@@ -28,146 +28,69 @@ export function TripSummary({ data, currentPhase }: TripSummaryProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 space-y-4">
-      {/* Route section removed - visible on map */}
-
-      {/* Dates */}
-      {currentPhase >= 1 && data.dateRange && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Calendar className="w-3.5 h-3.5 text-gray-900" />
-            Dates
-          </div>
-          <div className="pl-6 text-sm text-gray-600">
-            {formatDateRange()}
-            <div className="text-xs text-gray-500 mt-1">
-              {getDuration()} {getDuration() === 1 ? 'day' : 'days'}
-              {data.dateRange.flexible && ' (flexible)'}
+    <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 p-4 hover:shadow-blue-500/20 transition-all duration-300">
+      {/* Compact horizontal summary */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        {/* Dates */}
+        {currentPhase >= 1 && data.dateRange && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-lg border border-cyan-500/20">
+            <Calendar className="w-3.5 h-3.5 text-cyan-600" />
+            <div className="text-[10px] font-semibold text-gray-800">
+              {getDuration()}d
+              {data.dateRange.flexible && <span className="ml-1 text-cyan-600">±3</span>}
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Trip Type */}
-      {currentPhase >= 1 && data.tripType && (
-        <div className="space-y-2">
-          <div className="text-sm font-semibold text-gray-700">Trip Type</div>
-          <div className="pl-6 text-sm text-gray-600 capitalize">
-            {data.tripType.replace('-', ' ')}
+        {/* Trip Type */}
+        {currentPhase >= 1 && data.tripType && (
+          <div className="px-3 py-1.5 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg border border-purple-500/20">
+            <div className="text-[10px] font-semibold text-gray-800 capitalize">
+              {data.tripType.replace('-', ' ')}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Companions */}
-      {currentPhase >= 2 && data.companions && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Users className="w-3.5 h-3.5 text-gray-900" />
-            Travelers
+        {/* Companions */}
+        {currentPhase >= 2 && data.companions && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-rose-500/10 to-pink-500/10 rounded-lg border border-rose-500/20">
+            <Users className="w-3.5 h-3.5 text-rose-600" />
+            <div className="text-[10px] font-semibold text-gray-800 capitalize">
+              {data.companions}
+              {data.groupSize > 1 && ` (${data.groupSize})`}
+            </div>
           </div>
-          <div className="pl-6 text-sm text-gray-600 capitalize">
-            {data.companions.replace('-', ' ')}
-            {data.groupSize > 1 && ` (${data.groupSize} people)`}
-            {data.childAges && data.childAges.length > 0 && (
-              <div className="text-xs text-gray-500 mt-1">
-                Children: {data.childAges.join(', ')} years old
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* Transport */}
-      {currentPhase >= 3 && data.transportMode && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Car className="w-3.5 h-3.5 text-gray-900" />
-            Transport
+        {/* Transport */}
+        {currentPhase >= 2 && data.transportMode && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-lg border border-blue-500/20">
+            <Car className="w-3.5 h-3.5 text-blue-600" />
+            <div className="text-[10px] font-semibold text-gray-800 capitalize">
+              {data.transportMode}
+            </div>
           </div>
-          <div className="pl-6 text-sm text-gray-600 capitalize">
-            {data.transportMode.replace('-', ' ')}
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* Travel Pace */}
-      {currentPhase >= 4 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Gauge className="w-3.5 h-3.5 text-gray-900" />
-            Pace
+        {/* Pace */}
+        {currentPhase >= 2 && data.pace && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg border border-green-500/20">
+            <Gauge className="w-3.5 h-3.5 text-green-600" />
+            <div className="text-[10px] font-semibold text-gray-800 capitalize">
+              {data.pace}
+            </div>
           </div>
-          <div className="pl-6 text-sm text-gray-600 capitalize">
-            {data.pace}
-            {data.dailyTravelHours && ` (${data.dailyTravelHours}h/day)`}
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* Travel Style */}
-      {currentPhase >= 4 && data.travelStyle.length > 0 && (
-        <div className="space-y-2">
-          <div className="text-sm font-semibold text-gray-700">Interests</div>
-          <div className="pl-6 flex flex-wrap gap-1">
-            {data.travelStyle.slice(0, 3).map((style, index) => (
-              <span
-                key={index}
-                className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full"
-              >
-                {style}
-              </span>
-            ))}
-            {data.travelStyle.length > 3 && (
-              <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
-                +{data.travelStyle.length - 3} more
-              </span>
-            )}
+        {/* Budget */}
+        {currentPhase >= 2 && data.budget && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-lg border border-amber-500/20">
+            <DollarSign className="w-3.5 h-3.5 text-amber-600" />
+            <div className="text-[10px] font-semibold text-gray-800 capitalize">
+              {data.budget.replace('-', ' ')}
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Budget */}
-      {currentPhase >= 5 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <DollarSign className="w-3.5 h-3.5 text-gray-900" />
-            Budget
-          </div>
-          <div className="pl-6 text-sm text-gray-600 capitalize">
-            {data.budget.replace('-', ' ')}
-          </div>
-        </div>
-      )}
-
-      {/* Accommodations */}
-      {currentPhase >= 5 && data.accommodationTypes.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Hotel className="w-3.5 h-3.5 text-gray-900" />
-            Accommodations
-          </div>
-          <div className="pl-6 text-sm text-gray-600">
-            {data.accommodationTypes.slice(0, 2).join(', ')}
-            {data.accommodationTypes.length > 2 && ` +${data.accommodationTypes.length - 2} more`}
-          </div>
-        </div>
-      )}
-
-      {/* Progress indicator removed - visible in header */}
-
-      {/* CTAs at bottom */}
-      <div className="pt-4 border-t border-gray-200 space-y-2">
-        <button
-          onClick={() => window.location.href = '/trips/new'}
-          className="w-full px-3 py-2 bg-gray-100 text-gray-700 text-xs font-semibold rounded hover:bg-gray-200 transition-colors border border-gray-300"
-        >
-          Manual Trip Planner
-        </button>
-        <div className="text-center">
-          <span className="inline-block px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-semibold rounded">
-            V2 Experimental
-          </span>
-        </div>
+        )}
       </div>
     </div>
   )

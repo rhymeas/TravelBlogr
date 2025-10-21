@@ -21,17 +21,20 @@ interface ProgressIndicatorProps {
 
 export function ProgressIndicator({ phases, currentPhase, onPhaseClick }: ProgressIndicatorProps) {
   return (
-    <div className="relative">
-      {/* Progress Bar - Bolder */}
-      <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full">
+    <div className="relative py-1">
+      {/* Progress Bar - Using global CSS colors */}
+      <div className="absolute top-1/2 left-[20%] right-[20%] h-0.5 bg-gray-200 -translate-y-1/2">
         <div
-          className="h-full bg-[#2C5F6F] transition-all duration-500 rounded-full"
-          style={{ width: `${((currentPhase - 1) / (phases.length - 1)) * 100}%` }}
+          className="h-full transition-all duration-700 ease-out"
+          style={{ 
+            width: `${((currentPhase - 1) / (phases.length - 1)) * 100}%`,
+            background: 'linear-gradient(to right, var(--color-primary), var(--color-secondary))'
+          }}
         />
       </div>
 
-      {/* Phase Steps - Bolder and closer */}
-      <div className="relative flex justify-center gap-32">
+      {/* Phase Steps - Compact bubbles with step numbers */}
+      <div className="relative flex justify-center items-center gap-24">
         {phases.map((phase) => {
           const isCompleted = phase.id < currentPhase
           const isCurrent = phase.id === currentPhase
@@ -42,25 +45,26 @@ export function ProgressIndicator({ phases, currentPhase, onPhaseClick }: Progre
               key={phase.id}
               onClick={() => isClickable && onPhaseClick(phase.id)}
               disabled={!isClickable}
-              className={`flex flex-col items-center group ${
+              className={`flex flex-col items-center group relative ${
                 isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
               }`}
             >
-              {/* Circle - Bolder */}
+
+              {/* Circle - Smaller */}
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center border-3 transition-all shadow-md ${
+                className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
                   isCompleted
                     ? 'bg-[#2C5F6F] border-[#2C5F6F]'
                     : isCurrent
-                    ? 'bg-white border-[#2C5F6F] ring-4 ring-[#2C5F6F]/30'
+                    ? 'bg-white border-[#2C5F6F] ring-2 ring-[#2C5F6F]/20'
                     : 'bg-white border-gray-300'
-                } ${isClickable ? 'group-hover:scale-110' : ''}`}
+                } ${isClickable ? 'group-hover:scale-105' : ''}`}
               >
                 {isCompleted ? (
-                  <Check className="w-5 h-5 text-white" />
+                  <Check className="w-4 h-4 text-white" />
                 ) : (
                   <span
-                    className={`text-sm font-bold ${
+                    className={`text-xs font-semibold ${
                       isCurrent ? 'text-[#2C5F6F]' : 'text-gray-400'
                     }`}
                   >
@@ -69,16 +73,19 @@ export function ProgressIndicator({ phases, currentPhase, onPhaseClick }: Progre
                 )}
               </div>
 
-              {/* Label */}
+              {/* Label - Below bubble with step number */}
               <div className="mt-2 text-center">
                 <div
-                  className={`text-xs font-bold ${
-                    isCurrent ? 'text-[#2C5F6F]' : isCompleted ? 'text-gray-700' : 'text-gray-400'
+                  className={`text-xs font-semibold tracking-tight ${
+                    isCompleted ? 'text-gray-700' : 'text-gray-400'
                   }`}
+                  style={isCurrent ? { color: 'var(--color-primary)' } : {}}
                 >
-                  {phase.name}
+                  Step {phase.id}: {phase.name}
                 </div>
-                <div className="text-[10px] text-gray-500 mt-0.5">{phase.description}</div>
+                <div className="text-[10px] text-gray-500 mt-0.5">
+                  {phase.description}
+                </div>
               </div>
             </button>
           )
