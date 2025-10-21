@@ -86,25 +86,25 @@ export function ResultsView({ plan, tripData, onEdit }: ResultsViewProps) {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
+      {/* Header - 20% more compact */}
       <header className="border-b border-gray-200 sticky top-0 bg-white z-40 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between h-20">
-            <div className="flex items-center gap-12">
-              <div className="text-2xl font-semibold text-emerald-600">TravelBlogr</div>
-              <nav className="hidden md:flex items-center gap-8">
-                <button onClick={onEdit} className="text-gray-700 hover:text-black font-medium">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex items-center justify-between h-14">
+            <div className="flex items-center gap-8">
+              <div className="text-lg font-semibold text-emerald-600">TravelBlogr</div>
+              <nav className="hidden md:flex items-center gap-6">
+                <button onClick={onEdit} className="text-sm text-gray-700 hover:text-black font-medium">
                   Edit trip
                 </button>
-                <a href="#" className="text-gray-600 hover:text-black">Explore</a>
-                <a href="#" className="text-gray-600 hover:text-black">Saved</a>
+                <a href="#" className="text-sm text-gray-600 hover:text-black">Explore</a>
+                <a href="#" className="text-sm text-gray-600 hover:text-black">Saved</a>
               </nav>
             </div>
-            <div className="flex items-center gap-3">
-              <button className="px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-full transition-colors">
+            <div className="flex items-center gap-2">
+              <button className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded-full transition-colors">
                 Save trip
               </button>
-              <button className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-full hover:shadow-lg transition-all font-medium">
+              <button className="px-4 py-1.5 text-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-full hover:shadow-lg transition-all font-medium">
                 Share itinerary
               </button>
             </div>
@@ -112,21 +112,21 @@ export function ResultsView({ plan, tripData, onEdit }: ResultsViewProps) {
         </div>
       </header>
 
-      {/* Trip Title */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-semibold mb-3 text-gray-900">
+      {/* Trip Title - 20% more compact */}
+      <div className="max-w-6xl mx-auto px-4 py-5">
+        <div className="mb-5">
+          <h1 className="text-3xl font-semibold mb-2 text-gray-900">
             {tripData.destinations[0]?.name} to {tripData.destinations[tripData.destinations.length - 1]?.name}
           </h1>
-          <div className="flex items-center gap-4 text-gray-600">
-            <span className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
+          <div className="flex items-center gap-3 text-sm text-gray-600">
+            <span className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" />
               {tripData.dateRange?.startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} -{' '}
               {tripData.dateRange?.endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </span>
             <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-            <span className="flex items-center gap-2 capitalize">
-              <Car className="w-4 h-4" />
+            <span className="flex items-center gap-1.5 capitalize">
+              <Car className="w-3.5 h-3.5" />
               {tripData.transportMode}
             </span>
             <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
@@ -136,92 +136,92 @@ export function ResultsView({ plan, tripData, onEdit }: ResultsViewProps) {
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-12 gap-8">
-          {/* Left Sidebar - Day Navigation */}
+        {/* Main Content - 20% more compact */}
+        <div className="grid grid-cols-12 gap-5">
+          {/* Left Sidebar - Day Navigation - 20% more compact */}
           <div className="col-span-3">
-            <div className="sticky top-28 space-y-2">
-              <div className="text-sm font-semibold text-gray-500 mb-3 px-3">YOUR ITINERARY</div>
+            <div className="sticky top-20 space-y-1.5">
+              <div className="text-xs font-semibold text-gray-500 mb-2 px-2">YOUR ITINERARY</div>
               {itinerary.map((day: any) => (
                 <button
                   key={day.day}
                   onClick={() => setSelectedDay(day.day)}
-                  className={`w-full text-left p-3 rounded-xl transition-all ${
+                  className={`w-full text-left p-2 rounded-lg transition-all ${
                     selectedDay === day.day
                       ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 shadow-sm'
                       : 'hover:bg-gray-50 border border-transparent'
                   }`}
                 >
-                  <div className="flex items-center gap-3 mb-1">
-                    <div className="text-2xl">{day.emoji}</div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <div className="text-xl">{day.emoji}</div>
                     <div className="flex-1">
-                      <div className={`text-sm font-semibold ${selectedDay === day.day ? 'text-emerald-700' : 'text-gray-900'}`}>
+                      <div className={`text-xs font-semibold ${selectedDay === day.day ? 'text-emerald-700' : 'text-gray-900'}`}>
                         Day {day.day}
                       </div>
-                      <div className="text-xs text-gray-500">{day.date}</div>
+                      <div className="text-[10px] text-gray-500">{day.date}</div>
                     </div>
                   </div>
-                  <div className="text-xs text-gray-600 ml-11">{day.location}</div>
+                  <div className="text-[10px] text-gray-600 ml-9">{day.location}</div>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Main Content - Day Details */}
+          {/* Main Content - Day Details - 20% more compact */}
           <div className="col-span-9">
-            <div className="space-y-6">
+            <div className="space-y-4">
               {itinerary.filter((day: any) => day.day === selectedDay).map((day: any) => (
                 <div key={day.day}>
-                  {/* Hero Image */}
+                  {/* Hero Image - 20% smaller */}
                   <div
-                    className="h-96 rounded-2xl mb-6 flex items-center justify-center text-white shadow-xl"
+                    className="h-64 rounded-xl mb-4 flex items-center justify-center text-white shadow-lg"
                     style={{ background: day.image }}
                   >
                     <div className="text-center">
-                      <div className="text-6xl mb-4">{day.emoji}</div>
-                      <div className="text-3xl font-semibold mb-2">{day.location}</div>
+                      <div className="text-5xl mb-3">{day.emoji}</div>
+                      <div className="text-2xl font-semibold mb-1.5">{day.location}</div>
                       {day.distance && (
-                        <div className="text-lg opacity-90">{day.distance} • {day.duration}</div>
+                        <div className="text-base opacity-90">{day.distance} • {day.duration}</div>
                       )}
                     </div>
                   </div>
 
-                  {/* Schedule */}
-                  <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm mb-6">
-                    <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-gray-400" />
+                  {/* Schedule - 20% more compact */}
+                  <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm mb-4">
+                    <h3 className="text-base font-semibold mb-4 flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-gray-400" />
                       Today's Schedule
                     </h3>
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {day.stops.map((stop: any, idx: number) => {
                         const Icon = stop.icon
                         return (
-                          <div key={idx} className="flex gap-4 group">
+                          <div key={idx} className="flex gap-3 group">
                             <div className="flex flex-col items-center">
-                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                                 stop.type === 'departure' ? 'bg-gray-100 border-2 border-gray-300' :
                                 stop.type === 'arrival' ? 'bg-gradient-to-br from-emerald-500 to-teal-500' :
                                 'bg-blue-50'
                               }`}>
-                                <Icon className={`w-5 h-5 ${
+                                <Icon className={`w-4 h-4 ${
                                   stop.type === 'arrival' ? 'text-white' : 'text-gray-600'
                                 }`} />
                               </div>
                               {idx < day.stops.length - 1 && (
-                                <div className="w-0.5 h-12 bg-gray-200 my-1"></div>
+                                <div className="w-0.5 h-8 bg-gray-200 my-0.5"></div>
                               )}
                             </div>
-                            <div className="flex-1 pb-2">
+                            <div className="flex-1 pb-1">
                               <div className="flex items-start justify-between">
                                 <div>
-                                  <div className="font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">
+                                  <div className="text-sm font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">
                                     {stop.title}
                                   </div>
                                   {stop.duration && (
-                                    <div className="text-sm text-gray-500 mt-1">{stop.duration}</div>
+                                    <div className="text-xs text-gray-500 mt-0.5">{stop.duration}</div>
                                   )}
                                 </div>
-                                <span className="text-sm font-medium text-gray-500">{stop.time}</span>
+                                <span className="text-xs font-medium text-gray-500">{stop.time}</span>
                               </div>
                             </div>
                           </div>
@@ -230,23 +230,23 @@ export function ResultsView({ plan, tripData, onEdit }: ResultsViewProps) {
                     </div>
                   </div>
 
-                  {/* Accommodation */}
+                  {/* Accommodation - 20% more compact */}
                   {day.accommodation && (
-                    <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow mb-6">
+                    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow mb-4">
                       <div className="flex items-start justify-between">
-                        <div className="flex gap-4 flex-1">
-                          <div className="w-24 h-24 bg-gradient-to-br from-amber-100 to-orange-100 rounded-xl flex items-center justify-center">
-                            <Hotel className="w-12 h-12 text-orange-400" />
+                        <div className="flex gap-3 flex-1">
+                          <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg flex items-center justify-center">
+                            <Hotel className="w-8 h-8 text-orange-400" />
                           </div>
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-semibold rounded">
                                 Tonight's Stay
                               </span>
                             </div>
-                            <h4 className="text-lg font-semibold text-gray-900 mb-1">{day.accommodation.name}</h4>
-                            <div className="flex items-center gap-3 text-sm">
-                              <div className="flex items-center gap-1">
+                            <h4 className="text-sm font-semibold text-gray-900 mb-0.5">{day.accommodation.name}</h4>
+                            <div className="flex items-center gap-2 text-xs">
+                              <div className="flex items-center gap-0.5">
                                 <span className="text-yellow-500">★</span>
                                 <span className="font-semibold">{day.accommodation.rating}</span>
                               </div>
@@ -254,25 +254,25 @@ export function ResultsView({ plan, tripData, onEdit }: ResultsViewProps) {
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-2xl font-semibold text-gray-900">{day.accommodation.price}</div>
-                          <div className="text-xs text-gray-500">per night</div>
+                          <div className="text-lg font-semibold text-gray-900">{day.accommodation.price}</div>
+                          <div className="text-[10px] text-gray-500">per night</div>
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {/* Highlights */}
+                  {/* Highlights - 20% more compact */}
                   {day.highlights && (
-                    <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <Camera className="w-5 h-5 text-gray-400" />
+                    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                      <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
+                        <Camera className="w-4 h-4 text-gray-400" />
                         Don't Miss
                       </h3>
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {day.highlights.map((highlight: string, idx: number) => (
-                          <div key={idx} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-                            <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                            <span className="text-gray-700">{highlight}</span>
+                          <div key={idx} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                            <span className="text-xs text-gray-700">{highlight}</span>
                           </div>
                         ))}
                       </div>
