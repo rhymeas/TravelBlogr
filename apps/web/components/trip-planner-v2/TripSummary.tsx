@@ -29,24 +29,7 @@ export function TripSummary({ data, currentPhase }: TripSummaryProps) {
 
   return (
     <div className="bg-white rounded-lg shadow p-4 space-y-4">
-      {/* Header removed to save space */}
-
-      {/* Destinations */}
-      {currentPhase >= 1 && data.destinations.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <MapPin className="w-3.5 h-3.5 text-[#2C5F6F]" />
-            Route
-          </div>
-          <div className="pl-6 space-y-1">
-            {data.destinations.map((dest, index) => (
-              <div key={index} className="text-sm text-gray-600">
-                {index === 0 ? '🅰️' : index === data.destinations.length - 1 ? '🅱️' : '📍'} {dest.name || 'Not set'}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Route section removed - visible on map */}
 
       {/* Dates */}
       {currentPhase >= 1 && data.dateRange && (
@@ -170,17 +153,26 @@ export function TripSummary({ data, currentPhase }: TripSummaryProps) {
         </div>
       )}
 
-      {/* Completion Indicator */}
-      <div className="pt-4 border-t border-gray-200">
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>Progress</span>
-          <span className="font-semibold">{Math.round((currentPhase / 6) * 100)}%</span>
-        </div>
-        <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500"
-            style={{ width: `${(currentPhase / 6) * 100}%` }}
-          />
+      {/* Progress indicator removed - visible in header */}
+
+      {/* CTAs at bottom */}
+      <div className="pt-4 border-t border-gray-200 space-y-2">
+        <button
+          onClick={() => window.location.href = '/trips/new'}
+          className="w-full px-3 py-2 bg-[#2C5F6F] text-white text-xs font-semibold rounded hover:bg-[#1e4a56] transition-colors"
+        >
+          Manual Trip Planner
+        </button>
+        <button
+          onClick={() => window.location.href = '/plan'}
+          className="w-full px-3 py-2 bg-gray-100 text-gray-700 text-xs font-semibold rounded hover:bg-gray-200 transition-colors"
+        >
+          ← Classic Planner
+        </button>
+        <div className="text-center">
+          <span className="inline-block px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-semibold rounded">
+            V2 Experimental
+          </span>
         </div>
       </div>
     </div>

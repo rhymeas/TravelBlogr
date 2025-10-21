@@ -110,41 +110,41 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-4">
+      {/* Header - More compact */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-1">Where are you thinking of going?</h2>
-        <p className="text-sm text-gray-600">Let's start with the basics of your journey</p>
+        <h2 className="text-xl font-bold text-gray-900 mb-0.5">Where are you thinking of going?</h2>
+        <p className="text-xs text-gray-600">Let's start with the basics of your journey</p>
       </div>
 
       {/* Destinations - Using V1 LocationInput with drag-and-drop */}
-      <div className="space-y-3">
+      <div>
         <LocationInput
           locations={locations}
           onChange={setLocations}
         />
       </div>
 
-      {/* Trip Type */}
-      <div className="space-y-3">
-        <h3 className="text-base font-semibold text-gray-900">What kind of trip are you planning?</h3>
+      {/* Trip Type - More compact */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold text-gray-900">What kind of trip are you planning?</h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {TRIP_TYPES.map((type) => (
             <button
               key={type.id}
               onClick={() => setSelectedTripType(type.id)}
-              className={`p-4 rounded-lg border-2 transition-all text-left ${
+              className={`p-3 rounded-lg border-2 transition-all text-left ${
                 selectedTripType === type.id
                   ? 'border-[#2C5F6F] bg-[#2C5F6F]/5 shadow-sm'
                   : 'border-gray-200 hover:border-gray-300 bg-white'
               }`}
             >
-              <div className="flex items-start gap-3">
-                <div className="text-3xl">{type.icon}</div>
+              <div className="flex items-start gap-2">
+                <div className="text-2xl">{type.icon}</div>
                 <div className="flex-1">
-                  <div className="font-semibold text-gray-900 mb-0.5 text-sm">{type.label}</div>
-                  <div className="text-xs text-gray-600">{type.description}</div>
+                  <div className="font-semibold text-gray-900 text-xs">{type.label}</div>
+                  <div className="text-[10px] text-gray-600 leading-tight">{type.description}</div>
                 </div>
               </div>
             </button>
@@ -152,10 +152,10 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
         </div>
       </div>
 
-      {/* Dates */}
-      <div className="space-y-3">
-        <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-[#2C5F6F]" />
+      {/* Dates - More compact */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+          <Calendar className="w-3.5 h-3.5 text-[#2C5F6F]" />
           When are you traveling?
         </h3>
 
@@ -173,22 +173,22 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
           }}
         />
 
-        <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+        <label className="flex items-center gap-1.5 text-[10px] text-gray-700 cursor-pointer">
           <input
             type="checkbox"
             checked={dateRange.flexible}
             onChange={(e) => setDateRange({ ...dateRange, flexible: e.target.checked })}
-            className="w-3.5 h-3.5 text-[#2C5F6F] border-gray-300 rounded focus:ring-[#2C5F6F]"
+            className="w-3 h-3 text-[#2C5F6F] border-gray-300 rounded focus:ring-[#2C5F6F]"
           />
           My dates are flexible (±3 days)
         </label>
       </div>
 
-      {/* Navigation */}
-      <div className="flex justify-end pt-4 border-t border-gray-200">
+      {/* Navigation - More compact */}
+      <div className="flex justify-end pt-3 border-t border-gray-200">
         <Button
           onClick={handleNext}
-          className="px-6 py-2 bg-[#2C5F6F] text-white text-sm rounded-lg hover:bg-[#1e4a56] font-semibold"
+          className="px-5 py-1.5 bg-[#2C5F6F] text-white text-xs rounded-lg hover:bg-[#1e4a56] font-semibold"
         >
           Continue →
         </Button>

@@ -264,31 +264,9 @@ export function TripPlannerV2() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Progress Indicator with V2 Badge */}
+      {/* Minimal header - just progress dots */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Logo size="small" />
-              <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-semibold rounded">
-                V2 Experimental
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => window.location.href = '/plan'}
-                className="text-xs text-gray-600 hover:text-gray-900"
-              >
-                ← Classic Planner
-              </button>
-              <button
-                onClick={() => window.location.href = '/trips/new'}
-                className="px-3 py-1.5 bg-[#2C5F6F] text-white text-xs font-semibold rounded hover:bg-[#1e4a56]"
-              >
-                Manual Trip Planner
-              </button>
-            </div>
-          </div>
+        <div className="max-w-6xl mx-auto px-4 py-2">
           <ProgressIndicator
             phases={PHASES}
             currentPhase={currentPhase}
