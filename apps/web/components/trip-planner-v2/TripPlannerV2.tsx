@@ -169,10 +169,10 @@ export function TripPlannerV2() {
   }
 
   return (
-    <div className="h-screen bg-[#1a1a1a] flex flex-col overflow-hidden">
-      {/* Compact progress header - Apple-like dark */}
-      <div className="bg-[#2a2a2a] border-b border-gray-800">
-        <div className="max-w-[1600px] mx-auto px-6 py-2">
+    <div className="min-h-screen bg-gray-50">
+      {/* Progress indicator - V1 style */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-6xl mx-auto px-6 py-3">
           <ProgressIndicator
             phases={PHASES}
             currentPhase={currentPhase}
@@ -181,29 +181,29 @@ export function TripPlannerV2() {
         </div>
       </div>
 
-      {/* Main Content - 50/50 Split - Everything in viewport */}
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full flex">
-          {/* Left: Current Phase (50%) */}
-          <div className="w-1/2 overflow-y-auto bg-[#1a1a1a]">
-            <div className="p-6">
-              {renderPhase()}
-            </div>
+      {/* Main Content - V1 side-by-side layout */}
+      <div className="max-w-6xl mx-auto p-6 lg:pl-12 lg:pr-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-6">
+          {/* Left: Current Phase */}
+          <div>
+            {renderPhase()}
           </div>
 
-          {/* Right: Map Only (50%) - Using V1 TripOverviewMap component */}
-          <div className="w-1/2 bg-[#0a0a0a]">
-            <TripOverviewMap
-              locations={tripData.destinations
-                .filter(d => d.latitude && d.longitude)
-                .map(d => ({
-                  name: d.name,
-                  latitude: d.latitude!,
-                  longitude: d.longitude!
-                }))}
-              transportMode="car"
-              className="w-full h-full"
-            />
+          {/* Right: Map - V1 TripOverviewMap component */}
+          <div className="relative">
+            <div className="sticky top-6">
+              <TripOverviewMap
+                locations={tripData.destinations
+                  .filter(d => d.latitude && d.longitude)
+                  .map(d => ({
+                    name: d.name,
+                    latitude: d.latitude!,
+                    longitude: d.longitude!
+                  }))}
+                transportMode="car"
+                className="w-full h-[600px] rounded-xl"
+              />
+            </div>
           </div>
         </div>
       </div>

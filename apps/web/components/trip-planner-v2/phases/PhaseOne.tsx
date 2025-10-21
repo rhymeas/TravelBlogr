@@ -6,36 +6,37 @@
  */
 
 import { useState, useEffect } from 'react'
-import { Calendar } from 'lucide-react'
+import { Calendar, MapPin, Navigation, Map, Mountain } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { LocationInput } from '@/components/itinerary/LocationInput'
 import { DateRangePicker } from '@/components/itinerary/DateRangePicker'
 import type { PhaseProps, TripType, Destination } from '../types'
+import type { LucideIcon } from 'lucide-react'
 
-const TRIP_TYPES: { id: TripType; label: string; icon: string; description: string }[] = [
+const TRIP_TYPES: { id: TripType; label: string; icon: LucideIcon; description: string }[] = [
   {
     id: 'specific',
     label: 'Single Destination',
-    icon: '🎯',
-    description: 'City trip, resort stay, or single location'
+    icon: MapPin,
+    description: 'City trip or resort'
   },
   {
     id: 'journey',
-    label: 'Point A to B Journey',
-    icon: '🛣️',
-    description: 'Travel from one place to another with stops'
+    label: 'Point A to B',
+    icon: Navigation,
+    description: 'Travel with stops'
   },
   {
     id: 'multi-destination',
     label: 'Multi-Destination',
-    icon: '🗺️',
-    description: 'Multiple cities or locations'
+    icon: Map,
+    description: 'Multiple cities'
   },
   {
     id: 'adventure',
-    label: 'Adventure Route',
-    icon: '🏕️',
-    description: 'Hiking trail, cycling route, or road trip'
+    label: 'Adventure',
+    icon: Mountain,
+    description: 'Hiking or road trip'
   }
 ]
 
@@ -110,55 +111,67 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      {/* Header */}
+    <div className="space-y-2.5">
+      {/* Compact Header */}
       <div>
-        <h2 className="text-2xl font-semibold text-white">Plan Your Journey</h2>
-        <p className="text-sm text-gray-400 mt-1">Where would you like to go?</p>
+        <h2 className="text-sm font-bold text-gray-900">Where are you going?</h2>
+        <p className="text-[9px] text-gray-600 mt-0.5">Start with your journey basics</p>
       </div>
 
-      {/* Destinations */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-gray-300">Destinations</h3>
+      {/* Destinations - Compact */}
+      <div>
         <LocationInput
           locations={locations}
           onChange={setLocations}
         />
       </div>
 
-      {/* Trip Type */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-gray-300">Trip Type</h3>
-        <div className="grid grid-cols-2 gap-3">
-          {TRIP_TYPES.map((type) => (
-            <button
-              key={type.id}
-              onClick={() => setSelectedTripType(type.id)}
-              className={`p-4 rounded-xl border transition-all text-left ${
-                selectedTripType === type.id
-                  ? 'border-blue-500 bg-blue-500/10'
-                  : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <span className="text-2xl">{type.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-white">{type.label}</div>
-                  <div className="text-xs text-gray-400 mt-1">{type.description}</div>
+      {/* Trip Type - Compact with icons */}
+      <div className="space-y-1">
+        <h3 className="text-[10px] font-bold text-gray-900">Trip Type</h3>
+        <div className="grid grid-cols-2 gap-1.5">
+          {TRIP_TYPES.map((type) => {
+            const IconComponent = type.icon
+            return (
+              <button
+                key={type.id}
+                onClick={() => setSelectedTripType(type.id)}
+                className={`p-2 rounded-lg border transition-all text-left ${
+                  selectedTripType === type.id
+                    ? 'shadow-md'
+                    : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
+                }`}
+                style={
+                  selectedTripType === type.id
+                    ? {
+                        borderColor: 'var(--color-primary)',
+                        background: 'linear-gradient(135deg, var(--color-rose-50), var(--color-pink-50))'
+                      }
+                    : {}
+                }
+              >
+                <div className="flex items-center gap-1.5">
+                  <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <IconComponent className="w-3 h-3 text-gray-700" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-gray-900 text-[9px] leading-tight truncate">{type.label}</div>
+                    <div className="text-[7px] text-gray-600 leading-tight truncate">{type.description}</div>
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      {/* Dates */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-blue-400" />
+      {/* Dates - Compact */}
+      <div className="space-y-1">
+        <h3 className="text-[10px] font-bold text-gray-900 flex items-center gap-1">
+          <Calendar className="w-2.5 h-2.5" style={{ color: 'var(--color-primary)' }} />
           Travel Dates
         </h3>
-        <div className="space-y-3">
+        <div className="space-y-1">
           <DateRangePicker
             startDate={dateRange.startDate ? new Date(dateRange.startDate) : undefined}
             endDate={dateRange.endDate ? new Date(dateRange.endDate) : undefined}
@@ -173,20 +186,25 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
             }}
           />
 
-          <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+          <div className="flex items-center justify-between gap-2">
+            <label className="flex items-center gap-1 text-[8px] text-gray-700 cursor-pointer font-medium">
               <input
                 type="checkbox"
                 checked={dateRange.flexible}
                 onChange={(e) => setDateRange({ ...dateRange, flexible: e.target.checked })}
-                className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-900"
+                className="w-2.5 h-2.5 border-gray-300 rounded focus:ring-1 transition-all"
+                style={{ 
+                  accentColor: 'var(--color-primary)',
+                  '--tw-ring-color': 'var(--color-primary)'
+                } as React.CSSProperties}
               />
               Flexible ±3 days
             </label>
 
             <Button
               onClick={handleNext}
-              className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-lg transition-all"
+              className="px-3 py-1 text-white text-[9px] rounded-lg hover:shadow-lg font-bold whitespace-nowrap transition-all"
+              style={{ background: 'linear-gradient(to right, var(--color-primary), var(--color-secondary))' }}
             >
               Continue →
             </Button>

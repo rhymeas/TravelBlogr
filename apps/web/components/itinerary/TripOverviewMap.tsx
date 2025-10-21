@@ -33,7 +33,6 @@ export function TripOverviewMap({ locations, transportMode = 'car', className = 
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return
-    if (locations.length === 0) return
 
     // Small delay to ensure container is rendered
     const timer = setTimeout(() => {
@@ -67,8 +66,8 @@ export function TripOverviewMap({ locations, transportMode = 'car', className = 
               }
             ]
           },
-          center: [locations[0].longitude, locations[0].latitude],
-          zoom: 5
+          center: locations.length > 0 ? [locations[0].longitude, locations[0].latitude] : [0, 20],
+          zoom: locations.length > 0 ? 5 : 1.5
         })
 
         // Add navigation controls (same as trip planning page)
@@ -213,14 +212,6 @@ export function TripOverviewMap({ locations, transportMode = 'car', className = 
       map.current = null
     }
   }, [locations])
-
-  if (locations.length === 0) {
-    return (
-      <div className={`rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center ${className}`}>
-        <p className="text-gray-500 text-sm">No location data available</p>
-      </div>
-    )
-  }
 
   return (
     <div className="relative">
