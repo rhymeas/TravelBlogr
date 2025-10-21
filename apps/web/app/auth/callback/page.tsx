@@ -5,16 +5,24 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabase } from '@/lib/supabase'
-import { PageLoading } from '@/components/ui/LoadingSpinner'
+import { AuthLoadingModal } from '@/components/auth/AuthLoadingModal'
 
 export default function AuthCallbackPage() {
   const router = useRouter()
   const supabase = useSupabase()
   const [error, setError] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(true)
+  const [showDelayMessage, setShowDelayMessage] = useState(false)
 
   useEffect(() => {
     let isMounted = true
+
+    // Show delay message after 3 seconds
+    const delayTimer = setTimeout(() => {
+      if (isMounted) {
+        setShowDelayMessage(true)
+      }
+    }, 3000)
 
     const handleCallback = async () => {
       try {
@@ -195,22 +203,17 @@ export default function AuthCallbackPage() {
 
     return () => {
       isMounted = false
+      clearTimeout(delayTimer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Empty deps - only run on mount
 
-  if (error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Authentication Error</h1>
-          <p className="text-muted-foreground mb-4">{error}</p>
-          <p className="text-sm text-muted-foreground">Redirecting to sign in...</p>
-        </div>
-      </div>
-    )
-  }
-
-  return <PageLoading message="Completing sign in..." />
+  return (
+    <AuthLoadingModal
+      message="Completing sign in..."
+      error={error}
+      showDelayMessage={showDelayMessage}
+    />
+  )
 }
 
