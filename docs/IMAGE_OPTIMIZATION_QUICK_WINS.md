@@ -490,7 +490,7 @@ export function TripCardSkeleton() {
 ## Next Steps After Implementation
 
 1. **Monitor Performance**
-   - Set up Vercel Analytics
+   - Set up  do-not-use-this-anymore-no-vercel-we-use-railway-now Analytics
    - Track Core Web Vitals
    - Monitor bandwidth usage
 

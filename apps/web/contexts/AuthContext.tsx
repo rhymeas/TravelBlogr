@@ -30,7 +30,7 @@ interface AuthState {
 interface AuthContextType extends AuthState {
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string; data?: any }>
   signUp: (email: string, password: string, metadata?: Record<string, any>) => Promise<{ success: boolean; error?: string; data?: any; message?: string }>
-  signInWithProvider: (provider: 'google' | 'github', redirectTo?: string) => Promise<{ success: boolean; error?: string; data?: any }>
+  signInWithProvider: (provider: 'google' | 'github', redirectTo?: string) => Promise<{ success: boolean; error?: string; data?: any; message?: string; isRedirectMode?: boolean }>
   signOut: () => Promise<{ success: boolean; error?: string }>
   updateProfile: (updates: Partial<Profile>) => Promise<{ success: boolean; error?: string }>
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>
@@ -275,12 +275,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         `width=${width},height=${height},left=${left},top=${top},toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes`
       )
 
-      if (!popup) {
-        console.error('❌ Popup blocked')
+      // Detect if popup was blocked (null, closed, or undefined)
+      const isPopupBlocked = !popup || popup.closed || typeof popup.closed === 'undefined'
+
+      if (isPopupBlocked) {
+        console.warn('⚠️ Popup blocked - falling back to full-page redirect')
+        console.log('📱 This is common on mobile browsers and when popup blockers are enabled')
+
+        // Clean up popup mode flag since we're doing full-page redirect
         localStorage.removeItem('oauth_popup_mode')
-        setState(prev => ({ ...prev, error: 'Popup blocked. Please allow popups for this site.', loading: false }))
-        return { success: false, error: 'Popup blocked' }
+
+        // Store that we're using redirect mode (for callback page to know)
+        localStorage.setItem('oauth_redirect_mode', 'true')
+
+        // Show user-friendly message
+        setState(prev => ({
+          ...prev,
+          loading: true,
+          error: null
+        }))
+
+        // Fallback: Use full-page redirect (works on ALL browsers/mobile)
+        console.log('🔄 Redirecting to OAuth provider (full-page mode)...')
+
+        // Do full-page redirect - Supabase will handle this automatically
+        const { error: redirectError } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: callbackUrl,
+            skipBrowserRedirect: false, // Allow full-page redirect
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent',
+            }
+          }
+        })
+
+        if (redirectError) {
+          console.error('❌ Redirect OAuth error:', redirectError)
+          setState(prev => ({ ...prev, error: redirectError.message, loading: false }))
+          return { success: false, error: redirectError.message }
+        }
+
+        // Return success with a message indicating we're using redirect mode
+        return {
+          success: true,
+          message: 'Redirecting to sign in...',
+          isRedirectMode: true
+        }
       }
+
+      // Popup opened successfully!
+      console.log('✅ OAuth popup opened successfully')
+
+      // Monitor popup for early closure (user closed it manually)
+      const popupCheckInterval = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(popupCheckInterval)
+          console.log('ℹ️ Popup was closed by user')
+          setState(prev => ({ ...prev, loading: false }))
+        }
+      }, 500)
 
       console.log('✅ OAuth popup opened')
 

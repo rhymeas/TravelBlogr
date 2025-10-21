@@ -38,7 +38,7 @@ Add these 3 records:
 Record 1:
 Type: CNAME
 Name: *
-Value: cname.vercel-dns.com
+Value: cname. do-not-use-this-anymore-no-vercel-we-use-railway-now-dns.com
 TTL: 1 Hour (or 600 seconds)
 ```
 
@@ -54,15 +54,15 @@ TTL: 1 Hour
 Record 3:
 Type: CNAME
 Name: www
-Value: cname.vercel-dns.com
+Value: cname. do-not-use-this-anymore-no-vercel-we-use-railway-now-dns.com
 TTL: 1 Hour
 ```
 
-**Step 3: Vercel Configuration**
-1. Go to Vercel Dashboard → Your Project → Settings → Domains
+**Step 3:  do-not-use-this-anymore-no-vercel-we-use-railway-now Configuration**
+1. Go to  do-not-use-this-anymore-no-vercel-we-use-railway-now Dashboard → Your Project → Settings → Domains
 2. Add domain: `travelblogr.com`
 3. Add wildcard: `*.travelblogr.com`
-4. Vercel will auto-generate SSL certificates
+4.  do-not-use-this-anymore-no-vercel-we-use-railway-now will auto-generate SSL certificates
 
 **Wait Time:** 24-48 hours for DNS propagation (usually 1-2 hours)
 
@@ -75,7 +75,7 @@ TTL: 1 Hour
 **Answer: You can defer CDN setup!**
 
 **Why?**
-- ✅ Vercel already includes global CDN for free
+- ✅  do-not-use-this-anymore-no-vercel-we-use-railway-now already includes global CDN for free
 - ✅ Your static assets are cached worldwide
 - ✅ Images, CSS, JS served from edge locations
 
@@ -84,7 +84,7 @@ TTL: 1 Hour
 - Large video files
 - Advanced caching rules
 
-**Recommendation:** Skip for now. Use Vercel's built-in CDN.
+**Recommendation:** Skip for now. Use  do-not-use-this-anymore-no-vercel-we-use-railway-now's built-in CDN.
 
 ---
 
@@ -335,7 +335,7 @@ NEXT_PUBLIC_MAPBOX_TOKEN=
 
 1. **DNS Setup** (30 minutes)
    - Add wildcard CNAME to GoDaddy
-   - Configure Vercel domains
+   - Configure  do-not-use-this-anymore-no-vercel-we-use-railway-now domains
    - Wait for propagation
 
 2. **Guest Mode** (1-2 weeks)
@@ -367,7 +367,7 @@ NEXT_PUBLIC_MAPBOX_TOKEN=
 
 ## Support & Resources
 
-- **Vercel Docs:** https://vercel.com/docs/concepts/projects/domains
+- ** do-not-use-this-anymore-no-vercel-we-use-railway-now Docs:** https:// do-not-use-this-anymore-no-vercel-we-use-railway-now.com/docs/concepts/projects/domains
 - **GoDaddy DNS:** https://www.godaddy.com/help/manage-dns-680
 - **Next.js Metadata:** https://nextjs.org/docs/app/building-your-application/optimizing/metadata
 - **Supabase Realtime:** https://supabase.com/docs/guides/realtime

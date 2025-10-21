@@ -240,7 +240,7 @@ This document provides a detailed implementation roadmap for the CMS UX evaluati
 - **Database:** Supabase (PostgreSQL)
 - **State Management:** Zustand
 - **Testing:** Jest, React Testing Library
-- **Deployment:** Vercel
+- **Deployment:**  do-not-use-this-anymore-no-vercel-we-use-railway-now
 
 ---
 

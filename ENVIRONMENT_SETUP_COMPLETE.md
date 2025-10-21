@@ -177,20 +177,20 @@ UPLOADTHING_APP_ID=your_uploadthing_app_id
 
 Your TravelBlogr application is now ready for deployment to:
 
-- **Vercel** (recommended)
+- ** do-not-use-this-anymore-no-vercel-we-use-railway-now** (recommended)
 - **Netlify**
 - **Railway**
 - **Digital Ocean**
 
-### **Deploy to Vercel**
+### **Deploy to  do-not-use-this-anymore-no-vercel-we-use-railway-now**
 ```bash
-# Install Vercel CLI
-npm i -g vercel
+# Install  do-not-use-this-anymore-no-vercel-we-use-railway-now CLI
+npm i -g  do-not-use-this-anymore-no-vercel-we-use-railway-now
 
 # Deploy
-vercel
+ do-not-use-this-anymore-no-vercel-we-use-railway-now
 
-# Set environment variables in Vercel dashboard
+# Set environment variables in  do-not-use-this-anymore-no-vercel-we-use-railway-now dashboard
 ```
 
 ---

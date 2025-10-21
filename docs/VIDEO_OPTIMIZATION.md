@@ -214,7 +214,7 @@ For production, host videos on a CDN:
 - **Cloudflare R2** - Free egress, cheap storage
 - **AWS S3 + CloudFront** - Reliable, scalable
 - **Bunny CDN** - Affordable, fast
-- **Vercel Blob** - Integrated with Vercel
+- ** do-not-use-this-anymore-no-vercel-we-use-railway-now Blob** - Integrated with  do-not-use-this-anymore-no-vercel-we-use-railway-now
 
 **Example:**
 ```typescript

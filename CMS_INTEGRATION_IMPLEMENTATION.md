@@ -231,7 +231,7 @@ GET /api/locations/[locationId]/restaurants?include_unverified=true
 
 1. **Run Weather Crawler**
    ```bash
-   curl -X POST https://your-app.vercel.app/api/cron/sync-weather \
+   curl -X POST https://your-app. do-not-use-this-anymore-no-vercel-we-use-railway-now.app/api/cron/sync-weather \
      -H "Authorization: Bearer YOUR_CRON_SECRET"
    ```
 

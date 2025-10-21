@@ -5,7 +5,7 @@
 A complete automated content crawler system for TravelBlogr that fetches and stores:
 - **Weather data** from OpenWeatherMap API
 - **Restaurant information** from websites using Schema.org JSON-LD extraction
-- **Automated scheduling** via Vercel Cron Jobs
+- **Automated scheduling** via  do-not-use-this-anymore-no-vercel-we-use-railway-now Cron Jobs
 
 ---
 
@@ -53,7 +53,7 @@ infrastructure/database/migrations/
 ### Configuration
 
 ```
-vercel.json                                      # Updated with cron job config
+ do-not-use-this-anymore-no-vercel-we-use-railway-now.json                                      # Updated with cron job config
 .env.example                                     # Updated with crawler env vars
 package.json                                     # Added crawler scripts
 ```
@@ -75,7 +75,7 @@ CRAWLER_IMPLEMENTATION_SUMMARY.md                # This file
 | **Playwright** | Browser automation | Renders JavaScript-heavy sites |
 | **Cheerio** | HTML parsing | Fast, jQuery-like syntax |
 | **OpenWeatherMap API** | Weather data | Free tier (1,000 calls/day), reliable |
-| **Vercel Cron Jobs** | Scheduled tasks | Native Vercel integration, no extra infrastructure |
+| ** do-not-use-this-anymore-no-vercel-we-use-railway-now Cron Jobs** | Scheduled tasks | Native  do-not-use-this-anymore-no-vercel-we-use-railway-now integration, no extra infrastructure |
 | **Supabase** | Database | Already integrated, PostgreSQL with RLS |
 
 ---
@@ -110,7 +110,7 @@ CRAWLER_IMPLEMENTATION_SUMMARY.md                # This file
 ### 5. Monitoring
 - ✅ Crawler logs stored in `crawler_logs` table
 - ✅ Detailed error messages and stats
-- ✅ Vercel cron job execution logs
+- ✅  do-not-use-this-anymore-no-vercel-we-use-railway-now cron job execution logs
 - ✅ JSON response with success/failure status
 
 ---
@@ -177,8 +177,8 @@ npm run dev
 ### 5. Deploy
 
 ```bash
-vercel --prod
-# Add environment variables in Vercel Dashboard
+ do-not-use-this-anymore-no-vercel-we-use-railway-now --prod
+# Add environment variables in  do-not-use-this-anymore-no-vercel-we-use-railway-now Dashboard
 ```
 
 ---
@@ -188,7 +188,7 @@ vercel --prod
 ### Weather Sync (All Locations)
 
 ```bash
-curl -X POST https://your-app.vercel.app/api/cron/sync-weather \
+curl -X POST https://your-app. do-not-use-this-anymore-no-vercel-we-use-railway-now.app/api/cron/sync-weather \
   -H "Authorization: Bearer YOUR_CRON_SECRET"
 ```
 
@@ -208,7 +208,7 @@ curl -X POST https://your-app.vercel.app/api/cron/sync-weather \
 ### Restaurant Crawler
 
 ```bash
-curl -X POST https://your-app.vercel.app/api/admin/crawler/trigger \
+curl -X POST https://your-app. do-not-use-this-anymore-no-vercel-we-use-railway-now.app/api/admin/crawler/trigger \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ADMIN_SECRET" \
   -d '{
@@ -245,7 +245,7 @@ curl -X POST https://your-app.vercel.app/api/admin/crawler/trigger \
 
 ## 🎨 Admin Dashboard Features
 
-Access at: `https://your-app.vercel.app/admin/crawler`
+Access at: `https://your-app. do-not-use-this-anymore-no-vercel-we-use-railway-now.app/admin/crawler`
 
 **Weather Sync Section:**
 - Input: Location ID, Latitude, Longitude
@@ -293,7 +293,7 @@ Access at: `https://your-app.vercel.app/admin/crawler`
 2. ✅ Run database migration
 3. ✅ Set environment variables
 4. ✅ Test locally
-5. ✅ Deploy to Vercel
+5. ✅ Deploy to  do-not-use-this-anymore-no-vercel-we-use-railway-now
 
 ### Future Enhancements
 
@@ -340,12 +340,12 @@ Access at: `https://your-app.vercel.app/admin/crawler`
    - ~40 locations max with 6-hour sync frequency
 
 3. **Cron Jobs**
-   - Vercel cron limited to 1 execution per minute
+   -  do-not-use-this-anymore-no-vercel-we-use-railway-now cron limited to 1 execution per minute
    - No sub-minute scheduling
 
 4. **Browser Automation**
    - Playwright adds ~300MB to deployment size
-   - May hit Vercel function size limits
+   - May hit  do-not-use-this-anymore-no-vercel-we-use-railway-now function size limits
 
 ---
 
@@ -362,7 +362,7 @@ Access at: `https://your-app.vercel.app/admin/crawler`
 - [Crawlee Documentation](https://crawlee.dev/)
 - [OpenWeatherMap API Docs](https://openweathermap.org/api)
 - [Schema.org Restaurant](https://schema.org/Restaurant)
-- [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs)
+- [ do-not-use-this-anymore-no-vercel-we-use-railway-now Cron Jobs](https:// do-not-use-this-anymore-no-vercel-we-use-railway-now.com/docs/cron-jobs)
 
 ---
 

@@ -183,7 +183,7 @@ const score = (image) => {
 // Download images to your own storage:
 - Supabase Storage (free tier: 1GB)
 - Cloudflare R2 (free tier: 10GB)
-- Vercel Blob (paid but cheap)
+-  do-not-use-this-anymore-no-vercel-we-use-railway-now Blob (paid but cheap)
 
 // Benefits:
 - No external API dependencies

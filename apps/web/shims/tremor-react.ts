@@ -1,4 +1,4 @@
-// Minimal stub for @tremor/react to unblock builds on Vercel.
+// Minimal stub for @tremor/react to unblock builds on  do-not-use-this-anymore-no-vercel-we-use-railway-now.
 // Replace by installing the real package and removing this alias.
 import * as React from 'react'
 

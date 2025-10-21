@@ -96,7 +96,7 @@ After extensive research, **we should NOT use an existing blog system wholesale*
 **Various GitHub repos** | **License:** MIT
 
 #### Examples:
-- `next-blog-starter` (Vercel official)
+- `next-blog-starter` ( do-not-use-this-anymore-no-vercel-we-use-railway-now official)
 - `nextjs-blog-theme` (Tailwind + MDX)
 - `contentlayer-blog` (MDX + Contentlayer)
 

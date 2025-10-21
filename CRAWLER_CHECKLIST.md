@@ -92,12 +92,12 @@ Quick checklist to get your content crawler up and running.
 
 ## 🚀 Deployment
 
-- [ ] **Deploy to Vercel**
+- [ ] **Deploy to  do-not-use-this-anymore-no-vercel-we-use-railway-now**
   ```bash
-  vercel --prod
+   do-not-use-this-anymore-no-vercel-we-use-railway-now --prod
   ```
 
-- [ ] **Set environment variables in Vercel**
+- [ ] **Set environment variables in  do-not-use-this-anymore-no-vercel-we-use-railway-now**
   Go to Project Settings → Environment Variables and add:
   - `NEXT_PUBLIC_SUPABASE_URL`
   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -107,12 +107,12 @@ Quick checklist to get your content crawler up and running.
   - `ADMIN_SECRET`
 
 - [ ] **Verify cron job is configured**
-  - Go to Vercel Dashboard → Your Project → Cron Jobs
+  - Go to  do-not-use-this-anymore-no-vercel-we-use-railway-now Dashboard → Your Project → Cron Jobs
   - Should see: `/api/cron/sync-weather` scheduled for `0 */6 * * *`
 
 - [ ] **Test production endpoint**
   ```bash
-  curl -X POST https://your-app.vercel.app/api/cron/sync-weather \
+  curl -X POST https://your-app. do-not-use-this-anymore-no-vercel-we-use-railway-now.app/api/cron/sync-weather \
     -H "Authorization: Bearer YOUR_CRON_SECRET"
   ```
 
@@ -122,7 +122,7 @@ Quick checklist to get your content crawler up and running.
 
 - [ ] **Check first cron execution**
   - Wait for next scheduled time (00:00, 06:00, 12:00, or 18:00 UTC)
-  - Check Vercel cron logs
+  - Check  do-not-use-this-anymore-no-vercel-we-use-railway-now cron logs
   - Verify weather data updated in Supabase
 
 - [ ] **Test restaurant crawler**
@@ -153,7 +153,7 @@ Quick checklist to get your content crawler up and running.
 ✅ Weather data updates automatically every 6 hours  
 ✅ Restaurant crawler successfully extracts data from websites  
 ✅ Admin dashboard is accessible and functional  
-✅ No errors in Vercel cron logs  
+✅ No errors in  do-not-use-this-anymore-no-vercel-we-use-railway-now cron logs  
 ✅ Data appears correctly in Supabase tables  
 ✅ API usage is within free tier limits  
 
@@ -165,7 +165,7 @@ If something doesn't work, check:
 
 1. **Environment variables are set correctly**
    - In `.env.local` for local development
-   - In Vercel Dashboard for production
+   - In  do-not-use-this-anymore-no-vercel-we-use-railway-now Dashboard for production
 
 2. **Database migration ran successfully**
    - All 4 tables should exist
@@ -175,11 +175,11 @@ If something doesn't work, check:
    - Test OpenWeatherMap key: https://api.openweathermap.org/data/2.5/weather?lat=51.1784&lon=-115.5708&appid=YOUR_KEY
 
 4. **Secrets match**
-   - `CRON_SECRET` in Vercel must match what you use in curl commands
+   - `CRON_SECRET` in  do-not-use-this-anymore-no-vercel-we-use-railway-now must match what you use in curl commands
    - `ADMIN_SECRET` for admin dashboard access
 
 5. **Check logs**
-   - Vercel function logs
+   -  do-not-use-this-anymore-no-vercel-we-use-railway-now function logs
    - Supabase `crawler_logs` table
    - Browser console (for admin dashboard)
 

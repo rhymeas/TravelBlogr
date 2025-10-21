@@ -214,7 +214,7 @@ Week 4: Integration & Testing
 | State | Zustand | State management |
 | Styling | Tailwind CSS | UI styling |
 | Testing | Jest + RTL | Unit & integration tests |
-| Deployment | Vercel | Production hosting |
+| Deployment |  do-not-use-this-anymore-no-vercel-we-use-railway-now | Production hosting |
 
 ---
 

@@ -118,15 +118,15 @@ This is **NOT** template code - it's a **sophisticated, enterprise-grade applica
 ## 🎯 **Ready for Production Deployment**
 
 Your application is ready to deploy to:
-- **Vercel** (recommended - one-click deployment)
+- ** do-not-use-this-anymore-no-vercel-we-use-railway-now** (recommended - one-click deployment)
 - **Netlify**
 - **Railway**
 - **Digital Ocean**
 
-### **Deploy to Vercel**
+### **Deploy to  do-not-use-this-anymore-no-vercel-we-use-railway-now**
 ```bash
-npm i -g vercel
-vercel
+npm i -g  do-not-use-this-anymore-no-vercel-we-use-railway-now
+ do-not-use-this-anymore-no-vercel-we-use-railway-now
 # Follow prompts and add environment variables
 ```
 

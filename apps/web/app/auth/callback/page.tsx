@@ -27,8 +27,9 @@ export default function AuthCallbackPage() {
 
     const handleCallback = async () => {
       try {
-        // Check if we're in popup mode
+        // Check if we're in popup mode or redirect mode
         const isPopupMode = localStorage.getItem('oauth_popup_mode') === 'true'
+        const isRedirectMode = localStorage.getItem('oauth_redirect_mode') === 'true'
 
         const searchParams = new URLSearchParams(window.location.search)
         const code = searchParams.get('code')
@@ -62,6 +63,7 @@ export default function AuthCallbackPage() {
           hasCode: !!code,
           hasAccessToken: !!accessToken,
           isPopupMode,
+          isRedirectMode,
           fullURL: window.location.href
         })
 
@@ -117,8 +119,8 @@ export default function AuthCallbackPage() {
             console.log('✅ Session created successfully')
             if (isMounted) {
               if (isPopupMode && window.opener) {
-                // Send success message to parent window IMMEDIATELY
-                console.log('📤 Sending success message to parent window')
+                // POPUP MODE: Send success message to parent window IMMEDIATELY
+                console.log('📤 Sending success message to parent window (popup mode)')
                 window.opener.postMessage({ type: 'OAUTH_SUCCESS' }, window.location.origin)
                 localStorage.removeItem('oauth_popup_mode')
 
@@ -126,11 +128,17 @@ export default function AuthCallbackPage() {
                 console.log('🔐 Closing popup window immediately')
                 window.close()
               } else {
-                // Normal redirect flow
+                // REDIRECT MODE: Normal full-page redirect flow
+                console.log('🔄 Full-page redirect mode - redirecting to:', redirectTo)
+
+                // Clean up redirect mode flag
+                localStorage.removeItem('oauth_redirect_mode')
+
                 setIsProcessing(false)
                 setSuccess(true)
-                console.log('✅ Redirecting to:', redirectTo)
-                window.location.href = redirectTo
+
+                // Use router.push for client-side navigation (smoother)
+                router.push(redirectTo)
               }
             }
             return

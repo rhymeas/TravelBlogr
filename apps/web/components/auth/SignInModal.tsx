@@ -78,7 +78,12 @@ export function SignInModal({ isOpen, onClose, redirectTo, heroContent }: SignIn
       // Pass redirect path (or undefined to stay on current page)
       const result = await signInWithProvider('google', redirectTo)
       if (result.success) {
-        toast.success('Signing in with Google...')
+        // Check if we're using redirect mode (popup was blocked)
+        if (result.isRedirectMode) {
+          toast.loading('Redirecting to Google...', { duration: 2000 })
+        } else {
+          toast.success('Signing in with Google...')
+        }
         onClose(true) // Pass true to indicate user signed in
         // OAuth will handle redirect automatically via callback URL
         // User will return to the page they were on!

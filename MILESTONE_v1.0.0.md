@@ -198,9 +198,9 @@ lib/plan/
 - **APIs:** Free tier services only
 
 ### Infrastructure
-- **Hosting:** Vercel
+- **Hosting:**  do-not-use-this-anymore-no-vercel-we-use-railway-now
 - **Version Control:** Git + GitHub
-- **CI/CD:** Vercel automatic deployments
+- **CI/CD:**  do-not-use-this-anymore-no-vercel-we-use-railway-now automatic deployments
 
 ---
 

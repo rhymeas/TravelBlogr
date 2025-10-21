@@ -8,7 +8,7 @@
  * 
  * Can be triggered:
  * - Manually via API call
- * - Automatically via Vercel Cron (vercel.json)
+ * - Automatically via  do-not-use-this-anymore-no-vercel-we-use-railway-now Cron ( do-not-use-this-anymore-no-vercel-we-use-railway-now.json)
  * - On-demand from admin panel
  */
 

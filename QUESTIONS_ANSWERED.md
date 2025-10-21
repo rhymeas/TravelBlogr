@@ -6,7 +6,7 @@
 **Public Trip Pages:** ✅ **Already Implemented** (needs enhancements)
 **OpenGraph Tags:** ✅ **Already Implemented**
 **DNS Wildcard:** ⏸️ **Pending** (requires GoDaddy configuration)
-**CDN:** ✅ **Already Active** (Vercel built-in)
+**CDN:** ✅ **Already Active** ( do-not-use-this-anymore-no-vercel-we-use-railway-now built-in)
 
 ---
 
@@ -171,7 +171,7 @@ Support unlimited subdomains: `*.travelblogr.com`
 ```
 Type: CNAME
 Name: *
-Value: cname.vercel-dns.com
+Value: cname. do-not-use-this-anymore-no-vercel-we-use-railway-now-dns.com
 TTL: 1 Hour
 ```
 
@@ -187,16 +187,16 @@ TTL: 1 Hour
 ```
 Type: CNAME
 Name: www
-Value: cname.vercel-dns.com
+Value: cname. do-not-use-this-anymore-no-vercel-we-use-railway-now-dns.com
 TTL: 1 Hour
 ```
 
-### Step 3: Vercel Configuration
-1. Go to Vercel Dashboard
+### Step 3:  do-not-use-this-anymore-no-vercel-we-use-railway-now Configuration
+1. Go to  do-not-use-this-anymore-no-vercel-we-use-railway-now Dashboard
 2. Your Project → Settings → Domains
 3. Add domain: `travelblogr.com`
 4. Add wildcard: `*.travelblogr.com`
-5. Vercel auto-generates SSL certificates
+5.  do-not-use-this-anymore-no-vercel-we-use-railway-now auto-generates SSL certificates
 
 ### Step 4: Wait for Propagation
 - **Time:** 24-48 hours (usually 1-2 hours)
@@ -208,9 +208,9 @@ GoDaddy DNS Records:
 ┌─────────────────────────────────────┐
 │ Type  │ Name │ Value                │
 ├─────────────────────────────────────┤
-│ CNAME │  *   │ cname.vercel-dns.com │
+│ CNAME │  *   │ cname. do-not-use-this-anymore-no-vercel-we-use-railway-now-dns.com │
 │ A     │  @   │ 76.76.21.21          │
-│ CNAME │ www  │ cname.vercel-dns.com │
+│ CNAME │ www  │ cname. do-not-use-this-anymore-no-vercel-we-use-railway-now-dns.com │
 └─────────────────────────────────────┘
 ```
 
@@ -221,7 +221,7 @@ GoDaddy DNS Records:
 ### Answer: **NO, NOT NOW** ⏸️
 
 **Why?**
-- ✅ Vercel already includes global CDN for free
+- ✅  do-not-use-this-anymore-no-vercel-we-use-railway-now already includes global CDN for free
 - ✅ Your static assets are cached worldwide
 - ✅ Images, CSS, JS served from edge locations
 - ✅ You're already using a CDN without knowing it!
@@ -238,7 +238,7 @@ With CDN:
 User in Japan → Request → Tokyo Server (fast, 20ms)
 ```
 
-**Vercel's Built-in CDN:**
+** do-not-use-this-anymore-no-vercel-we-use-railway-now's Built-in CDN:**
 - ✅ 100+ edge locations worldwide
 - ✅ Automatic caching
 - ✅ Image optimization
@@ -252,7 +252,7 @@ User in Japan → Request → Tokyo Server (fast, 20ms)
 - DDoS protection
 
 **Recommendation:** 
-Skip dedicated CDN for now. Vercel's built-in CDN is sufficient for 99% of use cases.
+Skip dedicated CDN for now.  do-not-use-this-anymore-no-vercel-we-use-railway-now's built-in CDN is sufficient for 99% of use cases.
 
 ---
 
@@ -321,7 +321,7 @@ export async function generateMetadata({ params }) {
 ### ✅ COMPLETE
 1. **Guest Mode** - Fully implemented
 2. **OpenGraph Tags** - Already working
-3. **CDN** - Already active (Vercel)
+3. **CDN** - Already active ( do-not-use-this-anymore-no-vercel-we-use-railway-now)
 
 ### ⏸️ PENDING (Your Action Required)
 1. **DNS Wildcard** - Configure GoDaddy (30 minutes)
@@ -337,11 +337,11 @@ export async function generateMetadata({ params }) {
 ### 1. DNS Setup (30 minutes)
 ```bash
 # GoDaddy DNS Records
-CNAME * → cname.vercel-dns.com
+CNAME * → cname. do-not-use-this-anymore-no-vercel-we-use-railway-now-dns.com
 A @ → 76.76.21.21
-CNAME www → cname.vercel-dns.com
+CNAME www → cname. do-not-use-this-anymore-no-vercel-we-use-railway-now-dns.com
 
-# Vercel Domains
+#  do-not-use-this-anymore-no-vercel-we-use-railway-now Domains
 Add: travelblogr.com
 Add: *.travelblogr.com
 ```
@@ -386,7 +386,7 @@ http://localhost:3000/guest/plan
 
 ## Support Resources
 
-- **Vercel Domains:** https://vercel.com/docs/concepts/projects/domains
+- ** do-not-use-this-anymore-no-vercel-we-use-railway-now Domains:** https:// do-not-use-this-anymore-no-vercel-we-use-railway-now.com/docs/concepts/projects/domains
 - **GoDaddy DNS:** https://www.godaddy.com/help/manage-dns-680
 - **Next.js Metadata:** https://nextjs.org/docs/app/building-your-application/optimizing/metadata
 - **OpenGraph Protocol:** https://ogp.me/
@@ -400,7 +400,7 @@ All your questions have been answered and Guest Mode is fully implemented!
 **What's Working:**
 - ✅ Guest Mode (localStorage, 3 trip limit, auto-migration)
 - ✅ OpenGraph Tags (social media previews)
-- ✅ CDN (Vercel built-in)
+- ✅ CDN ( do-not-use-this-anymore-no-vercel-we-use-railway-now built-in)
 - ✅ Public Trip Pages (basic version)
 
 **What's Next:**

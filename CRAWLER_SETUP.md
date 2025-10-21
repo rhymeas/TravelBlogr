@@ -21,7 +21,7 @@ Before you begin, ensure you have:
 - ✅ Node.js 18+ installed
 - ✅ Supabase project set up
 - ✅ OpenWeatherMap API key (free tier available)
-- ✅ Vercel account (for deployment and cron jobs)
+- ✅  do-not-use-this-anymore-no-vercel-we-use-railway-now account (for deployment and cron jobs)
 
 ---
 
@@ -197,19 +197,19 @@ curl -X POST http://localhost:3000/api/admin/crawler/trigger \
 
 ## Deployment
 
-### 1. Deploy to Vercel
+### 1. Deploy to  do-not-use-this-anymore-no-vercel-we-use-railway-now
 
 ```bash
-# Install Vercel CLI
-npm i -g vercel
+# Install  do-not-use-this-anymore-no-vercel-we-use-railway-now CLI
+npm i -g  do-not-use-this-anymore-no-vercel-we-use-railway-now
 
 # Deploy
-vercel --prod
+ do-not-use-this-anymore-no-vercel-we-use-railway-now --prod
 ```
 
-### 2. Set Environment Variables in Vercel
+### 2. Set Environment Variables in  do-not-use-this-anymore-no-vercel-we-use-railway-now
 
-Go to your Vercel project settings and add:
+Go to your  do-not-use-this-anymore-no-vercel-we-use-railway-now project settings and add:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL
@@ -286,9 +286,9 @@ npx playwright install chromium
 ### Issue: Cron job not running
 
 **Solutions:**
-1. Verify `CRON_SECRET` is set in Vercel environment variables
-2. Check cron job logs in Vercel Dashboard
-3. Ensure the cron schedule is correct in `vercel.json`
+1. Verify `CRON_SECRET` is set in  do-not-use-this-anymore-no-vercel-we-use-railway-now environment variables
+2. Check cron job logs in  do-not-use-this-anymore-no-vercel-we-use-railway-now Dashboard
+3. Ensure the cron schedule is correct in ` do-not-use-this-anymore-no-vercel-we-use-railway-now.json`
 
 ### Issue: Restaurant crawler finds no data
 
@@ -354,7 +354,7 @@ The crawler respects `robots.txt` by default. Don't disable this unless you have
 2. ✅ Run database migration
 3. ✅ Test weather sync locally
 4. ✅ Test restaurant crawler with 1-2 URLs
-5. ✅ Deploy to Vercel
+5. ✅ Deploy to  do-not-use-this-anymore-no-vercel-we-use-railway-now
 6. ✅ Verify cron job is running
 7. ✅ Monitor first few automated syncs
 
@@ -365,7 +365,7 @@ The crawler respects `robots.txt` by default. Don't disable this unless you have
 For issues or questions:
 - Check the [README](services/content-crawler/README.md)
 - Review crawler logs in Supabase
-- Check Vercel deployment logs
+- Check  do-not-use-this-anymore-no-vercel-we-use-railway-now deployment logs
 
 ---
 

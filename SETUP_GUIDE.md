@@ -131,15 +131,15 @@ xl: 1280px  // Large desktops
 
 ## 🚀 Deployment
 
-### Vercel (Recommended)
+###  do-not-use-this-anymore-no-vercel-we-use-railway-now (Recommended)
 ```bash
-# Install Vercel CLI
-npm i -g vercel
+# Install  do-not-use-this-anymore-no-vercel-we-use-railway-now CLI
+npm i -g  do-not-use-this-anymore-no-vercel-we-use-railway-now
 
 # Deploy
-vercel
+ do-not-use-this-anymore-no-vercel-we-use-railway-now
 
-# Set environment variables in Vercel dashboard
+# Set environment variables in  do-not-use-this-anymore-no-vercel-we-use-railway-now dashboard
 ```
 
 ### Environment Variables for Production

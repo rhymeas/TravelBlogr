@@ -238,7 +238,7 @@ CREATE TABLE share_links (
 
 **DNS Configuration:**
 - Wildcard DNS: `*.travelblogr.com` → Your server IP
-- Railway/Vercel handles subdomain routing automatically
+- Railway/ do-not-use-this-anymore-no-vercel-we-use-railway-now handles subdomain routing automatically
 
 ### Password Hashing
 

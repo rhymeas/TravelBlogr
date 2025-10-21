@@ -297,7 +297,7 @@ The implementation includes extensive console logging:
 - Callback URL must match production domain
 - Test thoroughly after deployment
 
-### Vercel/Netlify Deployment
+###  do-not-use-this-anymore-no-vercel-we-use-railway-now/Netlify Deployment
 - Same implementation works
 - Update callback URLs in Supabase Dashboard
 - Ensure environment variables are set

@@ -11,7 +11,7 @@ export interface ImageLoaderProps {
 
 /**
  * Optimized image loader that:
- * 1. Uses Vercel Image Optimization for external URLs
+ * 1. Uses  do-not-use-this-anymore-no-vercel-we-use-railway-now Image Optimization for external URLs
  * 2. Adds width/quality parameters
  * 3. Handles Wikipedia images specially
  */
@@ -31,7 +31,7 @@ export function optimizedImageLoader({ src, width, quality }: ImageLoaderProps):
   }
 
   // For other external images, use Next.js default optimization
-  // This will use Vercel's Image Optimization API in production
+  // This will use  do-not-use-this-anymore-no-vercel-we-use-railway-now's Image Optimization API in production
   const params = new URLSearchParams()
   params.set('url', src)
   params.set('w', width.toString())
