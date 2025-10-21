@@ -153,7 +153,7 @@ export function AuthLoadingModal({
                         className="mt-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 p-3 border border-blue-100 dark:border-blue-800"
                       >
                         <p className="text-xs text-blue-700 dark:text-blue-300">
-                          This is taking longer than usual. Please wait...
+                          We're on it. Please wait...
                         </p>
                       </motion.div>
                     )}

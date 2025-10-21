@@ -166,7 +166,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
         {/* Main Content - 20% more compact */}
         <div className="grid grid-cols-12 gap-5">
           {/* Left Sidebar - Day Navigation - Compact with connection lines */}
-          <div className="col-span-12 lg:col-span-2">
+          <div className="col-span-12 xl:col-span-2">
             <div className="sticky top-20">
               <div className="text-[10px] font-bold text-gray-400 mb-3 px-1 tracking-wider">ITINERARY</div>
               <div className="relative space-y-2">
@@ -206,7 +206,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
           </div>
 
           {/* Main Content - Day Details - 20% more compact */}
-          <div className="col-span-12 lg:col-span-6" ref={dayContentRef}>
+          <div className="col-span-12 xl:col-span-6" ref={dayContentRef}>
             <div className="space-y-4">
               {itinerary.filter((day: any) => day.day === selectedDay).map((day: any) => (
                 <div key={day.day}>
@@ -430,7 +430,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
             </div>
 
             {/* Right Sidebar - Map & Trip Stats */}
-            <div className="col-span-4 lg:block hidden">
+            <div className="col-span-4 xl:block hidden">
               <div className="sticky top-20 space-y-4">
                 {/* Overall Trip Map - Shows entire route with numbered markers */}
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
