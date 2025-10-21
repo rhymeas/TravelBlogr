@@ -18,62 +18,51 @@ export default function AuthCallbackPage() {
 
     const handleCallback = async () => {
       try {
-        // CRITICAL: Quick check if we already have a session in localStorage
-        // This prevents the hanging getSession() call in React Strict Mode
-        const storageKey = 'travelblogr-auth-token'
-        const storedSession = localStorage.getItem(storageKey)
+        const searchParams = new URLSearchParams(window.location.search)
+        const code = searchParams.get('code')
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const accessToken = hashParams.get('access_token')
 
-        if (storedSession) {
-          try {
-            const parsed = JSON.parse(storedSession)
-            if (parsed?.access_token && parsed?.expires_at) {
-              const expiresAt = parsed.expires_at * 1000 // Convert to milliseconds
-              if (expiresAt > Date.now()) {
-                console.log('✅ Valid session found in storage, redirecting to home')
-                window.location.href = '/'
-                return
+        // CRITICAL: Only check localStorage if there's NO OAuth code/token
+        // If we have a code or token, we MUST process it first
+        if (!code && !accessToken) {
+          const storageKey = 'travelblogr-auth-token'
+          const storedSession = localStorage.getItem(storageKey)
+
+          if (storedSession) {
+            try {
+              const parsed = JSON.parse(storedSession)
+              if (parsed?.access_token && parsed?.expires_at) {
+                const expiresAt = parsed.expires_at * 1000
+                if (expiresAt > Date.now()) {
+                  console.log('✅ Valid session found in storage, redirecting to home')
+                  window.location.href = '/'
+                  return
+                }
               }
+            } catch (e) {
+              console.warn('Failed to parse stored session:', e)
             }
-          } catch (e) {
-            console.warn('Failed to parse stored session:', e)
           }
         }
 
-        // CRITICAL: Check if we're on the wrong domain (production site_url redirect)
-        const currentOrigin = window.location.origin
-        const isLocalhost = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')
-        const isProduction = currentOrigin.includes('travelblogr.com')
-
         console.log('🔐 OAuth Callback:', {
-          currentOrigin,
-          isLocalhost,
-          isProduction,
+          hasCode: !!code,
+          hasAccessToken: !!accessToken,
           fullURL: window.location.href
         })
 
-        // Check for redirect parameter in multiple places:
-        // 1. URL search params (redirect or redirect_to)
-        // 2. localStorage (set before OAuth redirect)
-        // 3. Default to home page
-        const searchParams = new URLSearchParams(window.location.search)
+        // Check for redirect parameter
         const urlRedirect = searchParams.get('redirect') || searchParams.get('redirect_to')
         const storageRedirect = localStorage.getItem('oauth_redirect_to')
         const redirectTo = urlRedirect || storageRedirect || '/'
 
-        console.log('OAuth callback - Search params:', window.location.search)
-        console.log('OAuth callback - URL redirect:', urlRedirect)
-        console.log('OAuth callback - Storage redirect:', storageRedirect)
         console.log('OAuth callback - Final redirect to:', redirectTo)
 
         // Clear the stored redirect
         if (storageRedirect) {
           localStorage.removeItem('oauth_redirect_to')
         }
-
-        // Check if we have hash params (implicit flow) or code param (PKCE flow)
-        const hashParams = new URLSearchParams(window.location.hash.substring(1))
-        const accessToken = hashParams.get('access_token')
-        const code = searchParams.get('code')
 
         if (accessToken) {
           console.log('✅ OAuth callback - Access token found in hash (implicit flow)')
@@ -86,43 +75,50 @@ export default function AuthCallbackPage() {
         }
 
         if (code) {
-          console.log('✅ OAuth callback - Code found (PKCE flow), exchanging for session...')
-          // CRITICAL: Manually exchange code for session
-          // Supabase's detectSessionInUrl doesn't always work reliably
-          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+          console.log('✅ OAuth callback - Code found (PKCE flow), waiting for Supabase to process...')
 
-          console.log('🔍 Code exchange result:', {
-            hasData: !!data,
-            hasSession: !!data?.session,
-            hasUser: !!data?.user,
-            error: exchangeError?.message
+          // CRITICAL: Don't manually call exchangeCodeForSession - it hangs in React Strict Mode
+          // Instead, Supabase's detectSessionInUrl will handle it automatically
+          // We just need to wait for the SIGNED_IN event via onAuthStateChange
+
+          // Wait up to 5 seconds for session to be created
+          const sessionCreated = await new Promise<boolean>((resolve) => {
+            const timeout = setTimeout(() => {
+              console.warn('⚠️ Session creation timeout after 5 seconds')
+              resolve(false)
+            }, 5000)
+
+            // Listen for SIGNED_IN event
+            const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+              console.log('🔐 Auth state change in callback:', event, session ? '✅ Session' : '❌ No session')
+
+              if (event === 'SIGNED_IN' && session) {
+                clearTimeout(timeout)
+                subscription.unsubscribe()
+                resolve(true)
+              }
+            })
           })
 
-          if (exchangeError) {
-            console.error('❌ Code exchange error:', exchangeError)
-            if (isMounted) {
-              setError(exchangeError.message)
-              setTimeout(() => {
-                if (isMounted) {
-                  setIsProcessing(false)
-                  // Use window.location for hard redirect (more reliable than router.push)
-                  window.location.href = '/auth/signin?error=code_exchange_failed'
-                }
-              }, 2000)
-            }
-            return
-          }
-
-          if (data?.session) {
+          if (sessionCreated) {
             console.log('✅ Session created successfully, redirecting to:', redirectTo)
             if (isMounted) {
               setIsProcessing(false)
-              // Use window.location for hard redirect (more reliable than router.push)
               window.location.href = redirectTo
             }
             return
           } else {
-            console.warn('⚠️ Code exchange succeeded but no session returned')
+            console.warn('⚠️ Session creation timed out')
+            if (isMounted) {
+              setError('Authentication timed out. Please try again.')
+              setTimeout(() => {
+                if (isMounted) {
+                  setIsProcessing(false)
+                  window.location.href = '/auth/signin?error=timeout'
+                }
+              }, 2000)
+            }
+            return
           }
         }
 
