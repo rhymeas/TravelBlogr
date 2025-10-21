@@ -7,7 +7,7 @@
  */
 
 import { useState, useMemo } from 'react'
-import { Calendar, Car, MapPin, Clock, Hotel, Camera, Coffee, Edit, Utensils, Navigation, DollarSign, TrendingUp, Info, ExternalLink } from 'lucide-react'
+import { Calendar, Car, MapPin, Clock, Hotel, Camera, Coffee, Edit, Utensils, Navigation, DollarSign, TrendingUp, Info, ExternalLink, Save } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import type { TripPlanData } from './types'
 import { generateBookingLink, generateGetYourGuideLink, trackAffiliateClick, type AffiliateParams } from '@/lib/utils/affiliateLinks'
@@ -112,11 +112,16 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
               </nav>
             </div>
             <div className="flex items-center gap-2">
-              <button className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded-full transition-colors">
-                Save trip
+              <button
+                onClick={onEdit}
+                className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded-full transition-colors flex items-center gap-1.5"
+              >
+                <Edit className="w-3.5 h-3.5" />
+                Edit
               </button>
-              <button className="px-4 py-1.5 text-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-full hover:shadow-lg transition-all font-medium">
-                Share itinerary
+              <button className="px-4 py-1.5 text-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-full hover:shadow-lg transition-all font-medium flex items-center gap-1.5">
+                <Save className="w-3.5 h-3.5" />
+                Save Trip
               </button>
             </div>
           </div>
@@ -149,37 +154,48 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
 
         {/* Main Content - 20% more compact */}
         <div className="grid grid-cols-12 gap-5">
-          {/* Left Sidebar - Day Navigation - 20% more compact */}
+          {/* Left Sidebar - Day Navigation - Compact with connection lines */}
           <div className="col-span-12 lg:col-span-2">
-            <div className="sticky top-20 space-y-1.5">
-              <div className="text-xs font-semibold text-gray-500 mb-2 px-2">YOUR ITINERARY</div>
-              {itinerary.map((day: any) => (
-                <button
-                  key={day.day}
-                  onClick={() => setSelectedDay(day.day)}
-                  className={`w-full text-left p-2 rounded-lg transition-all ${
-                    selectedDay === day.day
-                      ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 shadow-sm'
-                      : 'hover:bg-gray-50 border border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <div className="text-xl">{day.emoji}</div>
-                    <div className="flex-1">
-                      <div className={`text-xs font-semibold ${selectedDay === day.day ? 'text-emerald-700' : 'text-gray-900'}`}>
-                        Day {day.day}
+            <div className="sticky top-20">
+              <div className="text-[10px] font-bold text-gray-400 mb-3 px-1 tracking-wider">ITINERARY</div>
+              <div className="relative space-y-2">
+                {itinerary.map((day: any, index: number) => (
+                  <div key={day.day} className="relative">
+                    {/* Connection line to selected day */}
+                    {selectedDay === day.day && (
+                      <div className="absolute left-full top-1/2 -translate-y-1/2 w-5 h-0.5 bg-gray-300 z-10"></div>
+                    )}
+
+                    <button
+                      onClick={() => setSelectedDay(day.day)}
+                      className={`w-full text-left px-2.5 py-2 rounded-xl transition-all border ${
+                        selectedDay === day.day
+                          ? 'bg-white border-gray-300 shadow-md scale-105'
+                          : 'bg-gray-50 border-gray-200 hover:bg-white hover:border-gray-300 hover:shadow-sm'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
+                          selectedDay === day.day
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-gray-300 text-gray-600'
+                        }`}>
+                          {day.day}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[11px] font-semibold text-gray-900 truncate leading-tight">{day.location}</div>
+                          <div className="text-[9px] text-gray-500 leading-tight">{day.date}</div>
+                        </div>
                       </div>
-                      <div className="text-[10px] text-gray-500">{day.date}</div>
-                    </div>
+                    </button>
                   </div>
-                  <div className="text-[10px] text-gray-600 ml-9">{day.location}</div>
-                </button>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Main Content - Day Details - 20% more compact */}
-          <div className="col-span-12 lg:col-span-7">
+          <div className="col-span-12 lg:col-span-6">
             <div className="space-y-4">
               {itinerary.filter((day: any) => day.day === selectedDay).map((day: any) => (
                 <div key={day.day}>
@@ -378,9 +394,66 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
               ))}
             </div>
 
-            {/* Right Sidebar - Trip Stats & Cost Breakdown */}
-            <div className="col-span-3 lg:block hidden">
+            {/* Right Sidebar - Map & Trip Stats */}
+            <div className="col-span-4 lg:block hidden">
               <div className="sticky top-20 space-y-4">
+                {/* Interactive Map */}
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                  <div className="h-64 bg-gradient-to-br from-blue-50 to-indigo-100 relative">
+                    {/* Map Placeholder - Will be replaced with real map */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center">
+                        <MapPin className="w-12 h-12 text-blue-400 mx-auto mb-2" />
+                        <p className="text-sm font-medium text-gray-700">Interactive Map</p>
+                        <p className="text-xs text-gray-500">Day {selectedDay} of {itinerary.length}</p>
+                      </div>
+                    </div>
+
+                    {/* Route visualization */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                      {itinerary.map((day: any, index: number) => {
+                        if (index === itinerary.length - 1) return null
+                        const x1 = 20 + (index * (100 / itinerary.length))
+                        const y1 = 50 + (Math.sin(index) * 20)
+                        const x2 = 20 + ((index + 1) * (100 / itinerary.length))
+                        const y2 = 50 + (Math.sin(index + 1) * 20)
+                        return (
+                          <line
+                            key={index}
+                            x1={`${x1}%`}
+                            y1={`${y1}%`}
+                            x2={`${x2}%`}
+                            y2={`${y2}%`}
+                            stroke={selectedDay === day.day || selectedDay === day.day + 1 ? '#10b981' : '#cbd5e1'}
+                            strokeWidth="2"
+                            strokeDasharray="4,4"
+                          />
+                        )
+                      })}
+                      {itinerary.map((day: any, index: number) => {
+                        const x = 20 + (index * (100 / itinerary.length))
+                        const y = 50 + (Math.sin(index) * 20)
+                        return (
+                          <circle
+                            key={day.day}
+                            cx={`${x}%`}
+                            cy={`${y}%`}
+                            r={selectedDay === day.day ? '8' : '5'}
+                            fill={selectedDay === day.day ? '#10b981' : '#64748b'}
+                            stroke="white"
+                            strokeWidth="2"
+                          />
+                        )
+                      })}
+                    </svg>
+                  </div>
+                  <div className="p-3 bg-white border-t border-gray-100">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-600">Current Location</span>
+                      <span className="font-semibold text-gray-900">{itinerary.find((d: any) => d.day === selectedDay)?.location}</span>
+                    </div>
+                  </div>
+                </div>
                 {/* Trip Stats */}
                 {plan.stats && (
                   <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
