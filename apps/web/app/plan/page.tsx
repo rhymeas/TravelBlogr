@@ -13,6 +13,7 @@ import { ItineraryGenerator } from '@/components/itinerary/ItineraryGenerator'
 import { TripPlannerV2 } from '@/components/trip-planner-v2/TripPlannerV2'
 import { useTripPlannerV2, toggleTripPlannerVersion } from '@/lib/featureFlags'
 import { useAuth } from '@/hooks/useAuth'
+import { isAdmin as checkIsAdmin } from '@/lib/utils/adminCheck'
 import { Settings } from 'lucide-react'
 
 export default function PlanPage() {
@@ -23,29 +24,25 @@ export default function PlanPage() {
 
   // Check if user is admin
   useEffect(() => {
-    const checkAdmin = async () => {
-      if (!user) {
-        setIsAdmin(false)
-        return
-      }
-
-      try {
-        const response = await fetch('/api/auth/session')
-        const data = await response.json()
-        setIsAdmin(data.role === 'admin')
-      } catch (error) {
-        console.error('Error checking admin status:', error)
-        setIsAdmin(false)
-      }
+    if (!user) {
+      console.log('🔧 Plan page - No user, setting isAdmin to false')
+      setIsAdmin(false)
+      return
     }
 
-    checkAdmin()
+    // Use adminCheck utility to check if user is admin
+    const adminStatus = checkIsAdmin(user.email)
+    console.log('🔧 Plan page - Admin check:', { email: user.email, isAdmin: adminStatus })
+    setIsAdmin(adminStatus)
   }, [user])
 
   // Initialize from localStorage (admin only)
   useEffect(() => {
+    console.log('🔧 Plan page - isAdmin:', isAdmin)
     if (isAdmin) {
-      setUseV2(useTripPlannerV2())
+      const v2Enabled = useTripPlannerV2()
+      console.log('🔧 Plan page - V2 enabled from localStorage:', v2Enabled)
+      setUseV2(v2Enabled)
       setShowToggle(true)
     } else {
       setUseV2(false)
@@ -68,8 +65,11 @@ export default function PlanPage() {
   const handleToggle = () => {
     if (!isAdmin) return
     const newValue = toggleTripPlannerVersion()
+    console.log('🔧 Plan page - Toggled to:', newValue ? 'V2' : 'V1')
     setUseV2(newValue)
   }
+
+  console.log('🔧 Plan page - Rendering:', { useV2, isAdmin, showToggle })
 
   return (
     <div className="relative min-h-screen">
