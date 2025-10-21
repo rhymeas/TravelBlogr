@@ -21,51 +21,48 @@ interface ProgressIndicatorProps {
 
 export function ProgressIndicator({ phases, currentPhase, onPhaseClick }: ProgressIndicatorProps) {
   return (
-    <div className="relative py-1">
-      {/* Progress Bar - Using global CSS colors */}
-      <div className="absolute top-1/2 left-[20%] right-[20%] h-0.5 bg-gray-200 -translate-y-1/2">
-        <div
-          className="h-full transition-all duration-700 ease-out"
-          style={{ 
-            width: `${((currentPhase - 1) / (phases.length - 1)) * 100}%`,
-            background: 'linear-gradient(to right, var(--color-primary), var(--color-secondary))'
-          }}
-        />
-      </div>
+    <div className="flex items-center justify-center gap-12">
+      {phases.map((phase, index) => {
+        const isCompleted = phase.id < currentPhase
+        const isCurrent = phase.id === currentPhase
+        const isClickable = phase.id <= currentPhase
 
-      {/* Phase Steps - Compact bubbles with step numbers */}
-      <div className="relative flex justify-center items-center gap-24">
-        {phases.map((phase) => {
-          const isCompleted = phase.id < currentPhase
-          const isCurrent = phase.id === currentPhase
-          const isClickable = phase.id <= currentPhase
+        return (
+          <div key={phase.id} className="relative flex items-center">
+            {/* Connecting Line */}
+            {index > 0 && (
+              <div className="absolute right-full w-12 h-px -mr-12 bg-gray-700">
+                <div
+                  className="h-full transition-all duration-500 bg-blue-500"
+                  style={{ width: isCompleted ? '100%' : '0%' }}
+                />
+              </div>
+            )}
 
-          return (
+            {/* Step */}
             <button
-              key={phase.id}
               onClick={() => isClickable && onPhaseClick(phase.id)}
               disabled={!isClickable}
-              className={`flex flex-col items-center group relative ${
-                isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
+              className={`flex items-center gap-2 transition-all ${
+                isClickable ? 'cursor-pointer group' : 'cursor-not-allowed opacity-40'
               }`}
             >
-
-              {/* Circle - Smaller */}
+              {/* Circle */}
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
+                className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${
                   isCompleted
-                    ? 'bg-[#2C5F6F] border-[#2C5F6F]'
+                    ? 'bg-blue-500 border-blue-500'
                     : isCurrent
-                    ? 'bg-white border-[#2C5F6F] ring-2 ring-[#2C5F6F]/20'
-                    : 'bg-white border-gray-300'
-                } ${isClickable ? 'group-hover:scale-105' : ''}`}
+                    ? 'bg-gray-800 border-blue-500'
+                    : 'bg-gray-800 border-gray-600'
+                } ${isClickable ? 'group-hover:scale-110' : ''}`}
               >
                 {isCompleted ? (
-                  <Check className="w-4 h-4 text-white" />
+                  <Check className="w-3 h-3 text-white" />
                 ) : (
                   <span
-                    className={`text-xs font-semibold ${
-                      isCurrent ? 'text-[#2C5F6F]' : 'text-gray-400'
+                    className={`text-[10px] font-semibold ${
+                      isCurrent ? 'text-blue-400' : 'text-gray-500'
                     }`}
                   >
                     {phase.id}
@@ -73,24 +70,18 @@ export function ProgressIndicator({ phases, currentPhase, onPhaseClick }: Progre
                 )}
               </div>
 
-              {/* Label - Below bubble with step number */}
-              <div className="mt-2 text-center">
-                <div
-                  className={`text-xs font-semibold tracking-tight ${
-                    isCompleted ? 'text-gray-700' : 'text-gray-400'
-                  }`}
-                  style={isCurrent ? { color: 'var(--color-primary)' } : {}}
-                >
-                  Step {phase.id}: {phase.name}
-                </div>
-                <div className="text-[10px] text-gray-500 mt-0.5">
-                  {phase.description}
-                </div>
+              {/* Label */}
+              <div
+                className={`text-xs font-medium transition-colors ${
+                  isCurrent ? 'text-white' : 'text-gray-400'
+                }`}
+              >
+                {phase.name}
               </div>
             </button>
-          )
-        })}
-      </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

@@ -110,49 +110,41 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Compact Header */}
-      <div className="space-y-1">
-        <h2 className="text-xl font-bold text-gray-900 tracking-tight">Where are you going?</h2>
-        <p className="text-xs text-gray-600">Start with your journey basics</p>
+    <div className="space-y-6 max-w-2xl">
+      {/* Header */}
+      <div>
+        <h2 className="text-2xl font-semibold text-white">Plan Your Journey</h2>
+        <p className="text-sm text-gray-400 mt-1">Where would you like to go?</p>
       </div>
 
-      {/* Destinations - Compact */}
-      <div>
+      {/* Destinations */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-gray-300">Destinations</h3>
         <LocationInput
           locations={locations}
           onChange={setLocations}
         />
       </div>
 
-      {/* Trip Type - Compact grid */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-bold text-gray-900">Trip Type</h3>
-
-        <div className="grid grid-cols-2 gap-2">
+      {/* Trip Type */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-gray-300">Trip Type</h3>
+        <div className="grid grid-cols-2 gap-3">
           {TRIP_TYPES.map((type) => (
             <button
               key={type.id}
               onClick={() => setSelectedTripType(type.id)}
-              className={`p-2.5 rounded-xl border-2 transition-all duration-200 text-left group ${
+              className={`p-4 rounded-xl border transition-all text-left ${
                 selectedTripType === type.id
-                  ? 'shadow-lg'
-                  : 'border-gray-200 hover:border-gray-300 bg-white hover:shadow-md'
+                  ? 'border-blue-500 bg-blue-500/10'
+                  : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
               }`}
-              style={
-                selectedTripType === type.id
-                  ? {
-                      borderColor: 'var(--color-primary)',
-                      background: 'linear-gradient(135deg, var(--color-rose-50), var(--color-pink-50))'
-                    }
-                  : {}
-              }
             >
-              <div className="flex items-center gap-2">
-                <div className="text-xl group-hover:scale-110 transition-transform duration-200">{type.icon}</div>
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">{type.icon}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-gray-900 text-xs truncate">{type.label}</div>
-                  <div className="text-[9px] text-gray-600 truncate">{type.description}</div>
+                  <div className="text-sm font-semibold text-white">{type.label}</div>
+                  <div className="text-xs text-gray-400 mt-1">{type.description}</div>
                 </div>
               </div>
             </button>
@@ -160,15 +152,13 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
         </div>
       </div>
 
-      {/* Dates + CTA - Ultra compact */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
-          <Calendar className="w-3.5 h-3.5" style={{ color: 'var(--color-primary)' }} />
+      {/* Dates */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-blue-400" />
           Travel Dates
         </h3>
-
-        <div className="space-y-2">
-          {/* Date picker */}
+        <div className="space-y-3">
           <DateRangePicker
             startDate={dateRange.startDate ? new Date(dateRange.startDate) : undefined}
             endDate={dateRange.endDate ? new Date(dateRange.endDate) : undefined}
@@ -182,27 +172,21 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
               }
             }}
           />
-          
-          <div className="flex items-center justify-between gap-2">
-            <label className="flex items-center gap-1.5 text-[10px] text-gray-700 cursor-pointer font-medium">
+
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
               <input
                 type="checkbox"
                 checked={dateRange.flexible}
                 onChange={(e) => setDateRange({ ...dateRange, flexible: e.target.checked })}
-                className="w-3 h-3 border-gray-300 rounded focus:ring-2 transition-all"
-                style={{ 
-                  accentColor: 'var(--color-primary)',
-                  '--tw-ring-color': 'var(--color-primary)'
-                } as React.CSSProperties}
+                className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-900"
               />
               Flexible ±3 days
             </label>
 
-            {/* CTA - Inline */}
             <Button
               onClick={handleNext}
-              className="px-6 py-2 text-white text-xs rounded-lg hover:shadow-xl font-bold whitespace-nowrap transition-all duration-300 hover:scale-105"
-              style={{ background: 'linear-gradient(to right, var(--color-primary), var(--color-secondary))' }}
+              className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-lg transition-all"
             >
               Continue →
             </Button>

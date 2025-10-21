@@ -134,7 +134,7 @@ export function TripPlannerV2() {
     }
   }, [])
 
-  // Update map markers when destinations change
+  // Update map markers and route when destinations change - EXACT V1 LOGIC
   useEffect(() => {
     if (!map.current) return
 
@@ -142,24 +142,72 @@ export function TripPlannerV2() {
     markers.current.forEach(marker => marker.remove())
     markers.current = []
 
-    // Add markers for destinations with coordinates
+    // Remove existing route layer
+    if (map.current.getLayer('route')) {
+      map.current.removeLayer('route')
+    }
+    if (map.current.getSource('route')) {
+      map.current.removeSource('route')
+    }
+
     const validDestinations = tripData.destinations.filter(
       dest => dest.latitude && dest.longitude
     )
 
-    if (validDestinations.length === 0) return
+    if (validDestinations.length === 0) {
+      // Reset to world view
+      map.current.flyTo({ center: [0, 20], zoom: 1.5 })
+      return
+    }
 
+    // Add markers - V1 style
     validDestinations.forEach((dest, index) => {
       const el = document.createElement('div')
-      el.className = 'w-8 h-8 bg-[#2C5F6F] rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg'
-      el.textContent = String.fromCharCode(65 + index) // A, B, C...
+      el.className = 'w-8 h-8 bg-rausch-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:scale-110 transition-transform'
+      el.textContent = (index + 1).toString()
 
       const marker = new maplibregl.Marker({ element: el })
         .setLngLat([dest.longitude!, dest.latitude!])
+        .setPopup(
+          new maplibregl.Popup({ offset: 25 })
+            .setHTML(`<div class="font-semibold">${dest.name}</div>`)
+        )
         .addTo(map.current!)
 
       markers.current.push(marker)
     })
+
+    // Add route line if multiple destinations
+    if (validDestinations.length > 1) {
+      const coordinates = validDestinations.map(dest => [dest.longitude!, dest.latitude!])
+
+      map.current.addSource('route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates
+          }
+        }
+      })
+
+      map.current.addLayer({
+        id: 'route',
+        type: 'line',
+        source: 'route',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#FF5A5F',
+          'line-width': 3,
+          'line-opacity': 0.8
+        }
+      })
+    }
 
     // Fit bounds to show all markers
     if (validDestinations.length > 0) {
@@ -276,10 +324,10 @@ export function TripPlannerV2() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
-      {/* Compact header with progress - Fixed height */}
-      <div className="bg-white border-b border-gray-200 z-50 shadow-sm">
-        <div className="max-w-[1800px] mx-auto px-6 py-4">
+    <div className="h-screen bg-[#1a1a1a] flex flex-col overflow-hidden">
+      {/* Compact progress header - Apple-like dark */}
+      <div className="bg-[#2a2a2a] border-b border-gray-800">
+        <div className="max-w-[1600px] mx-auto px-6 py-2">
           <ProgressIndicator
             phases={PHASES}
             currentPhase={currentPhase}
@@ -288,51 +336,22 @@ export function TripPlannerV2() {
         </div>
       </div>
 
-      {/* Main Content - Full height 50/50 Split - No scroll */}
+      {/* Main Content - 50/50 Split - Everything in viewport */}
       <div className="flex-1 overflow-hidden">
-        <div className="max-w-[1800px] mx-auto h-full flex gap-6 px-6 py-6">
-          {/* Left: Current Phase (50%) - Scrollable content area */}
-          <div className="w-1/2 overflow-y-auto scrollbar-thin">
-            <div className="max-w-2xl mx-auto">
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all duration-300">
-                {renderPhase()}
-              </div>
+        <div className="h-full flex">
+          {/* Left: Current Phase (50%) */}
+          <div className="w-1/2 overflow-y-auto bg-[#1a1a1a]">
+            <div className="p-6">
+              {renderPhase()}
             </div>
           </div>
 
-          {/* Right: Map + Summary (50%) - Fixed, aligned with left */}
-          <div className="w-1/2 flex flex-col gap-4">
-            {/* Map - Takes most space */}
-            <div className="flex-1 bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300">
-              <div
-                ref={mapContainer}
-                className="w-full h-full"
-              />
-            </div>
-
-            {/* Trip Summary - Below map */}
-            <div className="flex-shrink-0">
-              <TripSummary data={tripData} currentPhase={currentPhase} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Minimal footer - Fixed at bottom */}
-      <div className="bg-white border-t border-gray-200 z-50">
-        <div className="max-w-[1800px] mx-auto px-6 py-2">
-          <div className="flex items-center justify-between text-xs text-gray-600">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full font-medium border border-blue-200">
-                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
-                Experimental
-              </span>
-              <span>Test version of our new trip planner</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <a href="#" className="hover:text-gray-900 transition-colors">Give Feedback</a>
-              <a href="#" className="hover:text-gray-900 transition-colors">Report Issue</a>
-            </div>
+          {/* Right: Map Only (50%) */}
+          <div className="w-1/2 bg-[#0a0a0a]">
+            <div
+              ref={mapContainer}
+              className="w-full h-full"
+            />
           </div>
         </div>
       </div>
