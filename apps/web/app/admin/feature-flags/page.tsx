@@ -90,10 +90,30 @@ export default function FeatureFlagsPage() {
         const stored = localStorage.getItem('useTripPlannerV2')
         return { ...flag, enabled: stored === 'true' }
       }
-      // Server-side flags from environment
+
+      // Server-side flags - read from actual NEXT_PUBLIC_ env vars
+      let enabled = false
+      switch (flag.key) {
+        case 'NEXT_PUBLIC_ENABLE_SMART_POI':
+          enabled = process.env.NEXT_PUBLIC_ENABLE_SMART_POI === 'true'
+          break
+        case 'NEXT_PUBLIC_ENABLE_GROQ_VALIDATION':
+          enabled = process.env.NEXT_PUBLIC_ENABLE_GROQ_VALIDATION === 'true'
+          break
+        case 'NEXT_PUBLIC_ENABLE_PROGRESSIVE_LOADING':
+          enabled = process.env.NEXT_PUBLIC_ENABLE_PROGRESSIVE_LOADING === 'true'
+          break
+        case 'NEXT_PUBLIC_ENABLE_EXTERNAL_APIS':
+          enabled = process.env.NEXT_PUBLIC_ENABLE_EXTERNAL_APIS === 'true'
+          break
+        case 'NEXT_PUBLIC_ENABLE_BATCH_PROCESSING':
+          enabled = process.env.NEXT_PUBLIC_ENABLE_BATCH_PROCESSING === 'true'
+          break
+      }
+
       return {
         ...flag,
-        enabled: process.env[flag.key] === 'true'
+        enabled
       }
     }))
   }
