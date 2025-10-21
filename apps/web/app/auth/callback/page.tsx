@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabase } from '@/lib/supabase'
 import { PageLoading } from '@/components/ui/LoadingSpinner'
@@ -11,12 +11,16 @@ export default function AuthCallbackPage() {
   const router = useRouter()
   const supabase = useSupabase()
   const [error, setError] = useState<string | null>(null)
-  const [hasRun, setHasRun] = useState(false)
+  const hasRunRef = useRef(false)
 
   useEffect(() => {
-    // Prevent infinite loop - only run once
-    if (hasRun) return
-    setHasRun(true)
+    // Prevent infinite loop - only run once using ref (persists across renders)
+    if (hasRunRef.current) {
+      console.log('⏭️ Callback already ran, skipping')
+      return
+    }
+    hasRunRef.current = true
+    console.log('🚀 Running callback for the first time')
 
     const handleCallback = async () => {
       try {
@@ -51,12 +55,13 @@ export default function AuthCallbackPage() {
           localStorage.removeItem('oauth_redirect_to')
         }
 
-        // Check if we have hash params (implicit flow)
+        // Check if we have hash params (implicit flow) or code param (PKCE flow)
         const hashParams = new URLSearchParams(window.location.hash.substring(1))
         const accessToken = hashParams.get('access_token')
+        const code = searchParams.get('code')
 
         if (accessToken) {
-          console.log('✅ OAuth callback - Access token found in hash')
+          console.log('✅ OAuth callback - Access token found in hash (implicit flow)')
           // Supabase client automatically processes hash params and sets session
           // Just wait a moment for the session to be established
           await new Promise(resolve => setTimeout(resolve, 1000))
@@ -65,7 +70,14 @@ export default function AuthCallbackPage() {
           return
         }
 
-        // Otherwise check if we already have a session
+        if (code) {
+          console.log('✅ OAuth callback - Code found (PKCE flow), waiting for session exchange...')
+          // Wait for Supabase to exchange code for session (PKCE flow)
+          // This happens automatically via Supabase client
+          await new Promise(resolve => setTimeout(resolve, 2000))
+        }
+
+        // Check if we have a session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
         if (sessionError) {
@@ -90,7 +102,8 @@ export default function AuthCallbackPage() {
     }
 
     handleCallback()
-  }, [router, supabase, hasRun])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Empty deps - only run on mount
 
   if (error) {
     return (
