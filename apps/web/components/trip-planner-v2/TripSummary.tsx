@@ -29,11 +29,7 @@ export function TripSummary({ data, currentPhase }: TripSummaryProps) {
 
   return (
     <div className="bg-white rounded-lg shadow p-4 space-y-4">
-      {/* Header */}
-      <div>
-        <h3 className="text-base font-bold text-gray-900 mb-1">Your Trip Summary</h3>
-        <p className="text-xs text-gray-500">Live preview of your selections</p>
-      </div>
+      {/* Header removed to save space */}
 
       {/* Destinations */}
       {currentPhase >= 1 && data.destinations.length > 0 && (

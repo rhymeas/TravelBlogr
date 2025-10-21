@@ -5,10 +5,10 @@
  * Establish the basic framework of the trip
  */
 
-import { useState } from 'react'
-import { MapPin, Calendar, Plus, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { LocationAutocomplete } from '@/components/itinerary/LocationAutocomplete'
+import { LocationInput } from '@/components/itinerary/LocationInput'
 import { DateRangePicker } from '@/components/itinerary/DateRangePicker'
 import type { PhaseProps, TripType, Destination } from '../types'
 
@@ -40,14 +40,24 @@ const TRIP_TYPES: { id: TripType; label: string; icon: string; description: stri
 ]
 
 export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
-  const [destinations, setDestinations] = useState<Destination[]>(
-    data.destinations.length > 0
-      ? data.destinations
-      : [
-          { name: '', type: 'start' },
-          { name: '', type: 'end' }
-        ]
-  )
+  // Convert Destination[] to Location[] format for LocationInput
+  const [locations, setLocations] = useState(() => {
+    if (data.destinations.length > 0) {
+      return data.destinations.map(dest => ({
+        id: crypto.randomUUID(),
+        value: dest.name,
+        latitude: dest.latitude,
+        longitude: dest.longitude,
+        region: dest.region,
+        country: dest.country
+      }))
+    }
+    return [
+      { id: crypto.randomUUID(), value: '' },
+      { id: crypto.randomUUID(), value: '' }
+    ]
+  })
+
   const [selectedTripType, setSelectedTripType] = useState<TripType | null>(data.tripType)
   const [dateRange, setDateRange] = useState({
     startDate: data.dateRange?.startDate ? data.dateRange.startDate.toISOString().split('T')[0] : '',
@@ -55,26 +65,23 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
     flexible: data.dateRange?.flexible || false
   })
 
-  const addStop = () => {
-    const newDestinations = [...destinations]
-    newDestinations.splice(destinations.length - 1, 0, { name: '', type: 'stop' })
-    setDestinations(newDestinations)
-  }
-
-  const removeStop = (index: number) => {
-    setDestinations(destinations.filter((_, i) => i !== index))
-  }
-
-  const updateDestination = (index: number, name: string) => {
-    const newDestinations = [...destinations]
-    newDestinations[index] = { ...newDestinations[index], name }
-    setDestinations(newDestinations)
-  }
+  // Sync locations back to destinations format
+  useEffect(() => {
+    const destinations: Destination[] = locations.map((loc, index) => ({
+      name: loc.value,
+      type: index === 0 ? 'start' : index === locations.length - 1 ? 'end' : 'stop',
+      latitude: 'latitude' in loc ? loc.latitude : undefined,
+      longitude: 'longitude' in loc ? loc.longitude : undefined,
+      region: 'region' in loc ? loc.region : undefined,
+      country: 'country' in loc ? loc.country : undefined
+    }))
+    updateData({ destinations })
+  }, [locations])
 
   const handleNext = () => {
     // Validate
-    const filledDestinations = destinations.filter(d => d.name.trim())
-    if (filledDestinations.length < 2) {
+    const filledLocations = locations.filter(loc => loc.value.trim())
+    if (filledLocations.length < 2) {
       alert('Please enter at least a starting location and destination')
       return
     }
@@ -91,7 +98,6 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
 
     // Update data
     updateData({
-      destinations: filledDestinations,
       tripType: selectedTripType,
       dateRange: {
         startDate: new Date(dateRange.startDate),
@@ -111,65 +117,12 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
         <p className="text-sm text-gray-600">Let's start with the basics of your journey</p>
       </div>
 
-      {/* Destinations */}
+      {/* Destinations - Using V1 LocationInput with drag-and-drop */}
       <div className="space-y-3">
-        <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-[#2C5F6F]" />
-          Your Route
-        </h3>
-
-        <div className="space-y-3">
-          {destinations.map((dest, index) => (
-            <div key={index} className="flex items-center gap-3">
-              <div className="flex-shrink-0 w-7 h-7 rounded-full bg-[#2C5F6F]/10 flex items-center justify-center text-xs font-semibold text-[#2C5F6F]">
-                {index === 0 ? 'A' : index === destinations.length - 1 ? 'B' : index}
-              </div>
-              
-              <div className="flex-1">
-                <LocationAutocomplete
-                  value={dest.name}
-                  onChange={(value, metadata) => {
-                    const updated = [...destinations]
-                    updated[index] = {
-                      ...updated[index],
-                      name: value,
-                      latitude: metadata?.latitude,
-                      longitude: metadata?.longitude,
-                      region: metadata?.region,
-                      country: metadata?.country
-                    }
-                    setDestinations(updated)
-                  }}
-                  placeholder={
-                    index === 0
-                      ? 'Starting location'
-                      : index === destinations.length - 1
-                      ? 'Destination'
-                      : `Stop ${index}`
-                  }
-                  className="w-full text-sm"
-                />
-              </div>
-
-              {dest.type === 'stop' && (
-                <button
-                  onClick={() => removeStop(index)}
-                  className="flex-shrink-0 p-1.5 text-gray-400 hover:text-red-600 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <button
-          onClick={addStop}
-          className="flex items-center gap-1.5 text-xs text-[#2C5F6F] hover:text-[#1e4a56] font-medium"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Add stop along the way
-        </button>
+        <LocationInput
+          locations={locations}
+          onChange={setLocations}
+        />
       </div>
 
       {/* Trip Type */}

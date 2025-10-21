@@ -264,11 +264,11 @@ export function TripPlannerV2() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      {/* Progress Indicator with V2 Badge */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
               <Logo size="small" />
               <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-semibold rounded">
                 V2 Experimental
@@ -281,14 +281,14 @@ export function TripPlannerV2() {
               >
                 ← Classic Planner
               </button>
+              <button
+                onClick={() => window.location.href = '/trips/new'}
+                className="px-3 py-1.5 bg-[#2C5F6F] text-white text-xs font-semibold rounded hover:bg-[#1e4a56]"
+              >
+                Manual Trip Planner
+              </button>
             </div>
           </div>
-        </div>
-      </header>
-
-      {/* Progress Indicator */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 py-3">
           <ProgressIndicator
             phases={PHASES}
             currentPhase={currentPhase}
@@ -310,16 +310,16 @@ export function TripPlannerV2() {
           {/* Right: Map & Summary */}
           <div className="lg:col-span-5">
             <div className="sticky top-24 space-y-4">
-              {/* Map */}
+              {/* Map - Increased height for 50/50 visual balance */}
               <div className="bg-white rounded-lg shadow overflow-hidden">
                 <div
                   ref={mapContainer}
-                  className="w-full h-64"
-                  style={{ minHeight: '256px' }}
+                  className="w-full h-[500px]"
+                  style={{ minHeight: '500px' }}
                 />
               </div>
 
-              {/* Trip Summary */}
+              {/* Trip Summary - Removed header text */}
               <TripSummary data={tripData} currentPhase={currentPhase} />
             </div>
           </div>
