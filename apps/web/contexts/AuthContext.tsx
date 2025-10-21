@@ -207,11 +207,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
-      // CRITICAL FIX: Supabase site_url is set to production (https://www.travelblogr.com)
-      // This causes OAuth to redirect to production even from localhost
-      // Solution: Don't use redirectTo parameter - use hash fragment instead
-      // Store redirect path in localStorage and let callback page handle it
-
       const currentOrigin = window.location.origin
       const isLocalhost = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')
 
@@ -226,7 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ? 'http://localhost:3000/auth/callback'
         : 'https://www.travelblogr.com/auth/callback'
 
-      console.log('🔐 OAuth Sign-In:', {
+      console.log('🔐 OAuth Sign-In (Popup Mode):', {
         provider,
         currentOrigin,
         isLocalhost,
@@ -235,10 +230,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         storedRedirect: localStorage.getItem('oauth_redirect_to')
       })
 
+      // Get OAuth URL from Supabase
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: callbackUrl,
+          skipBrowserRedirect: true, // CRITICAL: Don't redirect, we'll open popup manually
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -252,7 +249,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: error.message }
       }
 
-      console.log('✅ OAuth initiated successfully')
+      if (!data?.url) {
+        console.error('❌ No OAuth URL returned')
+        setState(prev => ({ ...prev, error: 'Failed to get OAuth URL', loading: false }))
+        return { success: false, error: 'Failed to get OAuth URL' }
+      }
+
+      // Open OAuth in popup window
+      const width = 500
+      const height = 600
+      const left = window.screen.width / 2 - width / 2
+      const top = window.screen.height / 2 - height / 2
+
+      const popup = window.open(
+        data.url,
+        'oauth-popup',
+        `width=${width},height=${height},left=${left},top=${top},toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes`
+      )
+
+      if (!popup) {
+        console.error('❌ Popup blocked')
+        setState(prev => ({ ...prev, error: 'Popup blocked. Please allow popups for this site.', loading: false }))
+        return { success: false, error: 'Popup blocked' }
+      }
+
+      console.log('✅ OAuth popup opened')
+
+      // Listen for OAuth callback completion
+      const checkPopupClosed = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkPopupClosed)
+          console.log('🔐 OAuth popup closed')
+          setState(prev => ({ ...prev, loading: false }))
+        }
+      }, 500)
+
+      // Listen for auth state changes (session created)
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          console.log('✅ OAuth sign-in successful!')
+          clearInterval(checkPopupClosed)
+          if (popup && !popup.closed) {
+            popup.close()
+          }
+          subscription.unsubscribe()
+          setState(prev => ({ ...prev, loading: false }))
+        }
+      })
+
       return { success: true, data }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'An error occurred'

@@ -7,12 +7,14 @@ interface AuthLoadingModalProps {
   message?: string
   error?: string | null
   showDelayMessage?: boolean
+  success?: boolean
 }
 
-export function AuthLoadingModal({ 
-  message = "Signing you in...", 
+export function AuthLoadingModal({
+  message = "Signing you in...",
   error,
-  showDelayMessage = false 
+  showDelayMessage = false,
+  success = false
 }: AuthLoadingModalProps) {
   const [dots, setDots] = useState('')
 
@@ -40,7 +42,32 @@ export function AuthLoadingModal({
             
             {/* Content */}
             <div className="p-8">
-              {error ? (
+              {success ? (
+                // Success State
+                <div className="text-center">
+                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
+                    <svg
+                      className="h-6 w-6 text-green-600 dark:text-green-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+                    Success!
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    You're signed in. Closing window...
+                  </p>
+                </div>
+              ) : error ? (
                 // Error State
                 <div className="text-center">
                   <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">

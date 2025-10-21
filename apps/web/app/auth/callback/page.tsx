@@ -13,6 +13,7 @@ export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(true)
   const [showDelayMessage, setShowDelayMessage] = useState(false)
+  const [success, setSuccess] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -166,11 +167,27 @@ export default function AuthCallbackPage() {
         }
 
         if (session) {
-          console.log('✅ OAuth callback - Session found, redirecting to:', redirectTo)
+          console.log('✅ OAuth callback - Session found')
           if (isMounted) {
             setIsProcessing(false)
-            // Use window.location for hard redirect (more reliable than router.push)
-            window.location.href = redirectTo
+            setSuccess(true)
+
+            // Check if we're in a popup window
+            const isPopup = window.opener && window.opener !== window
+
+            if (isPopup) {
+              console.log('✅ OAuth callback in popup - closing window')
+              // Close popup after short delay to show success
+              setTimeout(() => {
+                window.close()
+              }, 1500)
+            } else {
+              // Regular redirect if not in popup
+              console.log('✅ OAuth callback - Redirecting to:', redirectTo)
+              setTimeout(() => {
+                window.location.href = redirectTo
+              }, 1000)
+            }
           }
         } else {
           console.log('⚠️ OAuth callback - No session, redirecting to sign in')
@@ -213,6 +230,7 @@ export default function AuthCallbackPage() {
       message="Completing sign in..."
       error={error}
       showDelayMessage={showDelayMessage}
+      success={success}
     />
   )
 }
