@@ -2,9 +2,9 @@
  * Type definitions for Trip Planner V2
  */
 
-export type TripType = 'specific' | 'journey' | 'multi-destination' | 'adventure'
+export type TripType = 'specific' | 'journey' | 'multi-destination' | 'adventure' | 'bike'
 
-export type TransportMode = 'car' | 'train' | 'bike' | 'flight' | 'bus' | 'mixed'
+export type TransportMode = 'car' | 'train' | 'bike' | 'flight' | 'bus' | 'mixed' | 'foot'
 
 export type CompanionType = 'solo' | 'couple' | 'family' | 'friends' | 'business'
 

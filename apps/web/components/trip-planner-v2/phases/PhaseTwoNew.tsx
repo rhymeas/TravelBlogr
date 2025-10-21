@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react'
-import { Users, Car, Sparkles, DollarSign, Zap, Scale, TrendingUp, Wallet, CreditCard, Gem, User, UserPlus, Home, Plane, Train, Bus } from 'lucide-react'
+import { Users, Car, Sparkles, DollarSign, Zap, Scale, TrendingUp, Wallet, CreditCard, Gem, User, UserPlus, Home, Plane, Train, Bus, Bike } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import type { TripPlanData } from '../types'
 import type { LucideIcon } from 'lucide-react'
@@ -32,6 +32,7 @@ const BUDGETS = [
 
 const TRANSPORT_MODES = [
   { id: 'car' as const, label: 'Car', icon: Car },
+  { id: 'bike' as const, label: 'Bike', icon: Bike },
   { id: 'train' as const, label: 'Train', icon: Train },
   { id: 'bus' as const, label: 'Bus', icon: Bus },
   { id: 'flight' as const, label: 'Flight', icon: Plane }
@@ -65,142 +66,126 @@ export function PhaseTwoNew({ data, updateData, onNext, onBack }: PhaseProps) {
 
   return (
     <div className="space-y-2.5">
-      {/* Clean Header */}
+      {/* Header - Larger titles */}
       <div>
-        <h2 className="text-sm font-bold text-gray-900">Customize your trip</h2>
-        <p className="text-[9px] text-gray-600 mt-0.5">Set your travel preferences</p>
+        <h2 className="text-lg font-bold text-gray-900">Customize your trip</h2>
+        <p className="text-xs text-gray-600 mt-0.5">Set your travel preferences</p>
       </div>
 
-      {/* Travel Pace */}
-      <div className="space-y-1">
-        <h3 className="text-[10px] font-bold text-gray-900">Travel Pace</h3>
-        <div className="grid grid-cols-3 gap-1.5">
+      {/* Travel Pace - Larger buttons with green selection */}
+      <div className="space-y-1.5">
+        <h3 className="text-sm font-bold text-gray-900">Travel Pace</h3>
+        <div className="grid grid-cols-3 gap-2">
           {TRAVEL_PACES.map((paceOption) => {
             const IconComponent = paceOption.icon
             return (
               <button
                 key={paceOption.id}
                 onClick={() => setPace(paceOption.id)}
-                className={`p-1.5 rounded-lg border transition-all text-center ${
+                className={`p-2.5 rounded-lg border transition-all text-center ${
                   pace === paceOption.id
-                    ? 'shadow-md'
+                    ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
                 }`}
-                style={
-                  pace === paceOption.id
-                    ? {
-                        borderColor: 'var(--color-primary)',
-                        background: 'linear-gradient(135deg, var(--color-rose-50), var(--color-pink-50))'
-                      }
-                    : {}
-                }
               >
-                <div className="w-8 h-8 mx-auto mb-1 rounded-full bg-gray-100 flex items-center justify-center">
-                  <IconComponent className="w-4.5 h-4.5 text-gray-700" />
+                <div className={`w-9 h-9 mx-auto mb-1.5 rounded-full flex items-center justify-center ${
+                  pace === paceOption.id ? 'bg-green-100' : 'bg-gray-100'
+                }`}>
+                  <IconComponent className={`w-5 h-5 ${
+                    pace === paceOption.id ? 'text-green-700' : 'text-gray-700'
+                  }`} />
                 </div>
-                <div className="text-[8px] font-semibold text-gray-900">{paceOption.label}</div>
+                <div className="text-xs font-semibold text-gray-900">{paceOption.label}</div>
               </button>
             )
           })}
         </div>
       </div>
 
-      {/* Budget */}
-      <div className="space-y-1">
-        <h3 className="text-[10px] font-bold text-gray-900">Budget</h3>
-        <div className="grid grid-cols-3 gap-1.5">
+      {/* Budget - Larger buttons with green selection */}
+      <div className="space-y-1.5">
+        <h3 className="text-sm font-bold text-gray-900">Budget</h3>
+        <div className="grid grid-cols-3 gap-2">
           {BUDGETS.map((b) => {
             const IconComponent = b.icon
             return (
               <button
                 key={b.id}
                 onClick={() => setBudget(b.id)}
-                className={`p-1.5 rounded-lg border transition-all text-center ${
+                className={`p-2.5 rounded-lg border transition-all text-center ${
                   budget === b.id
-                    ? 'shadow-md'
+                    ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
                 }`}
-                style={
-                  budget === b.id
-                    ? {
-                        borderColor: 'var(--color-accent)',
-                        background: 'linear-gradient(135deg, #fef3c7, #fed7aa)'
-                      }
-                    : {}
-                }
               >
-                <div className="w-8 h-8 mx-auto mb-1 rounded-full bg-gray-100 flex items-center justify-center">
-                  <IconComponent className="w-4.5 h-4.5 text-gray-700" />
+                <div className={`w-9 h-9 mx-auto mb-1.5 rounded-full flex items-center justify-center ${
+                  budget === b.id ? 'bg-green-100' : 'bg-gray-100'
+                }`}>
+                  <IconComponent className={`w-5 h-5 ${
+                    budget === b.id ? 'text-green-700' : 'text-gray-700'
+                  }`} />
                 </div>
-                <div className="text-[8px] font-semibold text-gray-900">{b.label}</div>
+                <div className="text-xs font-semibold text-gray-900">{b.label}</div>
               </button>
             )
           })}
         </div>
       </div>
 
-      {/* Transport */}
-      <div className="space-y-1">
-        <h3 className="text-[10px] font-bold text-gray-900">Transport</h3>
-        <div className="grid grid-cols-4 gap-1.5">
+      {/* Transport - Larger buttons with green selection, 5 items in grid */}
+      <div className="space-y-1.5">
+        <h3 className="text-sm font-bold text-gray-900">Transport</h3>
+        <div className="grid grid-cols-3 gap-2">
           {TRANSPORT_MODES.map((mode) => {
             const IconComponent = mode.icon
             return (
               <button
                 key={mode.id}
                 onClick={() => setTransportMode(mode.id)}
-                className={`p-1.5 rounded-lg border transition-all text-center ${
+                className={`p-2.5 rounded-lg border transition-all text-center ${
                   transportMode === mode.id
-                    ? 'shadow-md'
+                    ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
                 }`}
-                style={
-                  transportMode === mode.id
-                    ? {
-                        borderColor: 'var(--color-primary)',
-                        background: 'linear-gradient(135deg, var(--color-rose-50), var(--color-pink-50))'
-                      }
-                    : {}
-                }
               >
-                <div className="w-8 h-8 mx-auto mb-1 rounded-full bg-gray-100 flex items-center justify-center">
-                  <IconComponent className="w-4.5 h-4.5 text-gray-700" />
+                <div className={`w-9 h-9 mx-auto mb-1.5 rounded-full flex items-center justify-center ${
+                  transportMode === mode.id ? 'bg-green-100' : 'bg-gray-100'
+                }`}>
+                  <IconComponent className={`w-5 h-5 ${
+                    transportMode === mode.id ? 'text-green-700' : 'text-gray-700'
+                  }`} />
                 </div>
-                <div className="text-[8px] font-semibold text-gray-900">{mode.label}</div>
+                <div className="text-xs font-semibold text-gray-900">{mode.label}</div>
               </button>
             )
           })}
         </div>
       </div>
 
-      {/* Travelers */}
-      <div className="space-y-1">
-        <h3 className="text-[10px] font-bold text-gray-900">Travelers</h3>
-        <div className="grid grid-cols-4 gap-1.5">
+      {/* Travelers - Larger buttons with green selection */}
+      <div className="space-y-1.5">
+        <h3 className="text-sm font-bold text-gray-900">Travelers</h3>
+        <div className="grid grid-cols-4 gap-2">
           {COMPANIONS.map((companion) => {
             const IconComponent = companion.icon
             return (
               <button
                 key={companion.id}
                 onClick={() => { setCompanions(companion.id); setGroupSize(companion.size) }}
-                className={`p-1.5 rounded-lg border transition-all text-center ${
+                className={`p-2.5 rounded-lg border transition-all text-center ${
                   companions === companion.id
-                    ? 'shadow-md'
+                    ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
                 }`}
-                style={
-                  companions === companion.id
-                    ? {
-                        borderColor: 'var(--color-secondary)',
-                        background: 'linear-gradient(135deg, var(--color-rose-50), var(--color-pink-50))'
-                      }
-                    : {}
-                }
               >
-                <div className="w-8 h-8 mx-auto mb-1 rounded-full bg-gray-100 flex items-center justify-center">
-                  <IconComponent className="w-4.5 h-4.5 text-gray-700" />
+                <div className={`w-9 h-9 mx-auto mb-1.5 rounded-full flex items-center justify-center ${
+                  companions === companion.id ? 'bg-green-100' : 'bg-gray-100'
+                }`}>
+                  <IconComponent className={`w-5 h-5 ${
+                    companions === companion.id ? 'text-green-700' : 'text-gray-700'
+                  }`} />
                 </div>
-                <div className="text-[8px] font-semibold text-gray-900">{companion.label}</div>
+                <div className="text-xs font-semibold text-gray-900">{companion.label}</div>
               </button>
             )
           })}

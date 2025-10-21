@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react'
-import { Calendar, MapPin, Navigation, Map, Mountain } from 'lucide-react'
+import { Calendar, MapPin, Navigation, Map, Mountain, Bike } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { LocationInput } from '@/components/itinerary/LocationInput'
 import { DateRangePicker } from '@/components/itinerary/DateRangePicker'
@@ -37,6 +37,12 @@ const TRIP_TYPES: { id: TripType; label: string; icon: LucideIcon; description: 
     label: 'Adventure',
     icon: Mountain,
     description: 'Hiking or road trip'
+  },
+  {
+    id: 'bike',
+    label: 'Bike Trip',
+    icon: Bike,
+    description: 'Cycling adventure'
   }
 ]
 
@@ -112,10 +118,10 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
 
   return (
     <div className="space-y-2.5">
-      {/* Compact Header */}
+      {/* Header - Larger titles */}
       <div>
-        <h2 className="text-sm font-bold text-gray-900">Where are you going?</h2>
-        <p className="text-[9px] text-gray-600 mt-0.5">Start with your journey basics</p>
+        <h2 className="text-lg font-bold text-gray-900">Where are you going?</h2>
+        <p className="text-xs text-gray-600 mt-0.5">Start with your journey basics</p>
       </div>
 
       {/* Destinations - Compact */}
@@ -126,37 +132,33 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
         />
       </div>
 
-      {/* Trip Type - Compact with icons */}
-      <div className="space-y-1">
-        <h3 className="text-[10px] font-bold text-gray-900">Trip Type</h3>
-        <div className="grid grid-cols-2 gap-1.5">
+      {/* Trip Type - Larger buttons with green selection */}
+      <div className="space-y-1.5">
+        <h3 className="text-sm font-bold text-gray-900">Trip Type</h3>
+        <div className="grid grid-cols-2 gap-2">
           {TRIP_TYPES.map((type) => {
             const IconComponent = type.icon
             return (
               <button
                 key={type.id}
                 onClick={() => setSelectedTripType(type.id)}
-                className={`p-2 rounded-lg border transition-all text-left ${
+                className={`p-3 rounded-lg border transition-all text-left ${
                   selectedTripType === type.id
-                    ? 'shadow-md'
+                    ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
                 }`}
-                style={
-                  selectedTripType === type.id
-                    ? {
-                        borderColor: 'var(--color-primary)',
-                        background: 'linear-gradient(135deg, var(--color-rose-50), var(--color-pink-50))'
-                      }
-                    : {}
-                }
               >
-                <div className="flex items-center gap-1.5">
-                  <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                    <IconComponent className="w-3 h-3 text-gray-700" />
+                <div className="flex items-center gap-2">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    selectedTripType === type.id ? 'bg-green-100' : 'bg-gray-100'
+                  }`}>
+                    <IconComponent className={`w-4 h-4 ${
+                      selectedTripType === type.id ? 'text-green-700' : 'text-gray-700'
+                    }`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-gray-900 text-[9px] leading-tight truncate">{type.label}</div>
-                    <div className="text-[7px] text-gray-600 leading-tight truncate">{type.description}</div>
+                    <div className="font-semibold text-gray-900 text-xs leading-tight truncate">{type.label}</div>
+                    <div className="text-[9px] text-gray-600 leading-tight truncate">{type.description}</div>
                   </div>
                 </div>
               </button>

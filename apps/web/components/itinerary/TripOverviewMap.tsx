@@ -20,7 +20,7 @@ interface TripOverviewMapProps {
     latitude: number
     longitude: number
   }>
-  transportMode?: 'car' | 'bike' | 'foot' | 'train' | 'flight' | 'mixed'
+  transportMode?: 'car' | 'bike' | 'foot' | 'train' | 'flight' | 'bus' | 'mixed'
   className?: string
 }
 

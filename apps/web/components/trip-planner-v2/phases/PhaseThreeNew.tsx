@@ -5,8 +5,9 @@
  * Review and generate the trip plan
  */
 
-import { Sparkles, MapPin, Calendar, Users, Car, DollarSign } from 'lucide-react'
+import { Sparkles, MapPin, Calendar, Users, Car, DollarSign, Edit3 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import Link from 'next/link'
 import type { TripPlanData } from '../types'
 
 interface PhaseProps {
@@ -142,8 +143,8 @@ export function PhaseThreeNew({ data, onNext, onBack, isGenerating, error }: Pha
         </div>
       )}
 
-      {/* Generate Button */}
-      <div className="pt-3">
+      {/* Generate Button + Manual Planner Link */}
+      <div className="pt-3 space-y-3">
         <button
           onClick={onNext}
           disabled={isGenerating}
@@ -162,6 +163,19 @@ export function PhaseThreeNew({ data, onNext, onBack, isGenerating, error }: Pha
             </>
           )}
         </button>
+
+        {/* Manual Trip Planner Link */}
+        <div className="flex justify-center pr-2">
+          <Link href="/plan">
+            <Button
+              variant="outline"
+              className="text-xs text-gray-600 hover:text-gray-900 border-gray-300 hover:border-gray-400 px-4 py-2 flex items-center gap-2"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>Or plan manually</span>
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Navigation */}

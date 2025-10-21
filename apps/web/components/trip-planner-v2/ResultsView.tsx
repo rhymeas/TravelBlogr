@@ -11,6 +11,8 @@ import { Calendar, Car, MapPin, Clock, Hotel, Camera, Coffee, Edit, Utensils, Na
 import { Button } from '@/components/ui/Button'
 import type { TripPlanData } from './types'
 import { generateBookingLink, generateGetYourGuideLink, trackAffiliateClick, type AffiliateParams } from '@/lib/utils/affiliateLinks'
+// Import V1 map component directly - DO NOT COPY, REUSE EXACT SAME COMPONENT
+import { TripOverviewMap } from '@/components/itinerary/TripOverviewMap'
 
 interface ResultsViewProps {
   plan: any // V1 API response
@@ -397,56 +399,19 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
             {/* Right Sidebar - Map & Trip Stats */}
             <div className="col-span-4 lg:block hidden">
               <div className="sticky top-20 space-y-4">
-                {/* Interactive Map */}
+                {/* Interactive Map - V1 TripOverviewMap component */}
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                  <div className="h-64 bg-gradient-to-br from-blue-50 to-indigo-100 relative">
-                    {/* Map Placeholder - Will be replaced with real map */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center">
-                        <MapPin className="w-12 h-12 text-blue-400 mx-auto mb-2" />
-                        <p className="text-sm font-medium text-gray-700">Interactive Map</p>
-                        <p className="text-xs text-gray-500">Day {selectedDay} of {itinerary.length}</p>
-                      </div>
-                    </div>
-
-                    {/* Route visualization */}
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                      {itinerary.map((day: any, index: number) => {
-                        if (index === itinerary.length - 1) return null
-                        const x1 = 20 + (index * (100 / itinerary.length))
-                        const y1 = 50 + (Math.sin(index) * 20)
-                        const x2 = 20 + ((index + 1) * (100 / itinerary.length))
-                        const y2 = 50 + (Math.sin(index + 1) * 20)
-                        return (
-                          <line
-                            key={index}
-                            x1={`${x1}%`}
-                            y1={`${y1}%`}
-                            x2={`${x2}%`}
-                            y2={`${y2}%`}
-                            stroke={selectedDay === day.day || selectedDay === day.day + 1 ? '#10b981' : '#cbd5e1'}
-                            strokeWidth="2"
-                            strokeDasharray="4,4"
-                          />
-                        )
-                      })}
-                      {itinerary.map((day: any, index: number) => {
-                        const x = 20 + (index * (100 / itinerary.length))
-                        const y = 50 + (Math.sin(index) * 20)
-                        return (
-                          <circle
-                            key={day.day}
-                            cx={`${x}%`}
-                            cy={`${y}%`}
-                            r={selectedDay === day.day ? '8' : '5'}
-                            fill={selectedDay === day.day ? '#10b981' : '#64748b'}
-                            stroke="white"
-                            strokeWidth="2"
-                          />
-                        )
-                      })}
-                    </svg>
-                  </div>
+                  <TripOverviewMap
+                    locations={plan?.days
+                      ?.filter((day: any) => day.location && structuredContext?.locations?.[day.location])
+                      ?.map((day: any) => ({
+                        name: day.location,
+                        latitude: structuredContext.locations[day.location].latitude,
+                        longitude: structuredContext.locations[day.location].longitude
+                      })) || []}
+                    transportMode={tripData.transportMode || 'car'}
+                    className="w-full h-64"
+                  />
                   <div className="p-3 bg-white border-t border-gray-100">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-gray-600">Current Location</span>

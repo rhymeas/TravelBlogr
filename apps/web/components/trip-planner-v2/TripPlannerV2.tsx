@@ -15,8 +15,9 @@ import { ResultsView } from './ResultsView'
 import { ProgressIndicator } from './ProgressIndicator'
 import { TripSummary } from './TripSummary'
 import { Logo } from '@/components/ui/Logo'
-// Import V1 map component directly - DO NOT COPY, REUSE EXACT SAME COMPONENT
+// Import V1 components directly - DO NOT COPY, REUSE EXACT SAME COMPONENTS
 import { TripOverviewMap } from '@/components/itinerary/TripOverviewMap'
+import { LoadingModal } from '@/components/itinerary/LoadingModal'
 import type { TripPlanData } from './types'
 
 const PHASES = [
@@ -206,6 +207,9 @@ export function TripPlannerV2() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* V1 Loading Modal - Reused directly */}
+      <LoadingModal isOpen={isGenerating} />
+
       {/* Progress indicator - V1 style */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-6 py-3">
