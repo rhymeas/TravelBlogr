@@ -82,16 +82,16 @@ export function PhaseTwoNew({ data, updateData, onNext, onBack }: PhaseProps) {
               <button
                 key={paceOption.id}
                 onClick={() => setPace(paceOption.id)}
-                className={`p-2.5 rounded-lg border transition-all text-center ${
+                className={`p-2 rounded-lg border transition-all text-center ${
                   pace === paceOption.id
                     ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
                 }`}
               >
-                <div className={`w-9 h-9 mx-auto mb-1.5 rounded-full flex items-center justify-center ${
+                <div className={`w-8 h-8 mx-auto mb-1 rounded-full flex items-center justify-center ${
                   pace === paceOption.id ? 'bg-green-100' : 'bg-gray-100'
                 }`}>
-                  <IconComponent className={`w-5 h-5 ${
+                  <IconComponent className={`w-4 h-4 ${
                     pace === paceOption.id ? 'text-green-700' : 'text-gray-700'
                   }`} />
                 </div>
@@ -112,16 +112,16 @@ export function PhaseTwoNew({ data, updateData, onNext, onBack }: PhaseProps) {
               <button
                 key={b.id}
                 onClick={() => setBudget(b.id)}
-                className={`p-2.5 rounded-lg border transition-all text-center ${
+                className={`p-2 rounded-lg border transition-all text-center ${
                   budget === b.id
                     ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
                 }`}
               >
-                <div className={`w-9 h-9 mx-auto mb-1.5 rounded-full flex items-center justify-center ${
+                <div className={`w-8 h-8 mx-auto mb-1 rounded-full flex items-center justify-center ${
                   budget === b.id ? 'bg-green-100' : 'bg-gray-100'
                 }`}>
-                  <IconComponent className={`w-5 h-5 ${
+                  <IconComponent className={`w-4 h-4 ${
                     budget === b.id ? 'text-green-700' : 'text-gray-700'
                   }`} />
                 </div>
@@ -142,16 +142,16 @@ export function PhaseTwoNew({ data, updateData, onNext, onBack }: PhaseProps) {
               <button
                 key={mode.id}
                 onClick={() => setTransportMode(mode.id)}
-                className={`p-2.5 rounded-lg border transition-all text-center ${
+                className={`p-2 rounded-lg border transition-all text-center ${
                   transportMode === mode.id
                     ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
                 }`}
               >
-                <div className={`w-9 h-9 mx-auto mb-1.5 rounded-full flex items-center justify-center ${
+                <div className={`w-8 h-8 mx-auto mb-1 rounded-full flex items-center justify-center ${
                   transportMode === mode.id ? 'bg-green-100' : 'bg-gray-100'
                 }`}>
-                  <IconComponent className={`w-5 h-5 ${
+                  <IconComponent className={`w-4 h-4 ${
                     transportMode === mode.id ? 'text-green-700' : 'text-gray-700'
                   }`} />
                 </div>
@@ -172,16 +172,16 @@ export function PhaseTwoNew({ data, updateData, onNext, onBack }: PhaseProps) {
               <button
                 key={companion.id}
                 onClick={() => { setCompanions(companion.id); setGroupSize(companion.size) }}
-                className={`p-2.5 rounded-lg border transition-all text-center ${
+                className={`p-2 rounded-lg border transition-all text-center ${
                   companions === companion.id
                     ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
                 }`}
               >
-                <div className={`w-9 h-9 mx-auto mb-1.5 rounded-full flex items-center justify-center ${
+                <div className={`w-8 h-8 mx-auto mb-1 rounded-full flex items-center justify-center ${
                   companions === companion.id ? 'bg-green-100' : 'bg-gray-100'
                 }`}>
-                  <IconComponent className={`w-5 h-5 ${
+                  <IconComponent className={`w-4 h-4 ${
                     companions === companion.id ? 'text-green-700' : 'text-gray-700'
                   }`} />
                 </div>

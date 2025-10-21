@@ -6,7 +6,7 @@
  * Transforms V1 API data into the results layout format
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { Calendar, Car, MapPin, Clock, Hotel, Camera, Coffee, Edit, Utensils, Navigation, DollarSign, TrendingUp, Info, ExternalLink, Save } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import type { TripPlanData } from './types'
@@ -39,6 +39,15 @@ const LOCATION_EMOJIS = ['🗼', '🍷', '🏛️', '🎨', '🏟️', '🌊', '
 export function ResultsView({ plan, tripData, locationImages = {}, structuredContext, onEdit }: ResultsViewProps) {
   const [selectedDay, setSelectedDay] = useState(1)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const dayContentRef = useRef<HTMLDivElement>(null)
+
+  // Smooth scroll to day content when day is selected
+  const handleDayClick = (dayNumber: number) => {
+    setSelectedDay(dayNumber)
+    if (dayContentRef.current) {
+      dayContentRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
 
   // Transform V1 API data to results layout format
   const itinerary = useMemo(() => {
@@ -169,7 +178,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                     )}
 
                     <button
-                      onClick={() => setSelectedDay(day.day)}
+                      onClick={() => handleDayClick(day.day)}
                       className={`w-full text-left px-2.5 py-2 rounded-xl transition-all border ${
                         selectedDay === day.day
                           ? 'bg-white border-gray-300 shadow-md scale-105'
@@ -197,7 +206,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
           </div>
 
           {/* Main Content - Day Details - 20% more compact */}
-          <div className="col-span-12 lg:col-span-6">
+          <div className="col-span-12 lg:col-span-6" ref={dayContentRef}>
             <div className="space-y-4">
               {itinerary.filter((day: any) => day.day === selectedDay).map((day: any) => (
                 <div key={day.day}>
@@ -248,6 +257,30 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                           </div>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Day Map - Shows cumulative route up to current day */}
+                  {plan?.days && structuredContext?.locations && (
+                    <div className="mb-4 bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                      <div className="p-3 bg-gray-50 border-b border-gray-200">
+                        <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-teal-600" />
+                          Route to {day.location}
+                        </h3>
+                      </div>
+                      <TripOverviewMap
+                        locations={plan.days
+                          .slice(0, day.day) // Show all locations up to current day
+                          .filter((d: any) => d.location && structuredContext.locations?.[d.location])
+                          .map((d: any) => ({
+                            name: d.location,
+                            latitude: structuredContext.locations[d.location].latitude,
+                            longitude: structuredContext.locations[d.location].longitude
+                          }))}
+                        transportMode={tripData.transportMode || 'car'}
+                        className="w-full h-48"
+                      />
                     </div>
                   )}
 
@@ -399,8 +432,14 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
             {/* Right Sidebar - Map & Trip Stats */}
             <div className="col-span-4 lg:block hidden">
               <div className="sticky top-20 space-y-4">
-                {/* Interactive Map - V1 TripOverviewMap component */}
+                {/* Overall Trip Map - Shows entire route with numbered markers */}
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                  <div className="p-3 bg-gray-50 border-b border-gray-200">
+                    <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-teal-600" />
+                      Complete Route
+                    </h3>
+                  </div>
                   <TripOverviewMap
                     locations={plan?.days
                       ?.filter((day: any) => day.location && structuredContext?.locations?.[day.location])
@@ -410,11 +449,11 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                         longitude: structuredContext.locations[day.location].longitude
                       })) || []}
                     transportMode={tripData.transportMode || 'car'}
-                    className="w-full h-64"
+                    className="w-full h-80"
                   />
                   <div className="p-3 bg-white border-t border-gray-100">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-600">Current Location</span>
+                      <span className="text-gray-600">Viewing Day {selectedDay}</span>
                       <span className="font-semibold text-gray-900">{itinerary.find((d: any) => d.day === selectedDay)?.location}</span>
                     </div>
                   </div>
