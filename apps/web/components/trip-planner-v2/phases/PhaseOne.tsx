@@ -165,13 +165,13 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
         </div>
       </div>
 
-      {/* Dates - Compact */}
-      <div className="space-y-1">
-        <h3 className="text-[10px] font-bold text-gray-900 flex items-center gap-1">
-          <Calendar className="w-2.5 h-2.5" style={{ color: 'var(--color-primary)' }} />
+      {/* Dates - White Background */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-gray-500" />
           Travel Dates
         </h3>
-        <div className="space-y-1">
+        <div className="bg-white rounded-xl p-4 border border-gray-200 space-y-3">
           <DateRangePicker
             startDate={dateRange.startDate ? new Date(dateRange.startDate) : undefined}
             endDate={dateRange.endDate ? new Date(dateRange.endDate) : undefined}
@@ -186,14 +186,14 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
             }}
           />
 
-          <div className="flex items-center justify-between gap-2">
-            <label className="flex items-center gap-1 text-[8px] text-gray-700 cursor-pointer font-medium">
+          <div className="flex items-center justify-between gap-3">
+            <label className="flex items-center gap-2.5 text-sm text-gray-700 cursor-pointer font-medium">
               <input
                 type="checkbox"
                 checked={dateRange.flexible}
                 onChange={(e) => setDateRange({ ...dateRange, flexible: e.target.checked })}
-                className="w-2.5 h-2.5 border-gray-300 rounded focus:ring-1 transition-all"
-                style={{ 
+                className="w-4 h-4 border-gray-300 rounded focus:ring-2 transition-all"
+                style={{
                   accentColor: 'var(--color-primary)',
                   '--tw-ring-color': 'var(--color-primary)'
                 } as React.CSSProperties}
@@ -203,7 +203,7 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
 
             <Button
               onClick={handleNext}
-              className="px-3 py-1 text-white text-[9px] rounded-lg hover:shadow-lg font-bold whitespace-nowrap transition-all"
+              className="px-6 py-2.5 text-white text-sm rounded-lg hover:shadow-lg font-semibold whitespace-nowrap transition-all"
               style={{ background: 'linear-gradient(to right, var(--color-primary), var(--color-secondary))' }}
             >
               Continue →

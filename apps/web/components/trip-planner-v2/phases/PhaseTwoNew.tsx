@@ -6,9 +6,10 @@
  */
 
 import { useState } from 'react'
-import { Users, Car, Sparkles, DollarSign } from 'lucide-react'
+import { Users, Car, Sparkles, DollarSign, Zap, Scale, TrendingUp, Wallet, CreditCard, Gem, User, UserPlus, Home, Plane, Train, Bus } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import type { TripPlanData } from '../types'
+import type { LucideIcon } from 'lucide-react'
 
 interface PhaseProps {
   data: TripPlanData
@@ -18,22 +19,29 @@ interface PhaseProps {
 }
 
 const TRAVEL_PACES = [
-  { id: 'relaxed' as const, label: 'Relaxed', icon: '🌴', description: 'Take it easy' },
-  { id: 'moderate' as const, label: 'Balanced', icon: '⚖️', description: 'Mix of both' },
-  { id: 'active' as const, label: 'Active', icon: '⚡', description: 'Pack it in' }
+  { id: 'relaxed' as const, label: 'Relaxed', icon: Sparkles },
+  { id: 'moderate' as const, label: 'Balanced', icon: Scale },
+  { id: 'active' as const, label: 'Active', icon: Zap }
 ]
 
 const BUDGETS = [
-  { id: 'budget' as const, label: 'Budget', icon: '💰' },
-  { id: 'mid-range' as const, label: 'Moderate', icon: '💳' },
-  { id: 'luxury' as const, label: 'Luxury', icon: '💎' }
+  { id: 'budget' as const, label: 'Budget', icon: Wallet },
+  { id: 'mid-range' as const, label: 'Moderate', icon: CreditCard },
+  { id: 'luxury' as const, label: 'Luxury', icon: Gem }
 ]
 
 const TRANSPORT_MODES = [
-  { id: 'car' as const, label: 'Car', icon: '🚗' },
-  { id: 'train' as const, label: 'Train', icon: '🚆' },
-  { id: 'bus' as const, label: 'Bus', icon: '🚌' },
-  { id: 'flight' as const, label: 'Flight', icon: '✈️' }
+  { id: 'car' as const, label: 'Car', icon: Car },
+  { id: 'train' as const, label: 'Train', icon: Train },
+  { id: 'bus' as const, label: 'Bus', icon: Bus },
+  { id: 'flight' as const, label: 'Flight', icon: Plane }
+]
+
+const COMPANIONS = [
+  { id: 'solo' as const, label: 'Solo', icon: User, size: 1 },
+  { id: 'couple' as const, label: 'Couple', icon: UserPlus, size: 2 },
+  { id: 'family' as const, label: 'Family', icon: Home, size: 4 },
+  { id: 'friends' as const, label: 'Friends', icon: Users, size: 4 }
 ]
 
 export function PhaseTwoNew({ data, updateData, onNext, onBack }: PhaseProps) {
@@ -56,30 +64,27 @@ export function PhaseTwoNew({ data, updateData, onNext, onBack }: PhaseProps) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Compact Header */}
-      <div className="space-y-1">
-        <h2 className="text-xl font-bold text-gray-900 tracking-tight">Customize your trip</h2>
-        <p className="text-xs text-gray-600">Set your travel preferences</p>
+    <div className="space-y-2.5">
+      {/* Clean Header */}
+      <div>
+        <h2 className="text-sm font-bold text-gray-900">Customize your trip</h2>
+        <p className="text-[9px] text-gray-600 mt-0.5">Set your travel preferences</p>
       </div>
 
-      {/* Compact 2-column layout */}
-      <div className="grid grid-cols-2 gap-3">
-        {/* Travel Pace */}
-        <div className="space-y-2">
-          <h3 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--color-primary)' }} />
-            Pace
-          </h3>
-          <div className="grid grid-cols-3 gap-1.5">
-            {TRAVEL_PACES.map((paceOption) => (
+      {/* Travel Pace */}
+      <div className="space-y-1">
+        <h3 className="text-[10px] font-bold text-gray-900">Travel Pace</h3>
+        <div className="grid grid-cols-3 gap-1.5">
+          {TRAVEL_PACES.map((paceOption) => {
+            const IconComponent = paceOption.icon
+            return (
               <button
                 key={paceOption.id}
                 onClick={() => setPace(paceOption.id)}
-                className={`p-2 rounded-lg border-2 transition-all duration-200 text-center group ${
+                className={`p-1.5 rounded-lg border transition-all text-center ${
                   pace === paceOption.id
-                    ? 'shadow-lg'
-                    : 'border-gray-200 hover:border-gray-300 bg-white hover:shadow-md'
+                    ? 'shadow-md'
+                    : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
                 }`}
                 style={
                   pace === paceOption.id
@@ -90,28 +95,30 @@ export function PhaseTwoNew({ data, updateData, onNext, onBack }: PhaseProps) {
                     : {}
                 }
               >
-                <div className="text-lg mb-0.5 group-hover:scale-110 transition-transform">{paceOption.icon}</div>
-                <div className="text-[9px] font-bold text-gray-900">{paceOption.label}</div>
+                <div className="w-8 h-8 mx-auto mb-1 rounded-full bg-gray-100 flex items-center justify-center">
+                  <IconComponent className="w-4.5 h-4.5 text-gray-700" />
+                </div>
+                <div className="text-[8px] font-semibold text-gray-900">{paceOption.label}</div>
               </button>
-            ))}
-          </div>
+            )
+          })}
         </div>
+      </div>
 
-        {/* Budget */}
-        <div className="space-y-2">
-          <h3 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
-            <DollarSign className="w-3.5 h-3.5 text-amber-600" />
-            Budget
-          </h3>
-          <div className="grid grid-cols-3 gap-1.5">
-            {BUDGETS.map((b) => (
+      {/* Budget */}
+      <div className="space-y-1">
+        <h3 className="text-[10px] font-bold text-gray-900">Budget</h3>
+        <div className="grid grid-cols-3 gap-1.5">
+          {BUDGETS.map((b) => {
+            const IconComponent = b.icon
+            return (
               <button
                 key={b.id}
                 onClick={() => setBudget(b.id)}
-                className={`p-2 rounded-lg border-2 transition-all duration-200 text-center group ${
+                className={`p-1.5 rounded-lg border transition-all text-center ${
                   budget === b.id
-                    ? 'shadow-lg'
-                    : 'border-gray-200 hover:border-gray-300 bg-white hover:shadow-md'
+                    ? 'shadow-md'
+                    : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
                 }`}
                 style={
                   budget === b.id
@@ -122,143 +129,95 @@ export function PhaseTwoNew({ data, updateData, onNext, onBack }: PhaseProps) {
                     : {}
                 }
               >
-                <div className="text-lg mb-0.5">{b.icon}</div>
-                <div className="text-[9px] font-bold text-gray-900">{b.label}</div>
+                <div className="w-8 h-8 mx-auto mb-1 rounded-full bg-gray-100 flex items-center justify-center">
+                  <IconComponent className="w-4.5 h-4.5 text-gray-700" />
+                </div>
+                <div className="text-[8px] font-semibold text-gray-900">{b.label}</div>
               </button>
-            ))}
-          </div>
+            )
+          })}
         </div>
       </div>
 
       {/* Transport */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
-          <Car className="w-3.5 h-3.5 text-blue-600" />
-          Transport
-        </h3>
+      <div className="space-y-1">
+        <h3 className="text-[10px] font-bold text-gray-900">Transport</h3>
         <div className="grid grid-cols-4 gap-1.5">
-          {TRANSPORT_MODES.map((mode) => (
-            <button
-              key={mode.id}
-              onClick={() => setTransportMode(mode.id)}
-              className={`p-2 rounded-lg border-2 transition-all duration-200 text-center group ${
-                transportMode === mode.id
-                  ? 'shadow-lg'
-                  : 'border-gray-200 hover:border-gray-300 bg-white hover:shadow-md'
-              }`}
-              style={
-                transportMode === mode.id
-                  ? {
-                      borderColor: 'var(--color-primary)',
-                      background: 'linear-gradient(135deg, var(--color-rose-50), var(--color-pink-50))'
-                    }
-                  : {}
-              }
-            >
-              <div className="text-lg mb-0.5">{mode.icon}</div>
-              <div className="text-[9px] font-bold text-gray-900">{mode.label}</div>
-            </button>
-          ))}
+          {TRANSPORT_MODES.map((mode) => {
+            const IconComponent = mode.icon
+            return (
+              <button
+                key={mode.id}
+                onClick={() => setTransportMode(mode.id)}
+                className={`p-1.5 rounded-lg border transition-all text-center ${
+                  transportMode === mode.id
+                    ? 'shadow-md'
+                    : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
+                }`}
+                style={
+                  transportMode === mode.id
+                    ? {
+                        borderColor: 'var(--color-primary)',
+                        background: 'linear-gradient(135deg, var(--color-rose-50), var(--color-pink-50))'
+                      }
+                    : {}
+                }
+              >
+                <div className="w-8 h-8 mx-auto mb-1 rounded-full bg-gray-100 flex items-center justify-center">
+                  <IconComponent className="w-4.5 h-4.5 text-gray-700" />
+                </div>
+                <div className="text-[8px] font-semibold text-gray-900">{mode.label}</div>
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      {/* Companions */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
-          <Users className="w-3.5 h-3.5 text-rose-600" />
-          Travelers
-        </h3>
+      {/* Travelers */}
+      <div className="space-y-1">
+        <h3 className="text-[10px] font-bold text-gray-900">Travelers</h3>
         <div className="grid grid-cols-4 gap-1.5">
-          <button
-            onClick={() => { setCompanions('solo'); setGroupSize(1) }}
-            className={`p-2 rounded-lg border-2 transition-all duration-200 text-center group ${
-              companions === 'solo'
-                ? 'shadow-lg'
-                : 'border-gray-200 hover:border-gray-300 bg-white hover:shadow-md'
-            }`}
-            style={
-              companions === 'solo'
-                ? {
-                    borderColor: 'var(--color-secondary)',
-                    background: 'linear-gradient(135deg, var(--color-rose-50), var(--color-pink-50))'
-                  }
-                : {}
-            }
-          >
-            <div className="text-lg mb-0.5">🧍</div>
-            <div className="text-[9px] font-bold text-gray-900">Solo</div>
-          </button>
-          <button
-            onClick={() => { setCompanions('couple'); setGroupSize(2) }}
-            className={`p-2 rounded-lg border-2 transition-all duration-200 text-center group ${
-              companions === 'couple'
-                ? 'shadow-lg'
-                : 'border-gray-200 hover:border-gray-300 bg-white hover:shadow-md'
-            }`}
-            style={
-              companions === 'couple'
-                ? {
-                    borderColor: 'var(--color-secondary)',
-                    background: 'linear-gradient(135deg, var(--color-rose-50), var(--color-pink-50))'
-                  }
-                : {}
-            }
-          >
-            <div className="text-lg mb-0.5">👫</div>
-            <div className="text-[9px] font-bold text-gray-900">Couple</div>
-          </button>
-          <button
-            onClick={() => { setCompanions('family'); setGroupSize(4) }}
-            className={`p-2 rounded-lg border-2 transition-all duration-200 text-center group ${
-              companions === 'family'
-                ? 'shadow-lg'
-                : 'border-gray-200 hover:border-gray-300 bg-white hover:shadow-md'
-            }`}
-            style={
-              companions === 'family'
-                ? {
-                    borderColor: 'var(--color-secondary)',
-                    background: 'linear-gradient(135deg, var(--color-rose-50), var(--color-pink-50))'
-                  }
-                : {}
-            }
-          >
-            <div className="text-lg mb-0.5">👨‍👩‍👧‍👦</div>
-            <div className="text-[9px] font-bold text-gray-900">Family</div>
-          </button>
-          <button
-            onClick={() => { setCompanions('friends'); setGroupSize(4) }}
-            className={`p-2 rounded-lg border-2 transition-all duration-200 text-center group ${
-              companions === 'friends'
-                ? 'shadow-lg'
-                : 'border-gray-200 hover:border-gray-300 bg-white hover:shadow-md'
-            }`}
-            style={
-              companions === 'friends'
-                ? {
-                    borderColor: 'var(--color-secondary)',
-                    background: 'linear-gradient(135deg, var(--color-rose-50), var(--color-pink-50))'
-                  }
-                : {}
-            }
-          >
-            <div className="text-lg mb-0.5">👥</div>
-            <div className="text-[9px] font-bold text-gray-900">Friends</div>
-          </button>
+          {COMPANIONS.map((companion) => {
+            const IconComponent = companion.icon
+            return (
+              <button
+                key={companion.id}
+                onClick={() => { setCompanions(companion.id); setGroupSize(companion.size) }}
+                className={`p-1.5 rounded-lg border transition-all text-center ${
+                  companions === companion.id
+                    ? 'shadow-md'
+                    : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
+                }`}
+                style={
+                  companions === companion.id
+                    ? {
+                        borderColor: 'var(--color-secondary)',
+                        background: 'linear-gradient(135deg, var(--color-rose-50), var(--color-pink-50))'
+                      }
+                    : {}
+                }
+              >
+                <div className="w-8 h-8 mx-auto mb-1 rounded-full bg-gray-100 flex items-center justify-center">
+                  <IconComponent className="w-4.5 h-4.5 text-gray-700" />
+                </div>
+                <div className="text-[8px] font-semibold text-gray-900">{companion.label}</div>
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      {/* Navigation - Compact */}
-      <div className="flex justify-between pt-3 border-t border-white/10">
+      {/* Navigation */}
+      <div className="flex justify-between pt-2 border-t border-gray-200">
         <Button
           onClick={onBack}
-          className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 text-xs rounded-lg font-bold border border-gray-300 transition-all duration-200"
+          className="px-4 py-1 bg-gray-100 hover:bg-gray-200 text-gray-900 text-[9px] rounded-lg font-bold border border-gray-300 transition-all"
         >
           ← Back
         </Button>
         <Button
           onClick={handleNext}
-          className="px-6 py-2 text-white text-xs rounded-lg hover:shadow-xl font-bold transition-all duration-300 hover:scale-105"
+          className="px-4 py-1 text-white text-[9px] rounded-lg hover:shadow-lg font-bold transition-all"
           style={{ background: 'linear-gradient(to right, var(--color-primary), var(--color-secondary))' }}
         >
           Continue →

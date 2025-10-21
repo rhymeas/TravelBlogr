@@ -31,96 +31,125 @@ export function PhaseThreeNew({ data, onNext, onBack }: PhaseProps) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Compact Header */}
-      <div className="space-y-1">
-        <h2 className="text-xl font-bold text-gray-900 tracking-tight">Ready to generate?</h2>
-        <p className="text-xs text-gray-600">Review and create your itinerary</p>
+    <div className="space-y-3">
+      {/* Header */}
+      <div>
+        <h2 className="text-base font-bold text-gray-900">Review your trip</h2>
+        <p className="text-xs text-gray-600 mt-1">Confirm details before generating</p>
       </div>
 
-      {/* Compact Summary Grid - 3 columns */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* Summary List - Bigger boxes and fonts */}
+      <div className="space-y-3">
         {/* Route */}
-        <div className="col-span-2 p-3 rounded-xl border hover:shadow-lg transition-all duration-200" style={{ background: 'linear-gradient(135deg, var(--color-rose-50), var(--color-pink-50))', borderColor: 'var(--color-rose-200)' }}>
-          <div className="flex items-center gap-1.5 mb-1">
-            <MapPin className="w-3.5 h-3.5" style={{ color: 'var(--color-primary)' }} />
-            <span className="text-[10px] font-bold text-gray-900">Route</span>
-          </div>
-          <div className="text-[10px] text-gray-800 font-semibold leading-tight">
-            {data.destinations[0]?.name || 'Not set'} → {data.destinations[data.destinations.length - 1]?.name || 'Not set'}
-            {data.destinations.length > 2 && (
-              <span className="inline-block ml-1 px-1.5 py-0.5 bg-white/60 rounded text-[9px]">
-                +{data.destinations.length - 2}
-              </span>
-            )}
+        <div className="p-4 rounded-xl border border-gray-200 bg-white hover:shadow-sm transition-all">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+              <MapPin className="w-4.5 h-4.5 text-gray-700" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Route</div>
+              <div className="text-sm text-gray-900 font-semibold">
+                {data.destinations[0]?.name || 'Not set'} → {data.destinations[data.destinations.length - 1]?.name || 'Not set'}
+                {data.destinations.length > 2 && (
+                  <span className="ml-1.5 text-xs text-gray-600">
+                    (+{data.destinations.length - 2} stops)
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Dates */}
-        <div className="p-3 rounded-xl border hover:shadow-lg transition-all duration-200" style={{ background: 'linear-gradient(135deg, var(--color-pink-50), var(--color-rose-100))', borderColor: 'var(--color-pink-200)' }}>
-          <div className="flex items-center gap-1.5 mb-1">
-            <Calendar className="w-3.5 h-3.5" style={{ color: 'var(--color-secondary)' }} />
-            <span className="text-[10px] font-bold text-gray-900">Dates</span>
-          </div>
-          <div className="text-[10px] text-gray-800 font-semibold">
-            <span className="inline-block px-1.5 py-0.5 bg-white/60 rounded">
-              {getDuration()}d
-            </span>
-          </div>
-        </div>
-
-        {/* Pace */}
-        <div className="p-3 rounded-xl border hover:shadow-lg transition-all duration-200" style={{ background: 'linear-gradient(135deg, #d1fae5, #a7f3d0)', borderColor: '#86efac' }}>
-          <div className="flex items-center gap-1.5 mb-1">
-            <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--color-success)' }} />
-            <span className="text-[10px] font-bold text-gray-900">Pace</span>
-          </div>
-          <div className="text-[10px] text-gray-800 font-semibold capitalize">
-            {data.pace || 'Moderate'}
+        <div className="p-4 rounded-xl border border-gray-200 bg-white hover:shadow-sm transition-all">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+              <Calendar className="w-4.5 h-4.5 text-gray-700" />
+            </div>
+            <div className="flex-1">
+              <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Dates</div>
+              <div className="text-sm text-gray-900 font-semibold">
+                {formatDateRange()} <span className="text-gray-600">({getDuration()} days)</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Budget */}
-        <div className="p-3 rounded-xl border hover:shadow-lg transition-all duration-200" style={{ background: 'linear-gradient(135deg, #fef3c7, #fed7aa)', borderColor: '#fcd34d' }}>
-          <div className="flex items-center gap-1.5 mb-1">
-            <DollarSign className="w-3.5 h-3.5" style={{ color: 'var(--color-accent)' }} />
-            <span className="text-[10px] font-bold text-gray-900">Budget</span>
+        {/* Travel Details Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Pace */}
+          <div className="p-4 rounded-xl border border-gray-200 bg-white hover:shadow-sm transition-all">
+            <div className="flex items-start gap-2.5">
+              <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-4 h-4 text-gray-700" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Pace</div>
+                <div className="text-xs text-gray-900 font-semibold capitalize">{data.pace || 'Moderate'}</div>
+              </div>
+            </div>
           </div>
-          <div className="text-[10px] text-gray-800 font-semibold capitalize">
-            {data.budget || 'Moderate'}
-          </div>
-        </div>
 
-        {/* Transport */}
-        <div className="p-3 rounded-xl border hover:shadow-lg transition-all duration-200" style={{ background: 'linear-gradient(135deg, var(--color-rose-50), var(--color-pink-50))', borderColor: 'var(--color-rose-200)' }}>
-          <div className="flex items-center gap-1.5 mb-1">
-            <Car className="w-3.5 h-3.5" style={{ color: 'var(--color-primary)' }} />
-            <span className="text-[10px] font-bold text-gray-900">Transport</span>
+          {/* Budget */}
+          <div className="p-4 rounded-xl border border-gray-200 bg-white hover:shadow-sm transition-all">
+            <div className="flex items-start gap-2.5">
+              <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <DollarSign className="w-4 h-4 text-gray-700" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Budget</div>
+                <div className="text-xs text-gray-900 font-semibold capitalize">{data.budget || 'Moderate'}</div>
+              </div>
+            </div>
           </div>
-          <div className="text-[10px] text-gray-800 font-semibold capitalize">
-            {data.transportMode || 'Car'}
+
+          {/* Transport */}
+          <div className="p-4 rounded-xl border border-gray-200 bg-white hover:shadow-sm transition-all">
+            <div className="flex items-start gap-2.5">
+              <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <Car className="w-4 h-4 text-gray-700" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Transport</div>
+                <div className="text-xs text-gray-900 font-semibold capitalize">{data.transportMode || 'Car'}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Travelers */}
+          <div className="p-4 rounded-xl border border-gray-200 bg-white hover:shadow-sm transition-all">
+            <div className="flex items-start gap-2.5">
+              <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <Users className="w-4 h-4 text-gray-700" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Travelers</div>
+                <div className="text-xs text-gray-900 font-semibold capitalize">
+                  {data.companions || 'Solo'} {data.groupSize && data.groupSize > 1 ? `(${data.groupSize})` : ''}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Generate Button - Bold CTA */}
+      {/* Generate Button */}
       <div className="pt-3">
         <button
           onClick={onNext}
-          className="w-full py-3.5 text-white rounded-xl hover:shadow-2xl transition-all duration-300 font-bold text-sm flex items-center justify-center gap-2 group hover:scale-[1.03] active:scale-[0.97] relative overflow-hidden"
+          className="w-full py-3 text-white rounded-xl hover:shadow-xl transition-all duration-300 font-bold text-sm flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
           style={{ background: 'linear-gradient(to right, var(--color-primary), var(--color-secondary))' }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-          <Sparkles className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
-          <span className="relative">Generate My Trip Plan</span>
+          <Sparkles className="w-4 h-4" />
+          <span>Generate My Trip Plan</span>
         </button>
       </div>
 
-      {/* Navigation - Minimal */}
-      <div className="flex justify-start pt-2 border-t border-white/10">
+      {/* Navigation */}
+      <div className="flex justify-start pt-1.5 border-t border-gray-200">
         <Button
           onClick={onBack}
-          className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 text-xs rounded-lg font-bold border border-gray-300 transition-all duration-200"
+          className="px-4 py-1 bg-gray-100 hover:bg-gray-200 text-gray-900 text-[9px] rounded-lg font-bold border border-gray-300 transition-all"
         >
           ← Back
         </Button>

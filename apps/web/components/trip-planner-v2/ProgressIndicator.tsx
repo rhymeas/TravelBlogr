@@ -21,24 +21,14 @@ interface ProgressIndicatorProps {
 
 export function ProgressIndicator({ phases, currentPhase, onPhaseClick }: ProgressIndicatorProps) {
   return (
-    <div className="flex items-center justify-center gap-12">
+    <div className="flex items-center justify-center gap-8">
       {phases.map((phase, index) => {
         const isCompleted = phase.id < currentPhase
         const isCurrent = phase.id === currentPhase
         const isClickable = phase.id <= currentPhase
 
         return (
-          <div key={phase.id} className="relative flex items-center">
-            {/* Connecting Line */}
-            {index > 0 && (
-              <div className="absolute right-full w-12 h-px -mr-12 bg-gray-700">
-                <div
-                  className="h-full transition-all duration-500 bg-blue-500"
-                  style={{ width: isCompleted ? '100%' : '0%' }}
-                />
-              </div>
-            )}
-
+          <div key={phase.id} className="flex items-center">
             {/* Step */}
             <button
               onClick={() => isClickable && onPhaseClick(phase.id)}
@@ -51,19 +41,30 @@ export function ProgressIndicator({ phases, currentPhase, onPhaseClick }: Progre
               <div
                 className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${
                   isCompleted
-                    ? 'bg-blue-500 border-blue-500'
+                    ? 'shadow-sm'
                     : isCurrent
-                    ? 'bg-gray-800 border-blue-500'
-                    : 'bg-gray-800 border-gray-600'
+                    ? 'bg-white shadow-md'
+                    : 'bg-white border-gray-300'
                 } ${isClickable ? 'group-hover:scale-110' : ''}`}
+                style={
+                  isCompleted
+                    ? { 
+                        background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
+                        border: 'none'
+                      }
+                    : isCurrent
+                    ? { border: '2px solid var(--color-primary)' }
+                    : {}
+                }
               >
                 {isCompleted ? (
-                  <Check className="w-3 h-3 text-white" />
+                  <Check className="w-3 h-3 text-white" strokeWidth={3} />
                 ) : (
                   <span
                     className={`text-[10px] font-semibold ${
-                      isCurrent ? 'text-blue-400' : 'text-gray-500'
+                      isCurrent ? '' : 'text-gray-400'
                     }`}
+                    style={isCurrent ? { color: 'var(--color-primary)' } : {}}
                   >
                     {phase.id}
                   </span>
@@ -73,8 +74,9 @@ export function ProgressIndicator({ phases, currentPhase, onPhaseClick }: Progre
               {/* Label */}
               <div
                 className={`text-xs font-medium transition-colors ${
-                  isCurrent ? 'text-white' : 'text-gray-400'
+                  isCurrent ? 'text-gray-900' : 'text-gray-500'
                 }`}
+                style={isCurrent ? { color: 'var(--color-primary)' } : {}}
               >
                 {phase.name}
               </div>
