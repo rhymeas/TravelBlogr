@@ -3,41 +3,86 @@
 /**
  * Results View Component
  * Displays the generated trip plan using the modal design from experiment file
+ * Transforms V1 API data into the results layout format
  */
 
-import { useState } from 'react'
-import { Calendar, Car, MapPin, Clock, Hotel, Camera, Coffee, Edit } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Calendar, Car, MapPin, Clock, Hotel, Camera, Coffee, Edit, Utensils, Navigation } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import type { TripPlanData } from './types'
 
 interface ResultsViewProps {
-  plan: any
+  plan: any // V1 API response
   tripData: TripPlanData
   onEdit: () => void
 }
 
+// Gradient colors for each day
+const DAY_GRADIENTS = [
+  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+  'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+  'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+  'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+]
+
+// Emojis for different location types
+const LOCATION_EMOJIS = ['🗼', '🍷', '🏛️', '🎨', '🏟️', '🌊', '🏔️', '🌆', '🎭', '🍕']
+
 export function ResultsView({ plan, tripData, onEdit }: ResultsViewProps) {
   const [selectedDay, setSelectedDay] = useState(1)
 
-  // Mock itinerary data - will be replaced with actual API data
-  const itinerary = plan?.days || [
-    {
-      day: 1,
-      date: 'Oct 25',
-      location: 'Paris → Lyon',
-      emoji: '🗼',
-      distance: '465 km',
-      duration: '4h 30min',
-      image: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      stops: [
-        { time: '09:00', title: 'Depart Paris', type: 'departure', icon: MapPin },
-        { time: '11:30', title: 'Beaune Wine Tasting', type: 'stop', duration: '1h 30min', icon: Coffee },
-        { time: '14:00', title: 'Arrive Lyon', type: 'arrival', icon: MapPin }
-      ],
-      accommodation: { name: 'Hôtel Le Royal Lyon', rating: 4.8, price: '€120' },
-      highlights: ['Explore Vieux Lyon', 'Dinner at Paul Bocuse', 'Evening riverside walk']
-    }
-  ]
+  // Transform V1 API data to results layout format
+  const itinerary = useMemo(() => {
+    if (!plan?.days) return []
+
+    return plan.days.map((day: any, index: number) => {
+      // Determine if this is a travel day
+      const isTravelDay = day.type === 'travel' || day.travelInfo
+
+      // Build stops from items
+      const stops = day.items?.map((item: any) => ({
+        time: item.time || '09:00',
+        title: item.title,
+        type: item.type === 'travel' ? 'travel' : item.type === 'meal' ? 'meal' : 'activity',
+        icon: item.type === 'travel' ? Navigation : item.type === 'meal' ? Utensils : Camera,
+        duration: item.duration ? `${item.duration}h` : undefined
+      })) || []
+
+      // Extract accommodation from items or use default
+      const accommodationItem = day.items?.find((item: any) =>
+        item.type === 'accommodation' || item.title?.toLowerCase().includes('hotel')
+      )
+
+      const accommodation = accommodationItem ? {
+        name: accommodationItem.title || 'Accommodation',
+        rating: 4.5,
+        price: accommodationItem.costEstimate ? `€${accommodationItem.costEstimate}` : '€120'
+      } : undefined
+
+      // Extract highlights (activities that aren't meals or travel)
+      const highlights = day.items
+        ?.filter((item: any) => item.type === 'activity')
+        ?.slice(0, 3)
+        ?.map((item: any) => item.title) || []
+
+      return {
+        day: day.day,
+        date: new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        location: day.location,
+        emoji: LOCATION_EMOJIS[index % LOCATION_EMOJIS.length],
+        distance: day.travelInfo?.distance ? `${Math.round(day.travelInfo.distance)} km` : undefined,
+        duration: day.travelInfo?.duration ? `${Math.round(day.travelInfo.duration)}h` : undefined,
+        image: DAY_GRADIENTS[index % DAY_GRADIENTS.length],
+        stops,
+        accommodation,
+        highlights,
+        didYouKnow: day.didYouKnow
+      }
+    })
+  }, [plan])
 
   return (
     <div className="min-h-screen bg-white">
