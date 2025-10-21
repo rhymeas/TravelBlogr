@@ -35,7 +35,7 @@ export function TripSummary({ data, currentPhase }: TripSummaryProps) {
       {currentPhase >= 1 && data.dateRange && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Calendar className="w-3.5 h-3.5 text-[#2C5F6F]" />
+            <Calendar className="w-3.5 h-3.5 text-gray-900" />
             Dates
           </div>
           <div className="pl-6 text-sm text-gray-600">
@@ -62,7 +62,7 @@ export function TripSummary({ data, currentPhase }: TripSummaryProps) {
       {currentPhase >= 2 && data.companions && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Users className="w-3.5 h-3.5 text-[#2C5F6F]" />
+            <Users className="w-3.5 h-3.5 text-gray-900" />
             Travelers
           </div>
           <div className="pl-6 text-sm text-gray-600 capitalize">
@@ -81,7 +81,7 @@ export function TripSummary({ data, currentPhase }: TripSummaryProps) {
       {currentPhase >= 3 && data.transportMode && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Car className="w-3.5 h-3.5 text-[#2C5F6F]" />
+            <Car className="w-3.5 h-3.5 text-gray-900" />
             Transport
           </div>
           <div className="pl-6 text-sm text-gray-600 capitalize">
@@ -94,7 +94,7 @@ export function TripSummary({ data, currentPhase }: TripSummaryProps) {
       {currentPhase >= 4 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Gauge className="w-3.5 h-3.5 text-[#2C5F6F]" />
+            <Gauge className="w-3.5 h-3.5 text-gray-900" />
             Pace
           </div>
           <div className="pl-6 text-sm text-gray-600 capitalize">
@@ -130,7 +130,7 @@ export function TripSummary({ data, currentPhase }: TripSummaryProps) {
       {currentPhase >= 5 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <DollarSign className="w-3.5 h-3.5 text-[#2C5F6F]" />
+            <DollarSign className="w-3.5 h-3.5 text-gray-900" />
             Budget
           </div>
           <div className="pl-6 text-sm text-gray-600 capitalize">
@@ -143,7 +143,7 @@ export function TripSummary({ data, currentPhase }: TripSummaryProps) {
       {currentPhase >= 5 && data.accommodationTypes.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Hotel className="w-3.5 h-3.5 text-[#2C5F6F]" />
+            <Hotel className="w-3.5 h-3.5 text-gray-900" />
             Accommodations
           </div>
           <div className="pl-6 text-sm text-gray-600">

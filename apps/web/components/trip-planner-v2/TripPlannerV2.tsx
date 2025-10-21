@@ -9,11 +9,8 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { PhaseOne } from './phases/PhaseOne'
-import { PhaseTwo } from './phases/PhaseTwo'
-import { PhaseThree } from './phases/PhaseThree'
-import { PhaseFour } from './phases/PhaseFour'
-import { PhaseFive } from './phases/PhaseFive'
-import { PhaseSix } from './phases/PhaseSix'
+import { PhaseTwoNew } from './phases/PhaseTwoNew'
+import { PhaseThreeNew } from './phases/PhaseThreeNew'
 import { ResultsView } from './ResultsView'
 import { ProgressIndicator } from './ProgressIndicator'
 import { TripSummary } from './TripSummary'
@@ -22,12 +19,9 @@ import maplibregl from 'maplibre-gl'
 import type { TripPlanData } from './types'
 
 const PHASES = [
-  { id: 1, name: 'Journey Foundation', description: 'Where and when' },
-  { id: 2, name: 'Travel Companions', description: 'Who\'s coming' },
-  { id: 3, name: 'Transportation', description: 'How you\'ll travel' },
-  { id: 4, name: 'Travel Style', description: 'Your pace and preferences' },
-  { id: 5, name: 'Practical Details', description: 'Budget and accommodations' },
-  { id: 6, name: 'Route Planning', description: 'Waypoints and stops' }
+  { id: 1, name: 'Journey', description: 'Where & When' },
+  { id: 2, name: 'Preferences', description: 'Style & Budget' },
+  { id: 3, name: 'Generate', description: 'Create Plan' }
 ]
 
 export function TripPlannerV2() {
@@ -136,7 +130,7 @@ export function TripPlannerV2() {
   }
 
   const nextPhase = () => {
-    if (currentPhase < 6) {
+    if (currentPhase < 3) {
       setCurrentPhase(prev => prev + 1)
     } else {
       handleGeneratePlan()
@@ -204,7 +198,7 @@ export function TripPlannerV2() {
         )
       case 2:
         return (
-          <PhaseTwo
+          <PhaseTwoNew
             data={tripData}
             updateData={updateTripData}
             onNext={nextPhase}
@@ -213,34 +207,7 @@ export function TripPlannerV2() {
         )
       case 3:
         return (
-          <PhaseThree
-            data={tripData}
-            updateData={updateTripData}
-            onNext={nextPhase}
-            onBack={previousPhase}
-          />
-        )
-      case 4:
-        return (
-          <PhaseFour
-            data={tripData}
-            updateData={updateTripData}
-            onNext={nextPhase}
-            onBack={previousPhase}
-          />
-        )
-      case 5:
-        return (
-          <PhaseFive
-            data={tripData}
-            updateData={updateTripData}
-            onNext={nextPhase}
-            onBack={previousPhase}
-          />
-        )
-      case 6:
-        return (
-          <PhaseSix
+          <PhaseThreeNew
             data={tripData}
             updateData={updateTripData}
             onNext={nextPhase}

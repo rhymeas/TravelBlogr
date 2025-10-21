@@ -152,46 +152,48 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
         </div>
       </div>
 
-      {/* Dates - More compact */}
+      {/* Dates + CTA inline */}
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
-          <Calendar className="w-3.5 h-3.5 text-[#2C5F6F]" />
+          <Calendar className="w-3.5 h-3.5 text-gray-900" />
           When are you traveling?
         </h3>
 
-        <DateRangePicker
-          startDate={dateRange.startDate ? new Date(dateRange.startDate) : undefined}
-          endDate={dateRange.endDate ? new Date(dateRange.endDate) : undefined}
-          onSelect={(range) => {
-            if (range) {
-              setDateRange({
-                startDate: range.startDate.toISOString().split('T')[0],
-                endDate: range.endDate.toISOString().split('T')[0],
-                flexible: dateRange.flexible
-              })
-            }
-          }}
-        />
+        <div className="flex gap-3 items-start">
+          {/* Date picker - not full width */}
+          <div className="flex-1">
+            <DateRangePicker
+              startDate={dateRange.startDate ? new Date(dateRange.startDate) : undefined}
+              endDate={dateRange.endDate ? new Date(dateRange.endDate) : undefined}
+              onSelect={(range) => {
+                if (range) {
+                  setDateRange({
+                    startDate: range.startDate.toISOString().split('T')[0],
+                    endDate: range.endDate.toISOString().split('T')[0],
+                    flexible: dateRange.flexible
+                  })
+                }
+              }}
+            />
+            <label className="flex items-center gap-1.5 text-[10px] text-gray-700 cursor-pointer mt-2">
+              <input
+                type="checkbox"
+                checked={dateRange.flexible}
+                onChange={(e) => setDateRange({ ...dateRange, flexible: e.target.checked })}
+                className="w-3 h-3 text-[#2C5F6F] border-gray-300 rounded focus:ring-[#2C5F6F]"
+              />
+              Flexible (±3 days)
+            </label>
+          </div>
 
-        <label className="flex items-center gap-1.5 text-[10px] text-gray-700 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={dateRange.flexible}
-            onChange={(e) => setDateRange({ ...dateRange, flexible: e.target.checked })}
-            className="w-3 h-3 text-[#2C5F6F] border-gray-300 rounded focus:ring-[#2C5F6F]"
-          />
-          My dates are flexible (±3 days)
-        </label>
-      </div>
-
-      {/* Navigation - More compact */}
-      <div className="flex justify-end pt-3 border-t border-gray-200">
-        <Button
-          onClick={handleNext}
-          className="px-5 py-1.5 bg-[#2C5F6F] text-white text-xs rounded-lg hover:bg-[#1e4a56] font-semibold"
-        >
-          Continue →
-        </Button>
+          {/* CTA inline */}
+          <Button
+            onClick={handleNext}
+            className="px-6 py-3 bg-[#2C5F6F] text-white text-sm rounded-lg hover:bg-[#1e4a56] font-semibold whitespace-nowrap self-start mt-0"
+          >
+            Continue →
+          </Button>
+        </div>
       </div>
     </div>
   )
