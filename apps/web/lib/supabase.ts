@@ -33,6 +33,9 @@ export const createBrowserSupabase = () => {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      storageKey: 'travelblogr-auth-token',
+      flowType: 'pkce', // Use PKCE flow for better security
     }
   })
 
@@ -40,9 +43,16 @@ export const createBrowserSupabase = () => {
   // Attach once per browser session
   if (typeof window !== 'undefined') {
     // Use a flag on window to avoid duplicate listeners during HMR
-    const w = window as unknown as { __TB_authSyncAttached?: boolean }
+    const w = window as unknown as {
+      __TB_authSyncAttached?: boolean
+      __TB_sessionRefreshInterval?: NodeJS.Timeout
+    }
+
     if (!w.__TB_authSyncAttached) {
+      // Listen to auth state changes
       client.auth.onAuthStateChange(async (event, session) => {
+        console.log('🔐 Auth state changed:', event, session ? '✅ Session active' : '❌ No session')
+
         try {
           await fetch('/api/auth/session', {
             method: 'POST',
@@ -54,6 +64,22 @@ export const createBrowserSupabase = () => {
           console.error('Failed to sync auth session to server:', e)
         }
       })
+
+      // Refresh session every 5 minutes to keep it alive
+      w.__TB_sessionRefreshInterval = setInterval(async () => {
+        const { data: { session }, error } = await client.auth.getSession()
+        if (session && !error) {
+          console.log('🔄 Session refreshed automatically')
+        }
+      }, 5 * 60 * 1000) // 5 minutes
+
+      // Initial session check on load
+      client.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          console.log('✅ Session restored from storage')
+        }
+      })
+
       w.__TB_authSyncAttached = true
     }
   }

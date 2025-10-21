@@ -2,43 +2,74 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabase } from '@/lib/supabase'
-import { PageLoading } from '@/components/ui/LoadingSpinner'
+import { AuthLoadingModal } from '@/components/auth/AuthLoadingModal'
 
 export default function AuthCallbackPage() {
   const router = useRouter()
   const supabase = useSupabase()
   const [error, setError] = useState<string | null>(null)
+  const [isProcessing, setIsProcessing] = useState(true)
+  const [showDelayMessage, setShowDelayMessage] = useState(false)
+  const [success, setSuccess] = useState(false)
 
   useEffect(() => {
+    let isMounted = true
+
+    // Show delay message after 3 seconds
+    const delayTimer = setTimeout(() => {
+      if (isMounted) {
+        setShowDelayMessage(true)
+      }
+    }, 3000)
+
     const handleCallback = async () => {
       try {
-        // CRITICAL: Check if we're on the wrong domain (production site_url redirect)
-        const currentOrigin = window.location.origin
-        const isLocalhost = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')
-        const isProduction = currentOrigin.includes('travelblogr.com')
+        // Check if we're in popup mode
+        const isPopupMode = localStorage.getItem('oauth_popup_mode') === 'true'
+
+        const searchParams = new URLSearchParams(window.location.search)
+        const code = searchParams.get('code')
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const accessToken = hashParams.get('access_token')
+
+        // CRITICAL: Only check localStorage if there's NO OAuth code/token
+        // If we have a code or token, we MUST process it first
+        if (!code && !accessToken) {
+          const storageKey = 'travelblogr-auth-token'
+          const storedSession = localStorage.getItem(storageKey)
+
+          if (storedSession) {
+            try {
+              const parsed = JSON.parse(storedSession)
+              if (parsed?.access_token && parsed?.expires_at) {
+                const expiresAt = parsed.expires_at * 1000
+                if (expiresAt > Date.now()) {
+                  console.log('✅ Valid session found in storage, redirecting to home')
+                  window.location.href = '/'
+                  return
+                }
+              }
+            } catch (e) {
+              console.warn('Failed to parse stored session:', e)
+            }
+          }
+        }
 
         console.log('🔐 OAuth Callback:', {
-          currentOrigin,
-          isLocalhost,
-          isProduction,
+          hasCode: !!code,
+          hasAccessToken: !!accessToken,
+          isPopupMode,
           fullURL: window.location.href
         })
 
-        // Check for redirect parameter in multiple places:
-        // 1. URL search params (redirect or redirect_to)
-        // 2. localStorage (set before OAuth redirect)
-        // 3. Default to home page
-        const searchParams = new URLSearchParams(window.location.search)
+        // Check for redirect parameter
         const urlRedirect = searchParams.get('redirect') || searchParams.get('redirect_to')
         const storageRedirect = localStorage.getItem('oauth_redirect_to')
         const redirectTo = urlRedirect || storageRedirect || '/'
 
-        console.log('OAuth callback - Search params:', window.location.search)
-        console.log('OAuth callback - URL redirect:', urlRedirect)
-        console.log('OAuth callback - Storage redirect:', storageRedirect)
         console.log('OAuth callback - Final redirect to:', redirectTo)
 
         // Clear the stored redirect
@@ -46,12 +77,8 @@ export default function AuthCallbackPage() {
           localStorage.removeItem('oauth_redirect_to')
         }
 
-        // Check if we have hash params (implicit flow)
-        const hashParams = new URLSearchParams(window.location.hash.substring(1))
-        const accessToken = hashParams.get('access_token')
-
         if (accessToken) {
-          console.log('✅ OAuth callback - Access token found in hash')
+          console.log('✅ OAuth callback - Access token found in hash (implicit flow)')
           // Supabase client automatically processes hash params and sets session
           // Just wait a moment for the session to be established
           await new Promise(resolve => setTimeout(resolve, 1000))
@@ -60,8 +87,103 @@ export default function AuthCallbackPage() {
           return
         }
 
-        // Otherwise check if we already have a session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        if (code) {
+          console.log('✅ OAuth callback - Code found (PKCE flow), waiting for Supabase to process...')
+
+          // CRITICAL: Don't manually call exchangeCodeForSession - it hangs in React Strict Mode
+          // Instead, Supabase's detectSessionInUrl will handle it automatically
+          // We just need to wait for the SIGNED_IN event via onAuthStateChange
+
+          // Wait up to 5 seconds for session to be created
+          const sessionCreated = await new Promise<boolean>((resolve) => {
+            const timeout = setTimeout(() => {
+              console.warn('⚠️ Session creation timeout after 5 seconds')
+              resolve(false)
+            }, 5000)
+
+            // Listen for SIGNED_IN event
+            const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+              console.log('🔐 Auth state change in callback:', event, session ? '✅ Session' : '❌ No session')
+
+              if (event === 'SIGNED_IN' && session) {
+                clearTimeout(timeout)
+                subscription.unsubscribe()
+                resolve(true)
+              }
+            })
+          })
+
+          if (sessionCreated) {
+            console.log('✅ Session created successfully')
+            if (isMounted) {
+              if (isPopupMode && window.opener) {
+                // Send success message to parent window IMMEDIATELY
+                console.log('📤 Sending success message to parent window')
+                window.opener.postMessage({ type: 'OAUTH_SUCCESS' }, window.location.origin)
+                localStorage.removeItem('oauth_popup_mode')
+
+                // Close popup immediately - parent will handle the rest
+                console.log('🔐 Closing popup window immediately')
+                window.close()
+              } else {
+                // Normal redirect flow
+                setIsProcessing(false)
+                setSuccess(true)
+                console.log('✅ Redirecting to:', redirectTo)
+                window.location.href = redirectTo
+              }
+            }
+            return
+          } else {
+            console.warn('⚠️ Session creation timed out')
+            if (isMounted) {
+              const errorMsg = 'Authentication timed out. Please try again.'
+              setError(errorMsg)
+
+              if (isPopupMode && window.opener) {
+                window.opener.postMessage({ type: 'OAUTH_ERROR', error: errorMsg }, window.location.origin)
+                localStorage.removeItem('oauth_popup_mode')
+                setTimeout(() => window.close(), 1000)
+              } else {
+                setTimeout(() => {
+                  if (isMounted) {
+                    setIsProcessing(false)
+                    window.location.href = '/auth/signin?error=timeout'
+                  }
+                }, 2000)
+              }
+            }
+            return
+          }
+        }
+
+        // Check if we have a session (for implicit flow or already-established sessions)
+        console.log('🔍 About to check session...')
+
+        // Add timeout to prevent hanging
+        const sessionPromise = supabase.auth.getSession()
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Session check timeout')), 5000)
+        )
+
+        let session = null
+        let sessionError = null
+
+        try {
+          const result = await Promise.race([sessionPromise, timeoutPromise]) as any
+          session = result.data?.session
+          sessionError = result.error
+        } catch (error) {
+          console.error('❌ Session check failed:', error)
+          sessionError = error as Error
+        }
+
+        console.log('🔍 OAuth callback - Session check:', {
+          hasSession: !!session,
+          hasUser: !!session?.user,
+          userId: session?.user?.id,
+          error: sessionError?.message
+        })
 
         if (sessionError) {
           console.error('❌ OAuth callback error:', sessionError)
@@ -71,34 +193,69 @@ export default function AuthCallbackPage() {
         }
 
         if (session) {
-          console.log('✅ OAuth callback - Session found, redirecting to:', redirectTo)
-          router.push(redirectTo)
+          console.log('✅ OAuth callback - Session found')
+          if (isMounted) {
+            if (isPopupMode && window.opener) {
+              console.log('✅ OAuth callback in popup - sending success message')
+              window.opener.postMessage({ type: 'OAUTH_SUCCESS' }, window.location.origin)
+              localStorage.removeItem('oauth_popup_mode')
+
+              // Close popup immediately - parent will handle the rest
+              console.log('🔐 Closing popup window immediately')
+              window.close()
+            } else {
+              // Regular redirect if not in popup
+              setIsProcessing(false)
+              setSuccess(true)
+              console.log('✅ OAuth callback - Redirecting to:', redirectTo)
+              setTimeout(() => {
+                window.location.href = redirectTo
+              }, 1000)
+            }
+          }
         } else {
           console.log('⚠️ OAuth callback - No session, redirecting to sign in')
-          setTimeout(() => router.push('/auth/signin'), 2000)
+          if (isMounted) {
+            setTimeout(() => {
+              if (isMounted) {
+                setIsProcessing(false)
+                // Use window.location for hard redirect (more reliable than router.push)
+                window.location.href = '/auth/signin'
+              }
+            }, 2000)
+          }
         }
       } catch (error) {
         console.error('❌ OAuth callback error:', error)
-        setError(error instanceof Error ? error.message : 'Unknown error')
-        setTimeout(() => router.push('/auth/signin?error=oauth_failed'), 2000)
+        if (isMounted) {
+          setError(error instanceof Error ? error.message : 'Unknown error')
+          setTimeout(() => {
+            if (isMounted) {
+              setIsProcessing(false)
+              // Use window.location for hard redirect (more reliable than router.push)
+              window.location.href = '/auth/signin?error=oauth_failed'
+            }
+          }, 2000)
+        }
       }
     }
 
     handleCallback()
-  }, [router, supabase])
 
-  if (error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Authentication Error</h1>
-          <p className="text-muted-foreground mb-4">{error}</p>
-          <p className="text-sm text-muted-foreground">Redirecting to sign in...</p>
-        </div>
-      </div>
-    )
-  }
+    return () => {
+      isMounted = false
+      clearTimeout(delayTimer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Empty deps - only run on mount
 
-  return <PageLoading message="Completing sign in..." />
+  return (
+    <AuthLoadingModal
+      message="Completing sign in..."
+      error={error}
+      showDelayMessage={showDelayMessage}
+      success={success}
+    />
+  )
 }
 

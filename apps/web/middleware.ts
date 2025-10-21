@@ -29,6 +29,11 @@ export async function middleware(req: NextRequest) {
           })
         },
       },
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      }
     }
   )
 

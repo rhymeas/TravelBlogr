@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { AlertCircle, CheckCircle2, Info, RefreshCw } from 'lucide-react'
+import { AdminBreadcrumb } from '@/components/admin/AdminNav'
 
 interface FeatureFlag {
   key: string
@@ -24,6 +25,14 @@ interface FeatureFlag {
 
 export default function FeatureFlagsPage() {
   const [flags, setFlags] = useState<FeatureFlag[]>([
+    {
+      key: 'TRIP_PLANNER_V2',
+      name: 'Trip Planner V2',
+      description: 'New progressive multi-step trip planner with improved UX. Client-side only (no restart needed).',
+      enabled: false,
+      requiresRestart: false,
+      category: 'experimental'
+    },
     {
       key: 'NEXT_PUBLIC_ENABLE_SMART_POI',
       name: 'Smart POI System',
@@ -75,10 +84,38 @@ export default function FeatureFlagsPage() {
   }, [])
 
   const loadFlagStates = () => {
-    setFlags(prev => prev.map(flag => ({
-      ...flag,
-      enabled: process.env[flag.key] === 'true'
-    })))
+    setFlags(prev => prev.map(flag => {
+      // Special handling for client-side flags
+      if (flag.key === 'TRIP_PLANNER_V2') {
+        const stored = localStorage.getItem('useTripPlannerV2')
+        return { ...flag, enabled: stored === 'true' }
+      }
+
+      // Server-side flags - read from actual NEXT_PUBLIC_ env vars
+      let enabled = false
+      switch (flag.key) {
+        case 'NEXT_PUBLIC_ENABLE_SMART_POI':
+          enabled = process.env.NEXT_PUBLIC_ENABLE_SMART_POI === 'true'
+          break
+        case 'NEXT_PUBLIC_ENABLE_GROQ_VALIDATION':
+          enabled = process.env.NEXT_PUBLIC_ENABLE_GROQ_VALIDATION === 'true'
+          break
+        case 'NEXT_PUBLIC_ENABLE_PROGRESSIVE_LOADING':
+          enabled = process.env.NEXT_PUBLIC_ENABLE_PROGRESSIVE_LOADING === 'true'
+          break
+        case 'NEXT_PUBLIC_ENABLE_EXTERNAL_APIS':
+          enabled = process.env.NEXT_PUBLIC_ENABLE_EXTERNAL_APIS === 'true'
+          break
+        case 'NEXT_PUBLIC_ENABLE_BATCH_PROCESSING':
+          enabled = process.env.NEXT_PUBLIC_ENABLE_BATCH_PROCESSING === 'true'
+          break
+      }
+
+      return {
+        ...flag,
+        enabled
+      }
+    }))
   }
 
   const handleToggle = async (flagKey: string) => {
@@ -89,10 +126,29 @@ export default function FeatureFlagsPage() {
     setMessage(null)
 
     try {
-      // Update flag state
       const newEnabled = !flag.enabled
 
-      // Call API to update .env.local
+      // Special handling for client-side flags
+      if (flagKey === 'TRIP_PLANNER_V2') {
+        // Update localStorage directly
+        localStorage.setItem('useTripPlannerV2', String(newEnabled))
+        window.dispatchEvent(new Event('tripPlannerVersionChanged'))
+
+        // Update local state
+        setFlags(prev => prev.map(f =>
+          f.key === flagKey ? { ...f, enabled: newEnabled } : f
+        ))
+
+        setMessage({
+          type: 'success',
+          text: `${flag.name} ${newEnabled ? 'enabled' : 'disabled'} successfully! Changes apply immediately.`
+        })
+
+        setLoading(false)
+        return
+      }
+
+      // Server-side flags - call API to update .env.local
       const response = await fetch('/api/admin/feature-flags', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -146,8 +202,9 @@ export default function FeatureFlagsPage() {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Feature Flags</h1>
+      <div className="mb-6">
+        <AdminBreadcrumb currentPage="Feature Flags" />
+        <h1 className="text-3xl font-bold mt-2 mb-2">Feature Flags</h1>
         <p className="text-gray-600">
           Control feature rollout and performance optimizations
         </p>

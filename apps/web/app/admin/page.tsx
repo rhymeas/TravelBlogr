@@ -13,7 +13,8 @@ import {
   Database,
   Zap,
   TestTube2,
-  FileText
+  FileText,
+  Settings
 } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -131,6 +132,13 @@ export default async function AdminPage() {
       <div className="mb-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <QuickAction
+            title="Feature Flags"
+            description="Toggle experimental features and Trip Planner V2"
+            icon={Settings}
+            href="/admin/feature-flags"
+            color="bg-red-600"
+          />
           <QuickAction
             title="AI Monitoring"
             description="Track AI requests, latency, and costs in real-time"
