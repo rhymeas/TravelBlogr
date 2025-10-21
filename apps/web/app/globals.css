@@ -10,6 +10,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile viewport fixes */
+@layer base {
+  /* Prevent horizontal scrolling on mobile */
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+  }
+
+  /* Prevent pull-to-refresh on mobile browsers */
+  body {
+    overscroll-behavior-y: contain;
+  }
+
+  /* Fix mobile viewport height (accounts for address bar) */
+  @supports (-webkit-touch-callout: none) {
+    /* iOS Safari */
+    body {
+      min-height: -webkit-fill-available;
+    }
+  }
+}
+
 /* Custom utilities */
 @layer utilities {
   .scrollbar-hide {

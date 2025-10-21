@@ -475,8 +475,16 @@ export function AuthAwareHeader() {
 
       {/* Mobile Menu - Redesigned */}
       {showMobileMenu && (
-        <div className="lg:hidden border-t border-airbnb-border bg-white shadow-lg">
-          <div className="px-4 py-3 space-y-1 max-h-[calc(100vh-80px)] overflow-y-auto">
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+            onClick={() => setShowMobileMenu(false)}
+          />
+
+          {/* Menu */}
+          <div className="lg:hidden border-t border-airbnb-border bg-white shadow-lg fixed top-[60px] left-0 right-0 z-40">
+            <div className="px-4 py-3 space-y-1 max-h-[calc(100vh-60px-64px)] overflow-y-auto pb-20 scrollbar-thin">
             {/* User Profile Section (if authenticated) */}
             {isAuthenticated && (
               <>
@@ -673,6 +681,7 @@ export function AuthAwareHeader() {
             )}
           </div>
         </div>
+        </>
       )}
 
       {/* Credits Modal */}

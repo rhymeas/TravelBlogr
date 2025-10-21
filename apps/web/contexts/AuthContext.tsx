@@ -275,8 +275,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         `width=${width},height=${height},left=${left},top=${top},toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes`
       )
 
-      // Detect if popup was blocked (null, closed, or undefined)
-      const isPopupBlocked = !popup || popup.closed || typeof popup.closed === 'undefined'
+      // Detect if popup was blocked
+      // Only check if popup is null or if the closed property doesn't exist
+      // Don't check popup.closed immediately as it might not be set yet
+      const isPopupBlocked = !popup || typeof popup.closed === 'undefined'
 
       if (isPopupBlocked) {
         console.warn('⚠️ Popup blocked - falling back to full-page redirect')
