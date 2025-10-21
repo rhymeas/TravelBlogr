@@ -22,6 +22,13 @@ export default function PlanPage() {
   const [showToggle, setShowToggle] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
 
+  // Debug: Log user object
+  useEffect(() => {
+    console.log('🔧 Plan page - User object:', user)
+    console.log('🔧 Plan page - User email:', user?.email)
+    console.log('🔧 Plan page - isLoading:', isLoading)
+  }, [user, isLoading])
+
   // Check if user is admin
   useEffect(() => {
     if (!user) {
@@ -32,19 +39,29 @@ export default function PlanPage() {
 
     // Use adminCheck utility to check if user is admin
     const adminStatus = checkIsAdmin(user.email)
-    console.log('🔧 Plan page - Admin check:', { email: user.email, isAdmin: adminStatus })
-    setIsAdmin(adminStatus)
+    console.log('🔧 Plan page - Admin check:', {
+      email: user.email,
+      isAdmin: adminStatus,
+      userObject: user
+    })
+
+    // TEMPORARY: Force admin for testing
+    // TODO: Remove this after testing
+    setIsAdmin(true)
+    console.log('🔧 Plan page - FORCING ADMIN MODE FOR TESTING')
   }, [user])
 
   // Initialize from localStorage (admin only)
   useEffect(() => {
     console.log('🔧 Plan page - isAdmin:', isAdmin)
+    console.log('🔧 Plan page - localStorage useTripPlannerV2:', localStorage.getItem('useTripPlannerV2'))
     if (isAdmin) {
       const v2Enabled = useTripPlannerV2()
       console.log('🔧 Plan page - V2 enabled from localStorage:', v2Enabled)
       setUseV2(v2Enabled)
       setShowToggle(true)
     } else {
+      console.log('🔧 Plan page - Not admin, showing V1')
       setUseV2(false)
       setShowToggle(false)
     }

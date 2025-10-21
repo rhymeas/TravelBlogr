@@ -14,9 +14,11 @@ interface PhaseProps {
   updateData: (data: Partial<TripPlanData>) => void
   onNext: () => void
   onBack: () => void
+  isGenerating?: boolean
+  error?: string | null
 }
 
-export function PhaseThreeNew({ data, onNext, onBack }: PhaseProps) {
+export function PhaseThreeNew({ data, onNext, onBack, isGenerating, error }: PhaseProps) {
   const formatDateRange = () => {
     if (!data.dateRange) return 'Not set'
     const start = data.dateRange.startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -133,15 +135,32 @@ export function PhaseThreeNew({ data, onNext, onBack }: PhaseProps) {
         </div>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+          <p className="text-xs text-red-800">{error}</p>
+        </div>
+      )}
+
       {/* Generate Button */}
       <div className="pt-3">
         <button
           onClick={onNext}
-          className="w-full py-3 text-white rounded-xl hover:shadow-xl transition-all duration-300 font-bold text-sm flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+          disabled={isGenerating}
+          className="w-full py-3 text-white rounded-xl hover:shadow-xl transition-all duration-300 font-bold text-sm flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           style={{ background: 'linear-gradient(to right, var(--color-primary), var(--color-secondary))' }}
         >
-          <Sparkles className="w-4 h-4" />
-          <span>Generate My Trip Plan</span>
+          {isGenerating ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span>Generating your perfect trip...</span>
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-4 h-4" />
+              <span>Generate My Trip Plan</span>
+            </>
+          )}
         </button>
       </div>
 

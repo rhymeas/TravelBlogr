@@ -29,6 +29,8 @@ export function TripPlannerV2() {
   const [currentPhase, setCurrentPhase] = useState(1)
   const [showResults, setShowResults] = useState(false)
   const [generatedPlan, setGeneratedPlan] = useState<any>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const [tripData, setTripData] = useState<TripPlanData>({
     // Phase 1: Journey Foundation
@@ -89,9 +91,26 @@ export function TripPlannerV2() {
     const stops = tripData.destinations.slice(1, -1).map(d => d.name)
 
     if (!from || !to || !tripData.dateRange) {
-      alert('Missing required trip information')
+      setError('Missing required trip information. Please complete all fields.')
       return
     }
+
+    console.log('🚀 V2 - Generating trip plan with data:', {
+      from,
+      to,
+      stops,
+      startDate: tripData.dateRange.startDate.toISOString().split('T')[0],
+      endDate: tripData.dateRange.endDate.toISOString().split('T')[0],
+      interests: tripData.travelStyle,
+      budget: tripData.budget,
+      transportMode: tripData.transportMode || 'car',
+      pace: tripData.pace,
+      companions: tripData.companions,
+      groupSize: tripData.groupSize
+    })
+
+    setIsGenerating(true)
+    setError(null)
 
     try {
       const response = await fetch('/api/itineraries/generate', {
@@ -106,22 +125,28 @@ export function TripPlannerV2() {
           interests: tripData.travelStyle,
           budget: tripData.budget,
           transportMode: tripData.transportMode || 'car',
-          maxTravelHoursPerDay: tripData.dailyTravelHours,
+          maxTravelHoursPerDay: tripData.dailyTravelHours || 5,
           proMode: false
         })
       })
 
       const data = await response.json()
 
-      if (data.success) {
+      console.log('✅ V2 - API response:', data)
+
+      if (data.success && data.plan) {
+        console.log('✅ V2 - Plan generated successfully, showing results')
         setGeneratedPlan(data.plan)
         setShowResults(true)
       } else {
-        alert(`Failed to generate plan: ${data.error}`)
+        console.error('❌ V2 - API returned error:', data.error)
+        setError(data.error || 'Failed to generate plan. Please try again.')
       }
     } catch (error) {
-      console.error('Error generating plan:', error)
-      alert('Network error. Please try again.')
+      console.error('❌ V2 - Network error:', error)
+      setError('Network error. Please check your connection and try again.')
+    } finally {
+      setIsGenerating(false)
     }
   }
 
@@ -151,6 +176,8 @@ export function TripPlannerV2() {
             updateData={updateTripData}
             onNext={nextPhase}
             onBack={previousPhase}
+            isGenerating={isGenerating}
+            error={error}
           />
         )
       default:
