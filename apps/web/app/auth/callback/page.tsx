@@ -17,29 +17,16 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     let isMounted = true
-    let delayTimer: NodeJS.Timeout | null = null
 
-    // CRITICAL: Check if we're in popup mode FIRST - before any rendering
-    const isPopupMode = localStorage.getItem('oauth_popup_mode') === 'true'
-
-    // If popup mode and we have a parent window, prepare to close immediately
-    if (isPopupMode && window.opener) {
-      console.log('🔐 Popup mode detected - will close after auth completes')
-      // Don't show delay message in popup mode
-    } else {
-      // Show delay message after 3 seconds (only for redirect mode)
-      delayTimer = setTimeout(() => {
-        if (isMounted) {
-          setShowDelayMessage(true)
-        }
-      }, 3000)
-    }
+    // Show delay message after 3 seconds
+    const delayTimer = setTimeout(() => {
+      if (isMounted) {
+        setShowDelayMessage(true)
+      }
+    }, 3000)
 
     const handleCallback = async () => {
       try {
-        // Check if we're in popup mode or redirect mode
-        const isRedirectMode = localStorage.getItem('oauth_redirect_mode') === 'true'
-
         const searchParams = new URLSearchParams(window.location.search)
         const code = searchParams.get('code')
         const hashParams = new URLSearchParams(window.location.hash.substring(1))
@@ -71,8 +58,6 @@ export default function AuthCallbackPage() {
         console.log('🔐 OAuth Callback:', {
           hasCode: !!code,
           hasAccessToken: !!accessToken,
-          isPopupMode,
-          isRedirectMode,
           fullURL: window.location.href
         })
 
@@ -125,41 +110,13 @@ export default function AuthCallbackPage() {
           })
 
           if (sessionCreated) {
-            console.log('✅ Session created successfully')
+            console.log('✅ Session created successfully - redirecting to:', redirectTo)
             if (isMounted) {
-              if (isPopupMode && window.opener) {
-                // POPUP MODE: Send success message to parent window IMMEDIATELY
-                console.log('📤 Sending success message to parent window (popup mode)')
+              setIsProcessing(false)
+              setSuccess(true)
 
-                try {
-                  window.opener.postMessage({ type: 'OAUTH_SUCCESS' }, window.location.origin)
-                } catch (e) {
-                  console.warn('Could not send message to parent (COOP policy)')
-                }
-
-                localStorage.removeItem('oauth_popup_mode')
-
-                // Close popup immediately WITHOUT rendering anything
-                console.log('🔐 Closing popup window immediately')
-                setTimeout(() => {
-                  window.close()
-                }, 100) // Small delay to ensure message is sent
-
-                // Return early to prevent any rendering
-                return
-              } else {
-                // REDIRECT MODE: Normal full-page redirect flow
-                console.log('🔄 Full-page redirect mode - redirecting to:', redirectTo)
-
-                // Clean up redirect mode flag
-                localStorage.removeItem('oauth_redirect_mode')
-
-                setIsProcessing(false)
-                setSuccess(true)
-
-                // Use router.push for client-side navigation (smoother)
-                router.push(redirectTo)
-              }
+              // Use router.push for client-side navigation (smoother)
+              router.push(redirectTo)
             }
             return
           } else {
@@ -167,19 +124,12 @@ export default function AuthCallbackPage() {
             if (isMounted) {
               const errorMsg = 'Authentication timed out. Please try again.'
               setError(errorMsg)
-
-              if (isPopupMode && window.opener) {
-                window.opener.postMessage({ type: 'OAUTH_ERROR', error: errorMsg }, window.location.origin)
-                localStorage.removeItem('oauth_popup_mode')
-                setTimeout(() => window.close(), 1000)
-              } else {
-                setTimeout(() => {
-                  if (isMounted) {
-                    setIsProcessing(false)
-                    window.location.href = '/auth/signin?error=timeout'
-                  }
-                }, 2000)
-              }
+              setTimeout(() => {
+                if (isMounted) {
+                  setIsProcessing(false)
+                  window.location.href = '/auth/signin?error=timeout'
+                }
+              }, 2000)
             }
             return
           }
@@ -221,25 +171,13 @@ export default function AuthCallbackPage() {
         }
 
         if (session) {
-          console.log('✅ OAuth callback - Session found')
+          console.log('✅ OAuth callback - Session found, redirecting to:', redirectTo)
           if (isMounted) {
-            if (isPopupMode && window.opener) {
-              console.log('✅ OAuth callback in popup - sending success message')
-              window.opener.postMessage({ type: 'OAUTH_SUCCESS' }, window.location.origin)
-              localStorage.removeItem('oauth_popup_mode')
-
-              // Close popup immediately - parent will handle the rest
-              console.log('🔐 Closing popup window immediately')
-              window.close()
-            } else {
-              // Regular redirect if not in popup
-              setIsProcessing(false)
-              setSuccess(true)
-              console.log('✅ OAuth callback - Redirecting to:', redirectTo)
-              setTimeout(() => {
-                window.location.href = redirectTo
-              }, 1000)
-            }
+            setIsProcessing(false)
+            setSuccess(true)
+            setTimeout(() => {
+              window.location.href = redirectTo
+            }, 1000)
           }
         } else {
           console.log('⚠️ OAuth callback - No session, redirecting to sign in')
@@ -277,22 +215,6 @@ export default function AuthCallbackPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Empty deps - only run on mount
 
-  // If we're in popup mode, don't render anything - just close
-  const isPopupMode = typeof window !== 'undefined' && localStorage.getItem('oauth_popup_mode') === 'true'
-
-  if (isPopupMode && typeof window !== 'undefined' && window.opener) {
-    // Popup mode - show minimal loading, will close automatically
-    return (
-      <div className="fixed inset-0 bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Completing sign in...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Redirect mode - show full loading modal
   return (
     <AuthLoadingModal
       message="Completing sign in..."

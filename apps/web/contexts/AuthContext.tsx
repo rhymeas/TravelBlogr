@@ -210,13 +210,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const currentOrigin = window.location.origin
       const isLocalhost = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')
 
-      // Store the redirect path for after OAuth completes (only if provided)
-      if (redirectTo) {
-        console.log('📍 Storing redirect path:', redirectTo)
-        localStorage.setItem('oauth_redirect_to', redirectTo)
-      } else {
-        console.log('📍 No redirect path - will stay on current page')
-      }
+      // Store the CURRENT page to return to after OAuth
+      const currentPage = redirectTo || window.location.pathname
+      console.log('📍 Storing current page to return to:', currentPage)
+      localStorage.setItem('oauth_redirect_to', currentPage)
 
       // For localhost: Use localhost callback URL explicitly
       // For production: Use production callback URL
@@ -224,57 +221,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ? 'http://localhost:3000/auth/callback'
         : 'https://www.travelblogr.com/auth/callback'
 
-      // Detect mobile devices - use full-page redirect on mobile (popups don't work well)
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-
-      if (isMobile) {
-        console.log('📱 Mobile device detected - using full-page redirect (no popup)')
-        localStorage.setItem('oauth_redirect_mode', 'true')
-
-        const { error: redirectError } = await supabase.auth.signInWithOAuth({
-          provider,
-          options: {
-            redirectTo: callbackUrl,
-            skipBrowserRedirect: false, // Allow full-page redirect
-            queryParams: {
-              access_type: 'offline',
-              prompt: 'consent',
-            }
-          }
-        })
-
-        if (redirectError) {
-          console.error('❌ Mobile OAuth error:', redirectError)
-          setState(prev => ({ ...prev, error: redirectError.message, loading: false }))
-          return { success: false, error: redirectError.message }
-        }
-
-        return {
-          success: true,
-          message: 'Redirecting to sign in...',
-          isRedirectMode: true
-        }
-      }
-
-      // Desktop: Use popup mode
-      console.log('💻 Desktop device - using popup mode')
-      localStorage.setItem('oauth_popup_mode', 'true')
-
-      console.log('🔐 OAuth Sign-In (Popup Mode):', {
+      console.log('🔐 OAuth Sign-In (Seamless Redirect):', {
         provider,
         currentOrigin,
         isLocalhost,
         callbackUrl,
-        redirectTo,
-        storedRedirect: localStorage.getItem('oauth_redirect_to')
+        currentPage,
       })
 
-      // Get OAuth URL from Supabase
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      // SIMPLE APPROACH: Just use redirect flow (works everywhere, no popup issues)
+      // User will be redirected to Google, then back to the same page they were on
+      const { error: redirectError } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: callbackUrl,
-          skipBrowserRedirect: true, // CRITICAL: Don't redirect, we'll open popup manually
+          skipBrowserRedirect: false, // Allow full-page redirect
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -282,173 +243,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       })
 
-      if (error) {
-        console.error('❌ OAuth error:', error)
-        localStorage.removeItem('oauth_popup_mode')
-        setState(prev => ({ ...prev, error: error.message, loading: false }))
-        return { success: false, error: error.message }
+      if (redirectError) {
+        console.error('❌ OAuth error:', redirectError)
+        setState(prev => ({ ...prev, error: redirectError.message, loading: false }))
+        return { success: false, error: redirectError.message }
       }
 
-      if (!data?.url) {
-        console.error('❌ No OAuth URL returned')
-        localStorage.removeItem('oauth_popup_mode')
-        setState(prev => ({ ...prev, error: 'Failed to get OAuth URL', loading: false }))
-        return { success: false, error: 'Failed to get OAuth URL' }
+      // Return success - browser will redirect to Google
+      return {
+        success: true,
+        message: 'Redirecting to sign in...',
+        isRedirectMode: true
       }
 
-      // Open OAuth in popup window
-      const width = 500
-      const height = 600
-      const left = window.screen.width / 2 - width / 2
-      const top = window.screen.height / 2 - height / 2
 
-      const popup = window.open(
-        data.url,
-        'oauth-popup',
-        `width=${width},height=${height},left=${left},top=${top},toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes`
-      )
-
-      // Detect if popup was blocked
-      // Only check if popup is null or if the closed property doesn't exist
-      // Don't check popup.closed immediately as it might not be set yet
-      const isPopupBlocked = !popup || typeof popup.closed === 'undefined'
-
-      if (isPopupBlocked) {
-        console.warn('⚠️ Popup blocked - falling back to full-page redirect')
-        console.log('📱 This is common on mobile browsers and when popup blockers are enabled')
-
-        // Clean up popup mode flag since we're doing full-page redirect
-        localStorage.removeItem('oauth_popup_mode')
-
-        // Store that we're using redirect mode (for callback page to know)
-        localStorage.setItem('oauth_redirect_mode', 'true')
-
-        // Show user-friendly message
-        setState(prev => ({
-          ...prev,
-          loading: true,
-          error: null
-        }))
-
-        // Fallback: Use full-page redirect (works on ALL browsers/mobile)
-        console.log('🔄 Redirecting to OAuth provider (full-page mode)...')
-
-        // Do full-page redirect - Supabase will handle this automatically
-        const { error: redirectError } = await supabase.auth.signInWithOAuth({
-          provider,
-          options: {
-            redirectTo: callbackUrl,
-            skipBrowserRedirect: false, // Allow full-page redirect
-            queryParams: {
-              access_type: 'offline',
-              prompt: 'consent',
-            }
-          }
-        })
-
-        if (redirectError) {
-          console.error('❌ Redirect OAuth error:', redirectError)
-          setState(prev => ({ ...prev, error: redirectError.message, loading: false }))
-          return { success: false, error: redirectError.message }
-        }
-
-        // Return success with a message indicating we're using redirect mode
-        return {
-          success: true,
-          message: 'Redirecting to sign in...',
-          isRedirectMode: true
-        }
-      }
-
-      // Popup opened successfully!
-      console.log('✅ OAuth popup opened successfully')
-
-      // Monitor popup for early closure (user closed it manually)
-      const popupCheckInterval = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(popupCheckInterval)
-          console.log('ℹ️ Popup was closed by user')
-          setState(prev => ({ ...prev, loading: false }))
-        }
-      }, 500)
-
-      console.log('✅ OAuth popup opened')
-
-      // Listen for messages from popup
-      const handleMessage = async (event: MessageEvent) => {
-        if (event.origin !== window.location.origin) return
-
-        if (event.data.type === 'OAUTH_SUCCESS') {
-          console.log('✅ OAuth success message received from popup')
-          localStorage.removeItem('oauth_popup_mode')
-
-          // Close popup immediately
-          try {
-            if (popup && !popup.closed) {
-              popup.close()
-            }
-          } catch (e) {
-            console.log('Note: Popup will close itself')
-          }
-
-          // CRITICAL: Force refresh session to update UI immediately
-          console.log('🔄 Refreshing session to update UI...')
-          const { data: { session } } = await supabase.auth.getSession()
-
-          if (session?.user) {
-            console.log('✅ Session refreshed, fetching profile...')
-            const profile = await fetchProfile(session.user.id)
-            setState({
-              user: session.user,
-              profile,
-              session,
-              loading: false,
-              error: null,
-            })
-            console.log('✅ Auth state updated - UI should reflect logged-in user')
-          } else {
-            console.warn('⚠️ No session found after OAuth success')
-            setState(prev => ({ ...prev, loading: false }))
-          }
-
-          // Get redirect path
-          const redirectPath = localStorage.getItem('oauth_redirect_to')
-          localStorage.removeItem('oauth_redirect_to')
-
-          // Redirect if needed, otherwise stay on current page
-          if (redirectPath && redirectPath !== window.location.pathname) {
-            console.log('🔐 Redirecting to:', redirectPath)
-            router.push(redirectPath)
-          } else {
-            console.log('✅ Staying on current page, UI updated')
-          }
-
-          window.removeEventListener('message', handleMessage)
-          clearTimeout(timeoutId)
-        } else if (event.data.type === 'OAUTH_ERROR') {
-          console.error('❌ OAuth error message received from popup:', event.data.error)
-          localStorage.removeItem('oauth_popup_mode')
-          setState(prev => ({ ...prev, error: event.data.error, loading: false }))
-          window.removeEventListener('message', handleMessage)
-          clearTimeout(timeoutId)
-        }
-      }
-
-      window.addEventListener('message', handleMessage)
-
-      // Timeout: If no message received after 30 seconds, assume failure
-      const timeoutId = setTimeout(() => {
-        console.warn('⚠️ OAuth timeout - no response from popup after 30 seconds')
-        localStorage.removeItem('oauth_popup_mode')
-        setState(prev => ({
-          ...prev,
-          error: 'Authentication timed out. Please try again.',
-          loading: false
-        }))
-        window.removeEventListener('message', handleMessage)
-      }, 30000) // Reduced from 60s to 30s
-
-      return { success: true, data }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'An error occurred'
       console.error('❌ OAuth exception:', error)
