@@ -218,14 +218,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('📍 No redirect path - will stay on current page')
       }
 
-      // Mark that we're using popup mode
-      localStorage.setItem('oauth_popup_mode', 'true')
-
       // For localhost: Use localhost callback URL explicitly
       // For production: Use production callback URL
       const callbackUrl = isLocalhost
         ? 'http://localhost:3000/auth/callback'
         : 'https://www.travelblogr.com/auth/callback'
+
+      // Detect mobile devices - use full-page redirect on mobile (popups don't work well)
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+
+      if (isMobile) {
+        console.log('📱 Mobile device detected - using full-page redirect (no popup)')
+        localStorage.setItem('oauth_redirect_mode', 'true')
+
+        const { error: redirectError } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: callbackUrl,
+            skipBrowserRedirect: false, // Allow full-page redirect
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent',
+            }
+          }
+        })
+
+        if (redirectError) {
+          console.error('❌ Mobile OAuth error:', redirectError)
+          setState(prev => ({ ...prev, error: redirectError.message, loading: false }))
+          return { success: false, error: redirectError.message }
+        }
+
+        return {
+          success: true,
+          message: 'Redirecting to sign in...',
+          isRedirectMode: true
+        }
+      }
+
+      // Desktop: Use popup mode
+      console.log('💻 Desktop device - using popup mode')
+      localStorage.setItem('oauth_popup_mode', 'true')
 
       console.log('🔐 OAuth Sign-In (Popup Mode):', {
         provider,
@@ -348,69 +381,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event.data.type === 'OAUTH_SUCCESS') {
           console.log('✅ OAuth success message received from popup')
           localStorage.removeItem('oauth_popup_mode')
+
+          // Close popup immediately
           try {
             if (popup && !popup.closed) {
               popup.close()
             }
           } catch (e) {
-            // Ignore COOP errors when trying to close popup
-            console.log('Note: Could not close popup (COOP policy), it will close itself')
+            console.log('Note: Popup will close itself')
           }
 
-          // Keep loading state and wait for session to be established
-          console.log('⏳ Waiting for session to be established...')
+          // CRITICAL: Force refresh session to update UI immediately
+          console.log('🔄 Refreshing session to update UI...')
+          const { data: { session } } = await supabase.auth.getSession()
 
-          // First check if session already exists
-          const { data: { session: existingSession } } = await supabase.auth.getSession()
-
-          let sessionEstablished = false
-
-          if (existingSession) {
-            console.log('✅ Session already exists!')
-            sessionEstablished = true
-          } else {
-            // Wait for auth state change
-            sessionEstablished = await new Promise<boolean>((resolve) => {
-              const timeout = setTimeout(() => {
-                console.warn('⚠️ Session establishment timeout')
-                resolve(false)
-              }, 10000) // 10 second timeout
-
-              const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-                console.log('🔐 Auth state change after popup:', event, session ? '✅ Session' : '❌ No session')
-
-                if (event === 'SIGNED_IN' && session) {
-                  clearTimeout(timeout)
-                  subscription.unsubscribe()
-                  resolve(true)
-                }
-              })
+          if (session?.user) {
+            console.log('✅ Session refreshed, fetching profile...')
+            const profile = await fetchProfile(session.user.id)
+            setState({
+              user: session.user,
+              profile,
+              session,
+              loading: false,
+              error: null,
             })
+            console.log('✅ Auth state updated - UI should reflect logged-in user')
+          } else {
+            console.warn('⚠️ No session found after OAuth success')
+            setState(prev => ({ ...prev, loading: false }))
           }
 
-          if (sessionEstablished) {
-            console.log('✅ Session established successfully')
-            setState(prev => ({ ...prev, loading: false }))
+          // Get redirect path
+          const redirectPath = localStorage.getItem('oauth_redirect_to')
+          localStorage.removeItem('oauth_redirect_to')
 
-            // Get redirect path
-            const redirectPath = localStorage.getItem('oauth_redirect_to')
-            localStorage.removeItem('oauth_redirect_to')
-
-            // Only redirect if a specific path was requested
-            // Otherwise, stay on current page and let the UI update naturally
-            if (redirectPath && redirectPath !== window.location.pathname) {
-              console.log('🔐 Redirecting to:', redirectPath)
-              router.push(redirectPath)
-            } else {
-              console.log('✅ Staying on current page, UI will update automatically')
-            }
+          // Redirect if needed, otherwise stay on current page
+          if (redirectPath && redirectPath !== window.location.pathname) {
+            console.log('🔐 Redirecting to:', redirectPath)
+            router.push(redirectPath)
           } else {
-            console.error('❌ Failed to establish session')
-            setState(prev => ({
-              ...prev,
-              error: 'Failed to complete sign in. Please try again.',
-              loading: false
-            }))
+            console.log('✅ Staying on current page, UI updated')
           }
 
           window.removeEventListener('message', handleMessage)
@@ -426,9 +436,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       window.addEventListener('message', handleMessage)
 
-      // Timeout: If no message received after 60 seconds, assume failure
+      // Timeout: If no message received after 30 seconds, assume failure
       const timeoutId = setTimeout(() => {
-        console.warn('⚠️ OAuth timeout - no response from popup after 60 seconds')
+        console.warn('⚠️ OAuth timeout - no response from popup after 30 seconds')
         localStorage.removeItem('oauth_popup_mode')
         setState(prev => ({
           ...prev,
@@ -436,7 +446,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           loading: false
         }))
         window.removeEventListener('message', handleMessage)
-      }, 60000)
+      }, 30000) // Reduced from 60s to 30s
 
       return { success: true, data }
     } catch (error) {
