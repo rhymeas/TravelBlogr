@@ -177,6 +177,11 @@ export default function HomePage() {
     setMounted(true)
   }, [])
 
+  // Log auth state changes for debugging
+  useEffect(() => {
+    console.log('🏠 HomePage - Auth state:', { mounted, isAuthenticated, isLoading })
+  }, [mounted, isAuthenticated, isLoading])
+
   // Handle video errors - fallback to image
   const handleVideoError = (videoId: string) => {
     console.warn(`Video failed to load: ${videoId}, falling back to image`)
@@ -198,10 +203,12 @@ export default function HomePage() {
 
   // Show dashboard for authenticated users (don't wait for loading)
   if (mounted && isAuthenticated && !isLoading) {
+    console.log('✅ Showing dashboard for authenticated user')
     return <DashboardLanding />
   }
 
   // Show public landing page for non-authenticated users
+  console.log('📄 Showing public landing page')
   return (
     <div className="min-h-screen bg-white">
 

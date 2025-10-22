@@ -64,6 +64,9 @@ export default function AuthCallbackPage() {
         // Check for redirect parameter
         const urlRedirect = searchParams.get('redirect') || searchParams.get('redirect_to')
         const storageRedirect = localStorage.getItem('oauth_redirect_to')
+
+        // Default to home page (which will show dashboard for authenticated users)
+        // Don't hard-code /dashboard to avoid issues with landing page logic
         const redirectTo = urlRedirect || storageRedirect || '/'
 
         console.log('OAuth callback - Final redirect to:', redirectTo)
@@ -76,10 +79,11 @@ export default function AuthCallbackPage() {
         if (accessToken) {
           console.log('✅ OAuth callback - Access token found in hash (implicit flow)')
           // Supabase client automatically processes hash params and sets session
-          // Just wait a moment for the session to be established
+          // Wait for session to be fully established
           await new Promise(resolve => setTimeout(resolve, 1000))
-          console.log('✅ OAuth callback - Redirecting to:', redirectTo)
-          router.push(redirectTo)
+          console.log('✅ OAuth callback - Hard redirecting to:', redirectTo)
+          // Use hard redirect to ensure auth state is fully loaded
+          window.location.href = redirectTo
           return
         }
 
@@ -115,8 +119,14 @@ export default function AuthCallbackPage() {
               setIsProcessing(false)
               setSuccess(true)
 
-              // Use router.push for client-side navigation (smoother)
-              router.push(redirectTo)
+              // Wait for session to be fully established and propagated
+              // This ensures AuthContext picks up the session before redirect
+              await new Promise(resolve => setTimeout(resolve, 1000))
+
+              // Use window.location.href for hard redirect to ensure auth state is fully loaded
+              // This prevents the issue where header doesn't update after OAuth
+              console.log('🔄 Hard redirecting to:', redirectTo)
+              window.location.href = redirectTo
             }
             return
           } else {

@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: null,
     profile: null,
     session: null,
-    loading: false, // Start false to show UI immediately
+    loading: false, // Start false to show UI immediately (session check happens in useEffect)
     error: null,
   })
 
@@ -77,17 +77,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Check for existing session on mount
     const initializeAuth = async () => {
+      console.log('🔄 Initializing auth...')
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
 
         if (error) {
-          console.error('Error getting session:', error)
+          console.error('❌ Error getting session:', error)
           setState(prev => ({ ...prev, loading: false }))
           return
         }
 
         if (session?.user) {
+          console.log('✅ Session found on mount:', session.user.email)
           const profile = await fetchProfile(session.user.id)
+          console.log('✅ Profile loaded, auth initialized')
           setState({
             user: session.user,
             profile,
@@ -96,10 +99,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             error: null,
           })
         } else {
+          console.log('ℹ️ No session found on mount')
           setState(prev => ({ ...prev, loading: false }))
         }
       } catch (error) {
-        console.error('Error initializing auth:', error)
+        console.error('❌ Error initializing auth:', error)
         setState(prev => ({ ...prev, loading: false }))
       }
     }
@@ -108,8 +112,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔐 Auth state change:', event, session ? `User: ${session.user.email}` : 'No session')
+
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+        console.log('✅ Fetching profile for user:', session.user.id)
         const profile = await fetchProfile(session.user.id)
+        console.log('✅ Profile fetched, updating state')
         setState({
           user: session.user,
           profile,
@@ -127,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       } else if (event === 'SIGNED_OUT') {
+        console.log('👋 User signed out')
         setState({
           user: null,
           profile: null,
@@ -135,8 +144,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           error: null,
         })
       } else if (event === 'TOKEN_REFRESHED' && session) {
+        console.log('🔄 Token refreshed')
         setState(prev => ({ ...prev, session }))
       } else if (event === 'INITIAL_SESSION' && !session) {
+        console.log('ℹ️ No initial session found')
         setState(prev => ({ ...prev, loading: false }))
       }
     })

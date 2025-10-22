@@ -13,7 +13,8 @@ import {
   Star,
   Eye,
   Shield,
-  Zap
+  Zap,
+  PenLine
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -133,10 +134,12 @@ export function DashboardLanding() {
         </div>
 
         {/* Quick Actions - With Clear CTAs */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Link href="/dashboard/trips/new" className="group">
             <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 h-36 shadow-sm hover:shadow-lg transition-all">
               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400')] bg-cover bg-center opacity-20"></div>
+              {/* 30% black overlay for better text contrast */}
+              <div className="absolute inset-0 bg-black/30"></div>
               <div className="relative h-full p-4 flex flex-col justify-between">
                 <div>
                   <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
@@ -156,6 +159,8 @@ export function DashboardLanding() {
           <Link href="/dashboard/media" className="group">
             <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 h-36 shadow-sm hover:shadow-lg transition-all">
               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1452421822248-d4c2b47f0c81?w=400')] bg-cover bg-center opacity-20"></div>
+              {/* 30% black overlay for better text contrast */}
+              <div className="absolute inset-0 bg-black/30"></div>
               <div className="relative h-full p-4 flex flex-col justify-between">
                 <div>
                   <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
@@ -175,6 +180,8 @@ export function DashboardLanding() {
           <Link href="/live-feed" className="group">
             <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500 to-green-600 h-36 shadow-sm hover:shadow-lg transition-all">
               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400')] bg-cover bg-center opacity-20"></div>
+              {/* 30% black overlay for better text contrast */}
+              <div className="absolute inset-0 bg-black/30"></div>
               <div className="relative h-full p-4 flex flex-col justify-between">
                 <div>
                   <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
@@ -185,6 +192,27 @@ export function DashboardLanding() {
                 </div>
                 <div className="flex items-center gap-2 text-white font-semibold text-sm group-hover:gap-3 transition-all">
                   <span>Explore Now</span>
+                  <ArrowRight className="h-4 w-4" />
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/dashboard/blog" className="group">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-orange-500 to-pink-600 h-36 shadow-sm hover:shadow-lg transition-all">
+              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1455390582262-044cdead277a?w=400')] bg-cover bg-center opacity-20"></div>
+              {/* 30% black overlay for better text contrast */}
+              <div className="absolute inset-0 bg-black/30"></div>
+              <div className="relative h-full p-4 flex flex-col justify-between">
+                <div>
+                  <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
+                    <PenLine className="h-5 w-5 text-white" />
+                  </div>
+                  <h3 className="text-base font-bold text-white mb-1">Start Writing Blog</h3>
+                  <p className="text-xs text-white/90">Share your travel stories</p>
+                </div>
+                <div className="flex items-center gap-2 text-white font-semibold text-sm group-hover:gap-3 transition-all">
+                  <span>Write Now</span>
                   <ArrowRight className="h-4 w-4" />
                 </div>
               </div>
@@ -210,18 +238,15 @@ export function DashboardLanding() {
         {/* Recent Trips - 50% Width, 2 Columns */}
         <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column - Recent Trips */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            {/* Compact Header with Image */}
-            <div className="relative h-16 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
-              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800')] bg-cover bg-center opacity-20"></div>
-              <div className="relative h-full px-4 flex items-center justify-between">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            {/* Sleek Header */}
+            <div className="px-5 py-4 border-b border-gray-100">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-base font-bold text-white">Your Recent Trips</h2>
-                  <p className="text-xs text-white/80">Continue your travel journey</p>
+                  <h2 className="text-lg font-bold text-gray-800">Your Recent Trips</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">Continue your travel journey</p>
                 </div>
-                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                  <MapPin className="h-5 w-5 text-white" />
-                </div>
+                <MapPin className="h-5 w-5 text-gray-400" />
               </div>
             </div>
 
@@ -311,51 +336,48 @@ export function DashboardLanding() {
             </div>
           </div>
 
-          {/* Right Column - Placeholder for future content */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="relative h-16 bg-gradient-to-r from-orange-500 to-pink-600">
-              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800')] bg-cover bg-center opacity-20"></div>
-              <div className="relative h-full px-4 flex items-center justify-between">
+          {/* Right Column - Quick Stats */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            {/* Sleek Header */}
+            <div className="px-5 py-4 border-b border-gray-100">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-base font-bold text-white">Quick Stats</h2>
-                  <p className="text-xs text-white/80">Your travel overview</p>
+                  <h2 className="text-lg font-bold text-gray-800">Quick Stats</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">Your travel overview</p>
                 </div>
-                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                  <TrendingUp className="h-5 w-5 text-white" />
-                </div>
+                <TrendingUp className="h-5 w-5 text-gray-400" />
               </div>
             </div>
-            <div className="p-3 space-y-2">
+            <div className="p-4 space-y-2">
               {quickStats.map((stat, index) => (
-                <div key={index} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                    <span className="text-xs font-medium text-gray-700">{stat.label}</span>
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <stat.icon className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-600">{stat.label}</span>
                   </div>
-                  <span className="text-sm font-bold text-gray-900">{stat.value}</span>
+                  <span className="text-base font-bold text-gray-900">{stat.value}</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Inspiration Section - Compact with Image */}
-        <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-orange-500 to-pink-600 mb-6 shadow-sm">
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800')] bg-cover bg-center opacity-25"></div>
-          <div className="relative px-5 py-6 flex items-center justify-between">
+        {/* Inspiration Section - Sleek */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
+          <div className="px-5 py-5 flex items-center justify-between">
             <div className="flex-1">
-              <h3 className="text-base font-bold text-white mb-1">Need Inspiration?</h3>
-              <p className="text-xs text-white/90 mb-3">
+              <h3 className="text-lg font-bold text-gray-800 mb-1">Need Inspiration?</h3>
+              <p className="text-sm text-gray-500 mb-4">
                 Explore trending destinations and discover travel stories
               </p>
-              <Button asChild size="sm" className="bg-white text-orange-600 hover:bg-white/90">
+              <Button asChild size="sm" className="bg-gray-900 text-white hover:bg-gray-800">
                 <Link href="/locations">
                   Discover Destinations
                 </Link>
               </Button>
             </div>
-            <div className="hidden md:block w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0 ml-4">
-              <MapPin className="h-8 w-8 text-white" />
+            <div className="hidden md:flex items-center justify-center flex-shrink-0 ml-4">
+              <MapPin className="h-8 w-8 text-gray-400" />
             </div>
           </div>
         </div>
