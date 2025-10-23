@@ -19,7 +19,7 @@ Replaced old Globe icon logo with new paper plane logo across all authentication
 <div className="w-8 h-8 bg-rausch-500 rounded-lg flex items-center justify-center">
   <Globe className="h-5 w-5 text-white" />
 </div>
-<span className="text-xl text-airbnb-black font-semibold">TravelBlogr</span>
+<span className="text-xl text-sleek-black font-semibold">TravelBlogr</span>
 ```
 
 **After:**
@@ -84,10 +84,10 @@ Sign-in modal now appears as a clean overlay on the current page instead of show
    ```tsx
    // Before
    <Link href="/" className="flex items-center justify-center gap-3 mb-8">
-     <div className="w-10 h-10 bg-rausch-500 rounded-airbnb-small flex items-center justify-center">
+     <div className="w-10 h-10 bg-rausch-500 rounded-sleek-small flex items-center justify-center">
        <Globe className="h-6 w-6 text-white" />
      </div>
-     <span className="text-title-medium text-airbnb-black font-semibold">TravelBlogr</span>
+     <span className="text-title-medium text-sleek-black font-semibold">TravelBlogr</span>
    </Link>
    
    // After

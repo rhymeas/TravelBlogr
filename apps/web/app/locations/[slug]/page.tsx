@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { getLocationBySlug, getLocationsByCountry, getAllLocationSlugs } from '@/lib/supabase/locations'
 import { mapSupabaseLocationToFrontend, mapSupabaseLocationsToFrontend } from '@/lib/mappers/locationMapper'
 import { LocationDetailTemplate } from '@/components/locations/LocationDetailTemplate'
+import { getOrSet, CacheKeys, CacheTTL } from '@/lib/upstash'
 
 // Allow dynamic params for newly created locations (not in generateStaticParams)
 export const dynamicParams = true
@@ -15,18 +16,30 @@ interface LocationPageProps {
 }
 
 export default async function LocationPage({ params }: LocationPageProps) {
-  // Get location data by slug from Supabase
+  // TEMPORARY FIX: Disable Upstash cache until Redis is configured
+  // Fetch directly from database to ensure fresh data after edits
+  console.log(`🔍 Fetching location from database: ${params.slug}`)
   const supabaseLocation = await getLocationBySlug(params.slug)
 
   if (!supabaseLocation) {
     notFound()
   }
 
+  console.log(`✅ Location loaded for ${params.slug}`)
+
   // Map Supabase data to frontend format
   const location = mapSupabaseLocationToFrontend(supabaseLocation)
 
-  // Get related locations from the same country
-  const supabaseRelatedLocations = await getLocationsByCountry(location.country, location.id)
+  // Get related locations from the same country (also cached)
+  const supabaseRelatedLocations = await getOrSet(
+    `${CacheKeys.location(params.slug)}:related`,
+    async () => {
+      console.log(`🔍 Fetching related locations for: ${location.country}`)
+      return await getLocationsByCountry(location.country, location.id)
+    },
+    CacheTTL.LONG // 24 hours
+  )
+
   const relatedLocations = mapSupabaseLocationsToFrontend(supabaseRelatedLocations)
 
   return (

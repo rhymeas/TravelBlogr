@@ -480,7 +480,7 @@ CRITICAL: For trips with ${Math.round(context.routeDuration)} hours of travel ti
 
 3. **Include "stay" items** with:
    - Location name (real city/town along the route)
-   - Accommodation type (hotel, hostel, guesthouse, Airbnb)
+   - Accommodation type (hotel, hostel, guesthouse, sleek)
    - Budget-appropriate suggestions (${context.budget} budget)
    - Brief reason why this is a good overnight stop
 
@@ -555,7 +555,7 @@ OUTPUT SCHEMA - MUST BE VALID JSON OBJECT (not array):
           "duration": 10,
           "description": "Why stay here, what accommodation type",
           "costEstimate": 80,
-          "accommodationType": "hotel/hostel/guesthouse/airbnb",
+          "accommodationType": "hotel/hostel/guesthouse/sleek",
           "reason": "Why this is a good overnight stop"
         }
       ],

@@ -108,10 +108,10 @@ export default function PricingPage() {
         <section className="bg-gradient-to-br from-rausch-50 to-kazan-50 py-16 lg:py-24">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="text-center">
-              <h1 className="text-display-large font-bold text-airbnb-black mb-6">
+              <h1 className="text-display-large font-bold text-sleek-black mb-6">
                 Simple, Transparent Pricing
               </h1>
-              <p className="text-title-medium text-airbnb-gray max-w-2xl mx-auto">
+              <p className="text-title-medium text-sleek-gray max-w-2xl mx-auto">
                 Start free and upgrade when you need more. No hidden fees, no surprises.
               </p>
             </div>
@@ -140,16 +140,16 @@ export default function PricingPage() {
                   )}
 
                   <div className="text-center mb-6">
-                    <h3 className="text-2xl font-bold text-airbnb-black mb-2">
+                    <h3 className="text-2xl font-bold text-sleek-black mb-2">
                       {plan.name}
                     </h3>
                     <div className="flex items-baseline justify-center gap-2 mb-2">
-                      <span className="text-5xl font-bold text-airbnb-black">
+                      <span className="text-5xl font-bold text-sleek-black">
                         {plan.price}
                       </span>
-                      <span className="text-airbnb-gray">/{plan.period}</span>
+                      <span className="text-sleek-gray">/{plan.period}</span>
                     </div>
-                    <p className="text-sm text-airbnb-gray">{plan.description}</p>
+                    <p className="text-sm text-sleek-gray">{plan.description}</p>
                   </div>
 
                   <Button
@@ -167,13 +167,13 @@ export default function PricingPage() {
                     {plan.features.map((feature) => (
                       <div key={feature} className="flex items-start gap-3">
                         <Check className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm text-airbnb-dark-gray">{feature}</span>
+                        <span className="text-sm text-sleek-dark-gray">{feature}</span>
                       </div>
                     ))}
                     {plan.limitations.map((limitation) => (
                       <div key={limitation} className="flex items-start gap-3">
                         <X className="h-5 w-5 text-gray-300 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm text-airbnb-gray line-through">
+                        <span className="text-sm text-sleek-gray line-through">
                           {limitation}
                         </span>
                       </div>
@@ -188,16 +188,16 @@ export default function PricingPage() {
         {/* FAQ Section */}
         <section className="py-16 lg:py-24 bg-gray-50">
           <div className="mx-auto max-w-3xl px-6 lg:px-8">
-            <h2 className="text-4xl font-bold text-airbnb-black mb-12 text-center">
+            <h2 className="text-4xl font-bold text-sleek-black mb-12 text-center">
               Frequently Asked Questions
             </h2>
             <div className="space-y-6">
               {faqs.map((faq) => (
                 <div key={faq.question} className="bg-white rounded-xl p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-airbnb-black mb-2">
+                  <h3 className="text-lg font-semibold text-sleek-black mb-2">
                     {faq.question}
                   </h3>
-                  <p className="text-airbnb-gray">{faq.answer}</p>
+                  <p className="text-sleek-gray">{faq.answer}</p>
                 </div>
               ))}
             </div>
@@ -207,10 +207,10 @@ export default function PricingPage() {
         {/* CTA Section */}
         <section className="py-16 lg:py-24">
           <div className="mx-auto max-w-4xl px-6 lg:px-8 text-center">
-            <h2 className="text-4xl font-bold text-airbnb-black mb-6">
+            <h2 className="text-4xl font-bold text-sleek-black mb-6">
               Ready to Share Your Journey?
             </h2>
-            <p className="text-xl text-airbnb-gray mb-8">
+            <p className="text-xl text-sleek-gray mb-8">
               Join thousands of travelers sharing their stories on TravelBlogr
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

@@ -3,7 +3,7 @@
 /**
  * Blog Posts List Page - Redesigned
  *
- * Sleek, bubbly, emotional, spacey Airbnb-inspired design
+ * Sleek, bubbly, emotional, spacey sleek-inspired design
  * Minimal colors, lots of white space, beautiful grid layout
  */
 

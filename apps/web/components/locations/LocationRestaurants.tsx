@@ -95,7 +95,7 @@ export function LocationRestaurants({ locationSlug, restaurants: initialRestaura
   if (loading) {
     return (
       <Card className="card-elevated p-6 mb-8">
-        <div className="text-center py-8 text-airbnb-gray">
+        <div className="text-center py-8 text-sleek-gray">
           Loading restaurants...
         </div>
       </Card>
@@ -109,14 +109,14 @@ export function LocationRestaurants({ locationSlug, restaurants: initialRestaura
   return (
     <Card className="card-elevated p-6 mb-8">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 bg-orange-100 rounded-airbnb-small flex items-center justify-center">
+        <div className="w-10 h-10 bg-orange-100 rounded-sleek-small flex items-center justify-center">
           <Utensils className="h-5 w-5 text-orange-600" />
         </div>
         <div>
-          <h3 className="text-title-medium font-semibold text-airbnb-black">
+          <h3 className="text-title-medium font-semibold text-sleek-black">
             Restaurants & Culinary Experiences
           </h3>
-          <p className="text-body-medium text-airbnb-gray">
+          <p className="text-body-medium text-sleek-gray">
             Discover the best dining spots in {locationName}
           </p>
         </div>
@@ -126,7 +126,7 @@ export function LocationRestaurants({ locationSlug, restaurants: initialRestaura
         {displayedRestaurants.map((restaurant) => (
           <div
             key={restaurant.id}
-            className="bg-white border border-airbnb-border rounded-airbnb-medium overflow-hidden hover:shadow-airbnb-medium transition-all duration-300"
+            className="bg-white border border-sleek-border rounded-sleek-medium overflow-hidden hover:shadow-sleek-medium transition-all duration-300"
           >
             {/* Restaurant Image */}
             <div className="relative h-48 overflow-hidden">
@@ -147,28 +147,28 @@ export function LocationRestaurants({ locationSlug, restaurants: initialRestaura
             {/* Restaurant Details */}
             <div className="p-4">
               <div className="flex items-start justify-between mb-2">
-                <h4 className="text-body-large font-semibold text-airbnb-black">
+                <h4 className="text-body-large font-semibold text-sleek-black">
                   {restaurant.name}
                 </h4>
                 <div className="flex items-center gap-1 text-yellow-500">
                   <Star className="h-4 w-4 fill-current" />
-                  <span className="text-body-small font-semibold text-airbnb-black">
+                  <span className="text-body-small font-semibold text-sleek-black">
                     {restaurant.rating}
                   </span>
                 </div>
               </div>
 
-              <p className="text-body-medium text-airbnb-dark-gray mb-3">
+              <p className="text-body-medium text-sleek-dark-gray mb-3">
                 {restaurant.description}
               </p>
 
               {/* Cuisine & Address */}
               <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-body-small text-airbnb-gray">
+                <div className="flex items-center gap-2 text-body-small text-sleek-gray">
                   <Utensils className="h-4 w-4" />
                   <span>{restaurant.cuisine} Cuisine</span>
                 </div>
-                <div className="flex items-center gap-2 text-body-small text-airbnb-gray">
+                <div className="flex items-center gap-2 text-body-small text-sleek-gray">
                   <MapPin className="h-4 w-4" />
                   <span>{restaurant.address}</span>
                 </div>
@@ -177,7 +177,7 @@ export function LocationRestaurants({ locationSlug, restaurants: initialRestaura
               {/* Specialties */}
               {restaurant.specialties && restaurant.specialties.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-body-small font-medium text-airbnb-black mb-2">
+                  <p className="text-body-small font-medium text-sleek-black mb-2">
                     Specialties:
                   </p>
                   <div className="flex flex-wrap gap-1">
@@ -267,8 +267,8 @@ export function LocationRestaurants({ locationSlug, restaurants: initialRestaura
       )}
 
       {/* CMS Edit Note */}
-      <div className="mt-6 pt-4 border-t border-airbnb-border">
-        <p className="text-body-small text-airbnb-gray italic">
+      <div className="mt-6 pt-4 border-t border-sleek-border">
+        <p className="text-body-small text-sleek-gray italic">
           Restaurant information can be easily updated through the CMS.
           Add new restaurants, update menus, or modify contact details without code changes.
         </p>

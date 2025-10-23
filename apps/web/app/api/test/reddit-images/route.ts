@@ -121,7 +121,7 @@ async function fetchRedditImagesSmart(locationName: string, count: number = 20):
         const rejectIndoor = [
           'museum', 'gallery', 'exhibition', 'interior', 'inside',
           'room', 'bedroom', 'bathroom', 'kitchen', 'office',
-          'hotel room', 'apartment', 'airbnb'
+          'hotel room', 'apartment', 'sleek'
         ]
         if (rejectIndoor.some(kw => title.includes(kw))) return false
 

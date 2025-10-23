@@ -441,7 +441,7 @@ export function LocationsMap({
   }, [locations, onLocationSelect, currentZoom, router])
 
   return (
-    <div className="relative rounded-airbnb-medium overflow-hidden" style={{ height: '600px', width: '100%' }}>
+    <div className="relative rounded-sleek-medium overflow-hidden" style={{ height: '600px', width: '100%' }}>
       <div ref={mapContainer} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
 
       {/* Legend */}

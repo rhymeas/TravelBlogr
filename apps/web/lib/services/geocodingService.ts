@@ -9,6 +9,7 @@
  */
 
 import { createServerSupabase } from '@/lib/supabase-server'
+import { getOrSet, CacheKeys, CacheTTL } from '@/lib/upstash'
 
 const ORS_API_KEY = process.env.OPENROUTESERVICE_API_KEY || process.env.NEXT_PUBLIC_OPENROUTESERVICE_API_KEY
 const ORS_GEOCODE_URL = 'https://api.openrouteservice.org/geocode'
@@ -28,23 +29,32 @@ export interface GeocodedLocation {
  */
 export async function geocodeLocation(locationName: string): Promise<GeocodedLocation | null> {
   try {
-    // Check cache first
-    const cached = await getCachedGeocode(locationName)
-    if (cached) {
-      return cached
-    }
+    // OPTIMIZATION: Use Upstash cache first (< 10ms vs 200-500ms API call)
+    const result = await getOrSet(
+      CacheKeys.geocoding(locationName.toLowerCase()),
+      async () => {
+        console.log(`🌍 Geocoding location: "${locationName}"`)
 
-    // Try Nominatim first (completely free, no API key needed)
-    let result = await geocodeWithNominatim(locationName)
-    
-    // Fallback to OpenRouteService if Nominatim fails
-    if (!result && ORS_API_KEY) {
-      result = await geocodeWithOpenRouteService(locationName)
-    }
+        // Try Nominatim first (completely free, no API key needed)
+        let geocoded = await geocodeWithNominatim(locationName)
 
-    // Cache the result
+        // Fallback to OpenRouteService if Nominatim fails
+        if (!geocoded && ORS_API_KEY) {
+          geocoded = await geocodeWithOpenRouteService(locationName)
+        }
+
+        // Also cache in database for backup
+        if (geocoded) {
+          await cacheGeocode(locationName, geocoded)
+        }
+
+        return geocoded
+      },
+      CacheTTL.VERY_LONG // 7 days (coordinates don't change)
+    )
+
     if (result) {
-      await cacheGeocode(locationName, result)
+      console.log(`✅ Geocoded "${locationName}" (< 10ms from Upstash)`)
     }
 
     return result

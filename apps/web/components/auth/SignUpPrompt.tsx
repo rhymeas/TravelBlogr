@@ -94,18 +94,18 @@ export function SignUpPrompt({
         <div className="w-16 h-16 bg-rausch-500 rounded-full flex items-center justify-center mx-auto mb-3">
           <IconComponent className="h-8 w-8 text-white" />
         </div>
-        <h3 className="text-title-medium text-airbnb-black mb-2">{content.title}</h3>
-        <p className="text-body-large text-airbnb-dark-gray">{content.description}</p>
+        <h3 className="text-title-medium text-sleek-black mb-2">{content.title}</h3>
+        <p className="text-body-large text-sleek-dark-gray">{content.description}</p>
       </div>
 
       {content.features.length > 0 && (
         <div className="grid grid-cols-2 gap-3 mb-6">
           {content.features.map((feature, index) => (
             <div key={index} className="flex items-center gap-2 text-left">
-              <div className="w-8 h-8 bg-white rounded-airbnb-small flex items-center justify-center shadow-airbnb-light">
+              <div className="w-8 h-8 bg-white rounded-sleek-small flex items-center justify-center shadow-sleek-light">
                 <feature.icon className="h-4 w-4 text-rausch-500" />
               </div>
-              <span className="text-body-medium text-airbnb-black">{feature.text}</span>
+              <span className="text-body-medium text-sleek-black">{feature.text}</span>
             </div>
           ))}
         </div>
@@ -119,7 +119,7 @@ export function SignUpPrompt({
           </Link>
         </Button>
         
-        <div className="text-body-small text-airbnb-gray">
+        <div className="text-body-small text-sleek-gray">
           Already have an account?{' '}
           <button
             onClick={() => showSignIn()}
@@ -157,17 +157,17 @@ export function InteractionSignUpPrompt({
 // Inline prompt for feed interactions
 export function InlineFeedPrompt() {
   return (
-    <div className="bg-white border-t border-b border-airbnb-border p-4 my-4">
+    <div className="bg-white border-t border-b border-sleek-border p-4 my-4">
       <div className="max-w-lg mx-auto">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-gradient-to-r from-rausch-500 to-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
             <Sparkles className="h-6 w-6 text-white" />
           </div>
           <div className="flex-1">
-            <h4 className="text-body-large font-medium text-airbnb-black mb-1">
+            <h4 className="text-body-large font-medium text-sleek-black mb-1">
               Want to interact with posts?
             </h4>
-            <p className="text-body-medium text-airbnb-gray">
+            <p className="text-body-medium text-sleek-gray">
               Join to like, comment, and save travel stories
             </p>
           </div>
@@ -185,14 +185,14 @@ export function InlineFeedPrompt() {
 // Sticky bottom prompt for mobile
 export function StickySignUpPrompt() {
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-airbnb-border p-4 shadow-airbnb-xl z-50 lg:hidden">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-sleek-border p-4 shadow-sleek-xl z-50 lg:hidden">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 bg-rausch-500 rounded-full flex items-center justify-center flex-shrink-0">
           <Heart className="h-5 w-5 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-body-medium font-medium text-airbnb-black">Join TravelBlogr</div>
-          <div className="text-body-small text-airbnb-gray">Share your journey with the world</div>
+          <div className="text-body-medium font-medium text-sleek-black">Join TravelBlogr</div>
+          <div className="text-body-small text-sleek-gray">Share your journey with the world</div>
         </div>
         <Button asChild size="sm" className="btn-primary">
           <Link href="/auth/signup">

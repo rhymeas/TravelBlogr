@@ -108,7 +108,7 @@ NEXT_PUBLIC_SITE_URL=https://travelblogr-production.up.railway.app
 
 # Affiliate IDs (Optional - add when you have them)
 NEXT_PUBLIC_BOOKING_AFFILIATE_ID=your_booking_id
-NEXT_PUBLIC_AIRBNB_AFFILIATE_ID=your_airbnb_id
+NEXT_PUBLIC_sleek_AFFILIATE_ID=your_sleek_id
 NEXT_PUBLIC_GETYOURGUIDE_PARTNER_ID=your_getyourguide_id
 NEXT_PUBLIC_VIATOR_PARTNER_ID=your_viator_id
 

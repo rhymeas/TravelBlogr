@@ -52,7 +52,7 @@ Every blog post follows this proven storytelling structure:
 
 **Providers:**
 1. **Booking.com** - Hotels (25-40% commission)
-2. **Airbnb** - Vacation rentals (3% commission)
+2. **sleek** - Vacation rentals (3% commission)
 3. **GetYourGuide** - Tours & activities (8-12% commission)
 4. **Viator** - Tours & experiences (8-10% commission)
 
@@ -180,7 +180,7 @@ Every blog post follows this proven storytelling structure:
    - Booking.com: 25-40% commission
    - GetYourGuide: 8-12% commission
    - Viator: 8-10% commission
-   - Airbnb: 3% commission
+   - sleek: 3% commission
 
 2. **Google Ads** (20% of revenue)
    - CPM: $2-5 per 1000 impressions
@@ -225,7 +225,7 @@ IMPORTANCE LEVEL:
 ## 🔧 Implementation Checklist
 
 ### Required Components:
-- [ ] `<AccommodationCTA />` - Booking.com + Airbnb links
+- [ ] `<AccommodationCTA />` - Booking.com + sleek links
 - [ ] `<ActivitiesCTA />` - GetYourGuide + Viator links
 - [ ] `<QuickBookingWidget />` - Sidebar booking widget
 - [ ] `<AuthorMonetizationPromo />` - Earn money promotion
@@ -236,7 +236,7 @@ IMPORTANCE LEVEL:
 
 ### Required Functions:
 - [ ] `generateBookingLink()` - Booking.com affiliate
-- [ ] `generateAirbnbLink()` - Airbnb affiliate
+- [ ] `generatesleekLink()` - sleek affiliate
 - [ ] `generateGetYourGuideLink()` - GetYourGuide affiliate
 - [ ] `generateViatorLink()` - Viator affiliate
 - [ ] `trackAffiliateClick()` - Track clicks for revenue attribution

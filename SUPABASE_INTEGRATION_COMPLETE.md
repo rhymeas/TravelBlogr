@@ -266,7 +266,7 @@ This creates the function to track location visits.
 
 ### **Frontend (Display):**
 - ✅ Real-time data from Supabase
-- ✅ Beautiful Airbnb-style design
+- ✅ Beautiful sleek-style design
 - ✅ Responsive layout
 - ✅ Fast page loads (static generation)
 - ✅ SEO-friendly URLs
@@ -301,7 +301,7 @@ This creates the function to track location visits.
 
 1. ✅ **Seamless Integration** - CMS data flows directly to frontend
 2. ✅ **Zero Manual Work** - Everything auto-filled
-3. ✅ **Beautiful Design** - Professional Airbnb-style UI
+3. ✅ **Beautiful Design** - Professional sleek-style UI
 4. ✅ **Real Data** - 200+ restaurants, 200+ activities across locations
 5. ✅ **100% FREE** - No API costs
 6. ✅ **Scalable** - Can add unlimited locations

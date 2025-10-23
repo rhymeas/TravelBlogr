@@ -2,14 +2,14 @@
 
 import { GoogleAd } from './GoogleAd'
 import { useAuth } from '@/hooks/useAuth'
-import { shouldShowAds } from '@/lib/utils/adHelpers'
+import { shouldShowAds, isAdSenseConfigured } from '@/lib/utils/adHelpers'
 
 /**
  * Horizontal Banner Ad Component
- * 
+ *
  * Displays a horizontal banner ad (728x90 or 970x90)
  * Responsive: Shows appropriate size based on screen width
- * 
+ *
  * Usage:
  * <HorizontalBannerAd slot="1234567890" page="homepage" />
  */
@@ -19,19 +19,19 @@ interface HorizontalBannerAdProps {
    * Ad slot ID from Google AdSense
    */
   slot: string
-  
+
   /**
    * Page identifier for analytics
    */
   page?: string
-  
+
   /**
    * Size variant
    * - 'standard': 728x90 (desktop), 320x50 (mobile)
    * - 'large': 970x90 (desktop), 728x90 (tablet), 320x50 (mobile)
    */
   size?: 'standard' | 'large'
-  
+
   /**
    * Additional CSS classes
    */
@@ -46,8 +46,8 @@ export function HorizontalBannerAd({
 }: HorizontalBannerAdProps) {
   const { user } = useAuth()
 
-  // Don't show ads to Pro subscribers
-  if (!shouldShowAds(user)) {
+  // Don't show ads to Pro subscribers OR if AdSense not configured
+  if (!shouldShowAds(user) || !isAdSenseConfigured()) {
     return null
   }
 

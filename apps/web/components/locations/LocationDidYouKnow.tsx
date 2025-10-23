@@ -26,8 +26,8 @@ export function LocationDidYouKnow({ didYouKnow, locationName }: LocationDidYouK
   return (
     <Card className="card-elevated p-6 mb-8">
       <div className="flex items-center gap-3 mb-6">
-        <Info className="h-5 w-5 text-airbnb-gray" />
-        <h3 className="text-title-medium font-semibold text-airbnb-black">
+        <Info className="h-5 w-5 text-sleek-gray" />
+        <h3 className="text-title-medium font-semibold text-sleek-black">
           Did You Know?
         </h3>
       </div>
@@ -36,17 +36,17 @@ export function LocationDidYouKnow({ didYouKnow, locationName }: LocationDidYouK
         {didYouKnow.map((fact) => (
           <div
             key={fact.id}
-            className="border-l-2 border-airbnb-border pl-4 py-2"
+            className="border-l-2 border-sleek-border pl-4 py-2"
           >
             <div className="flex items-start justify-between mb-2">
-              <h4 className="text-body-medium font-semibold text-airbnb-black">
+              <h4 className="text-body-medium font-semibold text-sleek-black">
                 {fact.title}
               </h4>
-              <span className="text-body-small text-airbnb-gray font-medium ml-3 flex-shrink-0">
+              <span className="text-body-small text-sleek-gray font-medium ml-3 flex-shrink-0">
                 {categoryLabels[fact.category]}
               </span>
             </div>
-            <p className="text-body-small text-airbnb-dark-gray leading-relaxed">
+            <p className="text-body-small text-sleek-dark-gray leading-relaxed">
               {fact.content}
             </p>
           </div>
@@ -54,8 +54,8 @@ export function LocationDidYouKnow({ didYouKnow, locationName }: LocationDidYouK
       </div>
 
       {/* CMS Edit Note */}
-      <div className="mt-6 pt-4 border-t border-airbnb-border">
-        <p className="text-body-small text-airbnb-gray italic">
+      <div className="mt-6 pt-4 border-t border-sleek-border">
+        <p className="text-body-small text-sleek-gray italic">
           Facts are curated through the CMS.
           Local experts and community members can contribute insights about each location.
         </p>

@@ -26,15 +26,31 @@ export const createBrowserSupabase = () => {
     throw new Error('Missing Supabase environment variables')
   }
 
+  // CRITICAL: Migrate from old storage key to new one (one-time migration)
+  if (typeof window !== 'undefined') {
+    const oldKey = 'travelblogr-auth-token'
+    const newKey = 'sb-nchhcxokrzabbkvhzsor-auth-token'
+    const oldData = localStorage.getItem(oldKey)
+    const newData = localStorage.getItem(newKey)
+
+    // If old key exists but new key doesn't, migrate
+    if (oldData && !newData) {
+      console.log('🔄 Migrating session from old storage key to new key')
+      localStorage.setItem(newKey, oldData)
+      localStorage.removeItem(oldKey)
+      console.log('✅ Session migrated successfully')
+    }
+  }
+
   // Use simple Supabase client with localStorage
   // This is the most reliable approach for client-side auth
   const client = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
+      persistSession: true, // CRITICAL: Must persist session across page reloads
+      autoRefreshToken: true, // CRITICAL: Auto-refresh tokens before expiry
+      detectSessionInUrl: true, // CRITICAL: Detect OAuth callback params
       storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-      storageKey: 'travelblogr-auth-token',
+      storageKey: 'sb-nchhcxokrzabbkvhzsor-auth-token', // CRITICAL: Must match Supabase's default format
       flowType: 'pkce', // Use PKCE flow for better security
     }
   })
@@ -51,17 +67,20 @@ export const createBrowserSupabase = () => {
     if (!w.__TB_authSyncAttached) {
       // Listen to auth state changes
       client.auth.onAuthStateChange(async (event, session) => {
-        console.log('🔐 Auth state changed:', event, session ? '✅ Session active' : '❌ No session')
+        console.log('🔐 [Supabase Client] Auth state changed:', event, session ? `✅ Session active (user: ${session.user.email})` : '❌ No session')
 
         try {
-          await fetch('/api/auth/session', {
+          console.log('🔐 [Supabase Client] Syncing to server API...')
+          const response = await fetch('/api/auth/session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({ event, session }),
           })
+          const result = await response.json()
+          console.log('🔐 [Supabase Client] Server sync result:', result)
         } catch (e) {
-          console.error('Failed to sync auth session to server:', e)
+          console.error('❌ [Supabase Client] Failed to sync auth session to server:', e)
         }
       })
 

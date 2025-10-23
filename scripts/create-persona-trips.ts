@@ -368,7 +368,7 @@ const tripPlans = [
           {
             day_number: 1,
             title: 'Week 1: Setting Up and Finding My Rhythm',
-            description: 'First week was all about logistics. I\'d booked an Airbnb in Príncipe Real for the first month—central location, great WiFi (tested it before booking!), and a proper desk setup. Spent the first few days testing coworking spaces: tried Second Home, Selina, Heden, and a few local spots. Second Home won for the vibe and the rooftop, but I kept a flexible membership to work from different spots. Also crucial: found my local café (Fábrica Coffee Roasters), grocery store (Pingo Doce), and gym (Urban Sports Club membership works here!).',
+            description: 'First week was all about logistics. I\'d booked an sleek in Príncipe Real for the first month—central location, great WiFi (tested it before booking!), and a proper desk setup. Spent the first few days testing coworking spaces: tried Second Home, Selina, Heden, and a few local spots. Second Home won for the vibe and the rooftop, but I kept a flexible membership to work from different spots. Also crucial: found my local café (Fábrica Coffee Roasters), grocery store (Pingo Doce), and gym (Urban Sports Club membership works here!).',
             activities: ['Apartment setup', 'Coworking space trials', 'Neighborhood exploration', 'SIM card and admin tasks', 'First client calls from new base'],
             tips: 'Get a local SIM immediately—MEO and Vodafone have good data plans. Test WiFi before committing to any accommodation. Join the Lisbon Digital Nomads Facebook group before arriving!'
           },

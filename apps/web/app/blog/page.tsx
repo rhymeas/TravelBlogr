@@ -139,10 +139,10 @@ export default function BlogHomepage() {
       <section className="py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-display-medium font-bold text-airbnb-black mb-4">
+            <h2 className="text-display-medium font-bold text-sleek-black mb-4">
               Featured Stories
             </h2>
-            <p className="text-body-medium text-airbnb-dark-gray">
+            <p className="text-body-medium text-sleek-dark-gray">
               Handpicked travel stories that inspire
             </p>
           </div>
@@ -193,10 +193,10 @@ export default function BlogHomepage() {
       <section className="py-16 lg:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-display-medium font-bold text-airbnb-black mb-4">
+            <h2 className="text-display-medium font-bold text-sleek-black mb-4">
               Latest Adventures
             </h2>
-            <p className="text-body-medium text-airbnb-dark-gray">
+            <p className="text-body-medium text-sleek-dark-gray">
               Fresh stories from travelers around the world
             </p>
           </div>
@@ -292,10 +292,10 @@ export default function BlogHomepage() {
       <section className="py-16 lg:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-display-medium font-bold text-airbnb-black mb-4">
+            <h2 className="text-display-medium font-bold text-sleek-black mb-4">
               Earn Money from Your Stories
             </h2>
-            <p className="text-body-medium text-airbnb-dark-gray">
+            <p className="text-body-medium text-sleek-dark-gray">
               Multiple ways to monetize your travel content
             </p>
           </div>
@@ -308,7 +308,7 @@ export default function BlogHomepage() {
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">70% Affiliate Commission</h3>
               <p className="text-gray-600 mb-4">
-                Earn when readers book hotels, tours, or flights through your recommendations. Integrated with Booking.com, Airbnb, GetYourGuide, and more.
+                Earn when readers book hotels, tours, or flights through your recommendations. Integrated with Booking.com, sleek, GetYourGuide, and more.
               </p>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li className="flex items-center gap-2">

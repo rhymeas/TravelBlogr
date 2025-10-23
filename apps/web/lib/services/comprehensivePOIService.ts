@@ -24,6 +24,7 @@ import { getYelpPOIs } from './yelpService'
 import { getWikidataPOIs } from './wikidataService'
 import { getNominatimPOIs } from './nominatimService'
 import { isFeatureEnabled } from '@/lib/featureFlags'
+import { getOrSet, CacheKeys, CacheTTL } from '@/lib/upstash'
 
 export interface ComprehensivePOI {
   id?: string
@@ -75,13 +76,19 @@ export async function getComprehensivePOIs(
   console.log(`🔍 Fetching comprehensive POIs for: ${locationName}`)
   console.log(`   Travel type: ${travelType}, Budget: ${budget}, Radius: ${radius}km`)
 
-  const allPOIs: ComprehensivePOI[] = []
+  // OPTIMIZATION: Check Upstash cache first (< 10ms)
+  const cacheKey = CacheKeys.poi(locationName, travelType)
+  const cachedPOIs = await getOrSet<ComprehensivePOI[]>(
+    cacheKey,
+    async () => {
+      console.log('⏰ Upstash cache miss, fetching from all sources...')
+      const allPOIs: ComprehensivePOI[] = []
 
-  // LAYER 1: Database (fastest, our cached data)
-  console.log('📍 Layer 1: Checking database...')
-  const dbPOIs = await fetchDatabasePOIs(locationName, coordinates, limit, useServerClient)
-  allPOIs.push(...dbPOIs)
-  console.log(`   ✅ Found ${dbPOIs.length} POIs in database`)
+      // LAYER 1: Database (fastest, our cached data)
+      console.log('📍 Layer 1: Checking database...')
+      const dbPOIs = await fetchDatabasePOIs(locationName, coordinates, limit, useServerClient)
+      allPOIs.push(...dbPOIs)
+      console.log(`   ✅ Found ${dbPOIs.length} POIs in database`)
 
   // LAYER 2: OpenTripMap (free, good for attractions)
   if (coordinates && allPOIs.length < limit) {
@@ -131,21 +138,27 @@ export async function getComprehensivePOIs(
     console.log(`   ✅ Found ${nominatimPOIs.length} POIs from Nominatim`)
   }
 
-  // LAYER 8: GROQ AI (ultimate fallback - always provides results)
-  if (allPOIs.length < 5) {
-    console.log('🤖 Layer 8: Using GROQ AI fallback...')
-    const groqPOIs = await fetchGroqPOIs(locationName, coordinates, travelType, budget, interests, limit)
-    allPOIs.push(...groqPOIs)
-    console.log(`   ✅ Generated ${groqPOIs.length} POIs from GROQ AI`)
-  }
+      // LAYER 8: GROQ AI (ultimate fallback - always provides results)
+      if (allPOIs.length < 5) {
+        console.log('🤖 Layer 8: Using GROQ AI fallback...')
+        const groqPOIs = await fetchGroqPOIs(locationName, coordinates, travelType, budget, interests, limit)
+        allPOIs.push(...groqPOIs)
+        console.log(`   ✅ Generated ${groqPOIs.length} POIs from GROQ AI`)
+      }
 
-  // Deduplicate and rank
-  const uniquePOIs = deduplicatePOIs(allPOIs)
-  const rankedPOIs = rankPOIs(uniquePOIs, travelType, interests)
+      // Deduplicate and rank
+      const uniquePOIs = deduplicatePOIs(allPOIs)
+      const rankedPOIs = rankPOIs(uniquePOIs, travelType, interests)
 
-  console.log(`✅ Total POIs: ${rankedPOIs.length} (from ${allPOIs.length} before dedup)`)
+      console.log(`✅ Total POIs: ${rankedPOIs.length} (from ${allPOIs.length} before dedup)`)
 
-  return rankedPOIs.slice(0, limit)
+      return rankedPOIs.slice(0, limit)
+    },
+    CacheTTL.POI // 7 days
+  )
+
+  console.log(`✅ Returning ${cachedPOIs.length} POIs for ${locationName} (${travelType})`)
+  return cachedPOIs
 }
 
 /**

@@ -1,8 +1,8 @@
-# 🎨 Full Gallery View - Airbnb Photo Tour Inspired
+# 🎨 Full Gallery View - sleek Photo Tour Inspired
 
 ## ✅ **COMPLETE** - Full-Page Photo Gallery Implemented!
 
-Your TravelBlogr now features a **dedicated full-page photo gallery** inspired by Airbnb's photo tour, with a beautiful masonry grid layout, breadcrumb navigation, and seamless lightbox integration.
+Your TravelBlogr now features a **dedicated full-page photo gallery** inspired by sleek's photo tour, with a beautiful masonry grid layout, breadcrumb navigation, and seamless lightbox integration.
 
 ---
 
@@ -330,7 +330,7 @@ analytics.track('Gallery Shared', {
 
 ## 🎉 Summary
 
-✅ **Full-page gallery view** inspired by Airbnb
+✅ **Full-page gallery view** inspired by sleek
 ✅ **Masonry grid layout** with varied heights
 ✅ **Sticky header** with breadcrumb navigation
 ✅ **Seamless lightbox** integration

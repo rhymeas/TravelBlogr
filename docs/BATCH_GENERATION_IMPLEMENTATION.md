@@ -50,7 +50,7 @@ Fetch trips with:
     ↓
 For each trip:
   - Get location intelligence (POIs, activities, existing content)
-  - Generate affiliate links (Booking, Airbnb, GetYourGuide, Viator)
+  - Generate affiliate links (Booking, sleek, GetYourGuide, Viator)
   - Build rich context
     ↓
 Create GROQ batch request:
@@ -73,7 +73,7 @@ Process results → Create blog posts
 - ✅ Day-by-day posts with content
 - ✅ Location intelligence (from database)
 - ✅ POIs and activities (from database + external APIs)
-- ✅ Affiliate links (Booking, Airbnb, GetYourGuide, Viator)
+- ✅ Affiliate links (Booking, sleek, GetYourGuide, Viator)
 - ✅ Trip plan data (AI-generated itinerary)
 - ✅ Images and media
 
@@ -176,7 +176,7 @@ CREATE TABLE batch_jobs (
 **Design System Compliance:**
 - ✅ Uses existing `Card`, `Button`, `Badge` components
 - ✅ No custom CSS - only Tailwind utility classes
-- ✅ Follows Airbnb-inspired design (rausch-500 primary color)
+- ✅ Follows sleek-inspired design (rausch-500 primary color)
 - ✅ Responsive grid layout
 - ✅ Accessible with proper ARIA labels
 
@@ -241,7 +241,7 @@ const affiliateLinks = getAllAffiliateLinks({
 
 // Returns:
 // - booking: Booking.com link with affiliate ID
-// - airbnb: Airbnb link with affiliate ID
+// - sleek: sleek link with affiliate ID
 // - activities: GetYourGuide link
 // - tours: Viator link
 ```

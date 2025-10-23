@@ -134,7 +134,7 @@ export function CreditWidget() {
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">Available Credits</span>
-            <span className="text-2xl font-bold text-airbnb-black">
+            <span className="text-2xl font-bold text-sleek-black">
               {stats?.remaining || 0}
             </span>
           </div>
@@ -150,7 +150,7 @@ export function CreditWidget() {
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">Free Tier This Month</span>
-            <span className="text-sm font-medium text-airbnb-black">
+            <span className="text-sm font-medium text-sleek-black">
               {stats?.monthlyUsage || 0} / 20 used
             </span>
           </div>
@@ -172,7 +172,7 @@ export function CreditWidget() {
 
         {/* Credit Packs */}
         <div>
-          <h4 className="text-sm font-semibold text-airbnb-black mb-3">
+          <h4 className="text-sm font-semibold text-sleek-black mb-3">
             Purchase Credits
           </h4>
           

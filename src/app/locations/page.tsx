@@ -74,14 +74,14 @@ export default function LocationsPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white sticky top-0 z-50 border-b border-gray-300 shadow-airbnb-light">
+      <header className="bg-white sticky top-0 z-50 border-b border-gray-300 shadow-sleek-light">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
           <div className="flex lg:flex-1">
             <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <div className="w-8 h-8 bg-rausch-500 rounded-lg flex items-center justify-center">
                 <MapPin className="h-5 w-5 text-white" />
               </div>
-              <span className="text-title-medium text-airbnb-black font-semibold">TravelBlogr</span>
+              <span className="text-title-medium text-sleek-black font-semibold">TravelBlogr</span>
             </Link>
           </div>
           
@@ -89,16 +89,16 @@ export default function LocationsPage() {
             <Link href="/locations" className="text-body-large font-medium text-rausch-500 py-2 px-3 rounded-lg bg-rausch-50">
               Locations
             </Link>
-            <Link href="/live-feed" className="text-body-large font-medium text-airbnb-black hover:text-airbnb-dark-gray transition-colors py-2 px-3 rounded-lg hover:bg-gray-50">
+            <Link href="/live-feed" className="text-body-large font-medium text-sleek-black hover:text-sleek-dark-gray transition-colors py-2 px-3 rounded-lg hover:bg-gray-50">
               Live Feed
             </Link>
           </div>
           
           <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:gap-3">
-            <Link href="/auth/signin" className="text-body-large font-medium text-airbnb-black hover:text-airbnb-dark-gray transition-colors py-2 px-4 rounded-lg hover:bg-gray-50">
+            <Link href="/auth/signin" className="text-body-large font-medium text-sleek-black hover:text-sleek-dark-gray transition-colors py-2 px-4 rounded-lg hover:bg-gray-50">
               Sign in
             </Link>
-            <Link href="/auth/signup" className="btn-primary text-body-large font-semibold px-6 py-3 rounded-airbnb-small hover:scale-105 transition-transform">
+            <Link href="/auth/signup" className="btn-primary text-body-large font-semibold px-6 py-3 rounded-sleek-small hover:scale-105 transition-transform">
               Get Started
             </Link>
           </div>
@@ -109,10 +109,10 @@ export default function LocationsPage() {
       <section className="py-16 bg-gray-50">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-display-large text-airbnb-black mb-4">
+            <h1 className="text-display-large text-sleek-black mb-4">
               Discover Amazing Destinations
             </h1>
-            <p className="text-body-large text-airbnb-dark-gray max-w-2xl mx-auto leading-relaxed">
+            <p className="text-body-large text-sleek-dark-gray max-w-2xl mx-auto leading-relaxed">
               Explore travel stories and experiences from destinations around the world. Get inspired for your next adventure.
             </p>
           </div>
@@ -124,7 +124,7 @@ export default function LocationsPage() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {sampleLocations.map((location) => (
-              <div key={location.id} className="card-elevated hover:shadow-airbnb-large transition-all duration-300 overflow-hidden group">
+              <div key={location.id} className="card-elevated hover:shadow-sleek-large transition-all duration-300 overflow-hidden group">
                 {/* Image */}
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <img
@@ -135,7 +135,7 @@ export default function LocationsPage() {
                   
                   {/* Rating Badge */}
                   <div className="absolute top-3 right-3">
-                    <div className="bg-white/95 backdrop-blur-sm rounded-airbnb-small px-3 py-1 text-body-small font-semibold text-airbnb-black shadow-airbnb-light flex items-center gap-1">
+                    <div className="bg-white/95 backdrop-blur-sm rounded-sleek-small px-3 py-1 text-body-small font-semibold text-sleek-black shadow-sleek-light flex items-center gap-1">
                       <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                       {location.rating}
                     </div>
@@ -143,11 +143,11 @@ export default function LocationsPage() {
 
                   {/* Stats Overlay */}
                   <div className="absolute bottom-3 right-3 flex gap-2">
-                    <div className="bg-black/70 backdrop-blur-sm text-white text-body-small px-2 py-1 rounded-airbnb-small flex items-center gap-1">
+                    <div className="bg-black/70 backdrop-blur-sm text-white text-body-small px-2 py-1 rounded-sleek-small flex items-center gap-1">
                       <Eye className="h-3 w-3" />
                       {location.visitCount}
                     </div>
-                    <div className="bg-black/70 backdrop-blur-sm text-white text-body-small px-2 py-1 rounded-airbnb-small flex items-center gap-1">
+                    <div className="bg-black/70 backdrop-blur-sm text-white text-body-small px-2 py-1 rounded-sleek-small flex items-center gap-1">
                       <Camera className="h-3 w-3" />
                       {location.postCount}
                     </div>
@@ -157,10 +157,10 @@ export default function LocationsPage() {
                 {/* Content */}
                 <div className="p-6">
                   <div className="mb-2">
-                    <h3 className="text-title-small text-airbnb-black font-semibold mb-1 group-hover:text-rausch-500 transition-colors">
+                    <h3 className="text-title-small text-sleek-black font-semibold mb-1 group-hover:text-rausch-500 transition-colors">
                       {location.name}
                     </h3>
-                    <div className="flex items-center gap-1 text-body-medium text-airbnb-dark-gray">
+                    <div className="flex items-center gap-1 text-body-medium text-sleek-dark-gray">
                       <MapPin className="h-4 w-4" />
                       <span>
                         {location.region && `${location.region}, `}{location.country}
@@ -168,7 +168,7 @@ export default function LocationsPage() {
                     </div>
                   </div>
 
-                  <p className="text-body-medium text-airbnb-dark-gray leading-relaxed mb-4">
+                  <p className="text-body-medium text-sleek-dark-gray leading-relaxed mb-4">
                     {location.description}
                   </p>
 
@@ -190,15 +190,15 @@ export default function LocationsPage() {
       <section className="py-16 bg-gray-50">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-display-small text-airbnb-black mb-4">
+            <h2 className="text-display-small text-sleek-black mb-4">
               Share Your Own Travel Stories
             </h2>
-            <p className="text-body-large text-airbnb-dark-gray mb-8 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-body-large text-sleek-dark-gray mb-8 max-w-2xl mx-auto leading-relaxed">
               Join our community of travelers and share your adventures with the world.
             </p>
             <Link 
               href="/auth/signup"
-              className="btn-primary px-8 py-4 text-body-large font-semibold rounded-airbnb-small hover:scale-105 transition-transform inline-flex items-center gap-2"
+              className="btn-primary px-8 py-4 text-body-large font-semibold rounded-sleek-small hover:scale-105 transition-transform inline-flex items-center gap-2"
             >
               Start Sharing
               <ArrowRight className="h-4 w-4" />

@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Star, Save, Trash2, Camera, X } from 'lucide-react'
+import { Star, Save, Trash2, Camera, X, Sparkles, StickyNote } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { AIQuickHelpButton } from '@/components/shared/AIQuickHelpButton'
 import toast from 'react-hot-toast'
 
 interface NotesWidgetProps {
@@ -21,14 +22,37 @@ interface Note {
   dish_recommendations?: string | null
 }
 
+interface NoteItem {
+  text: string
+  checked?: boolean
+}
+
 export function NotesWidget({ type, itemId, itemName, userId }: NotesWidgetProps) {
   const [note, setNote] = useState<Note | null>(null)
   const [noteText, setNoteText] = useState('')
+  const [noteItems, setNoteItems] = useState<NoteItem[]>([])
   const [rating, setRating] = useState<number | null>(null)
   const [hoverRating, setHoverRating] = useState<number | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [noteType, setNoteType] = useState<string>('general')
+
+  // Ensure at least one bullet input is present when entering edit mode
+  useEffect(() => {
+    if (isEditing && noteItems.length === 0) {
+      try {
+        const parsed = noteText
+          .split('\n')
+          .map((l) => l.replace(/^\s*[\u2022*-]\s?/, '').trim())
+          .filter(Boolean)
+          .map((t) => ({ text: t, checked: false }))
+        setNoteItems(parsed.length ? parsed : [{ text: '', checked: false }])
+      } catch {
+        setNoteItems([{ text: '', checked: false }])
+      }
+    }
+  }, [isEditing])
 
   // Fetch existing note
   useEffect(() => {
@@ -45,7 +69,26 @@ export function NotesWidget({ type, itemId, itemName, userId }: NotesWidgetProps
 
         if (data.success && data.data) {
           setNote(data.data)
-          setNoteText(data.data.note_text || '')
+          const text = data.data.note_text || ''
+          setNoteText(text)
+          // Prefer structured JSON note items if present; fallback to plain lines
+          let items: NoteItem[] = []
+          try {
+            const parsed = JSON.parse(text)
+            if (Array.isArray(parsed)) {
+              items = parsed
+                .map((it) => ({ text: String(it.text ?? it), checked: Boolean(it.checked) }))
+                .filter((it) => it.text && it.text.trim().length > 0)
+            }
+          } catch {}
+          if (!items.length) {
+            items = text
+              .split('\n')
+              .map((l: string) => l.replace(/^\s*[•*-]\s?/, '').trim())
+              .filter((l: string) => l.length > 0)
+              .map((t: string) => ({ text: t, checked: false }))
+          }
+          setNoteItems(items)
           setRating(data.data.rating)
         }
       } catch (error) {
@@ -64,7 +107,12 @@ export function NotesWidget({ type, itemId, itemName, userId }: NotesWidgetProps
       return
     }
 
-    if (!noteText.trim() && !rating) {
+    const compiledText = noteItems.length
+      ? noteItems.map(i => `• ${i.text.trim()}`).join('\n')
+      : noteText.trim()
+
+    const hasAnyContent = (noteItems.some(i => i.text.trim().length > 0)) || !!rating
+    if (!hasAnyContent) {
       toast.error('Please add a note or rating')
       return
     }
@@ -78,7 +126,8 @@ export function NotesWidget({ type, itemId, itemName, userId }: NotesWidgetProps
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           [`${type}Id`]: itemId,
-          noteText: noteText.trim() || null,
+          noteText: compiledText || null,
+          noteItems: noteItems,
           rating,
           photos: [],
           isPrivate: true,
@@ -166,23 +215,27 @@ export function NotesWidget({ type, itemId, itemName, userId }: NotesWidgetProps
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4">
+    <div className="bg-gray-50 border border-gray-200 rounded-lg p-5">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-semibold text-gray-900">
-          {isEditing ? 'Your Note' : 'My Note'}
-        </h4>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <StickyNote className="h-4 w-4 text-gray-400" />
+          <h4 className="text-sm font-semibold text-black">
+            {isEditing ? 'Your Personal Note' : 'My Travel Note'}
+          </h4>
+          <span className="ml-2 text-[11px] text-gray-500">🔒 Private to you</span>
+        </div>
         {note && !isEditing && (
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsEditing(true)}
-              className="text-gray-600 hover:text-gray-900 text-xs"
+              className="text-gray-500 hover:text-black text-xs font-medium transition-colors"
             >
               Edit
             </button>
             <button
               onClick={handleDelete}
-              className="text-red-600 hover:text-red-700 text-xs"
+              className="text-gray-400 hover:text-gray-700 text-xs"
               disabled={saving}
             >
               <Trash2 className="h-3 w-3" />
@@ -203,16 +256,16 @@ export function NotesWidget({ type, itemId, itemName, userId }: NotesWidgetProps
             className={`transition-colors ${isEditing ? 'cursor-pointer' : 'cursor-default'}`}
           >
             <Star
-              className={`h-5 w-5 ${
+              className={`h-4 w-4 ${
                 star <= (hoverRating || rating || 0)
-                  ? 'fill-yellow-400 text-yellow-400'
+                  ? 'fill-black text-black'
                   : 'text-gray-300'
               }`}
             />
           </button>
         ))}
         {rating && (
-          <span className="text-sm text-gray-600 ml-2">
+          <span className="text-xs text-gray-500 ml-2">
             {rating}/5
           </span>
         )}
@@ -221,20 +274,115 @@ export function NotesWidget({ type, itemId, itemName, userId }: NotesWidgetProps
       {/* Note Text */}
       {isEditing ? (
         <div className="space-y-3">
-          <textarea
-            value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
-            placeholder={`Add your thoughts about ${itemName}...`}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            rows={4}
-          />
+          {/* Inline bullet inputs */}
+          <div className="space-y-2">
+            {noteItems.map((pt, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <span className="text-xl leading-none text-black select-none">•</span>
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-full px-3 py-1.5 w-full">
+                  <input
+                    type="checkbox"
+                    checked={!!pt.checked}
+                    onChange={(e) => {
+                      const next = [...noteItems]
+                      next[idx] = { ...pt, checked: e.target.checked }
+                      setNoteItems(next)
+                    }}
+                    className="h-3.5 w-3.5 rounded border-gray-300 text-black focus:ring-black"
+                  />
+                  <input
+                    value={pt.text}
+                    onChange={(e) => {
+                      const next = [...noteItems]
+                      next[idx] = { ...pt, text: e.target.value }
+                      setNoteItems(next)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        const next = [...noteItems]
+                        next.splice(idx + 1, 0, { text: '', checked: false })
+                        setNoteItems(next)
+                      } else if (e.key === 'Backspace' && pt.text.length === 0) {
+                        e.preventDefault()
+                        const next = [...noteItems]
+                        next.splice(idx, 1)
+                        setNoteItems(next.length ? next : [{ text: '', checked: false }])
+                      }
+                    }}
+                    placeholder="Write a note..."
+                    className="flex-1 border-none focus:ring-0 bg-transparent rounded-sm px-0 text-sm leading-relaxed placeholder-gray-400"
+                  />
+                </div>
+              </div>
+            ))}
+            {/* Quick add */}
+            <button
+              onClick={() => setNoteItems([...noteItems, { text: '', checked: false }])}
+              className="text-xs font-medium text-gray-600 hover:text-gray-800"
+              type="button"
+            >
+              + Add note
+            </button>
+          </div>
+
+          {/* AI Help Controls */}
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={noteType}
+              onChange={(e) => setNoteType(e.target.value)}
+              className="px-2 py-1 text-xs border border-gray-300 rounded-md bg-white text-gray-700 focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
+            >
+              <option value="general">General</option>
+              <option value="tips">Travel Tips</option>
+              <option value="food">Food</option>
+              <option value="culture">Culture</option>
+              <option value="outdoor">Outdoor</option>
+              <option value="hidden-gems">Hidden Gems</option>
+            </select>
+
+            <AIQuickHelpButton
+              mode="generate"
+              fieldType="highlights"
+              currentValue={noteItems.map(i => i.text)}
+              locationName={itemName}
+              noteType={noteType}
+              onApply={(newValue) => {
+                const items = newValue
+                  .split('\n')
+                  .map((l) => l.replace(/^\s*[•*-]\s?/, '').trim())
+                  .filter(Boolean)
+                setNoteItems(items.length ? items.slice(0, 6).map(t => ({ text: t, checked: false })) : [{ text: '', checked: false }])
+              }}
+              size="sm"
+              className="text-xs"
+            />
+            <AIQuickHelpButton
+              mode="improve"
+              fieldType="highlights"
+              currentValue={noteItems.map(i => i.text)}
+              locationName={itemName}
+              noteType={noteType}
+              onApply={(newValue) => {
+                const items = newValue
+                  .split('\n')
+                  .map((l) => l.replace(/^\s*[•*-]\s?/, '').trim())
+                  .filter(Boolean)
+                setNoteItems(items.length ? items.slice(0, 6).map(t => ({ text: t, checked: false })) : [{ text: '', checked: false }])
+              }}
+              size="sm"
+              className="text-xs"
+            />
+          </div>
+
           <div className="flex items-center gap-2">
             <Button
               onClick={handleSave}
-              disabled={saving || (!noteText.trim() && !rating)}
-              className="flex items-center gap-2"
+              disabled={saving || ((noteItems.every(i => !i.text.trim())) && !rating)}
+              className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white text-sm"
+              size="sm"
             >
-              <Save className="h-4 w-4" />
+              <Save className="h-3.5 w-3.5" />
               {saving ? 'Saving...' : 'Save Note'}
             </Button>
             <Button
@@ -249,14 +397,74 @@ export function NotesWidget({ type, itemId, itemName, userId }: NotesWidgetProps
                 }
               }}
               variant="outline"
+              size="sm"
+              className="text-sm border-gray-300 text-gray-700 hover:bg-gray-100"
             >
               Cancel
             </Button>
           </div>
         </div>
+      ) : note ? (
+        <div className="space-y-2">
+          {noteItems.map((pt, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <span className="text-xl leading-none text-black select-none">•</span>
+              <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-full px-3 py-1.5 w-full">
+                <input
+                  type="checkbox"
+                  checked={!!pt.checked}
+                  onChange={async (e) => {
+                    const next = [...noteItems]
+                    next[idx] = { ...pt, checked: e.target.checked }
+                    setNoteItems(next)
+                    // silent save of check state
+                    try {
+                      await fetch(`/api/notes/${type}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          [`${type}Id`]: itemId,
+                          noteText: noteText,
+                          noteItems: next,
+                          rating,
+                          photos: [],
+                          isPrivate: true,
+                        }),
+                      })
+                    } catch {}
+                  }}
+                  className="h-3.5 w-3.5 rounded border-gray-300 text-black focus:ring-black"
+                />
+                <span
+                  className={`flex-1 text-sm ${pt.checked ? 'line-through text-gray-400' : 'text-black'}`}
+                  onClick={() => setIsEditing(true)}
+                >
+                  {pt.text}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
-        <div className="text-sm text-gray-700 whitespace-pre-wrap">
-          {noteText || <span className="text-gray-400 italic">No notes yet</span>}
+        /* Empty State - Encourage Note Creation */
+        <div className="text-center py-6 bg-white rounded-md border border-dashed border-gray-300">
+          <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
+            <StickyNote className="h-5 w-5 text-gray-400" />
+          </div>
+          <h5 className="text-sm font-semibold text-black mb-1">
+            Create Your Personal Travel Note
+          </h5>
+          <p className="text-xs text-gray-600 mb-4 max-w-xs mx-auto">
+            Save your thoughts, tips, and memories about {itemName}. Your notes stay private and help you plan future trips.
+          </p>
+          <Button
+            onClick={() => setIsEditing(true)}
+            className="bg-black hover:bg-gray-800 text-white text-sm"
+            size="sm"
+          >
+            <StickyNote className="h-3.5 w-3.5 mr-2" />
+            Add My Note
+          </Button>
         </div>
       )}
     </div>

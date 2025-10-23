@@ -308,8 +308,13 @@ export function MultipleImageUpload({
         }
       }
 
-      toast.success(`${uploadResults.length} images uploaded successfully!`)
-      onUploadComplete(uploadResults)
+      if (uploadResults.length > 0) {
+        toast.success(`${uploadResults.length} image${uploadResults.length>1?'s':''} uploaded successfully!`)
+        onUploadComplete(uploadResults)
+      } else {
+        toast.error('No images were uploaded')
+        onUploadError?.('No images were uploaded')
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to upload images'
       toast.error(errorMessage)

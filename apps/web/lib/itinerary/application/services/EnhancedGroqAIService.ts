@@ -81,7 +81,7 @@ Output Schema (STRICT JSON):
           "to": "string - ONLY for travel items",
           "mode": "string - ONLY for travel items (car/train/bike/flight)",
           "distance": "string - ONLY for travel items (e.g., '120 km')",
-          "accommodationType": "string - ONLY for stay items (hotel/hostel/guesthouse/airbnb)",
+          "accommodationType": "string - ONLY for stay items (hotel/hostel/guesthouse/sleek)",
           "reason": "string - ONLY for stay items (why stop here)"
         }
       ]
@@ -281,7 +281,7 @@ CRITICAL: For trips with ${Math.round(context.routeDuration)} hours of travel ti
 
 3. **Include "stay" items** with:
    - Location name (real city/town along the route)
-   - Accommodation type (hotel, hostel, guesthouse, Airbnb)
+   - Accommodation type (hotel, hostel, guesthouse, sleek)
    - Budget-appropriate suggestions (${context.budget} budget)
    - Brief reason why this is a good overnight stop
 

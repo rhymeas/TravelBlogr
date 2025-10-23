@@ -3,13 +3,11 @@
 import { useState, useEffect } from 'react'
 import {
   Heart,
-  Bookmark,
   Plus,
   Check,
-  StickyNote,
-  Star,
+  Calendar,
   MapPin,
-  Calendar
+  Star
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -29,9 +27,6 @@ export function AuthenticatedLocationActions({
   const { isAuthenticated } = useAuth()
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [isVisited, setIsVisited] = useState(false)
-  const [showNotes, setShowNotes] = useState(false)
-  const [notes, setNotes] = useState('')
-  const [userRating, setUserRating] = useState(0)
   const [showTripSelector, setShowTripSelector] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -50,6 +45,29 @@ export function AuthenticatedLocationActions({
     }
   }, [isAuthenticated, locationId])
 
+  // Listen for wishlist changes from other components
+  useEffect(() => {
+    const handleWishlistChange = (event: CustomEvent) => {
+      if (event.detail.locationId === locationId) {
+        setIsWishlisted(event.detail.isWishlisted)
+      }
+    }
+
+    const handleVisitedChange = (event: CustomEvent) => {
+      if (event.detail.locationId === locationId) {
+        setIsVisited(event.detail.isVisited)
+      }
+    }
+
+    window.addEventListener('wishlistChanged' as any, handleWishlistChange)
+    window.addEventListener('visitedChanged' as any, handleVisitedChange)
+
+    return () => {
+      window.removeEventListener('wishlistChanged' as any, handleWishlistChange)
+      window.removeEventListener('visitedChanged' as any, handleVisitedChange)
+    }
+  }, [locationId])
+
   const loadCustomization = async () => {
     try {
       const response = await fetch(`/api/locations/${locationId}/customize`)
@@ -59,8 +77,6 @@ export function AuthenticatedLocationActions({
         const custom = data.customization
         setIsWishlisted(custom.is_wishlisted || false)
         setIsVisited(custom.is_visited || false)
-        setNotes(custom.personal_notes || '')
-        setUserRating(custom.user_rating || 0)
       }
     } catch (error) {
       console.error('Error loading customization:', error)
@@ -103,6 +119,11 @@ export function AuthenticatedLocationActions({
     const success = await saveCustomization({ isWishlisted: newValue })
     if (success) {
       toast.success(newValue ? 'Added to wishlist' : 'Removed from wishlist')
+
+      // Notify other components
+      window.dispatchEvent(new CustomEvent('wishlistChanged', {
+        detail: { locationId, isWishlisted: newValue }
+      }))
     } else {
       setIsWishlisted(!newValue) // Revert on failure
     }
@@ -119,26 +140,13 @@ export function AuthenticatedLocationActions({
 
     if (success) {
       toast.success(newValue ? 'Marked as visited' : 'Marked as not visited')
+
+      // Notify other components
+      window.dispatchEvent(new CustomEvent('visitedChanged', {
+        detail: { locationId, isVisited: newValue }
+      }))
     } else {
       setIsVisited(!newValue) // Revert on failure
-    }
-  }
-
-  const handleSaveNotes = async () => {
-    const success = await saveCustomization({ personalNotes: notes })
-    if (success) {
-      toast.success('Notes saved successfully')
-      setShowNotes(false)
-    }
-  }
-
-  const handleRating = async (rating: number) => {
-    setUserRating(rating)
-    const success = await saveCustomization({ userRating: rating })
-    if (success) {
-      toast.success(`Rated ${rating} stars`)
-    } else {
-      setUserRating(0) // Revert on failure
     }
   }
 
@@ -151,7 +159,7 @@ export function AuthenticatedLocationActions({
     <div className="space-y-4">
       {/* Quick Actions */}
       <Card className="card-elevated p-4">
-        <h3 className="text-title-small text-airbnb-black mb-3">Your Actions</h3>
+        <h3 className="text-title-small text-sleek-black mb-3">Your Actions</h3>
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
@@ -182,32 +190,22 @@ export function AuthenticatedLocationActions({
             <Check className={`h-4 w-4 mr-2 ${isVisited ? 'fill-current' : ''}`} />
             {isVisited ? 'Visited' : 'Mark as Visited'}
           </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowNotes(!showNotes)}
-            className="btn-secondary"
-          >
-            <StickyNote className="h-4 w-4 mr-2" />
-            Notes
-          </Button>
         </div>
 
         {/* Trip Selector */}
         {showTripSelector && (
-          <div className="mt-4 p-3 bg-airbnb-background-secondary rounded-airbnb-small">
-            <h4 className="text-body-medium font-medium text-airbnb-black mb-2">Add to Trip:</h4>
+          <div className="mt-4 p-3 bg-sleek-background-secondary rounded-sleek-small">
+            <h4 className="text-body-medium font-medium text-sleek-black mb-2">Add to Trip:</h4>
             <div className="space-y-2">
               {userTrips.map((trip) => (
                 <button
                   key={trip.id}
                   onClick={() => handleAddToTrip(trip.id, trip.title)}
-                  className="w-full text-left p-2 rounded-airbnb-small hover:bg-white transition-colors flex items-center justify-between"
+                  className="w-full text-left p-2 rounded-sleek-small hover:bg-white transition-colors flex items-center justify-between"
                 >
                   <div>
-                    <div className="text-body-medium text-airbnb-black">{trip.title}</div>
-                    <div className="text-body-small text-airbnb-gray capitalize">{trip.status}</div>
+                    <div className="text-body-medium text-sleek-black">{trip.title}</div>
+                    <div className="text-body-small text-sleek-gray capitalize">{trip.status}</div>
                   </div>
                   <Badge className={
                     trip.status === 'published' ? 'bg-green-100 text-green-800' :
@@ -223,7 +221,7 @@ export function AuthenticatedLocationActions({
                   toast.success('Redirecting to create new trip...')
                   setShowTripSelector(false)
                 }}
-                className="w-full text-left p-2 rounded-airbnb-small hover:bg-white transition-colors text-rausch-500 font-medium"
+                className="w-full text-left p-2 rounded-sleek-small hover:bg-white transition-colors text-rausch-500 font-medium"
               >
                 <Plus className="h-4 w-4 inline mr-2" />
                 Create New Trip
@@ -231,55 +229,9 @@ export function AuthenticatedLocationActions({
             </div>
           </div>
         )}
-
-        {/* Notes Section */}
-        {showNotes && (
-          <div className="mt-4 p-3 bg-airbnb-background-secondary rounded-airbnb-small">
-            <h4 className="text-body-medium font-medium text-airbnb-black mb-2">Personal Notes:</h4>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add your personal notes about this location..."
-              className="input-field w-full h-24 resize-none"
-            />
-            <div className="flex gap-2 mt-2">
-              <Button size="sm" onClick={handleSaveNotes} className="btn-primary">
-                Save Notes
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setShowNotes(false)} className="btn-secondary">
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
       </Card>
 
-      {/* Rating Section */}
-      <Card className="card-elevated p-4">
-        <h3 className="text-title-small text-airbnb-black mb-3">Rate This Location</h3>
-        <div className="flex items-center gap-2 mb-2">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              onClick={() => handleRating(star)}
-              className="transition-colors hover:scale-110 transform"
-            >
-              <Star 
-                className={`h-6 w-6 ${
-                  star <= userRating 
-                    ? 'text-yellow-400 fill-current' 
-                    : 'text-gray-300'
-                }`} 
-              />
-            </button>
-          ))}
-        </div>
-        {userRating > 0 && (
-          <p className="text-body-small text-airbnb-gray">
-            You rated this location {userRating} star{userRating !== 1 ? 's' : ''}
-          </p>
-        )}
-      </Card>
+      {/* Rating Section - REMOVED: Rating is already at the top of the page */}
 
       {/* Visit Status */}
       {isVisited && (
@@ -301,7 +253,7 @@ export function AuthenticatedLocationActions({
 
       {/* Travel Planning */}
       <Card className="card-elevated p-4">
-        <h3 className="text-title-small text-airbnb-black mb-3">Plan Your Visit</h3>
+        <h3 className="text-title-small text-sleek-black mb-3">Plan Your Visit</h3>
         <div className="space-y-3">
           <Button variant="outline" className="btn-secondary w-full justify-start">
             <Calendar className="h-4 w-4 mr-2" />

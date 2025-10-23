@@ -69,7 +69,7 @@ function TripDayCardContent({ day, dayImages, isMobile = false }: {
   return (
     <>
       <div className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-3'}`}>
-        <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-airbnb-black`}>
+        <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-sleek-black`}>
           {day.title}
         </h3>
         <div className={`flex items-center gap-1 text-teal-500 ${isMobile ? 'text-[10px]' : 'text-xs'} font-medium`}>
@@ -89,15 +89,15 @@ function TripDayCardContent({ day, dayImages, isMobile = false }: {
         </div>
       )}
 
-      <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-airbnb-dark-gray ${isMobile ? 'mb-2' : 'mb-3'}`}>
+      <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-sleek-dark-gray ${isMobile ? 'mb-2' : 'mb-3'}`}>
         {day.description}
       </p>
 
       {/* Activities */}
       {day.activities && day.activities.length > 0 && (
         <div className={`${isMobile ? 'mb-2' : 'mb-3'}`}>
-          <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} font-medium text-airbnb-black mb-1`}>Activities</p>
-          <ul className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-airbnb-gray space-y-1`}>
+          <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} font-medium text-sleek-black mb-1`}>Activities</p>
+          <ul className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-sleek-gray space-y-1`}>
             {day.activities.slice(0, 3).map((activity, index) => (
               <li key={index} className="flex items-start gap-1">
                 <CheckCircle2 className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} text-green-500 flex-shrink-0 mt-0.5`} />

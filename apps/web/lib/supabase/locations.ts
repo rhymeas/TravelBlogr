@@ -337,3 +337,27 @@ export async function getAllLocationSlugs() {
   }
 }
 
+
+
+/**
+ * Lightweight fetch for photos page: only fields needed for gallery + header
+ */
+export async function getLocationImages(slug: string) {
+  try {
+    const { data, error } = await supabase
+      .from('locations')
+      .select('id,name,slug,country,region,description,featured_image,gallery_images,created_at,rating,visit_count,is_featured,latitude,longitude')
+      .eq('slug', slug)
+      .single()
+
+    if (error) {
+      console.error('Error fetching location images:', error)
+      return null
+    }
+
+    return data as SupabaseLocation
+  } catch (error) {
+    console.error('Error in getLocationImages:', error)
+    return null
+  }
+}

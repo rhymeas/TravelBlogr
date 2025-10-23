@@ -461,7 +461,7 @@ Your original question covered:
    - Track actual spending
 
 5. **Booking Links**
-   - Link to booking.com, Airbnb
+   - Link to booking.com, sleek
    - Restaurant reservations
 
 6. **Export Options**

@@ -11,6 +11,7 @@ import { FeedPost as FeedPostType } from '@/lib/data/feedData'
 import { Button } from '@/components/ui/Button'
 import toast from 'react-hot-toast'
 import { PostCommentsModal } from './PostCommentsModal'
+import { ActivityLikeButton } from '@/components/social/ActivityLikeButton'
 
 interface FeedPostProps {
   post: FeedPostType
@@ -21,29 +22,10 @@ interface FeedPostProps {
 }
 
 export function FeedPost({ post, onLike, onBookmark, onComment, showFollowButton = false }: FeedPostProps) {
-  const [isLiked, setIsLiked] = useState(post.isLiked)
   const [isBookmarked, setIsBookmarked] = useState(post.isBookmarked)
-  const [likes, setLikes] = useState(post.likes)
-  const [showLikeAnimation, setShowLikeAnimation] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isFollowing, setIsFollowing] = useState(false)
   const [showCommentsModal, setShowCommentsModal] = useState(false)
-
-  const handleLike = () => {
-    setIsLiked(!isLiked)
-    setLikes(prev => isLiked ? prev - 1 : prev + 1)
-    onLike?.(post.id)
-  }
-
-  const handleDoubleTapLike = () => {
-    if (!isLiked) {
-      setIsLiked(true)
-      setLikes(prev => prev + 1)
-      setShowLikeAnimation(true)
-      setTimeout(() => setShowLikeAnimation(false), 1000)
-      onLike?.(post.id)
-    }
-  }
 
   const handleBookmark = () => {
     setIsBookmarked(!isBookmarked)
@@ -72,7 +54,7 @@ export function FeedPost({ post, onLike, onBookmark, onComment, showFollowButton
     const hasMultipleItems = post.media.items.length > 1
 
     return (
-      <div className="relative aspect-square" onDoubleClick={handleDoubleTapLike}>
+      <div className="relative aspect-square">
         <img
           src={currentItem.url}
           alt={`${post.caption} - Image ${currentImageIndex + 1}`}
@@ -117,13 +99,6 @@ export function FeedPost({ post, onLike, onBookmark, onComment, showFollowButton
                 }`}
               />
             ))}
-          </div>
-        )}
-
-        {/* Like Animation Overlay */}
-        {showLikeAnimation && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-            <Heart className="w-20 h-20 text-red-500 animate-ping" fill="currentColor" />
           </div>
         )}
       </div>
@@ -197,14 +172,13 @@ export function FeedPost({ post, onLike, onBookmark, onComment, showFollowButton
       <div className="p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-4">
-            <button
-              onClick={handleLike}
-              className="hover:scale-110 transition-transform"
-            >
-              <Heart 
-                className={`w-6 h-6 ${isLiked ? 'text-red-500 fill-current' : 'text-gray-700'}`}
-              />
-            </button>
+            <ActivityLikeButton
+              activityId={post.id}
+              initialLikeCount={post.likes}
+              initialUserLiked={post.isLiked}
+              showCount={false}
+              showAnimation={true}
+            />
             <button
               onClick={() => {
                 setShowCommentsModal(true)
@@ -222,15 +196,10 @@ export function FeedPost({ post, onLike, onBookmark, onComment, showFollowButton
             onClick={handleBookmark}
             className="hover:scale-110 transition-transform"
           >
-            <Bookmark 
+            <Bookmark
               className={`w-6 h-6 ${isBookmarked ? 'text-gray-900 fill-current' : 'text-gray-700'}`}
             />
           </button>
-        </div>
-
-        {/* Like Count */}
-        <div className="mb-2">
-          <span className="font-semibold text-sm">{likes.toLocaleString()} likes</span>
         </div>
 
         {/* Caption */}

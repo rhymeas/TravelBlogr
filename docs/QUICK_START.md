@@ -3,7 +3,7 @@
 ## 🎉 What's Done
 
 ✅ Backend implemented (Clean Architecture)
-✅ Frontend created (Minimalist Airbnb style)
+✅ Frontend created (Minimalist sleek style)
 ✅ API endpoint ready
 ✅ Dependencies installed
 ✅ Dev server running
@@ -66,7 +66,7 @@ Use these location slugs:
 
 ## 🎨 Frontend Features
 
-- Clean Airbnb-style design
+- Clean sleek-style design
 - White cards with rounded corners
 - Big black CTA button
 - Day-by-day timeline view

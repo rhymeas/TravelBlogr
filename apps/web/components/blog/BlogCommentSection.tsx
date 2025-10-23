@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/Textarea'
 import { Avatar } from '@/components/ui/Avatar'
 import { getBrowserSupabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useRealtimeComments } from '@/hooks/useRealtimeComments'
 import toast from 'react-hot-toast'
 
 interface Comment {
@@ -50,6 +51,22 @@ export function BlogCommentSection({ postId, className = '' }: BlogCommentSectio
   useEffect(() => {
     fetchComments()
   }, [postId])
+
+  // Subscribe to real-time comment updates
+  useRealtimeComments({
+    type: 'blog',
+    entityId: postId,
+    onCommentAdded: async () => {
+      await fetchComments()
+    },
+    onCommentUpdated: async () => {
+      await fetchComments()
+    },
+    onCommentDeleted: async () => {
+      await fetchComments()
+    },
+    showToasts: true
+  })
 
   const fetchComments = async () => {
     try {

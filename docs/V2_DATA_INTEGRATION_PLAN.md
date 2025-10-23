@@ -261,7 +261,7 @@ meta: {
 
 1. **Accommodation Cards**
    - Booking.com affiliate link
-   - Airbnb affiliate link
+   - sleek affiliate link
    - Hotels.com affiliate link
 
 2. **Activity Cards**

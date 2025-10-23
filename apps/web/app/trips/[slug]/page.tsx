@@ -9,6 +9,7 @@ import { ViewTrackingPixel } from '@/components/analytics/ViewTrackingPixel'
 import { QuickBookingLinks } from '@/components/locations/QuickBookingLinks'
 import { TripPasswordForm } from '@/components/trips/TripPasswordForm'
 import { TripPOISection } from '@/components/trips/TripPOISection'
+import { TripCommunityActivityFeed } from '@/components/trips/TripCommunityActivityFeed'
 
 interface Trip {
   id: string
@@ -380,6 +381,12 @@ export default async function PublicTripPage({
               </div>
 
             </Card>
+
+            {/* Community Activity Feed */}
+            <TripCommunityActivityFeed
+              tripId={tripData.id}
+              tripTitle={tripData.title}
+            />
 
             {/* Data Sources & Routing */}
             <Card className="p-6">

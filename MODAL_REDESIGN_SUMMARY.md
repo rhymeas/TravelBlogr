@@ -156,7 +156,7 @@ import { planModalV2 } from '@/components/plan/planModalV2'
 - ❌ Heavy borders everywhere
 - ❌ Static, non-interactive
 - ❌ Information overload
-- ❌ Dated Airbnb-style design
+- ❌ Dated sleek-style design
 
 ### After (V2)
 - ✅ Modern glassmorphism

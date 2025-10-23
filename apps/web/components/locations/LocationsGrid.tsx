@@ -18,7 +18,7 @@ import {
   Users, Camera, Clock, ArrowRight, MoreVertical, Edit, Trash2
 } from 'lucide-react'
 import { InFeedAd } from '@/components/ads/InFeedAd'
-import { shouldShowInFeedAd } from '@/lib/utils/adHelpers'
+import { generateRandomInFeedPositions } from '@/lib/utils/adHelpers'
 import { useAuth } from '@/hooks/useAuth'
 import { LocationEditModal } from '@/components/admin/LocationEditModal'
 
@@ -129,6 +129,14 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
   const displayedLocations = filteredLocations.slice(0, displayedCount)
   const hasMore = displayedCount < filteredLocations.length
 
+  // Randomized in-feed ad positions (stable per day)
+  const [adPositions, setAdPositions] = useState<Set<number>>(new Set())
+  useEffect(() => {
+    const daySeed = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+    const seed = `locations:${filteredLocations[0]?.id || 'seed'}:${daySeed}`
+    setAdPositions(generateRandomInFeedPositions(displayedCount, seed, 4, 7))
+  }, [displayedCount, filteredLocations.length])
+
   if (!filteredLocations.length) {
     return (
       <div className="text-center py-12">
@@ -185,11 +193,11 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
                 isAdmin={isAdmin}
                 onEdit={() => setEditingLocation(location)}
               />
-              {/* In-feed ad alternating 5-4-5-4 pattern */}
-              {shouldShowInFeedAd(index) && (
+              {/* In-feed ad randomized between cards (min gap 4–7) */}
+              {adPositions.has(index) && (
                 <InFeedAd
                   key={`ad-${index}`}
-                  slot="locations_infeed"
+                  slot={process.env.NEXT_PUBLIC_ADS_SLOT_LOCATIONS_INFEED || 'locations_infeed'}
                   page="locations"
                 />
               )}
@@ -265,7 +273,7 @@ function LocationCard({
   return (
     <div className="group block relative">
       <Link href={`/locations/${location.slug}`}>
-        <div className="card-elevated hover:shadow-airbnb-large transition-all duration-300 overflow-hidden">
+        <div className="card-elevated hover:shadow-sleek-large transition-all duration-300 overflow-hidden">
           {/* Featured Image */}
           <div className="relative aspect-[4/3] overflow-hidden">
             <OptimizedImage
@@ -279,7 +287,7 @@ function LocationCard({
 
             {/* Heart Button */}
             <button
-              className="absolute top-3 left-3 w-8 h-8 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center text-airbnb-dark-gray hover:text-rausch-500 transition-colors shadow-airbnb-light"
+              className="absolute top-3 left-3 w-8 h-8 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center text-sleek-dark-gray hover:text-rausch-500 transition-colors shadow-sleek-light"
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
@@ -335,7 +343,7 @@ function LocationCard({
             {/* Rating Badge */}
             {!isAdmin && (
               <div className="absolute top-3 right-3">
-                <div className="bg-white/95 backdrop-blur-sm rounded-airbnb-small px-3 py-1 text-body-small font-semibold text-airbnb-black shadow-airbnb-light">
+                <div className="bg-white/95 backdrop-blur-sm rounded-sleek-small px-3 py-1 text-body-small font-semibold text-sleek-black shadow-sleek-light">
                   {location.rating ? `★ ${location.rating}` : 'New'}
                 </div>
               </div>
@@ -343,11 +351,11 @@ function LocationCard({
 
           {/* Stats Overlay */}
           <div className="absolute bottom-3 right-3 flex gap-2">
-            <div className="bg-black/70 backdrop-blur-sm text-white text-body-small px-2 py-1 rounded-airbnb-small flex items-center gap-1">
+            <div className="bg-black/70 backdrop-blur-sm text-white text-body-small px-2 py-1 rounded-sleek-small flex items-center gap-1">
               <Eye className="h-3 w-3" />
               {location.visit_count}
             </div>
-            <div className="bg-black/70 backdrop-blur-sm text-white text-body-small px-2 py-1 rounded-airbnb-small flex items-center gap-1">
+            <div className="bg-black/70 backdrop-blur-sm text-white text-body-small px-2 py-1 rounded-sleek-small flex items-center gap-1">
               <Camera className="h-3 w-3" />
               {location.gallery_images?.length || 0}
             </div>
@@ -360,10 +368,10 @@ function LocationCard({
         {/* Content */}
         <div className="p-6">
           <div className="mb-4">
-            <h3 className="text-title-small text-airbnb-black font-semibold mb-1 group-hover:text-rausch-500 transition-colors">
+            <h3 className="text-title-small text-sleek-black font-semibold mb-1 group-hover:text-rausch-500 transition-colors">
               {formatted.short}
             </h3>
-            <div className="flex items-center gap-1 text-body-medium text-airbnb-dark-gray">
+            <div className="flex items-center gap-1 text-body-medium text-sleek-dark-gray">
               <MapPin className="h-4 w-4" />
               <span>
                 {formatted.region && `${formatted.region}, `}{formatted.country || location.country}
@@ -371,13 +379,13 @@ function LocationCard({
             </div>
           </div>
 
-          <p className="text-body-medium text-airbnb-dark-gray line-clamp-2 mb-4">
+          <p className="text-body-medium text-sleek-dark-gray line-clamp-2 mb-4">
             {location.description}
           </p>
 
           {/* Latest Post Preview */}
           {latestPost && (
-            <div className="mt-3 p-3 bg-gray-50 rounded-airbnb-small">
+            <div className="mt-3 p-3 bg-gray-50 rounded-sleek-small">
               <div className="flex items-center gap-2 mb-2">
                 <Image
                   src={latestPost.author.avatar_url || '/default-avatar.png'}

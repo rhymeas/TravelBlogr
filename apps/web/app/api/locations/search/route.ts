@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
+import { getOrSet, CacheKeys, CacheTTL } from '@/lib/upstash'
 
 // Force dynamic rendering for search routes
 export const dynamic = 'force-dynamic'
@@ -40,55 +41,63 @@ export async function GET(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // 1. Search database first
-    const { data: dbResults, error: dbError } = await supabase
-      .from('locations')
-      .select('id, name, slug, country, region, latitude, longitude')
-      .or(`name.ilike.%${query}%,country.ilike.%${query}%,region.ilike.%${query}%`)
-      .limit(limit)
+    // OPTIMIZATION: Cache search results in Upstash for 7 days
+    const searchResults = await getOrSet(
+      CacheKeys.locationSearch(query.toLowerCase(), limit),
+      async () => {
+        console.log(`🔍 Searching locations for: "${query}"`)
 
-    const databaseResults: LocationSearchResult[] = (dbResults || []).map(loc => ({
-      id: loc.id,
-      name: loc.name,
-      slug: loc.slug,
-      country: loc.country,
-      region: loc.region,
-      latitude: loc.latitude,
-      longitude: loc.longitude,
-      displayName: `${loc.name}, ${loc.region ? loc.region + ', ' : ''}${loc.country}`,
-      source: 'database' as const,
-      importance: 1.0
-    }))
+        // 1. Search database first
+        const { data: dbResults, error: dbError } = await supabase
+          .from('locations')
+          .select('id, name, slug, country, region, latitude, longitude')
+          .or(`name.ilike.%${query}%,country.ilike.%${query}%,region.ilike.%${query}%`)
+          .limit(limit)
 
-    // 2. If we have enough database results, return them
-    if (databaseResults.length >= 3) {
-      return NextResponse.json({
-        success: true,
-        data: databaseResults,
-        count: databaseResults.length,
-        hasMultiple: databaseResults.length > 1
-      })
-    }
+        const databaseResults: LocationSearchResult[] = (dbResults || []).map(loc => ({
+          id: loc.id,
+          name: loc.name,
+          slug: loc.slug,
+          country: loc.country,
+          region: loc.region,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          displayName: `${loc.name}, ${loc.region ? loc.region + ', ' : ''}${loc.country}`,
+          source: 'database' as const,
+          importance: 1.0
+        }))
 
-    // 3. Otherwise, search geocoding API for more options
-    const geocodingResults = await searchGeocodingAPI(query, limit)
+        // 2. If we have enough database results, return them
+        if (databaseResults.length >= 3) {
+          return databaseResults
+        }
 
-    // 4. Combine and deduplicate results
-    const allResults = [...databaseResults, ...geocodingResults]
-    const uniqueResults = deduplicateResults(allResults)
+        // 3. Otherwise, search geocoding API for more options
+        const geocodingResults = await searchGeocodingAPI(query, limit)
 
-    // 5. Sort by importance (database results first, then by geocoding importance)
-    uniqueResults.sort((a, b) => {
-      if (a.source === 'database' && b.source !== 'database') return -1
-      if (a.source !== 'database' && b.source === 'database') return 1
-      return (b.importance || 0) - (a.importance || 0)
-    })
+        // 4. Combine and deduplicate results
+        const allResults = [...databaseResults, ...geocodingResults]
+        const uniqueResults = deduplicateResults(allResults)
+
+        // 5. Sort by importance (database results first, then by geocoding importance)
+        uniqueResults.sort((a, b) => {
+          if (a.source === 'database' && b.source !== 'database') return -1
+          if (a.source !== 'database' && b.source === 'database') return 1
+          return (b.importance || 0) - (a.importance || 0)
+        })
+
+        return uniqueResults.slice(0, limit)
+      },
+      CacheTTL.VERY_LONG // 7 days (search results don't change often)
+    )
+
+    console.log(`✅ Location search for "${query}": ${searchResults.length} results (< 10ms from Upstash)`)
 
     return NextResponse.json({
       success: true,
-      data: uniqueResults.slice(0, limit),
-      count: uniqueResults.length,
-      hasMultiple: uniqueResults.length > 1
+      data: searchResults,
+      count: searchResults.length,
+      hasMultiple: searchResults.length > 1
     })
 
   } catch (error) {

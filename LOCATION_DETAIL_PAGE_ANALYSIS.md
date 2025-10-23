@@ -149,7 +149,7 @@ interface Location {
 **Sections:**
 1. **Breadcrumb** - Navigation path
 2. **Title & Actions** - Location name, rating, stats
-3. **Image Gallery** - Airbnb-style grid layout
+3. **Image Gallery** - sleek-style grid layout
 4. **About Section** - Description from Wikipedia ✅
 5. **Activities Section** - Auto-filled activities ✅
 6. **Restaurants Section** - Auto-filled restaurants ✅

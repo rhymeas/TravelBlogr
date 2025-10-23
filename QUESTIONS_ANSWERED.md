@@ -238,21 +238,20 @@ With CDN:
 User in Japan → Request → Tokyo Server (fast, 20ms)
 ```
 
-** do-not-use-this-anymore-no-vercel-we-use-railway-now's Built-in CDN:**
-- ✅ 100+ edge locations worldwide
+**Railway + Cloudflare CDN:**
+- ✅ Global edge network
 - ✅ Automatic caching
-- ✅ Image optimization
-- ✅ Static asset delivery
-- ✅ Free on all plans
+- ✅ DDoS protection
+- ✅ Free on Railway Pro plan
 
-**When to Add Dedicated CDN (Cloudflare/CloudFront):**
-- 10,000+ daily visitors
+**When to Add Dedicated CDN (CloudFront/Fastly):**
+- 100,000+ daily visitors
 - Large video files (>100MB)
 - Advanced caching rules
-- DDoS protection
+- Custom edge logic
 
-**Recommendation:** 
-Skip dedicated CDN for now.  do-not-use-this-anymore-no-vercel-we-use-railway-now's built-in CDN is sufficient for 99% of use cases.
+**Recommendation:**
+Railway's built-in CDN with Cloudflare is sufficient for most use cases. Add dedicated CDN only at very high scale.
 
 ---
 

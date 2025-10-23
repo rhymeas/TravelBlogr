@@ -23,29 +23,35 @@ interface GoogleAdProps {
    * Format: 'XXXXXXXXXX' (10 digits)
    */
   slot: string
-  
+
   /**
    * Ad format type
    */
-  format?: 'horizontal' | 'rectangle' | 'auto'
-  
+  format?: 'horizontal' | 'rectangle' | 'auto' | 'fluid'
+
+  /**
+   * In-feed layout key (only for format="fluid")
+   * Example: "-61+cm+4h-16-10"
+   */
+  layoutKey?: string
+
   /**
    * Ad size (width x height)
    * Use 'auto' for responsive ads
    */
   width?: number | 'auto'
   height?: number | 'auto'
-  
+
   /**
    * Page identifier for analytics
    */
   page?: string
-  
+
   /**
    * Additional CSS classes
    */
   className?: string
-  
+
   /**
    * Whether to show "ADVERTISEMENT" label
    */
@@ -55,6 +61,7 @@ interface GoogleAdProps {
 export function GoogleAd({
   slot,
   format = 'auto',
+  layoutKey,
   width = 'auto',
   height = 'auto',
   page = 'unknown',
@@ -118,6 +125,7 @@ export function GoogleAd({
           data-ad-client={clientId}
           data-ad-slot={slot}
           data-ad-format={format}
+          data-ad-layout-key={format === 'fluid' && layoutKey ? layoutKey : undefined}
           data-full-width-responsive={format === 'auto' ? 'true' : 'false'}
         />
       </div>

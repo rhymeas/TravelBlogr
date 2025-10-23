@@ -35,14 +35,14 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="min-h-screen bg-airbnb-background-secondary py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-sleek-background-secondary py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-airbnb-black mb-4">
+          <h1 className="text-4xl font-bold text-sleek-black mb-4">
             Get in Touch
           </h1>
-          <p className="text-lg text-airbnb-gray">
+          <p className="text-lg text-sleek-gray">
             Have a question or feedback? We'd love to hear from you.
           </p>
         </div>
@@ -52,7 +52,7 @@ export default function ContactPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-airbnb-black mb-2">
+              <label htmlFor="name" className="block text-sm font-medium text-sleek-black mb-2">
                 Name
               </label>
               <Input
@@ -68,7 +68,7 @@ export default function ContactPage() {
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-airbnb-black mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-sleek-black mb-2">
                 Email
               </label>
               <div className="relative">
@@ -88,7 +88,7 @@ export default function ContactPage() {
 
             {/* Subject */}
             <div>
-              <label htmlFor="subject" className="block text-sm font-medium text-airbnb-black mb-2">
+              <label htmlFor="subject" className="block text-sm font-medium text-sleek-black mb-2">
                 Subject
               </label>
               <Input
@@ -104,7 +104,7 @@ export default function ContactPage() {
 
             {/* Message */}
             <div>
-              <label htmlFor="message" className="block text-sm font-medium text-airbnb-black mb-2">
+              <label htmlFor="message" className="block text-sm font-medium text-sleek-black mb-2">
                 Message
               </label>
               <div className="relative">
@@ -150,9 +150,9 @@ export default function ContactPage() {
               <div className="w-10 h-10 bg-rausch-100 rounded-lg flex items-center justify-center">
                 <Mail className="h-5 w-5 text-rausch-500" />
               </div>
-              <h3 className="font-semibold text-airbnb-black">Email Us</h3>
+              <h3 className="font-semibold text-sleek-black">Email Us</h3>
             </div>
-            <p className="text-sm text-airbnb-gray mb-2">
+            <p className="text-sm text-sleek-gray mb-2">
               For general inquiries
             </p>
             <a href="mailto:hello@travelblogr.com" className="text-sm text-rausch-500 hover:text-rausch-600 font-medium">
@@ -165,9 +165,9 @@ export default function ContactPage() {
               <div className="w-10 h-10 bg-babu-100 rounded-lg flex items-center justify-center">
                 <MessageSquare className="h-5 w-5 text-babu-500" />
               </div>
-              <h3 className="font-semibold text-airbnb-black">Support</h3>
+              <h3 className="font-semibold text-sleek-black">Support</h3>
             </div>
-            <p className="text-sm text-airbnb-gray mb-2">
+            <p className="text-sm text-sleek-gray mb-2">
               Need help with your account?
             </p>
             <a href="mailto:support@travelblogr.com" className="text-sm text-rausch-500 hover:text-rausch-600 font-medium">
@@ -178,7 +178,7 @@ export default function ContactPage() {
 
         {/* FAQ Link */}
         <div className="mt-8 text-center">
-          <p className="text-sm text-airbnb-gray">
+          <p className="text-sm text-sleek-gray">
             Looking for quick answers?{' '}
             <a href="#" className="text-rausch-500 hover:text-rausch-600 font-medium">
               Check our FAQ

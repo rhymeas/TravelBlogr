@@ -14,7 +14,10 @@ import {
   Eye,
   Shield,
   Zap,
-  PenLine
+  PenLine,
+  Heart,
+  Check,
+  StickyNote
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -134,86 +137,130 @@ export function DashboardLanding() {
         </div>
 
         {/* Quick Actions - With Clear CTAs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
           <Link href="/dashboard/trips/new" className="group">
-            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 h-36 shadow-sm hover:shadow-lg transition-all">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 h-32 shadow-sm hover:shadow-lg transition-all">
               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400')] bg-cover bg-center opacity-20"></div>
-              {/* 30% black overlay for better text contrast */}
               <div className="absolute inset-0 bg-black/30"></div>
-              <div className="relative h-full p-4 flex flex-col justify-between">
+              <div className="relative h-full p-3 flex flex-col justify-between">
                 <div>
-                  <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
-                    <Plus className="h-5 w-5 text-white" />
+                  <div className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
+                    <Plus className="h-4 w-4 text-white" />
                   </div>
-                  <h3 className="text-base font-bold text-white mb-1">Create New Trip</h3>
-                  <p className="text-xs text-white/90">Start your next adventure</p>
+                  <h3 className="text-sm font-bold text-white mb-0.5">Create Trip</h3>
+                  <p className="text-xs text-white/90">Plan adventure</p>
                 </div>
-                <div className="flex items-center gap-2 text-white font-semibold text-sm group-hover:gap-3 transition-all">
-                  <span>Start Planning</span>
-                  <ArrowRight className="h-4 w-4" />
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/dashboard/my-wishlist" className="group">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-red-500 to-pink-600 h-32 shadow-sm hover:shadow-lg transition-all">
+              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400')] bg-cover bg-center opacity-20"></div>
+              <div className="absolute inset-0 bg-black/30"></div>
+              <div className="relative h-full p-3 flex flex-col justify-between">
+                <div>
+                  <div className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
+                    <Heart className="h-4 w-4 text-white" />
+                  </div>
+                  <h3 className="text-sm font-bold text-white mb-0.5">My Wishlist</h3>
+                  <p className="text-xs text-white/90">Dream places</p>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/dashboard/my-visited" className="group">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 h-32 shadow-sm hover:shadow-lg transition-all">
+              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400')] bg-cover bg-center opacity-20"></div>
+              <div className="absolute inset-0 bg-black/30"></div>
+              <div className="relative h-full p-3 flex flex-col justify-between">
+                <div>
+                  <div className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
+                    <Check className="h-4 w-4 text-white" />
+                  </div>
+                  <h3 className="text-sm font-bold text-white mb-0.5">My Visited</h3>
+                  <p className="text-xs text-white/90">Travel history</p>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/dashboard/my-notes" className="group">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 h-32 shadow-sm hover:shadow-lg transition-all">
+              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1455390582262-044cdead277a?w=400')] bg-cover bg-center opacity-20"></div>
+              <div className="absolute inset-0 bg-black/30"></div>
+              <div className="relative h-full p-3 flex flex-col justify-between">
+                <div>
+                  <div className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
+                    <StickyNote className="h-4 w-4 text-white" />
+                  </div>
+                  <h3 className="text-sm font-bold text-white mb-0.5">My Notes</h3>
+                  <p className="text-xs text-white/90">Travel memories</p>
                 </div>
               </div>
             </div>
           </Link>
 
           <Link href="/dashboard/media" className="group">
-            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 h-36 shadow-sm hover:shadow-lg transition-all">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 h-32 shadow-sm hover:shadow-lg transition-all">
               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1452421822248-d4c2b47f0c81?w=400')] bg-cover bg-center opacity-20"></div>
-              {/* 30% black overlay for better text contrast */}
               <div className="absolute inset-0 bg-black/30"></div>
-              <div className="relative h-full p-4 flex flex-col justify-between">
+              <div className="relative h-full p-3 flex flex-col justify-between">
                 <div>
-                  <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
-                    <Camera className="h-5 w-5 text-white" />
+                  <div className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
+                    <Camera className="h-4 w-4 text-white" />
                   </div>
-                  <h3 className="text-base font-bold text-white mb-1">Upload Media</h3>
-                  <p className="text-xs text-white/90">Add photos & videos</p>
-                </div>
-                <div className="flex items-center gap-2 text-white font-semibold text-sm group-hover:gap-3 transition-all">
-                  <span>Upload Now</span>
-                  <ArrowRight className="h-4 w-4" />
+                  <h3 className="text-sm font-bold text-white mb-0.5">Media</h3>
+                  <p className="text-xs text-white/90">Photos & videos</p>
                 </div>
               </div>
             </div>
           </Link>
 
           <Link href="/live-feed" className="group">
-            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500 to-green-600 h-36 shadow-sm hover:shadow-lg transition-all">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 h-32 shadow-sm hover:shadow-lg transition-all">
               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400')] bg-cover bg-center opacity-20"></div>
-              {/* 30% black overlay for better text contrast */}
               <div className="absolute inset-0 bg-black/30"></div>
-              <div className="relative h-full p-4 flex flex-col justify-between">
+              <div className="relative h-full p-3 flex flex-col justify-between">
                 <div>
-                  <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
-                    <Users className="h-5 w-5 text-white" />
+                  <div className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
+                    <Users className="h-4 w-4 text-white" />
                   </div>
-                  <h3 className="text-base font-bold text-white mb-1">Explore Feed</h3>
-                  <p className="text-xs text-white/90">Discover travel stories</p>
-                </div>
-                <div className="flex items-center gap-2 text-white font-semibold text-sm group-hover:gap-3 transition-all">
-                  <span>Explore Now</span>
-                  <ArrowRight className="h-4 w-4" />
+                  <h3 className="text-sm font-bold text-white mb-0.5">Live Feed</h3>
+                  <p className="text-xs text-white/90">Discover stories</p>
                 </div>
               </div>
             </div>
           </Link>
 
           <Link href="/dashboard/blog" className="group">
-            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-orange-500 to-pink-600 h-36 shadow-sm hover:shadow-lg transition-all">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-amber-500 to-pink-600 h-32 shadow-sm hover:shadow-lg transition-all">
               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1455390582262-044cdead277a?w=400')] bg-cover bg-center opacity-20"></div>
-              {/* 30% black overlay for better text contrast */}
               <div className="absolute inset-0 bg-black/30"></div>
-              <div className="relative h-full p-4 flex flex-col justify-between">
+              <div className="relative h-full p-3 flex flex-col justify-between">
                 <div>
-                  <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
-                    <PenLine className="h-5 w-5 text-white" />
+                  <div className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
+                    <PenLine className="h-4 w-4 text-white" />
                   </div>
-                  <h3 className="text-base font-bold text-white mb-1">Start Writing Blog</h3>
-                  <p className="text-xs text-white/90">Share your travel stories</p>
+                  <h3 className="text-sm font-bold text-white mb-0.5">Write Blog</h3>
+                  <p className="text-xs text-white/90">Share stories</p>
                 </div>
-                <div className="flex items-center gap-2 text-white font-semibold text-sm group-hover:gap-3 transition-all">
-                  <span>Write Now</span>
-                  <ArrowRight className="h-4 w-4" />
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/locations" className="group">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-teal-500 to-green-600 h-32 shadow-sm hover:shadow-lg transition-all">
+              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400')] bg-cover bg-center opacity-20"></div>
+              <div className="absolute inset-0 bg-black/30"></div>
+              <div className="relative h-full p-3 flex flex-col justify-between">
+                <div>
+                  <div className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center mb-2">
+                    <MapPin className="h-4 w-4 text-white" />
+                  </div>
+                  <h3 className="text-sm font-bold text-white mb-0.5">Explore</h3>
+                  <p className="text-xs text-white/90">Find locations</p>
                 </div>
               </div>
             </div>

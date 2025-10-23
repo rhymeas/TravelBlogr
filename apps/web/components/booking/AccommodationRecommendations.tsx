@@ -11,7 +11,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import {
   generateBookingLink,
-  generateAirbnbLink,
+  generatesleekLink,
   trackAffiliateClick,
 } from '@/lib/utils/affiliateLinks'
 
@@ -40,7 +40,7 @@ export function AccommodationRecommendations({
     checkOut,
   })
 
-  const airbnbUrl = generateAirbnbLink({
+  const sleekUrl = generatesleekLink({
     locationName: destination,
     latitude,
     longitude,
@@ -87,12 +87,12 @@ export function AccommodationRecommendations({
           </div>
         </a>
 
-        {/* Vacation Rentals - Airbnb */}
+        {/* Vacation Rentals - sleek */}
         <a
-          href={airbnbUrl}
+          href={sleekUrl}
           target="_blank"
           rel="noopener noreferrer sponsored"
-          onClick={() => handleClick('airbnb', airbnbUrl)}
+          onClick={() => handleClick('sleek', sleekUrl)}
           className="group block"
         >
           <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:border-rausch-500 hover:bg-rausch-50 transition-all">
@@ -102,7 +102,7 @@ export function AccommodationRecommendations({
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-900">Vacation Rentals</p>
-                <p className="text-xs text-gray-600">Airbnb</p>
+                <p className="text-xs text-gray-600">sleek</p>
               </div>
             </div>
             <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-rausch-500" />

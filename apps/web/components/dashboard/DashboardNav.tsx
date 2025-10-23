@@ -16,7 +16,10 @@ import {
   Globe,
   FileText,
   DollarSign,
-  Shield
+  Shield,
+  Heart,
+  Check,
+  StickyNote
 } from 'lucide-react'
 
 const navigation = [
@@ -34,6 +37,21 @@ const navigation = [
     name: 'Create Trip',
     href: '/dashboard/trips/new',
     icon: Plus,
+  },
+  {
+    name: 'My Wishlist',
+    href: '/dashboard/my-wishlist',
+    icon: Heart,
+  },
+  {
+    name: 'My Visited',
+    href: '/dashboard/my-visited',
+    icon: Check,
+  },
+  {
+    name: 'My Notes',
+    href: '/dashboard/my-notes',
+    icon: StickyNote,
   },
   {
     name: 'Blog Posts',

@@ -57,7 +57,7 @@ export function BlogPostCard({
     // Featured card - larger, more prominent
     return (
       <Link href={postUrl} className={`group cursor-pointer block ${className}`}>
-        <div className="card-elevated hover:shadow-airbnb-large transition-all duration-300 overflow-hidden">
+        <div className="card-elevated hover:shadow-sleek-large transition-all duration-300 overflow-hidden">
           <div className="relative h-64 lg:h-80">
             <OptimizedImage
               src={featuredImage}
@@ -99,11 +99,11 @@ export function BlogPostCard({
             </div>
           </div>
           <div className="p-6">
-            <p className="text-body-medium text-airbnb-dark-gray mb-4 line-clamp-3">
+            <p className="text-body-medium text-sleek-dark-gray mb-4 line-clamp-3">
               {excerpt}
             </p>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 text-body-small text-airbnb-gray">
+              <div className="flex items-center gap-4 text-body-small text-sleek-gray">
                 <span className="flex items-center gap-1">
                   <Eye className="h-4 w-4" />
                   {stats.views.toLocaleString()}
@@ -119,7 +119,7 @@ export function BlogPostCard({
                   </span>
                 )}
               </div>
-              <p className="text-body-small text-airbnb-gray">
+              <p className="text-body-small text-sleek-gray">
                 by {author.name}
               </p>
             </div>
@@ -132,7 +132,7 @@ export function BlogPostCard({
   // Regular card - compact grid layout
   return (
     <Link href={postUrl} className={`group cursor-pointer block ${className}`}>
-      <div className="card-elevated hover:shadow-airbnb-large transition-all duration-300 overflow-hidden h-full">
+      <div className="card-elevated hover:shadow-sleek-large transition-all duration-300 overflow-hidden h-full">
         <div className="relative h-48">
           <OptimizedImage
             src={featuredImage}
@@ -152,7 +152,7 @@ export function BlogPostCard({
           </div>
         </div>
         <div className="p-4">
-          <p className="text-body-small text-airbnb-dark-gray mb-3 line-clamp-2">
+          <p className="text-body-small text-sleek-dark-gray mb-3 line-clamp-2">
             {excerpt}
           </p>
           <div className="flex flex-wrap gap-1 mb-3">
@@ -162,7 +162,7 @@ export function BlogPostCard({
               </Badge>
             ))}
           </div>
-          <div className="flex items-center justify-between text-body-small text-airbnb-gray">
+          <div className="flex items-center justify-between text-body-small text-sleek-gray">
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1">
                 <Eye className="h-3 w-3" />

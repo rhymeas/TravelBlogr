@@ -17,9 +17,11 @@
  */
 
 import { getLocationFallbackImage, isPlaceholderImage } from './fallbackImageService'
+import { getCached, setCached, CacheKeys, CacheTTL } from '@/lib/upstash'
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 hours
-const imageCache = new Map<string, { url: string; timestamp: number }>()
+// DEPRECATED: Replaced with Upstash Redis for persistent caching
+// const imageCache = new Map<string, { url: string; timestamp: number }>()
 
 /**
  * Wikimedia Commons Image Search
@@ -274,12 +276,16 @@ async function fetchMapboxStaticImage(
 
 /**
  * Fetch Location Image with Multiple Fallbacks
+ *
+ * OPTIMIZATION: Checks database first, only fetches from APIs if missing
+ * Stores fetched URLs in database permanently (never refetch)
  */
 export async function fetchLocationImage(
   locationName: string,
   manualUrl?: string,
   lat?: number,
-  lng?: number
+  lng?: number,
+  locationSlug?: string
 ): Promise<string> {
   // 1. Use manual URL if provided and not a placeholder
   if (manualUrl && !isPlaceholderImage(manualUrl)) {
@@ -287,17 +293,41 @@ export async function fetchLocationImage(
     return manualUrl
   }
 
-  // Check cache
-  const cacheKey = `location:${locationName}`
-  const cached = imageCache.get(cacheKey)
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    console.log(`✅ Using cached image for "${locationName}"`)
-    return cached.url
+  // 2. Check database first (PERMANENT CACHE)
+  if (locationSlug) {
+    try {
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+
+      const { data: location } = await supabase
+        .from('locations')
+        .select('featured_image')
+        .eq('slug', locationSlug)
+        .single()
+
+      if (location?.featured_image && !isPlaceholderImage(location.featured_image)) {
+        console.log(`✅ Using database image for "${locationName}" (never refetch!)`)
+        return location.featured_image
+      }
+    } catch (error) {
+      console.error('Error checking database for image:', error)
+    }
   }
 
-  console.log(`🔍 Fetching image for location: "${locationName}"`)
+  // 3. Check Upstash Redis cache (persistent, fast)
+  const cacheKey = CacheKeys.image(locationName)
+  const cachedUrl = await getCached<string>(cacheKey)
+  if (cachedUrl && !isPlaceholderImage(cachedUrl)) {
+    console.log(`✅ Using Upstash cached image for "${locationName}" (< 10ms)`)
+    return cachedUrl
+  }
 
-  // Try multiple search terms in order of specificity
+  console.log(`🔍 Fetching NEW image for location: "${locationName}" (will save to database + Upstash)`)
+
+  // 4. Fetch from external APIs (ONLY if not in database/cache)
   const searchTerms = [
     `${locationName} cityscape skyline`,
     `${locationName} city center architecture`,
@@ -308,54 +338,95 @@ export async function fetchLocationImage(
 
   let imageUrl: string | null = null
 
-  // 2. Try Pexels (unlimited, best quality, requires key)
+  // Try Pexels (unlimited, best quality, requires key)
   for (const term of searchTerms) {
     imageUrl = await fetchPexelsImage(term)
     if (imageUrl) {
       console.log(`✅ Found image with search term: "${term}"`)
-      imageCache.set(cacheKey, { url: imageUrl, timestamp: Date.now() })
+      await saveImageToDatabase(locationSlug, imageUrl, locationName)
+      // Cache in Upstash for fast future lookups
+      await setCached(cacheKey, imageUrl, CacheTTL.IMAGE)
       return imageUrl
     }
   }
 
-  // 3. Try Unsplash API (50/hour, high quality, requires key)
+  // Try Unsplash API (50/hour, high quality, requires key)
   for (const term of searchTerms) {
     imageUrl = await fetchUnsplashImage(term)
     if (imageUrl) {
       console.log(`✅ Found image with search term: "${term}"`)
-      imageCache.set(cacheKey, { url: imageUrl, timestamp: Date.now() })
+      await saveImageToDatabase(locationSlug, imageUrl, locationName)
+      await setCached(cacheKey, imageUrl, CacheTTL.IMAGE)
       return imageUrl
     }
   }
 
-  // 4. Try Wikimedia Commons (unlimited, free)
+  // Try Wikimedia Commons (unlimited, free)
   imageUrl = await fetchWikimediaImage(`${locationName} city`)
   if (imageUrl) {
-    imageCache.set(cacheKey, { url: imageUrl, timestamp: Date.now() })
+    await saveImageToDatabase(locationSlug, imageUrl, locationName)
+    await setCached(cacheKey, imageUrl, CacheTTL.IMAGE)
     return imageUrl
   }
 
-  // 5. Try Wikipedia (unlimited, free)
+  // Try Wikipedia (unlimited, free)
   imageUrl = await fetchWikipediaImage(locationName)
   if (imageUrl) {
-    imageCache.set(cacheKey, { url: imageUrl, timestamp: Date.now() })
+    await saveImageToDatabase(locationSlug, imageUrl, locationName)
+    await setCached(cacheKey, imageUrl, CacheTTL.IMAGE)
     return imageUrl
   }
 
-  // 6. Try Mapbox Static (if coordinates available)
+  // Try Mapbox Static (if coordinates available)
   if (lat && lng) {
     imageUrl = await fetchMapboxStaticImage(locationName, lat, lng)
     if (imageUrl) {
-      imageCache.set(cacheKey, { url: imageUrl, timestamp: Date.now() })
+      await saveImageToDatabase(locationSlug, imageUrl, locationName)
+      await setCached(cacheKey, imageUrl, CacheTTL.IMAGE)
       return imageUrl
     }
   }
 
-  // 7. Use placeholder image (fallback)
+  // Use placeholder image (fallback) - DON'T save to database or cache
   imageUrl = `https://picsum.photos/seed/${encodeURIComponent(locationName)}/1600/900`
-  console.log(`✅ Using placeholder for "${locationName}"`)
-  imageCache.set(cacheKey, { url: imageUrl, timestamp: Date.now() })
+  console.log(`⚠️ Using placeholder for "${locationName}" (will be replaced by cron job)`)
   return imageUrl
+}
+
+/**
+ * Save fetched image URL to database (PERMANENT STORAGE)
+ * This ensures images are NEVER refetched
+ */
+async function saveImageToDatabase(
+  locationSlug: string | undefined,
+  imageUrl: string,
+  locationName: string
+): Promise<void> {
+  if (!locationSlug) {
+    console.log(`⚠️ No slug provided, skipping database save for "${locationName}"`)
+    return
+  }
+
+  try {
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    const { error } = await supabase
+      .from('locations')
+      .update({ featured_image: imageUrl })
+      .eq('slug', locationSlug)
+
+    if (error) {
+      console.error(`❌ Failed to save image to database for "${locationName}":`, error)
+    } else {
+      console.log(`💾 Saved image URL to database for "${locationName}" (permanent!)`)
+    }
+  } catch (error) {
+    console.error(`❌ Error saving image to database:`, error)
+  }
 }
 
 /**

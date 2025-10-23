@@ -287,7 +287,7 @@ style={{
 ### **Visual Design**
 - ✅ Clean, uncluttered layout
 - ✅ Proper spacing and alignment
-- ✅ Consistent with Airbnb design
+- ✅ Consistent with sleek design
 - ✅ Professional appearance
 - ✅ Responsive typography
 

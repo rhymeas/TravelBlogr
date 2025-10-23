@@ -4,8 +4,8 @@ import { cleanupExpiredCache } from '@/lib/services/smartDataHandler'
 /**
  * GET /api/cron/cleanup-cache
  * Cleanup expired cache entries
- * 
- * This should be called by a cron job (e.g.,  do-not-use-this-anymore-no-vercel-we-use-railway-now Cron, Railway Cron)
+ *
+ * This should be called by a cron job (e.g., Railway Cron, GitHub Actions)
  * Recommended: Run daily at 2 AM
  */
 export async function GET(request: NextRequest) {

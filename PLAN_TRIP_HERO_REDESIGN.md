@@ -281,7 +281,7 @@ aria-label={proMode ? 'Disable Planner Plus' : 'Enable Planner Plus'}
 ### **Visual Design**
 - ✅ Modern gradient card design
 - ✅ Better visual hierarchy
-- ✅ Consistent with Airbnb-inspired design system
+- ✅ Consistent with sleek-inspired design system
 - ✅ Professional, polished appearance
 
 ### **Mobile UX**

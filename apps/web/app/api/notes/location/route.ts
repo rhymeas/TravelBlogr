@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { locationId, noteText, rating, photos, isPrivate } = body
+    const { locationId, noteText, noteItems, rating, photos, isPrivate } = body
 
     if (!locationId) {
       return NextResponse.json(
@@ -105,7 +105,8 @@ export async function POST(request: NextRequest) {
       .upsert({
         user_id: user.id,
         location_id: locationId,
-        note_text: noteText || null,
+        // Store structured bullets as JSON when provided; otherwise store plain text
+        note_text: noteItems ? JSON.stringify(noteItems) : (noteText || null),
         rating: rating || null,
         photos: photos || [],
         is_private: isPrivate !== undefined ? isPrivate : true,

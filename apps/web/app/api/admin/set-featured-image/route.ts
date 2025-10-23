@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase } from '@/lib/supabase-server'
+import { createServerSupabase, createServiceSupabase } from '@/lib/supabase-server'
+import { deleteCached, CacheKeys } from '@/lib/upstash'
+import { revalidatePath } from 'next/cache'
 
 // Force dynamic rendering for admin routes
 export const dynamic = 'force-dynamic'
@@ -7,8 +9,18 @@ export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
-    // Initialize Supabase client at runtime (not build time)
-    const supabase = await createServerSupabase()
+    // Initialize Supabase clients
+    const authClient = await createServerSupabase()      // cookie-based, for auth only
+    const supabase = createServiceSupabase()             // service role, bypasses RLS for updates
+
+    // Check authentication
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Please sign in' },
+        { status: 401 }
+      )
+    }
 
     const { locationSlug, imageUrl } = await request.json()
 
@@ -67,6 +79,42 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`✅ Featured image updated successfully!`)
+
+    // Track contribution in location_contributions table
+    try {
+      await supabase
+        .from('location_contributions')
+        .insert({
+          user_id: user.id,
+          location_id: location.id,
+          contribution_type: 'image_featured',
+          field_edited: 'featured_image',
+          change_snippet: `Set featured image`,
+          new_value: { image_url: imageUrl }
+        })
+      console.log('✅ Contribution tracked')
+    } catch (contributionError) {
+      console.log('⚠️ Failed to track contribution (non-critical):', contributionError)
+    }
+
+    // CRITICAL: Invalidate Upstash cache
+    try {
+      await deleteCached(CacheKeys.location(locationSlug))
+      await deleteCached(`${CacheKeys.location(locationSlug)}:related`)
+      console.log('✅ Upstash cache invalidated for location')
+    } catch (cacheError) {
+      console.log('⚠️ Upstash cache invalidation failed (non-critical):', cacheError)
+    }
+
+    // Revalidate Next.js cache
+    try {
+      revalidatePath(`/locations/${locationSlug}`)
+      revalidatePath(`/locations/${locationSlug}/photos`)
+      revalidatePath('/locations')
+      console.log('✅ Next.js cache revalidated for location pages')
+    } catch (revalidateError) {
+      console.log('⚠️ Next.js cache revalidation failed (non-critical):', revalidateError)
+    }
 
     return NextResponse.json({
       success: true,

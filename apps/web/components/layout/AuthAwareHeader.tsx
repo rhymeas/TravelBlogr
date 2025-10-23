@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
   Globe,
   Menu,
@@ -97,6 +97,7 @@ export function AuthAwareHeader() {
   const { user, profile, signOut, isAuthenticated, isLoading } = useAuth()
   const { showSignIn } = useAuthModal()
   const { credits, loading: creditsLoading } = useUserCredits()
+  const pathname = usePathname()
 
   // Get role badge info
   const roleBadge = getRoleBadge(profile?.role, profile?.unlimited_until, profile?.coupon_type)
@@ -125,7 +126,7 @@ export function AuthAwareHeader() {
   // Show loading state in the user menu area only
 
   return (
-    <header className="bg-white sticky top-0 z-50 border-b border-airbnb-border shadow-airbnb-light">
+    <header className="bg-white sticky top-0 z-50 border-b border-sleek-border shadow-sleek-light">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8" aria-label="Global">
         {/* Logo - Trim Sheet Layout: Logo left, fonts right */}
         <div className="flex lg:flex-1">
@@ -359,18 +360,18 @@ export function AuthAwareHeader() {
                       </div>
                     )}
                   </div>
-                  <ChevronDown className="h-4 w-4 text-airbnb-gray" />
+                  <ChevronDown className="h-4 w-4 text-sleek-gray" />
                 </Button>
 
                 {showUserMenu && (
                   <>
-                    <div className="absolute right-0 top-full mt-1 w-56 card-elevated border border-airbnb-border z-50">
+                    <div className="absolute right-0 top-full mt-1 w-56 card-elevated border border-sleek-border z-50">
                       <div className="py-1">
-                        <div className="px-4 py-2 border-b border-airbnb-border-light">
-                          <div className="text-body-medium font-medium text-airbnb-black">
+                        <div className="px-4 py-2 border-b border-sleek-border-light">
+                          <div className="text-body-medium font-medium text-sleek-black">
                             {profile?.full_name || 'User'}
                           </div>
-                          <div className="text-body-small text-airbnb-gray">
+                          <div className="text-body-small text-sleek-gray">
                             {user?.email}
                           </div>
                         </div>
@@ -378,7 +379,7 @@ export function AuthAwareHeader() {
                         <Link
                           href="/dashboard"
                           onClick={() => setShowUserMenu(false)}
-                          className="flex items-center w-full px-4 py-2 text-body-medium text-airbnb-dark-gray hover:bg-airbnb-background-secondary transition-colors"
+                          className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-sleek-background-secondary transition-colors"
                         >
                           <UserIcon className="h-4 w-4 mr-2" />
                           Dashboard
@@ -387,17 +388,17 @@ export function AuthAwareHeader() {
                         <Link
                           href="/dashboard/trips"
                           onClick={() => setShowUserMenu(false)}
-                          className="flex items-center w-full px-4 py-2 text-body-medium text-airbnb-dark-gray hover:bg-airbnb-background-secondary transition-colors"
+                          className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-sleek-background-secondary transition-colors"
                         >
                           <MapPin className="h-4 w-4 mr-2" />
                           My Trips
                         </Link>
 
-                        <div className="border-t border-airbnb-border-light mt-1 pt-1">
+                        <div className="border-t border-sleek-border-light mt-1 pt-1">
                           <Link
                             href="/pricing"
                             onClick={() => setShowUserMenu(false)}
-                            className="flex items-center w-full px-4 py-2 text-body-medium text-airbnb-dark-gray hover:bg-airbnb-background-secondary transition-colors"
+                            className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-sleek-background-secondary transition-colors"
                           >
                             <CreditCard className="h-4 w-4 mr-2" />
                             Billing & Subscription
@@ -406,7 +407,7 @@ export function AuthAwareHeader() {
                           <Link
                             href="/dashboard/credits"
                             onClick={() => setShowUserMenu(false)}
-                            className="flex items-center w-full px-4 py-2 text-body-medium text-airbnb-dark-gray hover:bg-airbnb-background-secondary transition-colors"
+                            className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-sleek-background-secondary transition-colors"
                           >
                             <Wallet className="h-4 w-4 mr-2" />
                             Credits & Usage
@@ -416,13 +417,13 @@ export function AuthAwareHeader() {
                         <Link
                           href="/dashboard/settings"
                           onClick={() => setShowUserMenu(false)}
-                          className="flex items-center w-full px-4 py-2 text-body-medium text-airbnb-dark-gray hover:bg-airbnb-background-secondary transition-colors"
+                          className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-sleek-background-secondary transition-colors"
                         >
                           <Settings className="h-4 w-4 mr-2" />
                           Settings
                         </Link>
                         
-                        <div className="border-t border-airbnb-border-light">
+                        <div className="border-t border-sleek-border-light">
                           <button
                             onClick={handleSignOut}
                             className="flex items-center w-full px-4 py-2 text-body-medium text-red-600 hover:bg-red-50 transition-colors"
@@ -447,8 +448,8 @@ export function AuthAwareHeader() {
             // Non-authenticated User Actions
             <div className="hidden lg:flex items-center gap-3">
               <button
-                onClick={() => showSignIn()}
-                className="text-body-medium text-airbnb-gray hover:text-airbnb-black transition-colors"
+                onClick={() => showSignIn(pathname)}
+                className="text-body-medium text-sleek-gray hover:text-sleek-black transition-colors"
               >
                 Sign in
               </button>
@@ -483,7 +484,7 @@ export function AuthAwareHeader() {
           />
 
           {/* Menu */}
-          <div className="lg:hidden border-t border-airbnb-border bg-white shadow-lg fixed top-[60px] left-0 right-0 z-40">
+          <div className="lg:hidden border-t border-sleek-border bg-white shadow-lg fixed top-[60px] left-0 right-0 z-40">
             <div className="px-4 py-3 space-y-1 max-h-[calc(100vh-60px-64px)] overflow-y-auto pb-20 scrollbar-thin">
             {/* User Profile Section (if authenticated) */}
             {isAuthenticated && (
@@ -662,7 +663,7 @@ export function AuthAwareHeader() {
                 <button
                   onClick={() => {
                     setShowMobileMenu(false)
-                    showSignIn()
+                    showSignIn(pathname)
                   }}
                   className="flex items-center gap-3 px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 rounded-lg transition-colors w-full"
                 >

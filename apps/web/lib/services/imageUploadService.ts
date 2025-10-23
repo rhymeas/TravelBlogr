@@ -165,8 +165,24 @@ export async function uploadImage(
       console.warn('⚠️ Could not get image dimensions:', error)
     }
 
-    // Generate file path
-    const filePath = generateFilePath(options.userId, folder, file.name)
+    // Request a signed upload token from the server
+    const signRes = await fetch('/api/storage/signed-upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        bucket: options.bucket,
+        folder,
+        fileName: file.name
+      })
+    })
+
+    if (!signRes.ok) {
+      const err = await signRes.json().catch(() => ({ error: 'Failed to create signed URL' }))
+      return { success: false, error: err.error || 'Failed to create signed URL' }
+    }
+
+    const { path: filePath, token } = await signRes.json()
 
     console.log(`📤 Uploading image to ${options.bucket}/${filePath}`)
     console.log(`📏 Size: ${(fileToUpload.size / 1024).toFixed(2)}KB`)
@@ -177,33 +193,13 @@ export async function uploadImage(
     // Get Supabase client
     const supabase = getBrowserSupabase()
 
-    // Upload to Supabase Storage
+    // Upload via signed URL (bypasses client-side RLS issues)
     const { data, error } = await supabase.storage
       .from(options.bucket)
-      .upload(filePath, fileToUpload, {
-        cacheControl: '3600',
-        upsert: false,
-        contentType: fileToUpload.type
-      })
+      .uploadToSignedUrl(filePath, token, fileToUpload)
 
     if (error) {
-      console.error('❌ Upload error:', error)
-      
-      // Provide more specific error messages
-      if (error.message?.includes('row-level security')) {
-        return {
-          success: false,
-          error: 'Permission denied. Please check your authentication.'
-        }
-      }
-      
-      if (error.message?.includes('already exists')) {
-        return {
-          success: false,
-          error: 'A file with this name already exists.'
-        }
-      }
-      
+      console.error('❌ Signed upload error:', error)
       return {
         success: false,
         error: error.message || 'Upload failed'

@@ -83,30 +83,30 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen bg-airbnb-background-secondary flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-sleek-background-secondary flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Logo */}
         <div className="flex justify-center mb-8">
           <HeaderLogo />
         </div>
 
-        <h2 className="text-center text-display-small text-airbnb-black mb-2">
+        <h2 className="text-center text-display-small text-sleek-black mb-2">
           Create your account
         </h2>
-        <p className="text-center text-body-large text-airbnb-dark-gray mb-8">
+        <p className="text-center text-body-large text-sleek-dark-gray mb-8">
           Start sharing your travel stories with the world
         </p>
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="card-elevated py-8 px-4 sm:px-10 border border-airbnb-border">
+        <div className="card-elevated py-8 px-4 sm:px-10 border border-sleek-border">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="fullName" className="block text-body-medium font-medium text-airbnb-black mb-2">
+              <label htmlFor="fullName" className="block text-body-medium font-medium text-sleek-black mb-2">
                 Full name
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-airbnb-gray h-5 w-5" />
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sleek-gray h-5 w-5" />
                 <Input
                   id="fullName"
                   name="fullName"
@@ -122,7 +122,7 @@ export default function SignUpPage() {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-airbnb-black mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-sleek-black mb-2">
                 Email address
               </label>
               <div className="relative">
@@ -142,7 +142,7 @@ export default function SignUpPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-airbnb-black mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-sleek-black mb-2">
                 Password
               </label>
               <div className="relative">
@@ -169,7 +169,7 @@ export default function SignUpPage() {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-airbnb-black mb-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-sleek-black mb-2">
                 Confirm password
               </label>
               <div className="relative">
@@ -204,7 +204,7 @@ export default function SignUpPage() {
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
                 className="h-4 w-4 text-rausch-500 focus:ring-rausch-500 border-gray-300 rounded"
               />
-              <label htmlFor="agree-terms" className="ml-2 block text-sm text-airbnb-dark-gray">
+              <label htmlFor="agree-terms" className="ml-2 block text-sm text-sleek-dark-gray">
                 I agree to the{' '}
                 <Link href="/terms" className="text-rausch-500 hover:text-rausch-600">
                   Terms of Service
@@ -233,7 +233,7 @@ export default function SignUpPage() {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-airbnb-gray">Or continue with</span>
+                <span className="px-2 bg-white text-sleek-gray">Or continue with</span>
               </div>
             </div>
 
@@ -257,7 +257,7 @@ export default function SignUpPage() {
           </div>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-airbnb-gray">
+            <p className="text-sm text-sleek-gray">
               Already have an account?{' '}
               <Link href="/auth/signin" className="text-rausch-500 hover:text-rausch-600 font-medium">
                 Sign in

@@ -11,7 +11,7 @@ import { ExternalLink, Hotel, Home, Compass, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import {
   generateBookingLink,
-  generateAirbnbLink,
+  generatesleekLink,
   generateGetYourGuideLink,
   generateViatorLink,
   trackAffiliateClick,
@@ -33,7 +33,7 @@ export function QuickBookingLinks({
   context = 'location_page',
 }: QuickBookingLinksProps) {
   const bookingUrl = generateBookingLink({ locationName, latitude, longitude })
-  const airbnbUrl = generateAirbnbLink({ locationName, latitude, longitude })
+  const sleekUrl = generatesleekLink({ locationName, latitude, longitude })
   const activitiesUrl = generateGetYourGuideLink(locationName)
   const toursUrl = generateViatorLink(locationName)
 
@@ -46,7 +46,7 @@ export function QuickBookingLinks({
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
         <MapPin className="h-4 w-4 text-rausch-500" />
-        <h3 className="text-sm font-semibold text-airbnb-black">Book Your Trip</h3>
+        <h3 className="text-sm font-semibold text-sleek-black">Book Your Trip</h3>
       </div>
 
       {/* Booking Links Grid */}
@@ -70,12 +70,12 @@ export function QuickBookingLinks({
           </Button>
         </a>
 
-        {/* Stays - Airbnb */}
+        {/* Stays - sleek */}
         <a
-          href={airbnbUrl}
+          href={sleekUrl}
           target="_blank"
           rel="noopener noreferrer sponsored"
-          onClick={() => handleClick('airbnb', airbnbUrl)}
+          onClick={() => handleClick('sleek', sleekUrl)}
           className="group"
         >
           <Button

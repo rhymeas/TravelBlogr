@@ -100,7 +100,7 @@ export function PublicDestinationSearch({
     <div className={`relative ${className}`} ref={searchRef}>
       {/* Search Input */}
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-airbnb-gray h-5 w-5" />
+        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-sleek-gray h-5 w-5" />
         <input
           type="text"
           placeholder={placeholder}
@@ -108,7 +108,7 @@ export function PublicDestinationSearch({
           onChange={(e) => handleSearch(e.target.value)}
           onFocus={() => setIsOpen(true)}
           onKeyPress={handleKeyPress}
-          className="w-full pl-12 pr-4 py-4 text-body-large border border-airbnb-border rounded-airbnb-large focus:outline-none focus:ring-2 focus:ring-rausch-500 focus:border-transparent shadow-airbnb-light hover:shadow-airbnb-medium transition-all"
+          className="w-full pl-12 pr-4 py-4 text-body-large border border-sleek-border rounded-sleek-large focus:outline-none focus:ring-2 focus:ring-rausch-500 focus:border-transparent shadow-sleek-light hover:shadow-sleek-medium transition-all"
         />
         {query && (
           <button
@@ -117,7 +117,7 @@ export function PublicDestinationSearch({
               setResults([])
               setSelectedLocation(null)
             }}
-            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-airbnb-gray hover:text-airbnb-black transition-colors"
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-sleek-gray hover:text-sleek-black transition-colors"
           >
             ✕
           </button>
@@ -138,14 +138,14 @@ export function PublicDestinationSearch({
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles className="h-4 w-4 text-rausch-500" />
-                <h3 className="text-lg font-semibold text-airbnb-black">
+                <h3 className="text-lg font-semibold text-sleek-black">
                   {selectedLocation.name}
                 </h3>
               </div>
               <p className="text-sm text-rausch-600 font-medium mb-1">
                 Amazing place! Let's explore the possibilities there.
               </p>
-              <p className="text-xs text-airbnb-gray">
+              <p className="text-xs text-sleek-gray">
                 {selectedLocation.region}, {selectedLocation.country}
               </p>
             </div>
@@ -155,7 +155,7 @@ export function PublicDestinationSearch({
           <div className="flex gap-2">
             <Button
               onClick={handleExploreLocation}
-              className="flex-1 bg-white hover:bg-gray-50 text-airbnb-black border-2 border-gray-300 rounded-xl h-10 text-sm font-semibold"
+              className="flex-1 bg-white hover:bg-gray-50 text-sleek-black border-2 border-gray-300 rounded-xl h-10 text-sm font-semibold"
             >
               <MapPin className="h-4 w-4 mr-1.5" />
               Explore
@@ -173,22 +173,22 @@ export function PublicDestinationSearch({
 
       {/* Search Results Dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-airbnb-border rounded-airbnb-large shadow-airbnb-xl z-50 max-h-96 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-sleek-border rounded-sleek-large shadow-sleek-xl z-50 max-h-96 overflow-y-auto">
           {query.trim() ? (
             // Search Results
             <div className="p-2">
               {results.length > 0 ? (
                 <>
-                  <div className="px-3 py-2 text-body-small text-airbnb-gray font-medium">
+                  <div className="px-3 py-2 text-body-small text-sleek-gray font-medium">
                     Search Results ({results.length})
                   </div>
                   {results.map((location) => (
                     <button
                       key={location.id}
                       onClick={() => handleResultClick(location)}
-                      className="w-full flex items-center gap-3 p-3 rounded-airbnb-small hover:bg-airbnb-background-secondary transition-colors group"
+                      className="w-full flex items-center gap-3 p-3 rounded-sleek-small hover:bg-sleek-background-secondary transition-colors group"
                     >
-                      <div className="w-12 h-12 rounded-airbnb-small overflow-hidden flex-shrink-0">
+                      <div className="w-12 h-12 rounded-sleek-small overflow-hidden flex-shrink-0">
                         <img
                           src={location.featured_image}
                           alt={location.name}
@@ -196,16 +196,16 @@ export function PublicDestinationSearch({
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-body-medium font-medium text-airbnb-black group-hover:text-rausch-500 transition-colors">
+                        <div className="text-body-medium font-medium text-sleek-black group-hover:text-rausch-500 transition-colors">
                           {location.name}
                         </div>
-                        <div className="text-body-small text-airbnb-gray">
+                        <div className="text-body-small text-sleek-gray">
                           {location.region}, {location.country}
                         </div>
                         <div className="flex items-center gap-2 mt-1">
                           <div className="flex items-center gap-1">
                             <Star className="h-3 w-3 text-yellow-400 fill-current" />
-                            <span className="text-body-small text-airbnb-gray">{location.rating}</span>
+                            <span className="text-body-small text-sleek-gray">{location.rating}</span>
                           </div>
                           {location.is_featured && (
                             <Badge className="bg-rausch-100 text-rausch-700 text-xs">
@@ -214,7 +214,7 @@ export function PublicDestinationSearch({
                           )}
                         </div>
                       </div>
-                      <ArrowRight className="h-4 w-4 text-airbnb-gray group-hover:text-rausch-500 transition-colors" />
+                      <ArrowRight className="h-4 w-4 text-sleek-gray group-hover:text-rausch-500 transition-colors" />
                     </button>
                   ))}
                 </>
@@ -222,10 +222,10 @@ export function PublicDestinationSearch({
                 <div className="p-6">
                   <div className="text-center mb-4">
                     <Sparkles className="h-8 w-8 text-rausch-500 mx-auto mb-3" />
-                    <div className="text-lg font-semibold text-airbnb-black mb-2">
+                    <div className="text-lg font-semibold text-sleek-black mb-2">
                       {query}? Amazing choice!
                     </div>
-                    <div className="text-sm text-airbnb-gray mb-4">
+                    <div className="text-sm text-sleek-gray mb-4">
                       We don't have detailed info yet, but our AI can help you plan an incredible trip there!
                     </div>
                   </div>
@@ -249,7 +249,7 @@ export function PublicDestinationSearch({
                         setIsOpen(true)
                       }}
                       variant="outline"
-                      className="w-full border-2 border-gray-300 hover:bg-gray-50 text-airbnb-black rounded-xl h-10 text-sm font-medium"
+                      className="w-full border-2 border-gray-300 hover:bg-gray-50 text-sleek-black rounded-xl h-10 text-sm font-medium"
                     >
                       Try a different destination
                     </Button>
@@ -262,7 +262,7 @@ export function PublicDestinationSearch({
             <div className="p-2">
               {/* Recent Searches */}
               <div className="mb-4">
-                <div className="px-3 py-2 text-body-small text-airbnb-gray font-medium flex items-center gap-2">
+                <div className="px-3 py-2 text-body-small text-sleek-gray font-medium flex items-center gap-2">
                   <Clock className="h-4 w-4" />
                   Recent Searches
                 </div>
@@ -270,10 +270,10 @@ export function PublicDestinationSearch({
                   <button
                     key={index}
                     onClick={() => handleSearch(search.split(',')[0])}
-                    className="w-full text-left p-3 rounded-airbnb-small hover:bg-airbnb-background-secondary transition-colors flex items-center gap-3"
+                    className="w-full text-left p-3 rounded-sleek-small hover:bg-sleek-background-secondary transition-colors flex items-center gap-3"
                   >
-                    <Clock className="h-4 w-4 text-airbnb-gray" />
-                    <span className="text-body-medium text-airbnb-black">{search}</span>
+                    <Clock className="h-4 w-4 text-sleek-gray" />
+                    <span className="text-body-medium text-sleek-black">{search}</span>
                   </button>
                 ))}
               </div>
@@ -281,7 +281,7 @@ export function PublicDestinationSearch({
               {/* Trending Destinations */}
               {showTrending && (
                 <div>
-                  <div className="px-3 py-2 text-body-small text-airbnb-gray font-medium flex items-center gap-2">
+                  <div className="px-3 py-2 text-body-small text-sleek-gray font-medium flex items-center gap-2">
                     <TrendingUp className="h-4 w-4" />
                     Trending Destinations
                   </div>
@@ -289,9 +289,9 @@ export function PublicDestinationSearch({
                     <button
                       key={location.id}
                       onClick={() => handleResultClick(location)}
-                      className="w-full flex items-center gap-3 p-3 rounded-airbnb-small hover:bg-airbnb-background-secondary transition-colors group"
+                      className="w-full flex items-center gap-3 p-3 rounded-sleek-small hover:bg-sleek-background-secondary transition-colors group"
                     >
-                      <div className="w-10 h-10 rounded-airbnb-small overflow-hidden flex-shrink-0">
+                      <div className="w-10 h-10 rounded-sleek-small overflow-hidden flex-shrink-0">
                         <img
                           src={location.featured_image}
                           alt={location.name}
@@ -299,16 +299,16 @@ export function PublicDestinationSearch({
                         />
                       </div>
                       <div className="flex-1">
-                        <div className="text-body-medium font-medium text-airbnb-black group-hover:text-rausch-500 transition-colors">
+                        <div className="text-body-medium font-medium text-sleek-black group-hover:text-rausch-500 transition-colors">
                           {location.name}
                         </div>
-                        <div className="text-body-small text-airbnb-gray">
+                        <div className="text-body-small text-sleek-gray">
                           {location.country}
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
                         <Star className="h-3 w-3 text-yellow-400 fill-current" />
-                        <span className="text-body-small text-airbnb-gray">{location.rating}</span>
+                        <span className="text-body-small text-sleek-gray">{location.rating}</span>
                       </div>
                     </button>
                   ))}
@@ -316,11 +316,11 @@ export function PublicDestinationSearch({
               )}
 
               {/* Browse All */}
-              <div className="border-t border-airbnb-border-light mt-2 pt-2">
+              <div className="border-t border-sleek-border-light mt-2 pt-2">
                 <Link
                   href="/locations"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center justify-center gap-2 p-3 rounded-airbnb-small hover:bg-airbnb-background-secondary transition-colors text-rausch-500 font-medium"
+                  className="flex items-center justify-center gap-2 p-3 rounded-sleek-small hover:bg-sleek-background-secondary transition-colors text-rausch-500 font-medium"
                 >
                   <MapPin className="h-4 w-4" />
                   Browse All Destinations

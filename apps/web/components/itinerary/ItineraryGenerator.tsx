@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Minimalist Airbnb-style plan Generator
+ * Minimalist sleek-style plan Generator
  */
 
 import { useState, useEffect, useRef } from 'react'

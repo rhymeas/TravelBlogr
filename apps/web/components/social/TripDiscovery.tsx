@@ -6,13 +6,15 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar'
-import { Search, Filter, MapPin, Calendar, Users, Heart, Eye, Star, Plane } from 'lucide-react'
+import { Search, Filter, MapPin, Calendar, Users, Eye, Star, Plane, Heart } from 'lucide-react'
 import { createClientSupabase } from '@/lib/supabase'
 import { formatDistanceToNow } from 'date-fns'
 import Fuse from 'fuse.js'
 import { useInView } from 'react-intersection-observer'
 import toast from 'react-hot-toast'
 import { DuplicateTripButton } from '@/components/trips/DuplicateTripButton'
+import { TripLikeButton } from '@/components/trips/TripLikeButton'
+import { TripSaveButton } from '@/components/trips/TripSaveButton'
 
 interface Trip {
   id: string
@@ -261,48 +263,7 @@ export function TripDiscovery({ currentUserId, className = '' }: TripDiscoveryPr
     setFilteredTrips(filtered)
   }
 
-  const handleLikeTrip = async (tripId: string) => {
-    try {
-      // Check if already liked
-      const { data: existingLike } = await supabase
-        .from('trip_likes')
-        .select('id')
-        .eq('trip_id', tripId)
-        .eq('user_id', currentUserId)
-        .single()
 
-      if (existingLike) {
-        // Unlike
-        await supabase
-          .from('trip_likes')
-          .delete()
-          .eq('id', existingLike.id)
-
-        setTrips(prev => prev.map(trip => 
-          trip.id === tripId 
-            ? { ...trip, stats: { ...trip.stats!, likes: trip.stats!.likes - 1 } }
-            : trip
-        ))
-      } else {
-        // Like
-        await supabase
-          .from('trip_likes')
-          .insert({
-            trip_id: tripId,
-            user_id: currentUserId
-          })
-
-        setTrips(prev => prev.map(trip => 
-          trip.id === tripId 
-            ? { ...trip, stats: { ...trip.stats!, likes: trip.stats!.likes + 1 } }
-            : trip
-        ))
-      }
-    } catch (error) {
-      console.error('Error toggling trip like:', error)
-      toast.error('Failed to update like')
-    }
-  }
 
   const handleViewTrip = async (tripId: string) => {
     try {
@@ -490,15 +451,22 @@ export function TripDiscovery({ currentUserId, className = '' }: TripDiscoveryPr
                         </div>
                       )}
                     </div>
-                    
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleLikeTrip(trip.id)}
-                      className="text-gray-600 hover:text-red-600"
-                    >
-                      <Heart className="h-4 w-4" />
-                    </Button>
+
+                    <div className="flex gap-1">
+                      <TripLikeButton
+                        tripId={trip.id}
+                        initialLikeCount={trip.stats?.likes || 0}
+                        variant="ghost"
+                        size="sm"
+                        showCount={false}
+                      />
+                      <TripSaveButton
+                        tripId={trip.id}
+                        variant="ghost"
+                        size="sm"
+                        showCount={false}
+                      />
+                    </div>
                   </div>
 
                   {trip.description && (

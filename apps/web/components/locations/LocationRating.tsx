@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react'
 import { Star } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { useRealtimeRating } from '@/hooks/useRealtimeRating'
 import toast from 'react-hot-toast'
 
 interface LocationRatingProps {
+  locationId: string
   locationSlug: string
   initialRating: number
   initialRatingCount: number
@@ -13,6 +15,7 @@ interface LocationRatingProps {
 }
 
 export function LocationRating({
+  locationId,
   locationSlug,
   initialRating,
   initialRatingCount,
@@ -24,6 +27,38 @@ export function LocationRating({
   const [userRating, setUserRating] = useState(initialUserRating || 0)
   const [hoverRating, setHoverRating] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Subscribe to real-time rating updates
+  useRealtimeRating({
+    locationId,
+    locationSlug,
+    onRatingUpdate: ({ averageRating, ratingCount: newCount }) => {
+      setRating(averageRating)
+      setRatingCount(newCount)
+    },
+    enabled: true
+  })
+
+  // Fetch current user's rating on mount/when auth changes
+  useEffect(() => {
+    let cancelled = false
+    const fetchUserRating = async () => {
+      if (!isAuthenticated) return
+      try {
+        const res = await fetch(`/api/locations/${locationSlug}/rating`, { credentials: 'include' })
+        if (!res.ok) return
+        const data = await res.json()
+        if (!cancelled && typeof data.userRating === 'number') {
+          setUserRating(data.userRating)
+        }
+      } catch (e) {
+        // non-blocking
+        console.log('rating fetch skipped', e)
+      }
+    }
+    fetchUserRating()
+    return () => { cancelled = true }
+  }, [isAuthenticated, locationSlug])
 
   const handleRating = async (value: number) => {
     // Check authentication first

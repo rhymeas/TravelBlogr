@@ -30,7 +30,7 @@
 <div className="w-8 h-8 bg-rausch-500 rounded-lg flex items-center justify-center">
   <Globe className="h-5 w-5 text-white" />
 </div>
-<span className="text-xl text-airbnb-black font-semibold">TravelBlogr</span>
+<span className="text-xl text-sleek-black font-semibold">TravelBlogr</span>
 
 // After
 <HeaderLogo />

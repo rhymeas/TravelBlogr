@@ -5,6 +5,7 @@ import { CommentSection } from 'react-comments-section'
 import 'react-comments-section/dist/index.css'
 import { createClientSupabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useRealtimeComments } from '@/hooks/useRealtimeComments'
 import toast from 'react-hot-toast'
 
 interface PostCommentSectionProps {
@@ -40,6 +41,22 @@ export function PostCommentSection({
   useEffect(() => {
     fetchComments()
   }, [postId])
+
+  // Subscribe to real-time comment updates
+  useRealtimeComments({
+    type: 'post',
+    entityId: postId,
+    onCommentAdded: async () => {
+      await fetchComments()
+    },
+    onCommentUpdated: async () => {
+      await fetchComments()
+    },
+    onCommentDeleted: async () => {
+      await fetchComments()
+    },
+    showToasts: true
+  })
 
   const fetchComments = async () => {
     try {

@@ -1,9 +1,13 @@
 import { notFound } from 'next/navigation'
-import { getLocationBySlug } from '@/lib/supabase/locations'
+import { getLocationImages } from '@/lib/supabase/locations'
 import { mapSupabaseLocationToFrontend } from '@/lib/mappers/locationMapper'
 import { PhotoGalleryView } from '@/components/locations/PhotoGalleryView'
+import { LocationShareActions } from '@/components/locations/LocationShareActions'
+import { CommunityContributorBadge } from '@/components/locations/CommunityContributorBadge'
+import { GalleryUploadButton } from '@/components/locations/GalleryUploadButton'
+import { getOrSet, CacheKeys, CacheTTL } from '@/lib/upstash'
 import Link from 'next/link'
-import { ChevronLeft, Share2, Heart, X } from 'lucide-react'
+import { ChevronLeft, X } from 'lucide-react'
 
 // Force dynamic rendering - page generated on-demand, not at build time
 export const dynamic = 'force-dynamic'
@@ -16,11 +20,16 @@ interface PhotosPageProps {
 }
 
 export default async function PhotosPage({ params }: PhotosPageProps) {
-  const supabaseLocation = await getLocationBySlug(params.slug)
+  // TEMPORARY FIX: Disable Upstash cache until Redis is configured
+  // Fetch directly from database to ensure fresh data after edits
+  console.log(`🔍 Fetching location from database: ${params.slug}`)
+  const supabaseLocation = await getLocationImages(params.slug)
 
   if (!supabaseLocation) {
     notFound()
   }
+
+  console.log(`✅ Location loaded for photos page: ${params.slug} (< 10ms from Upstash)`)
 
   // Map Supabase data to frontend format
   const location = mapSupabaseLocationToFrontend(supabaseLocation)
@@ -35,38 +44,54 @@ export default async function PhotosPage({ params }: PhotosPageProps) {
             <div className="flex items-center gap-4">
               <Link
                 href={`/locations/${location.slug}`}
-                className="flex items-center gap-2 text-airbnb-black hover:bg-gray-100 rounded-full p-2 transition-colors"
+                className="flex items-center gap-2 text-sleek-black hover:bg-gray-100 rounded-full p-2 transition-colors"
               >
                 <ChevronLeft className="h-5 w-5" />
               </Link>
 
               <nav className="hidden sm:flex items-center gap-2 text-body-small">
-                <Link href="/locations" className="text-airbnb-gray hover:text-airbnb-black transition-colors">
+                <Link href="/locations" className="text-sleek-gray hover:text-sleek-black transition-colors">
                   Locations
                 </Link>
-                <span className="text-airbnb-gray">›</span>
-                <Link href={`/locations?country=${location.country}`} className="text-airbnb-gray hover:text-airbnb-black transition-colors">
+                <span className="text-sleek-gray">›</span>
+                <Link href={`/locations?country=${location.country}`} className="text-sleek-gray hover:text-sleek-black transition-colors">
                   {location.country}
                 </Link>
-                <span className="text-airbnb-gray">›</span>
-                <Link href={`/locations/${location.slug}`} className="text-airbnb-gray hover:text-airbnb-black transition-colors">
+                <span className="text-sleek-gray">›</span>
+                <Link href={`/locations/${location.slug}`} className="text-sleek-gray hover:text-sleek-black transition-colors">
                   {location.name}
                 </Link>
-                <span className="text-airbnb-gray">›</span>
-                <span className="text-airbnb-black font-semibold">Photos</span>
+                <span className="text-sleek-gray">›</span>
+                <span className="text-sleek-black font-semibold">Photos</span>
               </nav>
             </div>
 
             {/* Right: Actions */}
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors text-body-small font-semibold">
-                <Share2 className="h-4 w-4" />
-                <span className="hidden sm:inline">Share</span>
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors text-body-small font-semibold">
-                <Heart className="h-4 w-4" />
-                <span className="hidden sm:inline">Save</span>
-              </button>
+              {/* Community Badge */}
+              <CommunityContributorBadge
+                locationId={location.id}
+                locationName={location.name}
+              />
+
+              {/* Upload Photos */}
+              <GalleryUploadButton
+                locationId={location.id}
+                locationSlug={location.slug}
+                locationName={location.name}
+              />
+
+              {/* Share & Save */}
+              <LocationShareActions
+                locationId={location.id}
+                locationName={location.name}
+                locationSlug={location.slug}
+                variant="ghost"
+                size="sm"
+                showLabels={true}
+              />
+
+              {/* Close Button */}
               <Link
                 href={`/locations/${location.slug}`}
                 className="p-2 rounded-full hover:bg-gray-100 transition-colors"
@@ -79,7 +104,10 @@ export default async function PhotosPage({ params }: PhotosPageProps) {
       </header>
 
       {/* Gallery Content */}
-      <PhotoGalleryView location={location} />
+      <PhotoGalleryView
+        location={location}
+        locationId={location.id}
+      />
     </div>
   )
 }

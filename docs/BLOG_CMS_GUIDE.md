@@ -33,7 +33,7 @@ The TravelBlogr Blog/CMS system is a comprehensive content management solution b
 - SEO metadata management
 
 ✅ **Monetization**
-- Affiliate link integration (Booking.com, Airbnb, GetYourGuide, Viator)
+- Affiliate link integration (Booking.com, sleek, GetYourGuide, Viator)
 - Click tracking and analytics
 - Revenue dashboard (70/30 creator/platform split)
 - Conversion tracking
@@ -188,7 +188,7 @@ NEXT_PUBLIC_SITE_URL=https://travelblogr.com
 
 # Affiliate IDs (optional)
 NEXT_PUBLIC_BOOKING_AFFILIATE_ID=your_booking_id
-NEXT_PUBLIC_AIRBNB_AFFILIATE_ID=your_airbnb_id
+NEXT_PUBLIC_sleek_AFFILIATE_ID=your_sleek_id
 NEXT_PUBLIC_GETYOURGUIDE_PARTNER_ID=your_getyourguide_id
 NEXT_PUBLIC_VIATOR_PARTNER_ID=your_viator_id
 ```

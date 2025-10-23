@@ -38,6 +38,7 @@ import toast from 'react-hot-toast'
 import { QuickShareModal } from '@/components/trips/QuickShareModal'
 import { TripEditorModal } from '@/components/trips/TripEditorModal'
 import { TripPrivacyModal } from '@/components/trips/TripPrivacyModal'
+import { TripCommunityActivityFeed } from '@/components/trips/TripCommunityActivityFeed'
 
 interface TripDetailsPageProps {
   params: {
@@ -517,6 +518,14 @@ export default function TripDetailsPage({ params }: TripDetailsPageProps) {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="space-y-8">
+          {/* Community Activity Feed */}
+          {trip && (
+            <TripCommunityActivityFeed
+              tripId={trip.id}
+              tripTitle={trip.title}
+            />
+          )}
+
           {/* Live Feed Section - Social Media Aspect */}
           <div className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl border border-rose-100 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
@@ -599,7 +608,7 @@ export default function TripDetailsPage({ params }: TripDetailsPageProps) {
                       href={locationSlug ? `/locations/${locationSlug}` : '#'}
                       className="group block"
                     >
-                      <Card className="overflow-hidden hover:shadow-airbnb-large transition-all duration-300 group-hover:scale-[1.02]">
+                      <Card className="overflow-hidden hover:shadow-sleek-large transition-all duration-300 group-hover:scale-[1.02]">
                         {/* Location Image */}
                         <div className="relative h-64 overflow-hidden">
                           {post.featured_image ? (
@@ -635,10 +644,10 @@ export default function TripDetailsPage({ params }: TripDetailsPageProps) {
                         <div className="p-6">
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1">
-                              <h3 className="text-xl font-semibold text-airbnb-black mb-1 group-hover:text-rausch-500 transition-colors">
+                              <h3 className="text-xl font-semibold text-sleek-black mb-1 group-hover:text-rausch-500 transition-colors">
                                 {post.location || post.title}
                               </h3>
-                              <div className="flex items-center gap-1 text-airbnb-gray text-sm">
+                              <div className="flex items-center gap-1 text-sleek-gray text-sm">
                                 <Calendar className="h-4 w-4" />
                                 <span>
                                   {new Date(post.post_date || post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -647,12 +656,12 @@ export default function TripDetailsPage({ params }: TripDetailsPageProps) {
                             </div>
                           </div>
 
-                          <p className="text-airbnb-dark-gray text-sm mb-4 line-clamp-2">
+                          <p className="text-sleek-dark-gray text-sm mb-4 line-clamp-2">
                             {post.content?.substring(0, 120) || 'Explore this amazing destination...'}
                           </p>
 
                           {/* Stats */}
-                          <div className="flex items-center justify-between text-xs text-airbnb-gray">
+                          <div className="flex items-center justify-between text-xs text-sleek-gray">
                             <div className="flex items-center gap-1">
                               <ImageIcon className="h-3 w-3" />
                               <span>{post.featured_image ? '1 photo' : 'No photos'}</span>

@@ -115,7 +115,7 @@ useEffect(() => {
 ---
 
 ### 5. **Date Range Picker**
-- ✅ Airbnb-style calendar interface
+- ✅ sleek-style calendar interface
 - ✅ Start and end date selection
 - ✅ Visual range highlighting
 - ✅ Modal stays open until "Done" clicked
@@ -167,7 +167,7 @@ lib/plan/
 ## 🎨 UI/UX Improvements
 
 ### Design System
-- **Colors:** Airbnb-inspired palette (rausch-500, teal-400, airbnb-black)
+- **Colors:** sleek-inspired palette (rausch-500, teal-400, sleek-black)
 - **Typography:** Clean, modern font hierarchy
 - **Spacing:** Generous padding (24px standard)
 - **Shadows:** Layered elevation system
@@ -198,9 +198,9 @@ lib/plan/
 - **APIs:** Free tier services only
 
 ### Infrastructure
-- **Hosting:**  do-not-use-this-anymore-no-vercel-we-use-railway-now
+- **Hosting:** Railway
 - **Version Control:** Git + GitHub
-- **CI/CD:**  do-not-use-this-anymore-no-vercel-we-use-railway-now automatic deployments
+- **CI/CD:** Railway automatic deployments
 
 ---
 
@@ -332,7 +332,7 @@ For future versions, follow this upgrade path:
 ## 👥 Contributors
 
 - **Development:** Augment AI + User
-- **Design:** Airbnb-inspired design system
+- **Design:** sleek-inspired design system
 - **AI Model:** Groq (llama-3.3-70b-versatile)
 
 ---

@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Airbnb-style Date Range Picker
+ * sleek-style Date Range Picker
  * Mobile: 1 month, Desktop: 2 months side-by-side
  */
 

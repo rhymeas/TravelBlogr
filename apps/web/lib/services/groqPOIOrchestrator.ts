@@ -333,7 +333,7 @@ function getDefaultStrategy(travelType: TravelType): POISearchStrategy {
     },
     'city-break': {
       priorityCategories: ['culture', 'restaurant', 'shopping', 'nightlife'],
-      accommodationNeeds: { count: 1, types: ['hotel', 'airbnb'], locations: [] },
+      accommodationNeeds: { count: 1, types: ['hotel', 'sleek'], locations: [] },
       mealBreaks: { count: 4, types: ['casual', 'fine-dining'] },
       activities: { count: 5, types: ['museum', 'walking-tour', 'shopping'] },
       criticalGaps: ['central-accommodation', 'dinner-reservations']

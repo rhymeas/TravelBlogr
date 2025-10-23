@@ -456,7 +456,7 @@ async function fetchRedditImages(locationName: string, count: number = 20): Prom
         const rejectIndoor = [
           'museum', 'gallery', 'exhibition', 'interior', 'inside',
           'room', 'bedroom', 'bathroom', 'kitchen', 'office',
-          'hotel room', 'apartment', 'airbnb'
+          'hotel room', 'apartment', 'sleek'
         ]
         if (rejectIndoor.some(kw => title.includes(kw))) continue
 

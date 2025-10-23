@@ -50,7 +50,7 @@ function LivePostCard({ post }: { post: RecentPost }) {
   }
 
   return (
-    <div className="card-elevated overflow-hidden hover:shadow-airbnb-large transition-all duration-300 group">
+    <div className="card-elevated overflow-hidden hover:shadow-sleek-large transition-all duration-300 group">
       {/* Featured image */}
       {post.featured_image && (
         <div className="relative aspect-[16/10] overflow-hidden">
@@ -65,7 +65,7 @@ function LivePostCard({ post }: { post: RecentPost }) {
           />
           
           {/* Post type badge */}
-          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-airbnb-small px-2 py-1">
+          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-sleek-small px-2 py-1">
             <div className="flex items-center gap-1 text-xs font-medium">
               {getPostTypeIcon(post.type)}
               <span>{getPostTypeLabel(post.type)}</span>
@@ -73,7 +73,7 @@ function LivePostCard({ post }: { post: RecentPost }) {
           </div>
 
           {/* Live indicator */}
-          <div className="absolute top-3 right-3 bg-red-500 text-white rounded-airbnb-small px-2 py-1">
+          <div className="absolute top-3 right-3 bg-red-500 text-white rounded-sleek-small px-2 py-1">
             <div className="flex items-center gap-1 text-xs font-medium">
               <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
               LIVE
@@ -106,11 +106,11 @@ function LivePostCard({ post }: { post: RecentPost }) {
           {/* Author info and timestamp */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <p className="font-medium text-airbnb-black truncate">
+              <p className="font-medium text-sleek-black truncate">
                 {post.author.full_name}
               </p>
-              <span className="text-airbnb-dark-gray">•</span>
-              <span className="text-sm text-airbnb-dark-gray">
+              <span className="text-sleek-dark-gray">•</span>
+              <span className="text-sm text-sleek-dark-gray">
                 {formatDistanceToNow(new Date(post.published_at), { addSuffix: true })}
               </span>
             </div>
@@ -132,19 +132,19 @@ function LivePostCard({ post }: { post: RecentPost }) {
         </div>
 
         {/* Post title and excerpt */}
-        <h3 className="text-body-large font-semibold text-airbnb-black mb-2 line-clamp-2 group-hover:text-rausch-500 transition-colors">
+        <h3 className="text-body-large font-semibold text-sleek-black mb-2 line-clamp-2 group-hover:text-rausch-500 transition-colors">
           {post.title}
         </h3>
         
         {post.excerpt && (
-          <p className="text-body-medium text-airbnb-dark-gray mb-3 line-clamp-2">
+          <p className="text-body-medium text-sleek-dark-gray mb-3 line-clamp-2">
             {post.excerpt}
           </p>
         )}
 
         {/* Engagement stats */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 text-sm text-airbnb-dark-gray">
+          <div className="flex items-center gap-4 text-sm text-sleek-dark-gray">
             <div className="flex items-center gap-1">
               <Eye className="h-4 w-4" />
               <span>{post.view_count || 0}</span>
@@ -199,16 +199,16 @@ function ActivityStats() {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       {stats.map((stat, index) => (
-        <div key={index} className="bg-white rounded-airbnb-medium p-4 shadow-airbnb-light border border-gray-100">
+        <div key={index} className="bg-white rounded-sleek-medium p-4 shadow-sleek-light border border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gray-50 rounded-airbnb-small flex items-center justify-center">
+            <div className="w-10 h-10 bg-gray-50 rounded-sleek-small flex items-center justify-center">
               {stat.icon}
             </div>
             <div>
-              <div className="text-lg font-bold text-airbnb-black">
+              <div className="text-lg font-bold text-sleek-black">
                 {stat.value}{stat.suffix}
               </div>
-              <div className="text-xs text-airbnb-dark-gray">{stat.label}</div>
+              <div className="text-xs text-sleek-dark-gray">{stat.label}</div>
             </div>
           </div>
         </div>
@@ -224,7 +224,7 @@ export function LiveFeedPreview() {
     return (
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-airbnb-dark-gray">Unable to load live feed at the moment.</p>
+          <p className="text-sleek-dark-gray">Unable to load live feed at the moment.</p>
         </div>
       </section>
     )
@@ -243,10 +243,10 @@ export function LiveFeedPreview() {
             </Badge>
           </div>
           
-          <h2 className="text-display-small text-airbnb-black mb-4">
+          <h2 className="text-display-small text-sleek-black mb-4">
             Real-Time Travel Stories
           </h2>
-          <p className="text-body-large text-airbnb-dark-gray max-w-2xl mx-auto leading-relaxed">
+          <p className="text-body-large text-sleek-dark-gray max-w-2xl mx-auto leading-relaxed">
             Stay connected with the latest adventures, discoveries, and travel insights 
             from our global community of explorers.
           </p>
@@ -259,7 +259,7 @@ export function LiveFeedPreview() {
         {isLoading && (
           <div className="text-center py-12">
             <div className="w-8 h-8 border-2 border-rausch-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-airbnb-dark-gray">Loading live updates...</p>
+            <p className="text-sleek-dark-gray">Loading live updates...</p>
           </div>
         )}
 
@@ -278,8 +278,8 @@ export function LiveFeedPreview() {
             <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
               <Activity className="h-8 w-8 text-gray-400" />
             </div>
-            <h3 className="text-title-small text-airbnb-black mb-2">No recent activity</h3>
-            <p className="text-airbnb-dark-gray mb-6">Be the first to share your travel story!</p>
+            <h3 className="text-title-small text-sleek-black mb-2">No recent activity</h3>
+            <p className="text-sleek-dark-gray mb-6">Be the first to share your travel story!</p>
             <Link href="/auth/signup" className="btn-primary">
               Start Sharing
             </Link>
@@ -289,11 +289,11 @@ export function LiveFeedPreview() {
         {/* Bottom CTA */}
         {!isLoading && recentPosts.length > 0 && (
           <div className="text-center">
-            <div className="bg-gradient-to-r from-rausch-50 to-blue-50 rounded-airbnb-large p-8 mb-8">
-              <h3 className="text-title-medium text-airbnb-black mb-3">
+            <div className="bg-gradient-to-r from-rausch-50 to-blue-50 rounded-sleek-large p-8 mb-8">
+              <h3 className="text-title-medium text-sleek-black mb-3">
                 Join the Conversation
               </h3>
-              <p className="text-body-large text-airbnb-dark-gray mb-6 max-w-2xl mx-auto">
+              <p className="text-body-large text-sleek-dark-gray mb-6 max-w-2xl mx-auto">
                 Connect with fellow travelers, share your experiences, and discover new destinations 
                 through our vibrant community.
               </p>
@@ -301,7 +301,7 @@ export function LiveFeedPreview() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
                   href="/live-feed"
-                  className="btn-primary px-8 py-4 text-body-large font-semibold rounded-airbnb-small hover:scale-105 transition-transform inline-flex items-center gap-2"
+                  className="btn-primary px-8 py-4 text-body-large font-semibold rounded-sleek-small hover:scale-105 transition-transform inline-flex items-center gap-2"
                 >
                   <Activity className="h-4 w-4" />
                   View Live Feed
@@ -309,7 +309,7 @@ export function LiveFeedPreview() {
                 
                 <Link
                   href="/auth/signup"
-                  className="btn-secondary px-8 py-4 text-body-large font-semibold rounded-airbnb-small hover:scale-105 transition-transform inline-flex items-center gap-2"
+                  className="btn-secondary px-8 py-4 text-body-large font-semibold rounded-sleek-small hover:scale-105 transition-transform inline-flex items-center gap-2"
                 >
                   <Users className="h-4 w-4" />
                   Join Community

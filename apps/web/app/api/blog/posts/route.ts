@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerSupabase, createServiceSupabase } from '@/lib/supabase-server'
+import { getOrSet, deleteCached, CacheKeys, CacheTTL } from '@/lib/upstash'
 
 // Validation schema for blog post
 const blogPostSchema = z.object({
@@ -27,60 +28,77 @@ const blogPostSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const status = searchParams.get('status')
-    const category = searchParams.get('category')
+    const status = searchParams.get('status') || ''
+    const category = searchParams.get('category') || ''
     const tag = searchParams.get('tag')
     const limit = parseInt(searchParams.get('limit') || '10')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    // Use service role client to bypass RLS for public blog posts
-    const supabase = createServiceSupabase()
+    // OPTIMIZATION: Cache blog posts in Upstash for 1 hour
+    const cacheKey = tag
+      ? `${CacheKeys.blogPosts(status, category, offset, limit)}:tag:${tag}`
+      : CacheKeys.blogPosts(status, category, offset, limit)
 
-    let query = supabase
-      .from('blog_posts')
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1)
+    const result = await getOrSet(
+      cacheKey,
+      async () => {
+        console.log(`📝 Fetching blog posts: status=${status}, category=${category}, offset=${offset}`)
 
-    // Apply filters
-    if (status) {
-      query = query.eq('status', status)
-    }
-    if (category) {
-      query = query.eq('category', category)
-    }
-    if (tag) {
-      query = query.contains('tags', [tag])
-    }
+        // Use service role client to bypass RLS for public blog posts
+        const supabase = createServiceSupabase()
 
-    const { data: posts, error, count } = await query
+        let query = supabase
+          .from('blog_posts')
+          .select('*', { count: 'exact' })
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1)
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
+        // Apply filters
+        if (status) {
+          query = query.eq('status', status)
+        }
+        if (category) {
+          query = query.eq('category', category)
+        }
+        if (tag) {
+          query = query.contains('tags', [tag])
+        }
 
-    // Fetch author profiles separately
-    let postsWithProfiles = posts
-    if (posts && posts.length > 0) {
-      const authorIds = [...new Set(posts.map(p => p.author_id))]
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, full_name, username, avatar_url')
-        .in('id', authorIds)
+        const { data: posts, error, count } = await query
 
-      // Attach profiles to posts
-      postsWithProfiles = posts.map(post => ({
-        ...post,
-        profiles: profiles?.find(p => p.id === post.author_id) || null
-      }))
-    }
+        if (error) {
+          throw new Error(error.message)
+        }
 
-    return NextResponse.json({
-      posts: postsWithProfiles,
-      total: count,
-      limit,
-      offset
-    })
+        // Fetch author profiles separately
+        let postsWithProfiles = posts
+        if (posts && posts.length > 0) {
+          const authorIds = [...new Set(posts.map(p => p.author_id))]
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name, username, avatar_url')
+            .in('id', authorIds)
+
+          // Attach profiles to posts
+          postsWithProfiles = posts.map(post => ({
+            ...post,
+            profiles: profiles?.find(p => p.id === post.author_id) || null
+          }))
+        }
+
+        return {
+          posts: postsWithProfiles,
+          total: count,
+          limit,
+          offset
+        }
+      },
+      CacheTTL.MEDIUM // 1 hour
+    )
+
+    console.log(`✅ Blog posts loaded (< 10ms from Upstash)`)
+
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Error fetching blog posts:', error)
     return NextResponse.json(

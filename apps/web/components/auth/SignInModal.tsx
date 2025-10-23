@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
@@ -33,9 +33,18 @@ export function SignInModal({ isOpen, onClose, redirectTo, heroContent }: SignIn
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const { signIn, signInWithProvider } = useAuth()
+  const { signIn, signInWithProvider, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
+
+  // CRITICAL: Auto-close modal when user becomes authenticated
+  // This handles the case where OAuth callback completes and user is logged in
+  useEffect(() => {
+    if (isAuthenticated && isOpen && !authLoading) {
+      console.log('✅ User authenticated - auto-closing sign-in modal')
+      onClose(true)
+    }
+  }, [isAuthenticated, isOpen, authLoading, onClose])
 
   if (!isOpen) return null
 
@@ -81,20 +90,24 @@ export function SignInModal({ isOpen, onClose, redirectTo, heroContent }: SignIn
         // Check if we're using redirect mode (popup was blocked)
         if (result.isRedirectMode) {
           toast.loading('Redirecting to Google...', { duration: 2000 })
+          // DON'T close modal - user is being redirected to Google
+          // Modal will be gone when page reloads
+          // onClose(true) - REMOVED
         } else {
           toast.success('Signing in with Google...')
+          onClose(true) // Only close if not redirecting
         }
-        onClose(true) // Pass true to indicate user signed in
         // OAuth will handle redirect automatically via callback URL
         // User will return to the page they were on!
       } else {
         toast.error(result.error || 'Failed to sign in with Google')
+        setIsLoading(false) // Re-enable button on error
       }
     } catch (error) {
       toast.error('An unexpected error occurred')
-    } finally {
-      setIsLoading(false)
+      setIsLoading(false) // Re-enable button on error
     }
+    // Don't set isLoading to false on success - user is being redirected
   }
 
   return (
@@ -170,20 +183,20 @@ export function SignInModal({ isOpen, onClose, redirectTo, heroContent }: SignIn
               <HeaderLogo />
             </div>
 
-            <h2 className="text-2xl font-bold text-airbnb-black mb-1">
+            <h2 className="text-2xl font-bold text-sleek-black mb-1">
               Sign in
             </h2>
-            <p className="text-airbnb-dark-gray mb-6 text-sm">
+            <p className="text-sleek-dark-gray mb-6 text-sm">
               Welcome back! Please enter your details.
             </p>
 
             <form className="space-y-3" onSubmit={handleSubmit}>
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-airbnb-black mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-sleek-black mb-2">
                   Email
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-airbnb-gray h-5 w-5" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sleek-gray h-5 w-5" />
                   <Input
                     id="email"
                     name="email"
@@ -199,11 +212,11 @@ export function SignInModal({ isOpen, onClose, redirectTo, heroContent }: SignIn
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-airbnb-black mb-2">
+                <label htmlFor="password" className="block text-sm font-medium text-sleek-black mb-2">
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-airbnb-gray h-5 w-5" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sleek-gray h-5 w-5" />
                   <Input
                     id="password"
                     name="password"
@@ -217,7 +230,7 @@ export function SignInModal({ isOpen, onClose, redirectTo, heroContent }: SignIn
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-airbnb-gray hover:text-airbnb-dark-gray"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sleek-gray hover:text-sleek-dark-gray"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -233,7 +246,7 @@ export function SignInModal({ isOpen, onClose, redirectTo, heroContent }: SignIn
                     type="checkbox"
                     className="h-3 w-3 text-rausch-500 focus:ring-rausch-500 border-gray-300 rounded"
                   />
-                  <label htmlFor="remember-me" className="ml-1.5 block text-airbnb-dark-gray">
+                  <label htmlFor="remember-me" className="ml-1.5 block text-sleek-dark-gray">
                     Remember me
                   </label>
                 </div>

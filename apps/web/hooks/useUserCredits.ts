@@ -16,7 +16,7 @@ interface CreditStats {
 }
 
 export function useUserCredits() {
-  const { user, isAuthenticated } = useAuth()
+  const { user, profile, isAuthenticated, isLoading: authLoading } = useAuth()
   const [credits, setCredits] = useState<CreditStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -28,9 +28,24 @@ export function useUserCredits() {
       return
     }
 
-    fetchCredits()
-  }, [isAuthenticated, user])
+    // OPTIMIZATION: Use credits data from profile (already loaded in AuthContext)
+    // This eliminates the need for a separate API call!
+    if (profile) {
+      setCredits({
+        remaining: profile.credits_remaining || 0,
+        purchased: profile.credits_purchased || 0,
+        used: profile.credits_used || 0,
+        lastPurchaseDate: undefined, // Not included in profile query
+      })
+      setLoading(false)
+      setError(null)
+    } else if (!authLoading) {
+      // Profile should be loaded by now, if not, something went wrong
+      setLoading(false)
+    }
+  }, [isAuthenticated, user, profile, authLoading])
 
+  // Fallback: Fetch from API if profile doesn't have credits data
   const fetchCredits = async () => {
     try {
       setLoading(true)

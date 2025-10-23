@@ -15,10 +15,10 @@ export function FeaturedLocations() {
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl lg:text-4xl font-bold text-airbnb-black mb-4">
+          <h2 className="text-3xl lg:text-4xl font-bold text-sleek-black mb-4">
             Discover Amazing Destinations
           </h2>
-          <p className="text-lg text-airbnb-dark-gray max-w-2xl mx-auto">
+          <p className="text-lg text-sleek-dark-gray max-w-2xl mx-auto">
             Explore breathtaking locations shared by our community of travelers. Each destination comes with authentic stories and detailed travel guides.
           </p>
         </div>
@@ -31,7 +31,7 @@ export function FeaturedLocations() {
               href={`/locations/${location.slug}`}
               className="group block"
             >
-              <Card className="overflow-hidden hover:shadow-airbnb-large transition-all duration-300 group-hover:scale-[1.02]">
+              <Card className="overflow-hidden hover:shadow-sleek-large transition-all duration-300 group-hover:scale-[1.02]">
                 {/* Location Image */}
                 <div className="relative h-64 overflow-hidden">
                   <img
@@ -63,10 +63,10 @@ export function FeaturedLocations() {
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h3 className="text-xl font-semibold text-airbnb-black mb-1 group-hover:text-rausch-500 transition-colors">
+                      <h3 className="text-xl font-semibold text-sleek-black mb-1 group-hover:text-rausch-500 transition-colors">
                         {location.name}
                       </h3>
-                      <div className="flex items-center gap-1 text-airbnb-gray text-sm">
+                      <div className="flex items-center gap-1 text-sleek-gray text-sm">
                         <MapPin className="h-4 w-4" />
                         <span>{location.region}, {location.country}</span>
                       </div>
@@ -77,12 +77,12 @@ export function FeaturedLocations() {
                     </div>
                   </div>
 
-                  <p className="text-airbnb-dark-gray text-sm mb-4 line-clamp-2">
+                  <p className="text-sleek-dark-gray text-sm mb-4 line-clamp-2">
                     {location.description}
                   </p>
 
                   {/* Stats */}
-                  <div className="flex items-center justify-between text-xs text-airbnb-gray">
+                  <div className="flex items-center justify-between text-xs text-sleek-gray">
                     <div className="flex items-center gap-1">
                       <Eye className="h-3 w-3" />
                       <span>{location.visit_count.toLocaleString()} visits</span>

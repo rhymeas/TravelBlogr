@@ -107,10 +107,10 @@ export default function ExamplesPage() {
         <section className="bg-gradient-to-br from-rausch-50 to-kazan-50 py-16 lg:py-24">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="text-center">
-              <h1 className="text-display-large font-bold text-airbnb-black mb-6">
+              <h1 className="text-display-large font-bold text-sleek-black mb-6">
                 Real Travel Stories
               </h1>
-              <p className="text-title-medium text-airbnb-dark-gray max-w-3xl mx-auto mb-8">
+              <p className="text-title-medium text-sleek-dark-gray max-w-3xl mx-auto mb-8">
                 See how travelers around the world use TravelBlogr to document and share their journeys. 
                 From epic road trips to cultural deep-dives, every story is unique.
               </p>
@@ -135,10 +135,10 @@ export default function ExamplesPage() {
         <section className="py-16 lg:py-24">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-display-medium font-bold text-airbnb-black mb-4">
+              <h2 className="text-display-medium font-bold text-sleek-black mb-4">
                 Featured Stories
               </h2>
-              <p className="text-title-small text-airbnb-dark-gray max-w-2xl mx-auto">
+              <p className="text-title-small text-sleek-dark-gray max-w-2xl mx-auto">
                 Handpicked travel stories that showcase the best of what's possible with TravelBlogr
               </p>
             </div>
@@ -146,7 +146,7 @@ export default function ExamplesPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
               {examples.filter(example => example.featured).map((example) => (
                 <div key={example.id} className="group cursor-pointer">
-                  <div className="card-elevated hover:shadow-airbnb-large transition-all duration-300 overflow-hidden">
+                  <div className="card-elevated hover:shadow-sleek-large transition-all duration-300 overflow-hidden">
                     <div className="relative h-64 lg:h-80">
                       <Image
                         src={example.image}
@@ -184,11 +184,11 @@ export default function ExamplesPage() {
                       </div>
                     </div>
                     <div className="p-6">
-                      <p className="text-body-medium text-airbnb-dark-gray mb-4">
+                      <p className="text-body-medium text-sleek-dark-gray mb-4">
                         {example.description}
                       </p>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 text-body-small text-airbnb-gray">
+                        <div className="flex items-center gap-4 text-body-small text-sleek-gray">
                           <span className="flex items-center gap-1">
                             <Eye className="h-4 w-4" />
                             {example.stats.views.toLocaleString()}
@@ -202,7 +202,7 @@ export default function ExamplesPage() {
                             {example.stats.shares}
                           </span>
                         </div>
-                        <p className="text-body-small text-airbnb-gray">
+                        <p className="text-body-small text-sleek-gray">
                           by {example.author}
                         </p>
                       </div>
@@ -214,10 +214,10 @@ export default function ExamplesPage() {
 
             {/* More Examples Grid */}
             <div className="text-center mb-12">
-              <h3 className="text-title-large font-bold text-airbnb-black mb-4">
+              <h3 className="text-title-large font-bold text-sleek-black mb-4">
                 More Inspiring Stories
               </h3>
-              <p className="text-body-medium text-airbnb-dark-gray">
+              <p className="text-body-medium text-sleek-dark-gray">
                 Discover diverse travel experiences from our community
               </p>
             </div>
@@ -225,7 +225,7 @@ export default function ExamplesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {examples.filter(example => !example.featured).map((example) => (
                 <div key={example.id} className="group cursor-pointer">
-                  <div className="card-elevated hover:shadow-airbnb-large transition-all duration-300 overflow-hidden">
+                  <div className="card-elevated hover:shadow-sleek-large transition-all duration-300 overflow-hidden">
                     <div className="relative h-48">
                       <Image
                         src={example.image}
@@ -244,7 +244,7 @@ export default function ExamplesPage() {
                       </div>
                     </div>
                     <div className="p-4">
-                      <p className="text-body-small text-airbnb-dark-gray mb-3 line-clamp-2">
+                      <p className="text-body-small text-sleek-dark-gray mb-3 line-clamp-2">
                         {example.description}
                       </p>
                       <div className="flex flex-wrap gap-1 mb-3">
@@ -254,7 +254,7 @@ export default function ExamplesPage() {
                           </Badge>
                         ))}
                       </div>
-                      <div className="flex items-center justify-between text-body-small text-airbnb-gray">
+                      <div className="flex items-center justify-between text-body-small text-sleek-gray">
                         <div className="flex items-center gap-3">
                           <span className="flex items-center gap-1">
                             <Eye className="h-3 w-3" />
@@ -276,11 +276,11 @@ export default function ExamplesPage() {
             </div>
 
             {/* Call to Action */}
-            <div className="text-center mt-16 p-8 bg-gradient-to-r from-rausch-50 to-kazan-50 rounded-airbnb-large">
-              <h3 className="text-title-large font-bold text-airbnb-black mb-4">
+            <div className="text-center mt-16 p-8 bg-gradient-to-r from-rausch-50 to-kazan-50 rounded-sleek-large">
+              <h3 className="text-title-large font-bold text-sleek-black mb-4">
                 Ready to  Share Your Journey?
               </h3>
-              <p className="text-body-medium text-airbnb-dark-gray mb-6 max-w-2xl mx-auto">
+              <p className="text-body-medium text-sleek-dark-gray mb-6 max-w-2xl mx-auto">
                 Join thousands of travelers who use TravelBlogr to document their journeys and connect with different audiences.
                 Your next adventure deserves to be shared beautifully.
               </p>

@@ -1,8 +1,8 @@
-# 🎨 Modern Image Gallery - Airbnb-Inspired
+# 🎨 Modern Image Gallery - sleek-Inspired
 
 ## ✅ **COMPLETE** - Beautiful Lightbox Gallery Integrated!
 
-Your TravelBlogr location pages now feature a **sleek, modern, minimalist image gallery** inspired by Airbnb's photo tour functionality, powered by the open-source `yet-another-react-lightbox` library.
+Your TravelBlogr location pages now feature a **sleek, modern, minimalist image gallery** inspired by sleek's photo tour functionality, powered by the open-source `yet-another-react-lightbox` library.
 
 ---
 
@@ -12,7 +12,7 @@ Your TravelBlogr location pages now feature a **sleek, modern, minimalist image 
 - **File**: `apps/web/components/locations/LocationImageGallery.tsx`
 - **Library**: `yet-another-react-lightbox` (MIT License, 1.1k+ stars)
 - **Features**:
-  - ✅ Airbnb-style grid layout
+  - ✅ sleek-style grid layout
   - ✅ Full-screen lightbox with zoom
   - ✅ Keyboard navigation (←/→ arrows, Esc)
   - ✅ Touch/swipe support for mobile
@@ -24,7 +24,7 @@ Your TravelBlogr location pages now feature a **sleek, modern, minimalist image 
 
 ## 🎨 Design Features
 
-### **Grid Layout** (Airbnb-Inspired)
+### **Grid Layout** (sleek-Inspired)
 ```
 ┌─────────────┬──────┐
 │             │  2   │
@@ -86,7 +86,7 @@ Your TravelBlogr location pages now feature a **sleek, modern, minimalist image 
 
 ### **User Flow**
 
-1. **View Grid**: User sees 5 images in Airbnb-style grid
+1. **View Grid**: User sees 5 images in sleek-style grid
 2. **Click Image**: Opens lightbox at that image
 3. **Navigate**: Use arrows, keyboard, or swipe
 4. **Zoom**: Scroll or pinch to zoom in/out
@@ -333,7 +333,7 @@ Easily customize with your design system!
 
 ## 🎉 Summary
 
-✅ **Modern, minimalist gallery** inspired by Airbnb
+✅ **Modern, minimalist gallery** inspired by sleek
 ✅ **Open-source library** (MIT license, 1.1k+ stars)
 ✅ **Lightweight** (~24KB total)
 ✅ **Fully accessible** (keyboard, screen readers)

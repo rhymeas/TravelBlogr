@@ -2,7 +2,7 @@
 
 ## ✅ **COMPLETE** - Modern Image Gallery System
 
-Your TravelBlogr now has a **complete, production-ready image gallery system** inspired by Airbnb, featuring:
+Your TravelBlogr now has a **complete, production-ready image gallery system** inspired by sleek, featuring:
 - Aggressive multi-source image fetching
 - Modern grid layout with lightbox
 - Full-page gallery view with masonry layout
@@ -33,7 +33,7 @@ Your TravelBlogr now has a **complete, production-ready image gallery system** i
 - `apps/web/components/locations/LocationDetailTemplate.tsx`
 
 **Features**:
-- ✅ Airbnb-style 5-image grid
+- ✅ sleek-style 5-image grid
 - ✅ Hover effects with scale animation
 - ✅ "Show all photos" button
 - ✅ Click to open lightbox OR navigate to full gallery
@@ -149,7 +149,7 @@ apps/web/
 
 ### **Color Palette**
 - **Background**: White (`#FFFFFF`)
-- **Text**: Airbnb Black (`#222222`)
+- **Text**: sleek Black (`#222222`)
 - **Accent**: Rausch Red (`#FF5A5F`)
 - **Hover Overlay**: Black 10% (`rgba(0,0,0,0.1)`)
 - **Lightbox Backdrop**: Black 95% (`rgba(0,0,0,0.95)`)

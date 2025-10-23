@@ -1,0 +1,43 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "numReplicas": 1,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  },
+  "crons": [
+    {
+      "name": "fix-missing-regions",
+      "schedule": "0 12 * * *",
+      "comment": "Fills missing region data for locations",
+      "command": "curl -X GET https://$RAILWAY_PUBLIC_DOMAIN/api/cron/fix-missing-regions -H 'Authorization: Bearer $CRON_SECRET'"
+    },
+    {
+      "name": "location-health-check",
+      "schedule": "0 18 * * *",
+      "comment": "Replaces placeholder images and improves data quality",
+      "command": "curl -X GET https://$RAILWAY_PUBLIC_DOMAIN/api/cron/location-health-check -H 'Authorization: Bearer $CRON_SECRET'"
+    }
+  ],
+  "disabled_crons": [
+    {
+      "name": "cleanup-cache",
+      "reason": "NOT NEEDED - Cache auto-expires based on TTL",
+      "original_schedule": "0 2 * * *"
+    },
+    {
+      "name": "sync-weather",
+      "reason": "NOT NEEDED - Weather fetched on-demand with smart caching",
+      "original_schedule": "0 */6 * * *"
+    },
+    {
+      "name": "fix-missing-images",
+      "reason": "NOT NEEDED - Images stored permanently in database (never refetch)",
+      "original_schedule": "0 6 * * *"
+    }
+  ]
+}
+

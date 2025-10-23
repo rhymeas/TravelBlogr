@@ -5,6 +5,7 @@ import { CommentSection } from 'react-comments-section'
 import 'react-comments-section/dist/index.css'
 import { createClientSupabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useRealtimeComments } from '@/hooks/useRealtimeComments'
 import toast from 'react-hot-toast'
 
 interface TripCommentSectionProps {
@@ -34,6 +35,25 @@ export function TripCommentSection({ tripId, tripOwnerId, className = '' }: Trip
   useEffect(() => {
     fetchComments()
   }, [tripId])
+
+  // Subscribe to real-time comment updates
+  useRealtimeComments({
+    type: 'trip',
+    entityId: tripId,
+    onCommentAdded: async (newComment) => {
+      // Refresh comments to get full user data
+      await fetchComments()
+    },
+    onCommentUpdated: async () => {
+      // Refresh comments to get updated data
+      await fetchComments()
+    },
+    onCommentDeleted: async () => {
+      // Refresh comments to remove deleted comment
+      await fetchComments()
+    },
+    showToasts: true
+  })
 
   const fetchComments = async () => {
     try {

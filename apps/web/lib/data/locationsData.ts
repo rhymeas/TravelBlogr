@@ -9,6 +9,10 @@ export interface LocationActivity {
   cost?: 'free' | 'low' | 'medium' | 'high'
   latitude?: number
   longitude?: number
+  // Optional enrichments
+  image_url?: string
+  link_url?: string
+  link_source?: 'wikipedia' | 'wikivoyage' | 'google' | 'official' | 'booking' | 'guide'
 }
 
 export interface LocationRestaurant {
@@ -69,6 +73,9 @@ export interface Location {
   did_you_know: LocationDidYouKnow[]
   latitude?: number
   longitude?: number
+  // Raw DB fields (used for precise gallery actions)
+  db_gallery_images?: string[]
+  db_featured_image?: string | null
 }
 
 export interface LocationPost {

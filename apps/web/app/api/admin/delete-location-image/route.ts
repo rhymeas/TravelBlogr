@@ -1,17 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase } from '@/lib/supabase-server'
+import { createServerSupabase, createServiceSupabase } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
+import { deleteCached, CacheKeys } from '@/lib/upstash'
 
 // Force dynamic rendering for admin routes
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
+  console.log('🗑️ DELETE IMAGE API CALLED')
+
   try {
-    // Initialize Supabase client at runtime (not build time)
-    const supabase = await createServerSupabase()
+    // Initialize Supabase clients
+    const authClient = await createServerSupabase()      // cookie-based, for auth only
+    const supabase = createServiceSupabase()             // service role, bypasses RLS for updates
+
+    // Check authentication
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
+    console.log('🔐 Auth check:', { user: user?.email, error: authError })
+
+    if (authError || !user) {
+      console.log('❌ Unauthorized')
+      return NextResponse.json(
+        { error: 'Unauthorized - Please sign in' },
+        { status: 401 }
+      )
+    }
 
     const { locationSlug, imageUrl } = await request.json()
+    console.log('📝 Request data:', { locationSlug, imageUrl: imageUrl?.substring(0, 50) })
 
     if (!locationSlug || !imageUrl) {
       return NextResponse.json(
@@ -102,14 +119,40 @@ export async function POST(request: NextRequest) {
 
     const remainingCount = updates.gallery_images?.length ?? currentGallery.length
 
-    // Revalidate the location page cache
+    // Track contribution in location_contributions table
+    try {
+      await supabase
+        .from('location_contributions')
+        .insert({
+          user_id: user.id,
+          location_id: location.id,
+          contribution_type: 'image_delete',
+          field_edited: 'gallery_images',
+          change_snippet: `Deleted image`,
+          old_value: { image_url: imageUrl }
+        })
+      console.log('✅ Contribution tracked')
+    } catch (contributionError) {
+      console.log('⚠️ Failed to track contribution (non-critical):', contributionError)
+    }
+
+    // CRITICAL: Invalidate Upstash cache first (before revalidatePath)
+    try {
+      await deleteCached(CacheKeys.location(locationSlug))
+      await deleteCached(`${CacheKeys.location(locationSlug)}:related`)
+      console.log('✅ Upstash cache invalidated for location')
+    } catch (cacheError) {
+      console.log('⚠️ Upstash cache invalidation failed (non-critical):', cacheError)
+    }
+
+    // Revalidate Next.js cache
     try {
       revalidatePath(`/locations/${locationSlug}`)
       revalidatePath(`/locations/${locationSlug}/photos`)
       revalidatePath('/locations')
-      console.log('✅ Cache revalidated for location pages')
+      console.log('✅ Next.js cache revalidated for location pages')
     } catch (revalidateError) {
-      console.log('⚠️ Cache revalidation failed (non-critical):', revalidateError)
+      console.log('⚠️ Next.js cache revalidation failed (non-critical):', revalidateError)
     }
 
     return NextResponse.json({

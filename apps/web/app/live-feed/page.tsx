@@ -120,10 +120,10 @@ export default function LiveFeedPage() {
             ))}
 
             {/* Sign-up to see more */}
-            <div className="p-8 text-center bg-white border-t border-airbnb-border">
+            <div className="p-8 text-center bg-white border-t border-sleek-border">
               <div className="mb-4">
-                <h3 className="text-title-medium text-airbnb-black mb-2">See More Stories</h3>
-                <p className="text-body-medium text-airbnb-gray">
+                <h3 className="text-title-medium text-sleek-black mb-2">See More Stories</h3>
+                <p className="text-body-medium text-sleek-gray">
                   Join TravelBlogr to discover unlimited travel stories and connect with adventurers worldwide
                 </p>
               </div>

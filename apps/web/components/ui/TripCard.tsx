@@ -125,12 +125,12 @@ function TripCardContent({ trip, isMobile = false }: { trip: TripCardProps['trip
         {matchingLocation ? (
           <Link
             href={`/locations/${matchingLocation.slug}`}
-            className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-airbnb-black hover:text-rausch-500 transition-colors cursor-pointer`}
+            className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-sleek-black hover:text-rausch-500 transition-colors cursor-pointer`}
           >
             {trip.name}
           </Link>
         ) : (
-          <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-airbnb-black`}>{trip.name}</h3>
+          <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-sleek-black`}>{trip.name}</h3>
         )}
         <div className={`flex items-center gap-1 text-teal-500 ${isMobile ? 'text-[10px]' : 'text-xs'} font-medium`}>
           <Calendar className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'}`} />
@@ -148,7 +148,7 @@ function TripCardContent({ trip, isMobile = false }: { trip: TripCardProps['trip
       </div>
 
       {trip.description && (
-        <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-airbnb-dark-gray ${isMobile ? 'mb-2' : 'mb-3'}`}>
+        <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-sleek-dark-gray ${isMobile ? 'mb-2' : 'mb-3'}`}>
           {trip.description}
         </p>
       )}
@@ -172,8 +172,8 @@ function TripCardContent({ trip, isMobile = false }: { trip: TripCardProps['trip
         <div className={`grid grid-cols-2 gap-3 ${isMobile ? 'mb-2 text-[10px]' : 'mb-3 text-xs'}`}>
           {trip.restaurants && trip.restaurants.length > 0 && (
             <div>
-              <p className="font-medium text-airbnb-black mb-1">Restaurants</p>
-              <ul className="text-airbnb-gray space-y-1">
+              <p className="font-medium text-sleek-black mb-1">Restaurants</p>
+              <ul className="text-sleek-gray space-y-1">
                 {trip.restaurants.map((restaurant, index) => (
                   <li key={index}>• {restaurant.name}</li>
                 ))}
@@ -182,8 +182,8 @@ function TripCardContent({ trip, isMobile = false }: { trip: TripCardProps['trip
           )}
           {trip.activities && trip.activities.length > 0 && (
             <div>
-              <p className="font-medium text-airbnb-black mb-1">Activities</p>
-              <ul className="text-airbnb-gray space-y-1">
+              <p className="font-medium text-sleek-black mb-1">Activities</p>
+              <ul className="text-sleek-gray space-y-1">
                 {trip.activities.map((activity, index) => (
                   <li key={index}>• {activity.name}</li>
                 ))}
@@ -193,7 +193,7 @@ function TripCardContent({ trip, isMobile = false }: { trip: TripCardProps['trip
         </div>
       )}
 
-      <p className={`${isMobile ? 'text-[10px] mb-2' : 'text-xs mb-3'} text-airbnb-gray`}>
+      <p className={`${isMobile ? 'text-[10px] mb-2' : 'text-xs mb-3'} text-sleek-gray`}>
         <strong>Stay:</strong>{' '}
         {trip.accommodation.link ? (
           <Link href={trip.accommodation.link} className="text-teal-500 hover:underline">
@@ -217,7 +217,7 @@ function TripCardContent({ trip, isMobile = false }: { trip: TripCardProps['trip
         </div>
       </div>
 
-      <Button variant="outline" size="sm" className={`${isMobile ? 'text-[10px] h-6' : 'text-xs h-7'} text-airbnb-gray hover:text-airbnb-black`}>
+      <Button variant="outline" size="sm" className={`${isMobile ? 'text-[10px] h-6' : 'text-xs h-7'} text-sleek-gray hover:text-sleek-black`}>
         View Details
         <ChevronRight className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} ml-1`} />
       </Button>

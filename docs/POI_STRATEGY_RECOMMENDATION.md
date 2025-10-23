@@ -229,7 +229,7 @@ export const TRAVEL_TYPE_PROFILES: Record<TravelType, TravelTypeProfile> = {
     priorityCategories: ['viewpoint', 'nature', 'roadside-attraction', 'diner'],
     budgetRange: [50, 150],
     pacePreference: 'moderate',
-    accommodationTypes: ['motel', 'hotel', 'airbnb'],
+    accommodationTypes: ['motel', 'hotel', 'sleek'],
     mealPreferences: ['casual-dining', 'fast-food', 'local-spots']
   },
   // ... other profiles

@@ -1,14 +1,14 @@
 /**
  * Automated Background Job: Fix Missing Images
- * 
+ *
  * This cron job runs periodically to:
  * 1. Find locations without images
  * 2. Fetch images using the robust image service
  * 3. Update the database
- * 
+ *
  * Can be triggered:
  * - Manually via API call
- * - Automatically via  do-not-use-this-anymore-no-vercel-we-use-railway-now Cron ( do-not-use-this-anymore-no-vercel-we-use-railway-now.json)
+ * - Automatically via Railway Cron or GitHub Actions
  * - On-demand from admin panel
  */
 

@@ -2,15 +2,15 @@
 
 import { GoogleAd } from './GoogleAd'
 import { useAuth } from '@/hooks/useAuth'
-import { shouldShowAds } from '@/lib/utils/adHelpers'
+import { shouldShowAds, isAdSenseConfigured } from '@/lib/utils/adHelpers'
 import { Card, CardContent } from '@/components/ui/Card'
 
 /**
  * Sidebar Ad Component
- * 
+ *
  * Displays a sidebar ad (300x250 or 336x280)
  * Styled to blend with sidebar widgets using existing Card component
- * 
+ *
  * Usage:
  * <SidebarAd slot="1234567890" page="location-detail" />
  */
@@ -20,24 +20,24 @@ interface SidebarAdProps {
    * Ad slot ID from Google AdSense
    */
   slot: string
-  
+
   /**
    * Page identifier for analytics
    */
   page?: string
-  
+
   /**
    * Size variant
    * - 'medium': 300x250
    * - 'large': 336x280
    */
   size?: 'medium' | 'large'
-  
+
   /**
    * Whether to make the ad sticky on scroll
    */
   sticky?: boolean
-  
+
   /**
    * Additional CSS classes
    */
@@ -53,8 +53,8 @@ export function SidebarAd({
 }: SidebarAdProps) {
   const { user } = useAuth()
 
-  // Don't show ads to Pro subscribers
-  if (!shouldShowAds(user)) {
+  // Don't show ads to Pro subscribers OR if AdSense not configured
+  if (!shouldShowAds(user) || !isAdSenseConfigured()) {
     return null
   }
 

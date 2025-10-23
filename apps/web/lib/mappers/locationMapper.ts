@@ -60,7 +60,10 @@ export function mapSupabaseLocationToFrontend(
     experiences: [], // Curated experiences - can be added later
     did_you_know: [], // Fun facts - can be added later
     latitude: supabaseData.latitude,
-    longitude: supabaseData.longitude
+    longitude: supabaseData.longitude,
+    // Raw DB values to drive precise gallery actions (no fallback substitutions)
+    db_gallery_images: (supabaseData.gallery_images || []).filter(Boolean),
+    db_featured_image: supabaseData.featured_image || null
   }
 }
 

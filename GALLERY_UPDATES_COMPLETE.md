@@ -6,7 +6,7 @@ Your TravelBlogr now has:
 1. **Minimal 3px white borders** between gallery photos
 2. **Consistent header and footer** across all pages
 3. **Full-width gallery** with proper navigation
-4. **Clean, modern design** inspired by Airbnb
+4. **Clean, modern design** inspired by sleek
 
 ---
 

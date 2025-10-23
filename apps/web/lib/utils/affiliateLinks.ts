@@ -48,13 +48,13 @@ export function generateBookingLink(params: AffiliateParams): string {
 }
 
 /**
- * Generate Airbnb affiliate link
+ * Generate sleek affiliate link
  * Commission: 3% (but high booking values)
  */
-export function generateAirbnbLink(params: AffiliateParams): string {
-  const affiliateId = process.env.NEXT_PUBLIC_AIRBNB_AFFILIATE_ID || ''
+export function generatesleekLink(params: AffiliateParams): string {
+  const affiliateId = process.env.NEXT_PUBLIC_sleek_AFFILIATE_ID || ''
   
-  const baseUrl = 'https://www.airbnb.com/s'
+  const baseUrl = 'https://www.sleek.com/s'
   
   const urlParams = new URLSearchParams({
     query: params.locationName,
@@ -282,7 +282,7 @@ export function getAllAffiliateLinks(params: AffiliateParams) {
   return {
     // Direct providers
     booking: generateBookingLink(params),
-    airbnb: generateAirbnbLink(params),
+    sleek: generatesleekLink(params),
     travelpayoutsHotel: generateTravelpayoutsHotelLink(params),
     activities: generateGetYourGuideLink(params.locationName),
     tours: generateViatorLink(params.locationName),

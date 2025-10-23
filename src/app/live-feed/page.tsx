@@ -92,7 +92,7 @@ function getActivityIcon(type: string) {
     case 'media_uploaded':
       return <Camera className="h-4 w-4 text-purple-600" />
     default:
-      return <User className="h-4 w-4 text-airbnb-dark-gray" />
+      return <User className="h-4 w-4 text-sleek-dark-gray" />
   }
 }
 
@@ -117,19 +117,19 @@ export default function LiveFeedPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white sticky top-0 z-50 border-b border-gray-300 shadow-airbnb-light">
+      <header className="bg-white sticky top-0 z-50 border-b border-gray-300 shadow-sleek-light">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
           <div className="flex lg:flex-1">
             <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <div className="w-8 h-8 bg-rausch-500 rounded-lg flex items-center justify-center">
                 <MapPin className="h-5 w-5 text-white" />
               </div>
-              <span className="text-title-medium text-airbnb-black font-semibold">TravelBlogr</span>
+              <span className="text-title-medium text-sleek-black font-semibold">TravelBlogr</span>
             </Link>
           </div>
           
           <div className="hidden lg:flex lg:items-center lg:gap-8">
-            <Link href="/locations" className="text-body-large font-medium text-airbnb-black hover:text-airbnb-dark-gray transition-colors py-2 px-3 rounded-lg hover:bg-gray-50">
+            <Link href="/locations" className="text-body-large font-medium text-sleek-black hover:text-sleek-dark-gray transition-colors py-2 px-3 rounded-lg hover:bg-gray-50">
               Locations
             </Link>
             <Link href="/live-feed" className="text-body-large font-medium text-rausch-500 py-2 px-3 rounded-lg bg-rausch-50">
@@ -138,10 +138,10 @@ export default function LiveFeedPage() {
           </div>
           
           <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:gap-3">
-            <Link href="/auth/signin" className="text-body-large font-medium text-airbnb-black hover:text-airbnb-dark-gray transition-colors py-2 px-4 rounded-lg hover:bg-gray-50">
+            <Link href="/auth/signin" className="text-body-large font-medium text-sleek-black hover:text-sleek-dark-gray transition-colors py-2 px-4 rounded-lg hover:bg-gray-50">
               Sign in
             </Link>
-            <Link href="/auth/signup" className="btn-primary text-body-large font-semibold px-6 py-3 rounded-airbnb-small hover:scale-105 transition-transform">
+            <Link href="/auth/signup" className="btn-primary text-body-large font-semibold px-6 py-3 rounded-sleek-small hover:scale-105 transition-transform">
               Get Started
             </Link>
           </div>
@@ -152,10 +152,10 @@ export default function LiveFeedPage() {
       <section className="py-16 bg-gray-50">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-display-large text-airbnb-black mb-4">
+            <h1 className="text-display-large text-sleek-black mb-4">
               Live Travel Feed
             </h1>
-            <p className="text-body-large text-airbnb-dark-gray max-w-2xl mx-auto leading-relaxed">
+            <p className="text-body-large text-sleek-dark-gray max-w-2xl mx-auto leading-relaxed">
               Stay connected with the travel community. See what fellow travelers are discovering around the world.
             </p>
           </div>
@@ -167,14 +167,14 @@ export default function LiveFeedPage() {
         <div className="mx-auto max-w-4xl px-6 lg:px-8">
           <div className="space-y-6">
             {sampleActivities.map((activity) => (
-              <div key={activity.id} className="card-elevated p-6 hover:shadow-airbnb-medium transition-all duration-300">
+              <div key={activity.id} className="card-elevated p-6 hover:shadow-sleek-medium transition-all duration-300">
                 <div className="flex items-start gap-4">
                   {/* User Avatar */}
                   <div className="flex-shrink-0">
                     <img
                       src={activity.user.avatar}
                       alt={activity.user.name}
-                      className="w-12 h-12 rounded-full object-cover shadow-airbnb-light"
+                      className="w-12 h-12 rounded-full object-cover shadow-sleek-light"
                     />
                   </div>
 
@@ -185,26 +185,26 @@ export default function LiveFeedPage() {
                       <div className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center">
                         {getActivityIcon(activity.type)}
                       </div>
-                      <span className="text-body-large font-semibold text-airbnb-black">
+                      <span className="text-body-large font-semibold text-sleek-black">
                         {activity.user.name}
                       </span>
-                      <span className="text-body-medium text-airbnb-dark-gray">
+                      <span className="text-body-medium text-sleek-dark-gray">
                         {getActivityTitle(activity.type)}
                       </span>
-                      <span className="text-airbnb-dark-gray">•</span>
-                      <span className="text-body-medium text-airbnb-dark-gray">
+                      <span className="text-sleek-dark-gray">•</span>
+                      <span className="text-body-medium text-sleek-dark-gray">
                         {activity.timestamp}
                       </span>
                     </div>
 
                     {/* Content */}
-                    <p className="text-body-large text-airbnb-black mb-4 leading-relaxed">
+                    <p className="text-body-large text-sleek-black mb-4 leading-relaxed">
                       {activity.content}
                     </p>
 
                     {/* Location */}
                     {activity.location && (
-                      <div className="flex items-center gap-2 text-body-medium text-airbnb-dark-gray bg-gray-50 px-3 py-2 rounded-airbnb-small mb-4 w-fit">
+                      <div className="flex items-center gap-2 text-body-medium text-sleek-dark-gray bg-gray-50 px-3 py-2 rounded-sleek-small mb-4 w-fit">
                         <MapPin className="h-4 w-4" />
                         <span>{activity.location}</span>
                       </div>
@@ -212,7 +212,7 @@ export default function LiveFeedPage() {
 
                     {/* Image */}
                     {activity.image && (
-                      <div className="rounded-airbnb-medium overflow-hidden shadow-airbnb-light mb-4">
+                      <div className="rounded-sleek-medium overflow-hidden shadow-sleek-light mb-4">
                         <img
                           src={activity.image}
                           alt="Activity image"
@@ -223,15 +223,15 @@ export default function LiveFeedPage() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-6 pt-3 border-t border-gray-100">
-                      <button className="flex items-center gap-2 text-body-medium text-airbnb-dark-gray hover:text-rausch-500 transition-colors py-2">
+                      <button className="flex items-center gap-2 text-body-medium text-sleek-dark-gray hover:text-rausch-500 transition-colors py-2">
                         <Heart className="h-4 w-4" />
                         <span>{activity.likes}</span>
                       </button>
-                      <button className="flex items-center gap-2 text-body-medium text-airbnb-dark-gray hover:text-blue-600 transition-colors py-2">
+                      <button className="flex items-center gap-2 text-body-medium text-sleek-dark-gray hover:text-blue-600 transition-colors py-2">
                         <MessageCircle className="h-4 w-4" />
                         <span>{activity.comments}</span>
                       </button>
-                      <button className="flex items-center gap-2 text-body-medium text-airbnb-dark-gray hover:text-green-600 transition-colors py-2">
+                      <button className="flex items-center gap-2 text-body-medium text-sleek-dark-gray hover:text-green-600 transition-colors py-2">
                         <Share2 className="h-4 w-4" />
                         <span>Share</span>
                       </button>
@@ -248,15 +248,15 @@ export default function LiveFeedPage() {
       <section className="py-16 bg-gray-50">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-display-small text-airbnb-black mb-4">
+            <h2 className="text-display-small text-sleek-black mb-4">
               Join the Conversation
             </h2>
-            <p className="text-body-large text-airbnb-dark-gray mb-8 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-body-large text-sleek-dark-gray mb-8 max-w-2xl mx-auto leading-relaxed">
               Share your own travel experiences and connect with fellow adventurers.
             </p>
             <Link 
               href="/auth/signup"
-              className="btn-primary px-8 py-4 text-body-large font-semibold rounded-airbnb-small hover:scale-105 transition-transform inline-flex items-center gap-2"
+              className="btn-primary px-8 py-4 text-body-large font-semibold rounded-sleek-small hover:scale-105 transition-transform inline-flex items-center gap-2"
             >
               Start Sharing
               <ArrowRight className="h-4 w-4" />

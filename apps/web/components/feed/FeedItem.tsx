@@ -238,7 +238,7 @@ export function FeedItem({ activity, isNew = false }: FeedItemProps) {
   }
 
   return (
-    <Card className={`transition-all duration-300 ${isNew ? 'ring-2 ring-rausch-500 bg-rausch-50/30' : 'hover:shadow-airbnb-medium'}`}>
+    <Card className={`transition-all duration-300 ${isNew ? 'ring-2 ring-rausch-500 bg-rausch-50/30' : 'hover:shadow-sleek-medium'}`}>
       <CardHeader className="pb-3">
         <div className="flex items-start gap-4">
           {/* User Avatar */}
@@ -248,7 +248,7 @@ export function FeedItem({ activity, isNew = false }: FeedItemProps) {
               alt={activity.user.name}
               width={48}
               height={48}
-              className="rounded-full shadow-airbnb-light hover:shadow-airbnb-medium transition-all"
+              className="rounded-full shadow-sleek-light hover:shadow-sleek-medium transition-all"
             />
           </Link>
 
@@ -261,21 +261,21 @@ export function FeedItem({ activity, isNew = false }: FeedItemProps) {
             </div>
             <Link
               href={`/users/${activity.user.username}`}
-              className="text-body-large font-semibold text-airbnb-black hover:text-rausch-500 transition-colors"
+              className="text-body-large font-semibold text-sleek-black hover:text-rausch-500 transition-colors"
             >
               {activity.user.name}
             </Link>
-            <span className="text-body-medium text-airbnb-dark-gray">
+            <span className="text-body-medium text-sleek-dark-gray">
               {getActivityTitle()}
             </span>
           </div>
 
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-body-small text-airbnb-dark-gray">
+            <span className="text-body-small text-sleek-dark-gray">
               {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
             </span>
             {isNew && (
-              <div className="bg-rausch-500 text-white text-body-small px-2 py-1 rounded-airbnb-small flex items-center gap-1">
+              <div className="bg-rausch-500 text-white text-body-small px-2 py-1 rounded-sleek-small flex items-center gap-1">
                 <TrendingUp className="h-3 w-3" />
                 New
               </div>

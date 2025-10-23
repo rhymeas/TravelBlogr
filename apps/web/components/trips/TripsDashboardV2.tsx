@@ -221,7 +221,7 @@ export function TripsDashboardV2({ userId }: TripsDashboardV2Props) {
         </div>
       </div>
 
-      {/* Trips Grid - TripAdvisor/Airbnb Style */}
+      {/* Trips Grid - TripAdvisor/sleek Style */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {sortedTrips.length === 0 ? (
           <EmptyState onCreateTrip={() => setShowCreateForm(true)} />

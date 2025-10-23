@@ -186,6 +186,205 @@ import { ImageUpload } from '@/components/upload/ImageUpload'
 
 ---
 
+## ⚡ TravelBlogr Caching & Performance (CRITICAL)
+
+### **Upstash Redis Caching Pattern**
+
+**ALWAYS use Upstash Redis for caching frequently accessed data:**
+
+```typescript
+import { getOrSet, deleteCached, CacheKeys, CacheTTL } from '@/lib/upstash'
+
+// ✅ CORRECT: Cache location data
+const location = await getOrSet(
+  CacheKeys.location(slug),
+  async () => {
+    return await getLocationBySlug(slug)
+  },
+  CacheTTL.LONG // 24 hours
+)
+
+// ✅ CORRECT: Cache related data
+const relatedLocations = await getOrSet(
+  `${CacheKeys.location(slug)}:related`,
+  async () => {
+    return await getLocationsByCountry(country, locationId)
+  },
+  CacheTTL.LONG // 24 hours
+)
+```
+
+### **Cache Invalidation Rules (CRITICAL):**
+
+**ALWAYS invalidate ALL cache layers in the correct order:**
+
+```typescript
+// ✅ CORRECT: Invalidate Upstash FIRST, then Next.js cache
+import { deleteCached, CacheKeys } from '@/lib/upstash'
+import { revalidatePath } from 'next/cache'
+
+// 1. Invalidate Upstash cache (data source)
+await deleteCached(CacheKeys.location(locationSlug))
+await deleteCached(`${CacheKeys.location(locationSlug)}:related`)
+
+// 2. Revalidate Next.js cache (page cache)
+revalidatePath(`/locations/${locationSlug}`)
+revalidatePath(`/locations/${locationSlug}/photos`)
+revalidatePath('/locations')
+
+// ❌ WRONG: Only revalidating Next.js cache
+revalidatePath(`/locations/${locationSlug}`) // Upstash cache still stale!
+```
+
+### **When to Invalidate Cache:**
+
+1. **Location images changed** (delete, add, set featured):
+   ```typescript
+   await deleteCached(CacheKeys.location(slug))
+   await deleteCached(`${CacheKeys.location(slug)}:related`)
+   ```
+
+2. **Location data updated** (name, description, etc.):
+   ```typescript
+   await deleteCached(CacheKeys.location(slug))
+   await deleteCached(`${CacheKeys.location(slug)}:related`)
+   await deleteCached(CacheKeys.locationSearch(query, limit)) // If search cached
+   ```
+
+3. **Trip data updated**:
+   ```typescript
+   await deleteCached(CacheKeys.trip(tripId))
+   await deleteCached(CacheKeys.userTrips(userId))
+   ```
+
+### **Cache Consistency Rules:**
+
+1. **Use same cache strategy across related pages** - Location detail and photos pages both use Upstash
+2. **Use same TTL for related data** - Location and related locations both use `CacheTTL.LONG`
+3. **Use same cache keys** - Consistent naming with `CacheKeys` object
+4. **Invalidate related caches** - When updating location, invalidate `:related` cache too
+
+### **Performance Impact:**
+
+```
+Before Upstash:
+- Database query: 100-200ms
+- Page load: Slow
+
+After Upstash:
+- Cache hit: < 10ms
+- Page load: 10-20x faster!
+```
+
+---
+
+## 📊 TravelBlogr Database Performance (CRITICAL)
+
+### **Cached Counts Pattern**
+
+**ALWAYS use cached count columns for frequently accessed counts:**
+
+```sql
+-- ✅ CORRECT: Add cached count columns
+ALTER TABLE trips ADD COLUMN like_count INTEGER DEFAULT 0;
+ALTER TABLE trips ADD COLUMN save_count INTEGER DEFAULT 0;
+ALTER TABLE locations ADD COLUMN rating_count INTEGER DEFAULT 0;
+ALTER TABLE locations ADD COLUMN average_rating DECIMAL(3,2);
+
+-- ✅ CORRECT: Create triggers to maintain counts
+CREATE FUNCTION update_trip_like_count() RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE trips SET like_count = like_count + 1 WHERE id = NEW.trip_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE trips SET like_count = GREATEST(like_count - 1, 0) WHERE id = OLD.trip_id;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trip_likes_count_trigger
+  AFTER INSERT OR DELETE ON trip_likes
+  FOR EACH ROW EXECUTE FUNCTION update_trip_like_count();
+```
+
+### **Cached Counts Rules:**
+
+1. **NEVER query counts in real-time** - Use cached columns
+2. **ALWAYS use triggers to maintain counts** - Automatic updates
+3. **Use GREATEST(count - 1, 0)** - Prevent negative counts
+4. **Add indexes on count columns** - For sorting/filtering
+
+### **Performance Impact:**
+
+```
+Before Cached Counts:
+- 1,000 users viewing trip = 1,000 COUNT(*) queries
+- Slow, bottleneck at scale
+
+After Cached Counts:
+- 1,000 users viewing trip = 0 queries (read from column)
+- Fast, 100-1000x improvement!
+```
+
+---
+
+## 🎨 TravelBlogr Component Patterns (CRITICAL)
+
+### **Unified Share Actions Component**
+
+**ALWAYS use `LocationShareActions` for all location pages:**
+
+```typescript
+import { LocationShareActions } from '@/components/locations/LocationShareActions'
+
+// ✅ CORRECT: Reuse across all location pages
+<LocationShareActions
+  locationId={location.id}
+  locationName={location.name}
+  locationSlug={location.slug}
+  variant="ghost"
+  size="sm"
+  showLabels={true}
+/>
+```
+
+**Features:**
+- Share to social media (Twitter, Facebook, LinkedIn, WhatsApp)
+- Share to trips (add location to travel plans)
+- Share to blogs (include in blog posts)
+- Save location (bookmark for later)
+- Native mobile share support
+
+### **Community Contributor Badge**
+
+**ALWAYS use `CommunityContributorBadge` to show contributors:**
+
+```typescript
+import { CommunityContributorBadge } from '@/components/locations/CommunityContributorBadge'
+
+// ✅ CORRECT: Show top contributors
+<CommunityContributorBadge
+  locationId={location.id}
+  locationName={location.name}
+/>
+```
+
+**Features:**
+- Avatar bubbles for top 3 contributors
+- Click to open modal with community guidelines
+- Top contributors list with rankings
+- Monochrome design (non-intrusive)
+
+### **Component Reusability Rules:**
+
+1. **Create unified components** - One component for all pages
+2. **Support multiple variants** - `outline`, `ghost`, `default`
+3. **Consistent props** - Same interface across components
+4. **Auth-aware** - Show appropriate UI for signed-in/out users
+
+---
+
 ## 🏗️ Project Architecture
 
 ### Core Principles

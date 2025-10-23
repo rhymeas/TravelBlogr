@@ -10,7 +10,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Airbnb color palette
+        // sleek color palette
         rausch: {
           50: '#FFF5F6',
           100: '#FFEEF0',
@@ -23,7 +23,7 @@ module.exports = {
           800: '#A21039',
           900: '#732139',
         },
-        airbnb: {
+        sleek: {
           black: '#222222',
           'dark-gray': '#717171',
           gray: '#B0B0B0',
@@ -66,16 +66,16 @@ module.exports = {
         '88': '22rem',
       },
       borderRadius: {
-        'airbnb-small': '8px',
-        'airbnb-medium': '12px',
-        'airbnb-large': '16px',
-        'airbnb-xl': '24px',
+        'sleek-small': '8px',
+        'sleek-medium': '12px',
+        'sleek-large': '16px',
+        'sleek-xl': '24px',
       },
       boxShadow: {
-        'airbnb-light': '0 1px 2px rgba(0, 0, 0, 0.08)',
-        'airbnb-medium': '0 2px 4px rgba(0, 0, 0, 0.12)',
-        'airbnb-large': '0 6px 16px rgba(0, 0, 0, 0.12)',
-        'airbnb-xl': '0 8px 28px rgba(0, 0, 0, 0.28)',
+        'sleek-light': '0 1px 2px rgba(0, 0, 0, 0.08)',
+        'sleek-medium': '0 2px 4px rgba(0, 0, 0, 0.12)',
+        'sleek-large': '0 6px 16px rgba(0, 0, 0, 0.12)',
+        'sleek-xl': '0 8px 28px rgba(0, 0, 0, 0.28)',
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',

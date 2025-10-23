@@ -51,11 +51,11 @@ function JourneyTimelineItem({
       )}
       
       {/* Timeline dot */}
-      <div className="absolute left-6 top-8 w-4 h-4 bg-rausch-500 rounded-full border-4 border-white shadow-airbnb-medium z-10"></div>
+      <div className="absolute left-6 top-8 w-4 h-4 bg-rausch-500 rounded-full border-4 border-white shadow-sleek-medium z-10"></div>
       
       {/* Content card */}
       <div className="ml-16 mb-16">
-        <div className="card-elevated overflow-hidden hover:shadow-airbnb-xl transition-all duration-500 group">
+        <div className="card-elevated overflow-hidden hover:shadow-sleek-xl transition-all duration-500 group">
           {/* Image section */}
           <div className="relative aspect-[16/10] overflow-hidden">
             <Image
@@ -69,10 +69,10 @@ function JourneyTimelineItem({
             />
             
             {/* Image overlay with date */}
-            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-airbnb-small px-3 py-2">
+            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-sleek-small px-3 py-2">
               <div className="flex items-center gap-2 text-sm">
                 <Calendar className="h-4 w-4 text-rausch-500" />
-                <span className="font-medium text-airbnb-black">
+                <span className="font-medium text-sleek-black">
                   {formatDateRange(trip.start_date, trip.end_date)}
                 </span>
               </div>
@@ -80,7 +80,7 @@ function JourneyTimelineItem({
 
             {/* Duration badge */}
             {trip.duration && (
-              <div className="absolute top-4 right-4 bg-rausch-500 text-white rounded-airbnb-small px-3 py-2">
+              <div className="absolute top-4 right-4 bg-rausch-500 text-white rounded-sleek-small px-3 py-2">
                 <div className="flex items-center gap-1 text-sm font-medium">
                   <Clock className="h-4 w-4" />
                   {trip.duration} days
@@ -94,10 +94,10 @@ function JourneyTimelineItem({
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
-                <h3 className="text-title-medium text-airbnb-black mb-2 group-hover:text-rausch-500 transition-colors">
+                <h3 className="text-title-medium text-sleek-black mb-2 group-hover:text-rausch-500 transition-colors">
                   {trip.title}
                 </h3>
-                <p className="text-body-large text-airbnb-dark-gray leading-relaxed line-clamp-2">
+                <p className="text-body-large text-sleek-dark-gray leading-relaxed line-clamp-2">
                   {trip.description || 'An amazing journey awaits...'}
                 </p>
               </div>
@@ -120,14 +120,14 @@ function JourneyTimelineItem({
                   )}
                 </div>
                 <div className="text-sm">
-                  <p className="font-medium text-airbnb-black">{trip.author.full_name}</p>
-                  <p className="text-airbnb-dark-gray">@{trip.author.username || 'traveler'}</p>
+                  <p className="font-medium text-sleek-black">{trip.author.full_name}</p>
+                  <p className="text-sleek-dark-gray">@{trip.author.username || 'traveler'}</p>
                 </div>
               </div>
             </div>
 
             {/* Trip stats */}
-            <div className="flex items-center gap-6 mb-4 text-sm text-airbnb-dark-gray">
+            <div className="flex items-center gap-6 mb-4 text-sm text-sleek-dark-gray">
               <div className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
                 <span>{trip.postsCount} locations</span>
@@ -151,14 +151,14 @@ function JourneyTimelineItem({
             {/* Featured posts preview */}
             {trip.posts.length > 0 && (
               <div className="mb-4">
-                <h4 className="text-body-medium font-semibold text-airbnb-black mb-3">
+                <h4 className="text-body-medium font-semibold text-sleek-black mb-3">
                   📖 Recent Stories
                 </h4>
                 <div className="space-y-2">
                   {trip.posts.slice(0, 2).map((post) => (
-                    <div key={post.id} className="flex items-center gap-3 p-2 rounded-airbnb-small hover:bg-gray-50 transition-colors">
+                    <div key={post.id} className="flex items-center gap-3 p-2 rounded-sleek-small hover:bg-gray-50 transition-colors">
                       {post.featured_image && (
-                        <div className="w-12 h-12 rounded-airbnb-small overflow-hidden bg-gray-200 flex-shrink-0">
+                        <div className="w-12 h-12 rounded-sleek-small overflow-hidden bg-gray-200 flex-shrink-0">
                           <Image
                             src={post.featured_image}
                             alt={post.title}
@@ -169,10 +169,10 @@ function JourneyTimelineItem({
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-body-medium font-medium text-airbnb-black truncate">
+                        <p className="text-body-medium font-medium text-sleek-black truncate">
                           {post.title}
                         </p>
-                        <div className="flex items-center gap-3 text-body-small text-airbnb-dark-gray">
+                        <div className="flex items-center gap-3 text-body-small text-sleek-dark-gray">
                           <span>{format(new Date(post.post_date), 'MMM d')}</span>
                           <div className="flex items-center gap-1">
                             <Eye className="h-3 w-3" />
@@ -187,7 +187,7 @@ function JourneyTimelineItem({
             )}
 
             {/* "Did you know?" fact box - Kanada Reise style */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-airbnb-small p-4 mb-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-sleek-small p-4 mb-4">
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-yellow-800 text-sm">💡</span>
@@ -225,7 +225,7 @@ export function FeaturedJourneys() {
     return (
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-airbnb-dark-gray">Unable to load featured journeys at the moment.</p>
+          <p className="text-sleek-dark-gray">Unable to load featured journeys at the moment.</p>
         </div>
       </section>
     )
@@ -236,10 +236,10 @@ export function FeaturedJourneys() {
       <div className="max-w-7xl mx-auto px-6">
         {/* Section header */}
         <div className="text-center mb-16">
-          <h2 className="text-display-small text-airbnb-black mb-4">
+          <h2 className="text-display-small text-sleek-black mb-4">
             Featured Journeys
           </h2>
-          <p className="text-body-large text-airbnb-dark-gray max-w-2xl mx-auto leading-relaxed">
+          <p className="text-body-large text-sleek-dark-gray max-w-2xl mx-auto leading-relaxed">
             Discover inspiring travel stories from our community. Each journey tells a unique story 
             of adventure, discovery, and unforgettable memories.
           </p>
@@ -249,7 +249,7 @@ export function FeaturedJourneys() {
         {isLoading && (
           <div className="text-center py-12">
             <div className="w-8 h-8 border-2 border-rausch-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-airbnb-dark-gray">Loading amazing journeys...</p>
+            <p className="text-sleek-dark-gray">Loading amazing journeys...</p>
           </div>
         )}
 
@@ -273,8 +273,8 @@ export function FeaturedJourneys() {
             <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
               <MapPin className="h-8 w-8 text-gray-400" />
             </div>
-            <h3 className="text-title-small text-airbnb-black mb-2">No featured journeys yet</h3>
-            <p className="text-airbnb-dark-gray mb-6">Be the first to share your amazing travel story!</p>
+            <h3 className="text-title-small text-sleek-black mb-2">No featured journeys yet</h3>
+            <p className="text-sleek-dark-gray mb-6">Be the first to share your amazing travel story!</p>
             <Link href="/auth/signup" className="btn-primary">
               Start Your Journey
             </Link>
@@ -286,7 +286,7 @@ export function FeaturedJourneys() {
           <div className="text-center mt-16">
             <Link
               href="/locations"
-              className="btn-secondary px-8 py-4 text-body-large font-semibold rounded-airbnb-small hover:scale-105 transition-transform inline-flex items-center gap-2"
+              className="btn-secondary px-8 py-4 text-body-large font-semibold rounded-sleek-small hover:scale-105 transition-transform inline-flex items-center gap-2"
             >
               Explore All Destinations
               <ArrowRight className="h-4 w-4" />

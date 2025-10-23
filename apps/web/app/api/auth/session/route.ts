@@ -12,9 +12,18 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createServerSupabase()
 
-    // Handle sign-out or missing session: clear cookies
-    if (event === 'SIGNED_OUT' || !session) {
+    // CRITICAL: Only sign out on explicit SIGNED_OUT event
+    // Do NOT sign out on INITIAL_SESSION with null session - this is normal on page load
+    if (event === 'SIGNED_OUT') {
+      console.log('🔐 API: Signing out - SIGNED_OUT event received')
       await supabase.auth.signOut()
+      return NextResponse.json({ ok: true })
+    }
+
+    // If no session but not a sign-out event, just skip (don't sign out)
+    // This handles INITIAL_SESSION with null session on page load
+    if (!session) {
+      console.log('🔐 API: No session provided, event:', event, '- skipping')
       return NextResponse.json({ ok: true })
     }
 
@@ -22,24 +31,28 @@ export async function POST(req: NextRequest) {
     const refresh_token = session?.refresh_token as string | undefined
 
     if (!access_token || !refresh_token) {
+      console.log('🔐 API: Missing tokens in session')
       return NextResponse.json(
         { ok: false, error: 'Missing tokens' },
         { status: 400 }
       )
     }
 
+    console.log('🔐 API: Setting session for event:', event)
     const { error } = await supabase.auth.setSession({
       access_token,
       refresh_token,
     })
 
     if (error) {
+      console.error('🔐 API: Error setting session:', error.message)
       return NextResponse.json(
         { ok: false, error: error.message },
         { status: 400 }
       )
     }
 
+    console.log('🔐 API: Session synced successfully')
     return NextResponse.json({ ok: true })
   } catch (e) {
     console.error('Auth session sync error:', e)

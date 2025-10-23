@@ -58,10 +58,10 @@ export function LocationActivities({ activities, locationName }: LocationActivit
 
   return (
     <Card className="card-elevated p-6 mb-8">
-      <h3 className="text-title-medium font-semibold text-airbnb-black mb-4">
+      <h3 className="text-title-medium font-semibold text-sleek-black mb-4">
         Things to Do in {locationName}
       </h3>
-      <p className="text-body-medium text-airbnb-gray mb-6">
+      <p className="text-body-medium text-sleek-gray mb-6">
         Check off activities as you complete them during your visit
       </p>
       
@@ -73,10 +73,10 @@ export function LocationActivities({ activities, locationName }: LocationActivit
           return (
             <div
               key={activity.id}
-              className={`flex items-start gap-4 p-4 rounded-airbnb-medium border transition-all duration-200 cursor-pointer hover:shadow-airbnb-small ${
+              className={`flex items-start gap-4 p-4 rounded-sleek-medium border transition-all duration-200 cursor-pointer hover:shadow-sleek-small ${
                 isChecked 
                   ? 'bg-green-50 border-green-200' 
-                  : 'bg-white border-airbnb-border hover:border-airbnb-dark-gray'
+                  : 'bg-white border-sleek-border hover:border-sleek-dark-gray'
               }`}
               onClick={() => toggleActivity(activity.id)}
             >
@@ -84,13 +84,13 @@ export function LocationActivities({ activities, locationName }: LocationActivit
               <div className={`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
                 isChecked 
                   ? 'bg-green-500 border-green-500' 
-                  : 'border-airbnb-border hover:border-green-400'
+                  : 'border-sleek-border hover:border-green-400'
               }`}>
                 {isChecked && <Check className="h-4 w-4 text-white" />}
               </div>
 
               {/* Activity Icon */}
-              <div className="flex-shrink-0 w-10 h-10 bg-rausch-50 rounded-airbnb-small flex items-center justify-center">
+              <div className="flex-shrink-0 w-10 h-10 bg-rausch-50 rounded-sleek-small flex items-center justify-center">
                 <IconComponent className="h-5 w-5 text-rausch-500" />
               </div>
 
@@ -98,31 +98,31 @@ export function LocationActivities({ activities, locationName }: LocationActivit
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-3 mb-1">
                   <h4 className={`text-body-large font-semibold transition-colors truncate ${
-                    isChecked ? 'text-green-800 line-through' : 'text-airbnb-black'
+                    isChecked ? 'text-green-800 line-through' : 'text-sleek-black'
                   }`}>
                     {activity.name}
                   </h4>
                   <div className="flex flex-wrap items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
                     {activity.duration && (
-                      <Badge className="bg-gray-100 text-airbnb-gray text-xs flex items-center gap-1 cursor-default select-none">
-                        <Clock className="h-3 w-3 text-airbnb-gray" />
+                      <Badge className="bg-gray-100 text-sleek-gray text-xs flex items-center gap-1 cursor-default select-none">
+                        <Clock className="h-3 w-3 text-sleek-gray" />
                         {activity.duration}
                       </Badge>
                     )}
                     {activity.cost && (
-                      <Badge className="bg-gray-100 text-airbnb-gray text-xs flex items-center gap-1 cursor-default select-none">
-                        <DollarSign className="h-3 w-3 text-airbnb-gray" />
+                      <Badge className="bg-gray-100 text-sleek-gray text-xs flex items-center gap-1 cursor-default select-none">
+                        <DollarSign className="h-3 w-3 text-sleek-gray" />
                         {activity.cost}
                       </Badge>
                     )}
                     {activity.difficulty && (
-                      <Badge className="bg-gray-100 text-airbnb-gray text-xs cursor-default select-none">
+                      <Badge className="bg-gray-100 text-sleek-gray text-xs cursor-default select-none">
                         {activity.difficulty}
                       </Badge>
                     )}
                   </div>
                 </div>
-                <p className="text-body-medium text-airbnb-dark-gray">
+                <p className="text-body-medium text-sleek-dark-gray">
                   {activity.description}
                 </p>
               </div>
@@ -136,7 +136,7 @@ export function LocationActivities({ activities, locationName }: LocationActivit
         <div className="mt-6 text-center">
           <button
             onClick={() => setShowAll(true)}
-            className="px-6 py-2 bg-white border-2 border-airbnb-border rounded-airbnb-small text-body-medium font-semibold text-airbnb-black hover:border-airbnb-dark-gray hover:shadow-airbnb-small transition-all duration-200"
+            className="px-6 py-2 bg-white border-2 border-sleek-border rounded-sleek-small text-body-medium font-semibold text-sleek-black hover:border-sleek-dark-gray hover:shadow-sleek-small transition-all duration-200"
           >
             Load More Activities ({activities.length - INITIAL_DISPLAY_COUNT} more)
           </button>
@@ -148,7 +148,7 @@ export function LocationActivities({ activities, locationName }: LocationActivit
         <div className="mt-6 text-center">
           <button
             onClick={() => setShowAll(false)}
-            className="px-6 py-2 bg-white border-2 border-airbnb-border rounded-airbnb-small text-body-medium font-semibold text-airbnb-black hover:border-airbnb-dark-gray hover:shadow-airbnb-small transition-all duration-200"
+            className="px-6 py-2 bg-white border-2 border-sleek-border rounded-sleek-small text-body-medium font-semibold text-sleek-black hover:border-sleek-dark-gray hover:shadow-sleek-small transition-all duration-200"
           >
             Show Less
           </button>
@@ -156,8 +156,8 @@ export function LocationActivities({ activities, locationName }: LocationActivit
       )}
 
       {/* Progress Summary */}
-      <div className="mt-6 pt-4 border-t border-airbnb-border">
-        <div className="flex items-center justify-between text-body-small text-airbnb-gray">
+      <div className="mt-6 pt-4 border-t border-sleek-border">
+        <div className="flex items-center justify-between text-body-small text-sleek-gray">
           <span>
             {checkedActivities.size} of {activities.length} activities completed
           </span>

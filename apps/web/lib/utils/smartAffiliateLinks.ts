@@ -8,7 +8,7 @@ import { generateTravelpayoutsActivitiesLink, generateTravelpayoutsHotelLink } f
 export interface SmartAffiliateLink {
   url: string
   text: string
-  provider: 'airbnb' | 'booking' | 'getyourguide' | 'viator' | 'coworker' | 'travelpayouts' | 'generic'
+  provider: 'sleek' | 'booking' | 'getyourguide' | 'viator' | 'coworker' | 'travelpayouts' | 'generic'
   icon?: string
 }
 
@@ -22,10 +22,10 @@ export function generateSmartAffiliateLink(
   const activityLower = activity.toLowerCase()
   const locationEncoded = encodeURIComponent(location)
 
-  // 1. ACCOMMODATION - Airbnb affiliate
+  // 1. ACCOMMODATION - sleek affiliate
   if (
     activityLower.includes('apartment') ||
-    activityLower.includes('airbnb') ||
+    activityLower.includes('sleek') ||
     activityLower.includes('rental') ||
     activityLower.includes('flat') ||
     activityLower.includes('accommodation') ||
@@ -33,9 +33,9 @@ export function generateSmartAffiliateLink(
     activityLower.includes('check in')
   ) {
     return {
-      url: `https://www.airbnb.com/s/${locationEncoded}/homes`,
-      text: 'Find apartments on Airbnb',
-      provider: 'airbnb',
+      url: `https://www.sleek.com/s/${locationEncoded}/homes`,
+      text: 'Find apartments on sleek',
+      provider: 'sleek',
       icon: '🏠'
     }
   }

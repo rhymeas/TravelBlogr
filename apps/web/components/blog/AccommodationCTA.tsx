@@ -8,7 +8,7 @@
 import { Building2, Home, ArrowRight } from 'lucide-react'
 import {
   generateBookingLink,
-  generateAirbnbLink,
+  generatesleekLink,
   generateTravelpayoutsHotelLink,
   trackAffiliateClick,
 } from '@/lib/utils/affiliateLinks'
@@ -40,7 +40,7 @@ export function AccommodationCTA({
     checkOut
   })
 
-  const airbnbUrl = generateAirbnbLink({
+  const sleekUrl = generatesleekLink({
     locationName: destination,
     latitude,
     longitude
@@ -88,7 +88,7 @@ export function AccommodationCTA({
               Hotels
             </button>
             <button
-              onClick={() => handleClick('airbnb', airbnbUrl)}
+              onClick={() => handleClick('sleek', sleekUrl)}
               className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all"
             >
               <Home className="h-3.5 w-3.5" />

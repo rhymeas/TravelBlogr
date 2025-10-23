@@ -113,7 +113,7 @@ Still on /dashboard/trips (PRESERVED CONTEXT)
 - ✅ Can browse as guest, sign in when ready
 - ✅ No context loss
 - ✅ Better conversion (easier to sign in)
-- ✅ Modern UX pattern (like Airbnb, Pinterest)
+- ✅ Modern UX pattern (like sleek, Pinterest)
 
 ---
 
@@ -304,7 +304,7 @@ className="bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:20
 - 🚀 Better perceived performance (shimmer vs static)
 - 🎯 Higher conversion (easier to sign in)
 - 😊 Better user experience (no context loss)
-- 💪 Modern UX patterns (like Airbnb, Pinterest)
+- 💪 Modern UX patterns (like sleek, Pinterest)
 
 **Status:** ✅ Ready for Testing
 

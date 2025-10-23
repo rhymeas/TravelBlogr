@@ -157,10 +157,10 @@ interface PageLoadingProps {
 
 export function PageLoading({ message = 'Loading...' }: PageLoadingProps) {
   return (
-    <div className="min-h-screen bg-airbnb-background-secondary flex items-center justify-center">
+    <div className="min-h-screen bg-sleek-background-secondary flex items-center justify-center">
       <div className="text-center">
         <LoadingSpinner size="xl" className="mx-auto mb-4" />
-        <p className="text-body-large text-airbnb-gray">{message}</p>
+        <p className="text-body-large text-sleek-gray">{message}</p>
       </div>
     </div>
   )

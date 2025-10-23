@@ -213,13 +213,13 @@ export function CustomCommentSection({
 
           {/* Comment Content */}
           <div className="flex-1 min-w-0">
-            <div className="bg-airbnb-background-secondary rounded-airbnb-medium p-4">
+            <div className="bg-sleek-background-secondary rounded-sleek-medium p-4">
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div>
-                  <p className="text-body-medium font-semibold text-airbnb-black">
+                  <p className="text-body-medium font-semibold text-sleek-black">
                     {comment.user.full_name || 'Anonymous'}
                   </p>
-                  <p className="text-body-small text-airbnb-gray">
+                  <p className="text-body-small text-sleek-gray">
                     {formatDate(comment.created_at)}
                     {comment.updated_at !== comment.created_at && ' (edited)'}
                   </p>
@@ -232,14 +232,14 @@ export function CustomCommentSection({
                         setEditingId(comment.id)
                         setEditText(comment.content)
                       }}
-                      className="p-1.5 text-airbnb-gray hover:text-airbnb-black hover:bg-white rounded-airbnb-small transition-colors"
+                      className="p-1.5 text-sleek-gray hover:text-sleek-black hover:bg-white rounded-sleek-small transition-colors"
                       title="Edit"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteComment(comment.id)}
-                      className="p-1.5 text-airbnb-gray hover:text-red-500 hover:bg-white rounded-airbnb-small transition-colors"
+                      className="p-1.5 text-sleek-gray hover:text-red-500 hover:bg-white rounded-sleek-small transition-colors"
                       title="Delete"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -253,7 +253,7 @@ export function CustomCommentSection({
                   <textarea
                     value={editText}
                     onChange={(e) => setEditText(e.target.value)}
-                    className="w-full px-3 py-2 border border-airbnb-border rounded-airbnb-small focus:outline-none focus:ring-2 focus:ring-rausch-500 resize-none"
+                    className="w-full px-3 py-2 border border-sleek-border rounded-sleek-small focus:outline-none focus:ring-2 focus:ring-rausch-500 resize-none"
                     rows={3}
                     maxLength={1000}
                   />
@@ -282,7 +282,7 @@ export function CustomCommentSection({
                   </div>
                 </div>
               ) : (
-                <p className="text-body-medium text-airbnb-dark-gray whitespace-pre-wrap break-words">
+                <p className="text-body-medium text-sleek-dark-gray whitespace-pre-wrap break-words">
                   {comment.content}
                 </p>
               )}
@@ -299,7 +299,7 @@ export function CustomCommentSection({
                   setReplyingTo(replyingTo === comment.id ? null : comment.id)
                   setReplyText('')
                 }}
-                className="mt-2 text-body-small text-airbnb-gray hover:text-airbnb-black transition-colors font-medium"
+                className="mt-2 text-body-small text-sleek-gray hover:text-sleek-black transition-colors font-medium"
               >
                 Reply
               </button>
@@ -313,7 +313,7 @@ export function CustomCommentSection({
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Write a reply..."
-                  className="flex-1 px-3 py-2 border border-airbnb-border rounded-airbnb-small focus:outline-none focus:ring-2 focus:ring-rausch-500"
+                  className="flex-1 px-3 py-2 border border-sleek-border rounded-sleek-small focus:outline-none focus:ring-2 focus:ring-rausch-500"
                   maxLength={1000}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -381,12 +381,12 @@ export function CustomCommentSection({
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Share your thoughts about this location..."
-                className="w-full px-4 py-3 border border-airbnb-border rounded-airbnb-medium focus:outline-none focus:ring-2 focus:ring-rausch-500 resize-none"
+                className="w-full px-4 py-3 border border-sleek-border rounded-sleek-medium focus:outline-none focus:ring-2 focus:ring-rausch-500 resize-none"
                 rows={3}
                 maxLength={1000}
               />
               <div className="flex justify-between items-center mt-2">
-                <span className="text-body-small text-airbnb-gray">
+                <span className="text-body-small text-sleek-gray">
                   {newComment.length}/1000
                 </span>
                 <Button
@@ -402,8 +402,8 @@ export function CustomCommentSection({
           </div>
         </div>
       ) : (
-        <div className="mb-6 p-4 bg-airbnb-background-secondary rounded-airbnb-medium border border-airbnb-border">
-          <p className="text-body-medium text-airbnb-dark-gray mb-3">
+        <div className="mb-6 p-4 bg-sleek-background-secondary rounded-sleek-medium border border-sleek-border">
+          <p className="text-body-medium text-sleek-dark-gray mb-3">
             <MessageCircle className="w-5 h-5 inline mr-2" />
             Sign in to join the conversation
           </p>
@@ -421,9 +421,9 @@ export function CustomCommentSection({
       {/* Comments List */}
       {comments.length === 0 ? (
         <div className="text-center py-12">
-          <MessageCircle className="w-12 h-12 mx-auto text-airbnb-gray mb-3" />
-          <p className="text-title-small font-medium text-airbnb-dark-gray">No comments yet</p>
-          <p className="text-body-medium text-airbnb-gray mt-1">Be the first to share your experience!</p>
+          <MessageCircle className="w-12 h-12 mx-auto text-sleek-gray mb-3" />
+          <p className="text-title-small font-medium text-sleek-dark-gray">No comments yet</p>
+          <p className="text-body-medium text-sleek-gray mt-1">Be the first to share your experience!</p>
         </div>
       ) : (
         <div className="space-y-6">

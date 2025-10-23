@@ -42,15 +42,15 @@ export function AuthenticatedLiveFeed({
   return (
     <div className="max-w-lg mx-auto">
       {/* Tab Navigation */}
-      <div className="bg-white border-b border-airbnb-border sticky top-0 z-40">
+      <div className="bg-white border-b border-sleek-border sticky top-0 z-40">
         <div className="flex items-center justify-between p-4">
-          <div className="flex bg-airbnb-background-secondary rounded-airbnb-medium p-1">
+          <div className="flex bg-sleek-background-secondary rounded-sleek-medium p-1">
             <button
               onClick={() => setActiveTab('following')}
-              className={`px-4 py-2 rounded-airbnb-small text-body-medium font-medium transition-all ${
+              className={`px-4 py-2 rounded-sleek-small text-body-medium font-medium transition-all ${
                 activeTab === 'following'
-                  ? 'bg-white text-airbnb-black shadow-airbnb-light'
-                  : 'text-airbnb-gray hover:text-airbnb-black'
+                  ? 'bg-white text-sleek-black shadow-sleek-light'
+                  : 'text-sleek-gray hover:text-sleek-black'
               }`}
             >
               <Users className="h-4 w-4 inline mr-2" />
@@ -58,10 +58,10 @@ export function AuthenticatedLiveFeed({
             </button>
             <button
               onClick={() => setActiveTab('discover')}
-              className={`px-4 py-2 rounded-airbnb-small text-body-medium font-medium transition-all ${
+              className={`px-4 py-2 rounded-sleek-small text-body-medium font-medium transition-all ${
                 activeTab === 'discover'
-                  ? 'bg-white text-airbnb-black shadow-airbnb-light'
-                  : 'text-airbnb-gray hover:text-airbnb-black'
+                  ? 'bg-white text-sleek-black shadow-sleek-light'
+                  : 'text-sleek-gray hover:text-sleek-black'
               }`}
             >
               <Compass className="h-4 w-4 inline mr-2" />
@@ -74,7 +74,7 @@ export function AuthenticatedLiveFeed({
               variant="ghost"
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
-              className="text-airbnb-gray hover:text-airbnb-black"
+              className="text-sleek-gray hover:text-sleek-black"
             >
               <Filter className="h-4 w-4" />
             </Button>
@@ -84,7 +84,7 @@ export function AuthenticatedLiveFeed({
         {/* Search Bar */}
         <div className="px-4 pb-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-airbnb-gray h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sleek-gray h-4 w-4" />
             <input
               type="text"
               placeholder={`Search ${activeTab === 'following' ? 'following' : 'all'} posts...`}
@@ -137,9 +137,9 @@ function FollowingFeed({ posts, onLike, onBookmark, onComment }: {
   if (posts.length === 0) {
     return (
       <div className="p-8 text-center">
-        <Users className="h-12 w-12 text-airbnb-gray mx-auto mb-4" />
-        <h3 className="text-title-small text-airbnb-black mb-2">No posts from people you follow</h3>
-        <p className="text-body-medium text-airbnb-gray mb-4">
+        <Users className="h-12 w-12 text-sleek-gray mx-auto mb-4" />
+        <h3 className="text-title-small text-sleek-black mb-2">No posts from people you follow</h3>
+        <p className="text-body-medium text-sleek-gray mb-4">
           Start following travelers to see their latest adventures here
         </p>
         <Button className="btn-primary">
@@ -213,7 +213,7 @@ function DiscoverFeed({ posts, onLike, onBookmark, onComment }: {
       ))}
 
       {/* Load More */}
-      <div className="p-8 text-center bg-white border-t border-airbnb-border">
+      <div className="p-8 text-center bg-white border-t border-sleek-border">
         <Button variant="outline" className="btn-secondary">
           Load More Stories
         </Button>

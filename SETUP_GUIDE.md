@@ -70,7 +70,7 @@ Visit `http://localhost:3000` to see the enhanced landing page!
 - **Enhanced Hero** - Live statistics with animated counters
 - **Featured Journeys** - Interactive timeline with real trip data
 - **Live Feed Preview** - Real-time community activity
-- **Responsive Design** - Mobile-first, Airbnb-inspired styling
+- **Responsive Design** - Mobile-first, sleek-inspired styling
 
 ### ✅ Features
 - **Real-time Data** - Live statistics and content updates
@@ -85,11 +85,11 @@ Visit `http://localhost:3000` to see the enhanced landing page!
 ### Colors
 - **Primary**: Rausch Red (`#FF5A5F`)
 - **Secondary**: Teal (`#00A699`)
-- **Grays**: Consistent Airbnb gray scale
+- **Grays**: Consistent sleek gray scale
 - **Accents**: Blue, Green, Purple for different content types
 
 ### Typography
-- **Font Family**: Circular (Airbnb's font)
+- **Font Family**: Circular (sleek's font)
 - **Scales**: Display, Title, Body with consistent sizing
 - **Weights**: Regular, Medium, Semibold, Bold
 

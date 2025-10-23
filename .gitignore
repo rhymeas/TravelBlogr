@@ -4,7 +4,6 @@ node_modules/
 # Next.js
 .next/
 out/
-. do-not-use-this-anymore-no-vercel-we-use-railway-now/
 *.tsbuildinfo
 tsconfig.tsbuildinfo
 
@@ -30,5 +29,3 @@ coverage/
 # Misc
 *.local
 *.swp
-
-. do-not-use-this-anymore-no-vercel-we-use-railway-now

@@ -762,10 +762,10 @@ export function BlogPostTemplate({
         <section className="py-16 lg:py-24 bg-gradient-to-br from-rausch-50/30 to-kazan-50/30">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h3 className="text-display-medium font-bold text-airbnb-black mb-4">
+              <h3 className="text-display-medium font-bold text-sleek-black mb-4">
                 More Inspiring Stories
               </h3>
-              <p className="text-body-medium text-airbnb-dark-gray">
+              <p className="text-body-medium text-sleek-dark-gray">
                 Discover more travel experiences from our community
               </p>
             </div>

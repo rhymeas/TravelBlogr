@@ -54,11 +54,11 @@ function StatCard({
   isSpecial?: boolean
 }) {
   return (
-    <div className="card-elevated p-6 text-center hover:shadow-airbnb-large transition-all duration-300 group">
-      <div className="w-12 h-12 bg-gradient-to-r from-rausch-500 to-rausch-700 rounded-airbnb-medium flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+    <div className="card-elevated p-6 text-center hover:shadow-sleek-large transition-all duration-300 group">
+      <div className="w-12 h-12 bg-gradient-to-r from-rausch-500 to-rausch-700 rounded-sleek-medium flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
         {icon}
       </div>
-      <div className="text-2xl font-bold text-airbnb-black mb-2">
+      <div className="text-2xl font-bold text-sleek-black mb-2">
         {isSpecial ? (
           value
         ) : (
@@ -68,7 +68,7 @@ function StatCard({
           </>
         )}
       </div>
-      <div className="text-body-medium text-airbnb-dark-gray">{label}</div>
+      <div className="text-body-medium text-sleek-dark-gray">{label}</div>
     </div>
   )
 }
@@ -81,14 +81,14 @@ export function Hero() {
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-4xl text-center">
           {/* Badge */}
-          <div className="mb-8 inline-flex items-center rounded-full bg-gray-50 px-4 py-2 text-body-medium text-airbnb-dark-gray border border-gray-200">
+          <div className="mb-8 inline-flex items-center rounded-full bg-gray-50 px-4 py-2 text-body-medium text-sleek-dark-gray border border-gray-200">
             <span className="mr-2">✨</span>
             Where shared stories become perfect plans
             <ArrowRight className="ml-2 h-4 w-4" />
           </div>
 
           {/* Main Heading */}
-          <h1 className="text-display-large text-airbnb-black mb-6 leading-tight">
+          <h1 className="text-display-large text-sleek-black mb-6 leading-tight">
             Share Your Journey,{' '}
             <span className="bg-gradient-to-r from-rausch-500 to-rausch-700 bg-clip-text text-transparent">
               Plan Your Next Adventure
@@ -96,7 +96,7 @@ export function Hero() {
           </h1>
 
           {/* Subheading */}
-          <p className="text-body-large text-airbnb-dark-gray mb-10 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-body-large text-sleek-dark-gray mb-10 max-w-2xl mx-auto leading-relaxed">
             Transform your travel experiences into inspiring stories that help fellow travelers plan unforgettable trips. Share detailed timelines and discover your next destination through authentic community experiences.
           </p>
 
@@ -104,13 +104,13 @@ export function Hero() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
             <Link
               href="/auth/signup"
-              className="btn-primary px-8 py-4 text-body-large font-semibold rounded-airbnb-small w-full sm:w-auto hover:scale-105 transition-transform"
+              className="btn-primary px-8 py-4 text-body-large font-semibold rounded-sleek-small w-full sm:w-auto hover:scale-105 transition-transform"
             >
                Share Your Journey
             </Link>
             <Link
               href="/locations"
-              className="btn-secondary px-8 py-4 text-body-large font-semibold rounded-airbnb-small w-full sm:w-auto flex items-center justify-center gap-2"
+              className="btn-secondary px-8 py-4 text-body-large font-semibold rounded-sleek-small w-full sm:w-auto flex items-center justify-center gap-2"
             >
               <Play className="h-4 w-4" />
               Plan Your Trip
@@ -148,14 +148,14 @@ export function Hero() {
 
           {/* Hero Image/Preview */}
           <div className="relative mx-auto max-w-5xl">
-            <div className="relative rounded-airbnb-large overflow-hidden shadow-airbnb-xl bg-gradient-to-br from-gray-50 to-gray-100 aspect-[16/10]">
+            <div className="relative rounded-sleek-large overflow-hidden shadow-sleek-xl bg-gradient-to-br from-gray-50 to-gray-100 aspect-[16/10]">
               {/* Placeholder for hero image */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
                   <div className="w-16 h-16 bg-rausch-500 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-2xl">🌍</span>
                   </div>
-                  <p className="text-title-small text-airbnb-dark-gray">
+                  <p className="text-title-small text-sleek-dark-gray">
                     Beautiful travel stories await
                   </p>
                 </div>
@@ -163,8 +163,8 @@ export function Hero() {
 
               {/* Loading overlay for stats */}
               {isLoading && (
-                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-airbnb-small px-3 py-2">
-                  <div className="flex items-center gap-2 text-sm text-airbnb-dark-gray">
+                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-sleek-small px-3 py-2">
+                  <div className="flex items-center gap-2 text-sm text-sleek-dark-gray">
                     <div className="w-4 h-4 border-2 border-rausch-500 border-t-transparent rounded-full animate-spin"></div>
                     Loading stats...
                   </div>
@@ -172,26 +172,26 @@ export function Hero() {
               )}
 
               {/* Floating cards for visual interest */}
-              <div className="absolute top-6 left-6 bg-white rounded-airbnb-medium p-4 shadow-airbnb-medium max-w-xs">
+              <div className="absolute top-6 left-6 bg-white rounded-sleek-medium p-4 shadow-sleek-medium max-w-xs">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm">📍</span>
                   </div>
                   <div>
-                    <p className="text-body-medium font-semibold text-airbnb-black">Paris, France</p>
-                    <p className="text-body-small text-airbnb-dark-gray">Just checked in</p>
+                    <p className="text-body-medium font-semibold text-sleek-black">Paris, France</p>
+                    <p className="text-body-small text-sleek-dark-gray">Just checked in</p>
                   </div>
                 </div>
               </div>
 
-              <div className="absolute bottom-6 right-6 bg-white rounded-airbnb-medium p-4 shadow-airbnb-medium max-w-xs">
+              <div className="absolute bottom-6 right-6 bg-white rounded-sleek-medium p-4 shadow-sleek-medium max-w-xs">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm">📸</span>
                   </div>
                   <div>
-                    <p className="text-body-medium font-semibold text-airbnb-black">New photos shared</p>
-                    <p className="text-body-small text-airbnb-dark-gray">Family can now view</p>
+                    <p className="text-body-medium font-semibold text-sleek-black">New photos shared</p>
+                    <p className="text-body-small text-sleek-dark-gray">Family can now view</p>
                   </div>
                 </div>
               </div>

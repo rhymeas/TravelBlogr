@@ -370,14 +370,14 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                           Book on Booking.com
                         </a>
                         <a
-                          href={`https://www.airbnb.com/s/${encodeURIComponent(day.location)}/homes`}
+                          href={`https://www.sleek.com/s/${encodeURIComponent(day.location)}/homes`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          onClick={() => trackAffiliateClick('airbnb', day.location, 'v2_results_accommodation')}
+                          onClick={() => trackAffiliateClick('sleek', day.location, 'v2_results_accommodation')}
                           className="flex-1 px-3 py-1.5 bg-pink-600 hover:bg-pink-700 text-white text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5"
                         >
                           <ExternalLink className="w-3 h-3" />
-                          Book on Airbnb
+                          Book on sleek
                         </a>
                       </div>
                     </div>

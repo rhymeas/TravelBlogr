@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { MapPin, Calendar, Share2, Download, Heart, Eye } from 'lucide-react'
+import { MapPin, Calendar, Share2, Download, Eye } from 'lucide-react'
 import { TripMap } from '@/components/maps/TripMap'
 import { Button } from '@/components/ui/Button'
 import { formatDistanceToNow } from 'date-fns'
 import { TripCommentSection } from '@/components/comments/TripCommentSection'
+import { TripLikeButton } from '@/components/trips/TripLikeButton'
+import { TripSaveButton } from '@/components/trips/TripSaveButton'
 
 interface SharedTripViewProps {
   shareLink: any
@@ -14,9 +16,6 @@ interface SharedTripViewProps {
 }
 
 export function SharedTripView({ shareLink, trip, subdomain }: SharedTripViewProps) {
-  const [liked, setLiked] = useState(false)
-  const [likeCount, setLikeCount] = useState(0)
-  
   const settings = shareLink.settings || {}
   const customization = shareLink.customization || {}
   const author = trip.users
@@ -68,11 +67,7 @@ export function SharedTripView({ shareLink, trip, subdomain }: SharedTripViewPro
     window.print()
   }
 
-  const handleLike = async () => {
-    // Implement like functionality
-    setLiked(!liked)
-    setLikeCount(prev => liked ? prev - 1 : prev + 1)
-  }
+
 
   // Filter posts based on settings
   const visiblePosts = trip.posts?.filter((post: any) => {
@@ -148,10 +143,19 @@ export function SharedTripView({ shareLink, trip, subdomain }: SharedTripViewPro
                 Share
               </Button>
 
-              <Button variant="outline" size="sm" onClick={handleLike}>
-                <Heart className={`h-4 w-4 mr-2 ${liked ? 'fill-red-500 text-red-500' : ''}`} />
-                {likeCount}
-              </Button>
+              <TripLikeButton
+                tripId={trip.id}
+                variant="outline"
+                size="sm"
+                showCount={true}
+              />
+
+              <TripSaveButton
+                tripId={trip.id}
+                variant="outline"
+                size="sm"
+                showCount={false}
+              />
             </div>
           </div>
 

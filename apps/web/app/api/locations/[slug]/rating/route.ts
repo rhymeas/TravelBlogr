@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase } from '@/lib/supabase-server'
+import { createServerSupabase, createServiceSupabase } from '@/lib/supabase-server'
+import { deleteCached, CacheKeys } from '@/lib/upstash'
+import { revalidatePath } from 'next/cache'
 
 // Force dynamic rendering for location routes
 export const dynamic = 'force-dynamic'
@@ -14,21 +16,18 @@ export async function POST(
   { params }: { params: { slug: string } }
 ) {
   try {
-    // Initialize Supabase client at runtime (not build time)
-    const supabase = await createServerSupabase()
+    const auth = await createServerSupabase()         // for auth only
+    const admin = createServiceSupabase()             // service role for DB writes
 
-    // Get current user (try real auth first)
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    // For development: accept mock user from request header
+    // Get current user
+    const { data: { user } } = await auth.auth.getUser()
     let userId = user?.id
     let userEmail = user?.email
 
+    // Dev convenience: allow mock headers if no session
     if (!userId) {
-      // Check for mock auth header (development only)
       const mockUserId = request.headers.get('x-mock-user-id')
       const mockUserEmail = request.headers.get('x-mock-user-email')
-
       if (mockUserId && mockUserEmail) {
         userId = mockUserId
         userEmail = mockUserEmail
@@ -38,8 +37,7 @@ export async function POST(
       }
     }
 
-    const body = await request.json()
-    const { rating } = body
+    const { rating } = await request.json()
 
     // Validate rating
     if (!rating || rating < 1 || rating > 5) {
@@ -47,10 +45,9 @@ export async function POST(
     }
 
     // Verify location exists and get ID
-    console.log('🔍 Looking for location with slug:', params.slug)
-    const { data: location, error: locationError } = await supabase
+    const { data: location, error: locationError } = await admin
       .from('locations')
-      .select('id')
+      .select('id, slug')
       .eq('slug', params.slug)
       .single()
 
@@ -59,62 +56,50 @@ export async function POST(
       return NextResponse.json({ error: 'Location not found' }, { status: 404 })
     }
 
-    console.log('✅ Found location:', location.id)
-
-    // Check if user already rated this location
-    const { data: existingRating } = await supabase
+    // Upsert user rating
+    const { data: existing } = await admin
       .from('location_ratings')
       .select('id')
       .eq('location_id', location.id)
       .eq('user_id', userId)
-      .single()
+      .maybeSingle()
 
-    if (existingRating) {
-      // Update existing rating
-      const { error: updateError } = await supabase
+    if (existing?.id) {
+      const { error } = await admin
         .from('location_ratings')
-        .update({
-          rating,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existingRating.id)
-
-      if (updateError) {
-        console.error('Error updating rating:', updateError)
+        .update({ rating, updated_at: new Date().toISOString() })
+        .eq('id', existing.id)
+      if (error) {
+        console.error('Error updating rating:', error)
         return NextResponse.json({ error: 'Failed to update rating' }, { status: 500 })
       }
     } else {
-      // Create new rating
-      const { error: insertError } = await supabase
+      const { error } = await admin
         .from('location_ratings')
-        .insert({
-          location_id: location.id,
-          user_id: userId,
-          rating
-        })
-
-      if (insertError) {
-        console.error('Error creating rating:', insertError)
+        .insert({ location_id: location.id, user_id: userId, rating })
+      if (error) {
+        console.error('Error creating rating:', error)
         return NextResponse.json({ error: 'Failed to create rating' }, { status: 500 })
       }
     }
 
-    // Calculate new average rating
-    const { data: ratings, error: ratingsError } = await supabase
+    // Recompute cached average/count
+    const { data: ratings, error: ratingsError } = await admin
       .from('location_ratings')
       .select('rating')
       .eq('location_id', location.id)
-
     if (ratingsError) {
       console.error('Error fetching ratings:', ratingsError)
       return NextResponse.json({ error: 'Failed to calculate average' }, { status: 500 })
     }
 
-    const averageRating = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length
+    const averageRating = ratings.length
+      ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length
+      : 0
     const ratingCount = ratings.length
 
-    // Update location with new average
-    await supabase
+    // Update location cached fields
+    await admin
       .from('locations')
       .update({
         rating: averageRating,
@@ -122,6 +107,36 @@ export async function POST(
         updated_at: new Date().toISOString()
       })
       .eq('id', location.id)
+
+    // Log contribution (non-critical)
+    try {
+      await admin
+        .from('location_contributions')
+        .insert({
+          user_id: userId,
+          location_id: location.id,
+          contribution_type: 'rating',
+          field_edited: 'rating',
+          change_snippet: `Rated ${rating} star${rating === 1 ? '' : 's'}`,
+          new_value: { rating }
+        })
+    } catch (e) {
+      console.log('⚠️ Failed to log rating contribution:', e)
+    }
+
+    // Invalidate caches: Upstash first, then Next.js
+    try {
+      await deleteCached(CacheKeys.location(params.slug))
+      await deleteCached(`${CacheKeys.location(params.slug)}:related`)
+    } catch (e) {
+      console.log('⚠️ Upstash cache invalidation failed:', e)
+    }
+    try {
+      revalidatePath(`/locations/${params.slug}`)
+      revalidatePath('/locations')
+    } catch (e) {
+      console.log('⚠️ Next.js revalidate failed:', e)
+    }
 
     return NextResponse.json({
       success: true,
@@ -144,17 +159,15 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   try {
-    // Initialize Supabase client at runtime (not build time)
-    const supabase = await createServerSupabase()
-
-    const { data: { user } } = await supabase.auth.getUser()
+    const auth = await createServerSupabase()
+    const { data: { user } } = await auth.auth.getUser()
 
     if (!user) {
       return NextResponse.json({ userRating: null })
     }
 
     // Get location ID from slug
-    const { data: location } = await supabase
+    const { data: location } = await createServiceSupabase()
       .from('locations')
       .select('id')
       .eq('slug', params.slug)
@@ -164,7 +177,7 @@ export async function GET(
       return NextResponse.json({ userRating: null })
     }
 
-    const { data: rating } = await supabase
+    const { data: rating } = await createServiceSupabase()
       .from('location_ratings')
       .select('rating')
       .eq('location_id', location.id)

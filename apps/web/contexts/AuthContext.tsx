@@ -1,10 +1,11 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabase } from '@/lib/supabase'
 import type { User, Session } from '@supabase/supabase-js'
 import { autoMigrateOnLogin } from '@/lib/services/guestMigrationService'
+import { getCached, setCached, deleteCached, CacheKeys, CacheTTL } from '@/lib/upstash'
 
 interface Profile {
   id: string
@@ -17,6 +18,10 @@ interface Profile {
   coupon_type?: string
   created_at?: string
   updated_at?: string
+  // Credits data (joined from user_credits table)
+  credits_remaining?: number
+  credits_purchased?: number
+  credits_used?: number
 }
 
 interface AuthState {
@@ -45,30 +50,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: null,
     profile: null,
     session: null,
-    loading: false, // Start false to show UI immediately (session check happens in useEffect)
+    loading: true, // CRITICAL: Start true to prevent race conditions on initial load
     error: null,
   })
 
   const router = useRouter()
   const supabase = useSupabase()
 
-  // Fetch user profile
-  const fetchProfile = async (userId: string): Promise<Profile | null> => {
+  // DEPRECATED: Replaced with Upstash Redis for persistent caching
+  // const profileCacheRef = useRef<Map<string, { profile: Profile | null; timestamp: number }>>(new Map())
+  // const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+  // Fetch user profile with Upstash caching
+  const fetchProfile = async (userId: string, forceRefresh = false): Promise<Profile | null> => {
     try {
-      const { data, error } = await supabase
+      // Check Upstash cache first (unless force refresh)
+      if (!forceRefresh) {
+        const cachedProfile = await getCached<Profile>(CacheKeys.profile(userId))
+        if (cachedProfile) {
+          console.log('✅ fetchProfile: Using Upstash cached profile (< 10ms)')
+          return cachedProfile
+        }
+      }
+
+      console.log('🔍 fetchProfile: Fetching from database for userId:', userId)
+
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Profile fetch timeout after 5s')), 5000)
+      })
+
+      // Fetch profile (without credits for now - foreign key doesn't exist yet)
+      const queryPromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
 
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise])
+
+      console.log('🔍 fetchProfile: Query completed', { data, error })
+
       if (error) {
-        console.error('Error fetching profile:', error)
+        console.error('❌ Error fetching profile:', error)
         return null
       }
 
+      console.log('✅ fetchProfile: Profile found:', data)
+
+      // Cache the result in Upstash (5 minute TTL)
+      await setCached(CacheKeys.profile(userId), data, CacheTTL.PROFILE)
+
       return data
     } catch (error) {
-      console.error('Unexpected error fetching profile:', error)
+      console.error('❌ Unexpected error fetching profile:', error)
       return null
     }
   }
@@ -78,6 +113,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check for existing session on mount
     const initializeAuth = async () => {
       console.log('🔄 Initializing auth...')
+
+      // Debug: Check what's in localStorage
+      if (typeof window !== 'undefined') {
+        const storageKey = 'sb-nchhcxokrzabbkvhzsor-auth-token'
+        const storedData = localStorage.getItem(storageKey)
+        console.log('📦 localStorage check:', storedData ? '✅ Data exists' : '❌ No data')
+        if (storedData) {
+          try {
+            const parsed = JSON.parse(storedData)
+            console.log('📦 Stored session:', {
+              hasAccessToken: !!parsed?.access_token,
+              hasRefreshToken: !!parsed?.refresh_token,
+              expiresAt: parsed?.expires_at ? new Date(parsed.expires_at * 1000).toISOString() : 'N/A'
+            })
+          } catch (e) {
+            console.error('❌ Failed to parse stored session:', e)
+          }
+        }
+      }
+
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
 
@@ -89,15 +144,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (session?.user) {
           console.log('✅ Session found on mount:', session.user.email)
-          const profile = await fetchProfile(session.user.id)
-          console.log('✅ Profile loaded, auth initialized')
+          // Make header instant: set user/session immediately
           setState({
             user: session.user,
-            profile,
+            profile: null,
             session,
             loading: false,
             error: null,
           })
+          // Fetch profile in background (non-blocking UI)
+          fetchProfile(session.user.id)
+            .then((profile) => {
+              setState(prev => ({ ...prev, profile }))
+            })
+            .catch(() => {/* ignore */})
         } else {
           console.log('ℹ️ No session found on mount')
           setState(prev => ({ ...prev, loading: false }))
@@ -114,41 +174,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐 Auth state change:', event, session ? `User: ${session.user.email}` : 'No session')
 
-      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
-        console.log('✅ Fetching profile for user:', session.user.id)
-        const profile = await fetchProfile(session.user.id)
-        console.log('✅ Profile fetched, updating state')
-        setState({
-          user: session.user,
-          profile,
-          session,
-          loading: false,
-          error: null,
-        })
+      try {
+        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+          // Make header instant: set user/session immediately
+          setState({
+            user: session.user,
+            profile: null,
+            session,
+            loading: false,
+            error: null,
+          })
+          // Fetch profile in background (non-blocking)
+          fetchProfile(session.user.id)
+            .then((profile) => setState(prev => ({ ...prev, profile })))
+            .catch(() => {/* ignore */})
 
-        // Auto-migrate guest trips (only on actual sign-in, not initial session)
-        if (event === 'SIGNED_IN') {
-          try {
-            await autoMigrateOnLogin(session.user.id)
-          } catch (migrationError) {
-            console.error('Guest trip migration failed:', migrationError)
+          // Auto-migrate guest trips (only on actual sign-in, not initial session)
+          if (event === 'SIGNED_IN') {
+            try {
+              await autoMigrateOnLogin(session.user.id)
+            } catch (migrationError) {
+              console.error('Guest trip migration failed:', migrationError)
+            }
           }
+        } else if (event === 'SIGNED_OUT') {
+          console.log('👋 User signed out')
+          setState({
+            user: null,
+            profile: null,
+            session: null,
+            loading: false,
+            error: null,
+          })
+        } else if (event === 'TOKEN_REFRESHED' && session) {
+          console.log('🔄 Token refreshed')
+          setState(prev => ({ ...prev, session }))
+        } else if (event === 'INITIAL_SESSION' && !session) {
+          console.log('ℹ️ No initial session found')
+          setState(prev => ({ ...prev, loading: false }))
         }
-      } else if (event === 'SIGNED_OUT') {
-        console.log('👋 User signed out')
-        setState({
-          user: null,
-          profile: null,
-          session: null,
-          loading: false,
-          error: null,
-        })
-      } else if (event === 'TOKEN_REFRESHED' && session) {
-        console.log('🔄 Token refreshed')
-        setState(prev => ({ ...prev, session }))
-      } else if (event === 'INITIAL_SESSION' && !session) {
-        console.log('ℹ️ No initial session found')
-        setState(prev => ({ ...prev, loading: false }))
+      } catch (error) {
+        console.error('❌ Error in auth state change handler:', error)
+        // CRITICAL: Always set loading to false, even on error
+        // This prevents the header from being stuck in loading state
+        const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+        setState(prev => ({ ...prev, loading: false, error: errorMessage }))
       }
     })
 
@@ -289,6 +359,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: error.message }
       }
 
+      // Clear profile cache in Upstash (if user was logged in)
+      if (state.user) {
+        await deleteCached(CacheKeys.profile(state.user.id))
+      }
+
       // State will be updated by onAuthStateChange listener
       return { success: true }
     } catch (error) {
@@ -314,8 +389,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: error.message }
       }
 
-      // Refresh profile
-      const profile = await fetchProfile(state.user.id)
+      // Invalidate Upstash cache
+      await deleteCached(CacheKeys.profile(state.user.id))
+
+      // Force refresh profile from database
+      const profile = await fetchProfile(state.user.id, true)
       setState(prev => ({ ...prev, profile }))
 
       return { success: true }

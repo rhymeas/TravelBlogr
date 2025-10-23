@@ -35,7 +35,7 @@ export default function AuthCallbackPage() {
         // CRITICAL: Only check localStorage if there's NO OAuth code/token
         // If we have a code or token, we MUST process it first
         if (!code && !accessToken) {
-          const storageKey = 'travelblogr-auth-token'
+          const storageKey = 'sb-nchhcxokrzabbkvhzsor-auth-token'
           const storedSession = localStorage.getItem(storageKey)
 
           if (storedSession) {
@@ -65,14 +65,21 @@ export default function AuthCallbackPage() {
         const urlRedirect = searchParams.get('redirect') || searchParams.get('redirect_to')
         const storageRedirect = localStorage.getItem('oauth_redirect_to')
 
-        // Default to home page (which will show dashboard for authenticated users)
-        // Don't hard-code /dashboard to avoid issues with landing page logic
-        const redirectTo = urlRedirect || storageRedirect || '/'
+        console.log('🔍 OAuth callback - Redirect sources:', {
+          urlRedirect,
+          storageRedirect,
+          willRedirectTo: urlRedirect || storageRedirect || '/dashboard'
+        })
 
-        console.log('OAuth callback - Final redirect to:', redirectTo)
+        // Default to dashboard if no redirect specified
+        // This ensures users land on dashboard after OAuth login
+        const redirectTo = urlRedirect || storageRedirect || '/dashboard'
+
+        console.log('✅ OAuth callback - Final redirect to:', redirectTo)
 
         // Clear the stored redirect
         if (storageRedirect) {
+          console.log('🧹 Clearing stored redirect from localStorage')
           localStorage.removeItem('oauth_redirect_to')
         }
 

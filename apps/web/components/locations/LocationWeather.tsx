@@ -161,7 +161,7 @@ export function LocationWeather({ locationSlug, locationName }: LocationWeatherP
     <div className="space-y-4">
       {/* Current Weather */}
       <Card className="card-elevated p-4">
-        <h3 className="text-title-small text-airbnb-black mb-3 flex items-center gap-2">
+        <h3 className="text-title-small text-sleek-black mb-3 flex items-center gap-2">
           <CloudSun className="h-5 w-5 text-blue-500" />
           Current Weather
         </h3>
@@ -170,8 +170,8 @@ export function LocationWeather({ locationSlug, locationName }: LocationWeatherP
           <div className="flex items-center gap-3">
             <CurrentIcon className="h-8 w-8 text-blue-500" />
             <div>
-              <div className="text-title-medium text-airbnb-black">{weather.current.temp}°C</div>
-              <div className="text-body-small text-airbnb-gray">{weather.current.condition}</div>
+              <div className="text-title-medium text-sleek-black">{weather.current.temp}°C</div>
+              <div className="text-body-small text-sleek-gray">{weather.current.condition}</div>
             </div>
           </div>
         </div>
@@ -180,15 +180,15 @@ export function LocationWeather({ locationSlug, locationName }: LocationWeatherP
           <div className="flex items-center gap-2">
             <Droplets className="h-4 w-4 text-blue-400" />
             <div>
-              <div className="text-body-small text-airbnb-gray">Humidity</div>
-              <div className="text-body-medium text-airbnb-black">{weather.current.humidity}%</div>
+              <div className="text-body-small text-sleek-gray">Humidity</div>
+              <div className="text-body-medium text-sleek-black">{weather.current.humidity}%</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Wind className="h-4 w-4 text-gray-400" />
             <div>
-              <div className="text-body-small text-airbnb-gray">Wind</div>
-              <div className="text-body-medium text-airbnb-black">{weather.current.windSpeed} km/h</div>
+              <div className="text-body-small text-sleek-gray">Wind</div>
+              <div className="text-body-medium text-sleek-black">{weather.current.windSpeed} km/h</div>
             </div>
           </div>
         </div>
@@ -196,29 +196,29 @@ export function LocationWeather({ locationSlug, locationName }: LocationWeatherP
 
       {/* Best Time to Visit */}
       <Card className="card-elevated p-4">
-        <h3 className="text-title-small text-airbnb-black mb-3 flex items-center gap-2">
+        <h3 className="text-title-small text-sleek-black mb-3 flex items-center gap-2">
           <Thermometer className="h-5 w-5 text-orange-500" />
           Best Time to Visit
         </h3>
         
-        <div className="mb-4 p-3 bg-green-50 rounded-airbnb-small border border-green-200">
+        <div className="mb-4 p-3 bg-green-50 rounded-sleek-small border border-green-200">
           <div className="text-body-medium font-medium text-green-800 mb-1">Recommended</div>
           <div className="text-body-large text-green-700">{weather.bestTime}</div>
         </div>
 
         <div className="space-y-3">
           {weather.seasons.map((season, index) => (
-            <div key={index} className="flex items-center justify-between p-3 rounded-airbnb-small border border-airbnb-border hover:bg-airbnb-background-secondary transition-colors">
+            <div key={index} className="flex items-center justify-between p-3 rounded-sleek-small border border-sleek-border hover:bg-sleek-background-secondary transition-colors">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-body-medium font-medium text-airbnb-black">{season.season}</span>
+                  <span className="text-body-medium font-medium text-sleek-black">{season.season}</span>
                   <Badge className={getSeasonColor(season.color)}>
                     {season.months}
                   </Badge>
                 </div>
-                <div className="text-body-small text-airbnb-gray">{season.condition}</div>
+                <div className="text-body-small text-sleek-gray">{season.condition}</div>
               </div>
-              <div className="text-body-medium text-airbnb-black font-medium">
+              <div className="text-body-medium text-sleek-black font-medium">
                 {season.temp}
               </div>
             </div>

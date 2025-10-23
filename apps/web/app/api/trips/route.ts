@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
+import { getOrSet, deleteCached, CacheKeys, CacheTTL } from '@/lib/upstash'
 import { nanoid } from 'nanoid'
 
 // GET /api/trips - Get user's trips
@@ -23,35 +24,47 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch trips with posts and share links
-    const { data: trips, error } = await supabase
-      .from('trips')
-      .select(`
-        *,
-        posts (
-          id,
-          title,
-          content,
-          featured_image,
-          post_date,
-          order_index
-        ),
-        share_links (
-          id,
-          link_type,
-          token,
-          title,
-          is_active,
-          view_count
-        )
-      `)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+    // OPTIMIZATION: Cache user trips in Upstash for 5 minutes
+    const trips = await getOrSet(
+      CacheKeys.userTrips(user.id),
+      async () => {
+        console.log(`🗺️ Fetching trips for user: ${user.id}`)
 
-    if (error) {
-      console.error('Error fetching trips:', error)
-      return NextResponse.json({ error: 'Failed to fetch trips' }, { status: 500 })
-    }
+        // Fetch trips with posts and share links
+        const { data, error } = await supabase
+          .from('trips')
+          .select(`
+            *,
+            posts (
+              id,
+              title,
+              content,
+              featured_image,
+              post_date,
+              order_index
+            ),
+            share_links (
+              id,
+              link_type,
+              token,
+              title,
+              is_active,
+              view_count
+            )
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+
+        if (error) {
+          throw new Error(error.message)
+        }
+
+        return data
+      },
+      CacheTTL.SHORT // 5 minutes
+    )
+
+    console.log(`✅ User trips loaded (< 10ms from Upstash)`)
 
     return NextResponse.json({ trips })
   } catch (error) {
@@ -135,6 +148,10 @@ export async function POST(request: NextRequest) {
 
     // Generate default share links
     const shareLinks = await generateShareLinks(trip.id, user.id)
+
+    // Invalidate user trips cache
+    await deleteCached(CacheKeys.userTrips(user.id))
+    console.log('🗑️ Invalidated user trips cache after creation')
 
     // Return the created trip with share links
     return NextResponse.json({

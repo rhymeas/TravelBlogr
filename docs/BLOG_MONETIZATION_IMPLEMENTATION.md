@@ -47,10 +47,10 @@ Every blog post now follows this proven structure:
 #### `AccommodationCTA.tsx`
 - **Purpose:** Contextual affiliate links for booking hotels and vacation rentals
 - **Placement:** After introduction
-- **Providers:** Booking.com (25-40% commission), Airbnb (3% commission)
+- **Providers:** Booking.com (25-40% commission), sleek (3% commission)
 - **Features:**
   - Gradient card design (blue theme)
-  - Two CTA buttons (Hotels + Airbnbs)
+  - Two CTA buttons (Hotels + sleeks)
   - Affiliate disclosure
   - Click tracking with `trackAffiliateClick()`
   - Supports optional check-in/check-out dates
@@ -102,7 +102,7 @@ interface BlogPostTemplateProps {
 
 1. **After Introduction:**
    - Google Ad (Top Horizontal)
-   - Accommodation CTA (Booking.com + Airbnb)
+   - Accommodation CTA (Booking.com + sleek)
 
 2. **After Day 3:**
    - Google Ad (Middle Rectangular)
@@ -124,7 +124,7 @@ interface BlogPostTemplateProps {
 | Provider | Commission | Placement | Tracking |
 |----------|-----------|-----------|----------|
 | Booking.com | 25-40% | After intro | ✅ |
-| Airbnb | 3% | After intro | ✅ |
+| sleek | 3% | After intro | ✅ |
 | GetYourGuide | 8-12% | After Day 3 | ✅ |
 | Viator | 8-10% | After Day 3 | ✅ |
 
@@ -152,7 +152,7 @@ interface BlogPostTemplateProps {
 ### Affiliate Click Tracking:
 
 Every affiliate link tracks:
-- **Provider** (booking, airbnb, getyourguide, viator)
+- **Provider** (booking, sleek, getyourguide, viator)
 - **Location** (destination name)
 - **Context** (blog_post_accommodation, blog_post_activities)
 - **Post ID** (for revenue attribution)

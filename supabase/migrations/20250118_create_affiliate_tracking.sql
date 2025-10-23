@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS affiliate_clicks (
     user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     post_id UUID REFERENCES cms_posts(id) ON DELETE CASCADE,
     trip_id UUID REFERENCES trips(id) ON DELETE CASCADE,
-    provider VARCHAR(50) NOT NULL, -- 'booking', 'airbnb', 'getyourguide', 'viator', etc.
+    provider VARCHAR(50) NOT NULL, -- 'booking', 'sleek', 'getyourguide', 'viator', etc.
     location_name VARCHAR(255),
     context VARCHAR(100), -- 'blog_post', 'trip_template', 'location_page', etc.
     click_url TEXT NOT NULL,

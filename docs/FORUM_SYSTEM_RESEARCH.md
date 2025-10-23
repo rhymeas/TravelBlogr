@@ -8,7 +8,7 @@
 ## 🎯 Requirements
 
 ### Must-Have Features
-- ✅ Modern, sleek UI (matches TravelBlogr's Airbnb-inspired design)
+- ✅ Modern, sleek UI (matches TravelBlogr's sleek-inspired design)
 - ✅ Mobile-responsive
 - ✅ SSO/Authentication integration (Supabase Auth)
 - ✅ Easy embedding in Next.js app
@@ -181,7 +181,7 @@
 
 **Why:**
 1. **Perfect Integration** - Native Next.js/React, no iframes
-2. **Design Consistency** - Matches TravelBlogr's Airbnb-inspired aesthetic
+2. **Design Consistency** - Matches TravelBlogr's sleek-inspired aesthetic
 3. **Supabase Native** - Direct database integration, no SSO complexity
 4. **Lightweight** - No additional infrastructure or resource overhead
 5. **Full Control** - Customize every feature to match user needs
@@ -280,7 +280,7 @@ CREATE TABLE forum_replies (
 │   ├── Search bar
 │   └── CTA: "Start a Discussion"
 │
-├── Categories Grid (Airbnb-style cards)
+├── Categories Grid (sleek-style cards)
 │   ├── 🌍 Destinations
 │   ├── 💡 Travel Tips
 │   ├── 🗺️ Trip Planning
@@ -312,7 +312,7 @@ CREATE TABLE forum_replies (
 2. **Create Database Migration** - Forum tables schema
 3. **Build Core Components** - Thread list, thread detail, reply form
 4. **Add to Navigation** - Header link to /community
-5. **Style to Match** - Airbnb-inspired design system
+5. **Style to Match** - sleek-inspired design system
 6. **Test & Iterate** - User feedback and improvements
 
 ---

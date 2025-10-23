@@ -23,7 +23,6 @@ import {
 import { Button } from '@/components/ui/Button'
 import { TripCard } from '@/components/ui/TripCard'
 import { FeaturedLocations } from '@/components/landing/FeaturedLocations'
-import { DashboardLanding } from '@/components/dashboard/DashboardLanding'
 import { PublicDestinationSearch } from '@/components/search/PublicDestinationSearch'
 import { useAuth } from '@/hooks/useAuth'
 import { HorizontalBannerAd } from '@/components/ads/HorizontalBannerAd'
@@ -201,14 +200,13 @@ export default function HomePage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Show dashboard for authenticated users (don't wait for loading)
-  if (mounted && isAuthenticated && !isLoading) {
-    console.log('✅ Showing dashboard for authenticated user')
-    return <DashboardLanding />
-  }
+  // REMOVED: Dashboard redirect logic
+  // The home page now shows the public landing page for everyone
+  // Authenticated users can access dashboard at /dashboard
+  // This allows OAuth callback to redirect users back to the page they were on
 
-  // Show public landing page for non-authenticated users
-  console.log('📄 Showing public landing page')
+  // Show public landing page
+  console.log('📄 Showing public landing page (auth:', isAuthenticated, ')')
   return (
     <div className="min-h-screen bg-white">
 
@@ -272,12 +270,12 @@ export default function HomePage() {
               <div className="max-w-[496px]">
                 {/* White Card */}
                 <div className="bg-white rounded-2xl shadow-2xl p-8">
-                  <h1 className="text-3xl font-bold text-airbnb-black mb-2">
+                  <h1 className="text-3xl font-bold text-sleek-black mb-2">
                     Plan Your Next Adventure,
                     <br />
                     Share Your Journey
                   </h1>
-                  <p className="text-sm text-airbnb-gray mb-6">
+                  <p className="text-sm text-sleek-gray mb-6">
                     Transform your travel experiences into inspiring stories that help fellow travelers plan unforgettable trips.
                   </p>
 
@@ -290,7 +288,7 @@ export default function HomePage() {
                   </div>
 
                   {/* Quick Stats */}
-                  <div className="flex items-center justify-between text-xs text-airbnb-gray pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between text-xs text-sleek-gray pt-4 border-t border-gray-200">
                     <div className="flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
                       <span>2,500+ destinations</span>
@@ -387,8 +385,8 @@ export default function HomePage() {
         <section className="py-16 bg-white">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="text-center mb-10">
-              <h3 className="text-2xl lg:text-3xl font-bold text-airbnb-black mb-3">How it works</h3>
-              <p className="text-base text-airbnb-dark-gray max-w-3xl mx-auto">From idea to shareable trip in minutes.</p>
+              <h3 className="text-2xl lg:text-3xl font-bold text-sleek-black mb-3">How it works</h3>
+              <p className="text-base text-sleek-dark-gray max-w-3xl mx-auto">From idea to shareable trip in minutes.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -446,10 +444,10 @@ export default function HomePage() {
         <section className="py-12 bg-white">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="text-center mb-10">
-              <h2 className="text-2xl lg:text-3xl font-bold text-airbnb-black mb-3">
+              <h2 className="text-2xl lg:text-3xl font-bold text-sleek-black mb-3">
                 This is how your trip could look like
               </h2>
-              <p className="text-base text-airbnb-dark-gray max-w-3xl mx-auto">
+              <p className="text-base text-sleek-dark-gray max-w-3xl mx-auto">
                 Discover how our community shares detailed travel experiences that become invaluable planning resources. Each timeline story includes everything you need to recreate or customize the experience.
               </p>
             </div>
@@ -485,10 +483,10 @@ export default function HomePage() {
           size="standard"
         />
 
-        {/* Categories - Airbnb Style */}
+        {/* Categories - sleek Style */}
         <section className="py-16 bg-gray-50">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <h2 className="text-3xl lg:text-4xl font-bold text-airbnb-black mb-12 text-center">
+            <h2 className="text-3xl lg:text-4xl font-bold text-sleek-black mb-12 text-center">
               Browse by category
             </h2>
 
@@ -504,8 +502,8 @@ export default function HomePage() {
                 <Link key={index} href={`/locations?category=${category.filter}`} className="group cursor-pointer">
                   <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 text-center group-hover:scale-105">
                     <div className="text-4xl mb-3">{category.icon}</div>
-                    <h3 className="font-semibold text-airbnb-black mb-1 group-hover:text-rausch-500 transition-colors">{category.name}</h3>
-                    <p className="text-sm text-airbnb-gray">{category.count}</p>
+                    <h3 className="font-semibold text-sleek-black mb-1 group-hover:text-rausch-500 transition-colors">{category.name}</h3>
+                    <p className="text-sm text-sleek-gray">{category.count}</p>
                   </div>
                 </Link>
               ))}
@@ -517,10 +515,10 @@ export default function HomePage() {
         <section className="py-24 bg-white">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className="text-3xl lg:text-4xl font-bold text-airbnb-black mb-4">
+              <h2 className="text-3xl lg:text-4xl font-bold text-sleek-black mb-4">
                 Plan your perfect trip
               </h2>
-              <p className="text-lg text-airbnb-dark-gray max-w-2xl mx-auto">
+              <p className="text-lg text-sleek-dark-gray max-w-2xl mx-auto">
                 From discovery to memories, we make travel planning simple and inspiring
               </p>
             </div>
@@ -547,8 +545,8 @@ export default function HomePage() {
                   <div className="bg-gray-50 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                     {step.icon}
                   </div>
-                  <h3 className="text-xl font-semibold text-airbnb-black mb-3">{step.title}</h3>
-                  <p className="text-airbnb-dark-gray">{step.description}</p>
+                  <h3 className="text-xl font-semibold text-sleek-black mb-3">{step.title}</h3>
+                  <p className="text-sleek-dark-gray">{step.description}</p>
                 </div>
               ))}
             </div>
@@ -559,10 +557,10 @@ export default function HomePage() {
         <section className="py-16 bg-gray-50">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className="text-3xl lg:text-4xl font-bold text-airbnb-black mb-4">
+              <h2 className="text-3xl lg:text-4xl font-bold text-sleek-black mb-4">
                 Where Sharing Meets Planning
               </h2>
-              <p className="text-lg text-airbnb-dark-gray">
+              <p className="text-lg text-sleek-dark-gray">
                 Join 25K+ travelers sharing authentic experiences and planning amazing trips
               </p>
             </div>
@@ -597,7 +595,7 @@ export default function HomePage() {
                       <Star key={i} className="h-4 w-4 fill-current text-yellow-400" />
                     ))}
                   </div>
-                  <p className="text-airbnb-dark-gray mb-6 italic">"{testimonial.text}"</p>
+                  <p className="text-sleek-dark-gray mb-6 italic">"{testimonial.text}"</p>
                   <div className="flex items-center gap-3">
                     <div className="relative w-10 h-10 rounded-full overflow-hidden">
                       <Image
@@ -610,8 +608,8 @@ export default function HomePage() {
                       />
                     </div>
                     <div>
-                      <p className="font-semibold text-airbnb-black">{testimonial.name}</p>
-                      <p className="text-sm text-airbnb-gray">{testimonial.location}</p>
+                      <p className="font-semibold text-sleek-black">{testimonial.name}</p>
+                      <p className="text-sm text-sleek-gray">{testimonial.location}</p>
                     </div>
                   </div>
                 </div>
@@ -620,14 +618,14 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Trust & Safety - Airbnb Style */}
+        {/* Trust & Safety - sleek Style */}
         <section className="py-16 bg-white">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className="text-3xl lg:text-4xl font-bold text-airbnb-black mb-4">
+              <h2 className="text-3xl lg:text-4xl font-bold text-sleek-black mb-4">
                 Travel with confidence
               </h2>
-              <p className="text-lg text-airbnb-dark-gray">
+              <p className="text-lg text-sleek-dark-gray">
                 Your safety and satisfaction are our top priorities
               </p>
             </div>
@@ -654,15 +652,15 @@ export default function HomePage() {
                   <div className="bg-gray-50 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
                     {feature.icon}
                   </div>
-                  <h3 className="text-xl font-semibold text-airbnb-black mb-3">{feature.title}</h3>
-                  <p className="text-airbnb-dark-gray">{feature.description}</p>
+                  <h3 className="text-xl font-semibold text-sleek-black mb-3">{feature.title}</h3>
+                  <p className="text-sleek-dark-gray">{feature.description}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Final CTA - Airbnb Style */}
+        {/* Final CTA - sleek Style */}
         <section className="py-20 bg-gradient-to-r from-rausch-500 to-rausch-600">
           <div className="mx-auto max-w-4xl px-6 lg:px-8 text-center">
             <h2 className="text-3xl lg:text-5xl font-bold text-white mb-6">

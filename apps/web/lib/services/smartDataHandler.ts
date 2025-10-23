@@ -18,12 +18,11 @@
 
 import { createServiceSupabase } from '@/lib/supabase-server'
 import { getBrowserSupabase } from '@/lib/supabase'
+import { getCached, setCached, checkRateLimit, CacheKeys } from '@/lib/upstash'
 
-// Session cache - in-memory cache for current request
-const sessionCache = new Map<string, { data: any; timestamp: number }>()
-
-// API rate limiting tracker
-const apiUsage = new Map<string, { count: number; resetAt: number }>()
+// DEPRECATED: Replaced with Upstash Redis for persistent caching
+// const sessionCache = new Map<string, { data: any; timestamp: number }>()
+// const apiUsage = new Map<string, { count: number; resetAt: number }>()
 
 // Cache expiry times (in milliseconds)
 const CACHE_EXPIRY = {
@@ -60,24 +59,33 @@ export interface BatchOptions {
 }
 
 /**
- * LAYER 1: Session Cache (in-memory, fastest)
+ * LAYER 1: Upstash Redis Cache (persistent, fast < 10ms)
  */
-export function getFromSessionCache<T>(key: string): T | null {
-  const cached = sessionCache.get(key)
-  if (!cached) return null
-  
-  // Check if expired (session cache expires after 5 minutes)
-  if (Date.now() - cached.timestamp > 5 * 60 * 1000) {
-    sessionCache.delete(key)
-    return null
-  }
-  
-  return cached.data as T
+export async function getFromUpstashCache<T>(key: string): Promise<T | null> {
+  return await getCached<T>(key)
 }
 
-export function setInSessionCache<T>(key: string, data: T): void {
-  sessionCache.set(key, { data, timestamp: Date.now() })
+export async function setInUpstashCache<T>(key: string, data: T, ttlSeconds: number = 300): Promise<void> {
+  await setCached(key, data, ttlSeconds)
 }
+
+// DEPRECATED: Replaced with Upstash Redis
+// export function getFromSessionCache<T>(key: string): T | null {
+//   const cached = sessionCache.get(key)
+//   if (!cached) return null
+//
+//   // Check if expired (session cache expires after 5 minutes)
+//   if (Date.now() - cached.timestamp > 5 * 60 * 1000) {
+//     sessionCache.delete(key)
+//     return null
+//   }
+//
+//   return cached.data as T
+// }
+//
+// export function setInSessionCache<T>(key: string, data: T): void {
+//   sessionCache.set(key, { data, timestamp: Date.now() })
+// }
 
 /**
  * LAYER 2: Database Cache (persistent, fast)
@@ -88,35 +96,36 @@ export async function getFromDatabaseCache<T>(
   const { type, key, useServerClient = false } = options
   const supabase = useServerClient ? createServiceSupabase() : getBrowserSupabase()
   
-  // Check session cache first
-  const sessionData = getFromSessionCache<T>(key)
-  if (sessionData) {
-    console.log(`✅ Session cache hit: ${key}`)
-    return sessionData
+  // Check Upstash cache first (fast < 10ms)
+  const upstashData = await getFromUpstashCache<T>(key)
+  if (upstashData) {
+    console.log(`✅ Upstash cache hit: ${key} (< 10ms)`)
+    return upstashData
   }
-  
-  // Check database cache
+
+  // Check database cache (slower 100-200ms)
   const { data, error } = await supabase
     .from('external_api_cache')
     .select('*')
     .eq('location_name', key)
     .eq('api_source', type)
     .single()
-  
+
   if (error || !data) return null
-  
+
   // Check if expired
   const age = Date.now() - new Date(data.updated_at).getTime()
   if (age > CACHE_EXPIRY[type]) {
     console.log(`⏰ Cache expired: ${key} (${Math.round(age / (24 * 60 * 60 * 1000))} days old)`)
     return null
   }
-  
+
   console.log(`✅ Database cache hit: ${key}`)
-  
-  // Store in session cache for faster subsequent access
-  setInSessionCache(key, data.data)
-  
+
+  // Store in Upstash for faster subsequent access
+  const ttl = CACHE_EXPIRY[type] / 1000 // Convert to seconds
+  await setInUpstashCache(key, data.data, ttl)
+
   return data.data as T
 }
 
@@ -126,11 +135,12 @@ export async function setInDatabaseCache<T>(
 ): Promise<void> {
   const { type, key, useServerClient = false } = options
   const supabase = useServerClient ? createServiceSupabase() : getBrowserSupabase()
-  
-  // Store in session cache
-  setInSessionCache(key, data)
-  
-  // Store in database cache
+
+  // Store in Upstash cache (fast future lookups)
+  const ttl = CACHE_EXPIRY[type] / 1000 // Convert to seconds
+  await setInUpstashCache(key, data, ttl)
+
+  // Store in database cache (backup)
   await supabase
     .from('external_api_cache')
     .upsert({
@@ -144,35 +154,34 @@ export async function setInDatabaseCache<T>(
 }
 
 /**
- * LAYER 3: API Rate Limiting
+ * LAYER 3: API Rate Limiting (using Upstash Redis)
  */
-export function checkRateLimit(apiName: keyof typeof RATE_LIMITS): boolean {
-  const now = Date.now()
-  const usage = apiUsage.get(apiName)
-  
-  if (!usage || now > usage.resetAt) {
-    // Reset counter
-    apiUsage.set(apiName, {
-      count: 0,
-      resetAt: now + 60 * 60 * 1000 // 1 hour from now
-    })
-    return true
-  }
-  
-  if (usage.count >= RATE_LIMITS[apiName]) {
-    console.warn(`⚠️ Rate limit reached for ${apiName}: ${usage.count}/${RATE_LIMITS[apiName]}`)
+export async function checkApiRateLimit(apiName: keyof typeof RATE_LIMITS): Promise<boolean> {
+  const limit = RATE_LIMITS[apiName]
+  const windowSeconds = 3600 // 1 hour
+
+  const { allowed, remaining } = await checkRateLimit(
+    CacheKeys.rateLimit(apiName, 'global'),
+    limit,
+    windowSeconds
+  )
+
+  if (!allowed) {
+    console.warn(`⚠️ Rate limit reached for ${apiName}: 0/${limit} remaining`)
     return false
   }
-  
+
+  console.log(`✅ Rate limit OK for ${apiName}: ${remaining}/${limit} remaining`)
   return true
 }
 
-export function incrementRateLimit(apiName: keyof typeof RATE_LIMITS): void {
-  const usage = apiUsage.get(apiName)
-  if (usage) {
-    usage.count++
-  }
-}
+// DEPRECATED: Replaced with Upstash Redis checkApiRateLimit
+// export function incrementRateLimit(apiName: keyof typeof RATE_LIMITS): void {
+//   const usage = apiUsage.get(apiName)
+//   if (usage) {
+//     usage.count++
+//   }
+// }
 
 /**
  * LAYER 4: Batch Processing
@@ -279,22 +288,24 @@ export async function smartFetch<T>(
   }
   
   // STEP 2: Check rate limit (if API name provided)
-  if (apiName && !checkRateLimit(apiName)) {
-    throw new Error(`Rate limit exceeded for ${apiName}`)
+  if (apiName) {
+    const allowed = await checkApiRateLimit(apiName)
+    if (!allowed) {
+      throw new Error(`Rate limit exceeded for ${apiName}`)
+    }
   }
-  
+
   // STEP 3: Fetch fresh data
   console.log(`📡 Fetching fresh data: ${key}`)
   const data = await fetcher()
-  
-  // STEP 4: Increment rate limit counter
-  if (apiName) {
-    incrementRateLimit(apiName)
-  }
-  
-  // STEP 5: Cache the result
+
+  // STEP 4: Cache the result (database + Upstash)
   await setInDatabaseCache({ type: cacheType, key, useServerClient }, data)
-  
+
+  // Also cache in Upstash for fast future lookups
+  const ttl = CACHE_EXPIRY[cacheType] / 1000 // Convert to seconds
+  await setInUpstashCache(key, data, ttl)
+
   return data
 }
 

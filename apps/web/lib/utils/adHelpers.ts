@@ -58,6 +58,52 @@ export function shouldShowInFeedAd(index: number): boolean {
 }
 
 /**
+ * Generate deterministic random positions for in-feed ads.
+ * Ensures a varied but stable layout per day and page.
+ */
+export function generateRandomInFeedPositions(
+  total: number,
+  seed: string,
+  minGap = 4,
+  maxGap = 7,
+  maxAds?: number
+): Set<number> {
+  const positions = new Set<number>()
+  if (total <= 0) return positions
+
+  // FNV-1a hash -> uint32 (fast, stable)
+  let h = 2166136261 >>> 0
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+
+  // Simple LCG PRNG from hashed seed
+  let s = h >>> 0
+  const rand = () => {
+    s = (s * 1664525 + 1013904223) >>> 0
+    return s / 0xffffffff
+  }
+
+  const gapRange = Math.max(0, maxGap - minGap)
+  // First ad after 4-7 items (index 3-6), but we render ad after card index `index`
+  let index = minGap + Math.floor(rand() * (gapRange + 1)) - 1
+  const cap = maxAds ?? Math.max(1, Math.floor(total / 6))
+
+  while (index < total && positions.size < cap) {
+    positions.add(index)
+    const gap = minGap + Math.floor(rand() * (gapRange + 1))
+    index += gap
+  }
+
+  return positions
+}
+
+export function shouldShowInFeedAdRandom(index: number, positions: Set<number>): boolean {
+  return positions.has(index)
+}
+
+/**
  * Check if an ad should be inserted at this index in trips library
  *
  * Pattern: 5-6-4-6-5-4-3-7-5-4 (custom pattern for trips library)

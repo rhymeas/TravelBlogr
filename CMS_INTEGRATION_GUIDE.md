@@ -286,7 +286,7 @@ rm apps/web/components/trips/TripCMSEditorV2.tsx
 
 All components use Tailwind CSS and follow the existing design system:
 
-- **Primary Color:** `rausch-600` (Airbnb red)
+- **Primary Color:** `rausch-600` (sleek red)
 - **Hover States:** `hover:bg-rausch-700`
 - **Borders:** `border-gray-200`
 - **Text:** `text-gray-900` (headings), `text-gray-600` (body)
