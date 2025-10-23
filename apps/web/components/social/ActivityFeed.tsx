@@ -150,7 +150,7 @@ export function ActivityFeed({
         .from('activity_feed')
         .select(`
           *,
-          user:users!user_id(id, full_name, username, avatar_url)
+          user:profiles!user_id(id, full_name, username, avatar_url)
         `)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1)

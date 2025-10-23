@@ -116,12 +116,12 @@ export function LiveTripUpdates({ tripId, userId }: LiveTripUpdatesProps) {
 
   const loadRecentUpdates = async () => {
     try {
-      // Get recent posts
-      const { data: posts } = await supabase
+      // Get recent posts with profiles (not users)
+      const { data: posts, error: postsError } = await supabase
         .from('posts')
         .select(`
           *,
-          users (
+          profiles!user_id (
             id,
             full_name,
             avatar_url
@@ -131,12 +131,16 @@ export function LiveTripUpdates({ tripId, userId }: LiveTripUpdatesProps) {
         .order('created_at', { ascending: false })
         .limit(10)
 
-      // Get recent media
-      const { data: media } = await supabase
+      if (postsError) {
+        console.error('Error loading posts:', postsError)
+      }
+
+      // Get recent media with profiles
+      const { data: media, error: mediaError } = await supabase
         .from('media')
         .select(`
           *,
-          users (
+          profiles!user_id (
             id,
             full_name,
             avatar_url
@@ -145,6 +149,10 @@ export function LiveTripUpdates({ tripId, userId }: LiveTripUpdatesProps) {
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false })
         .limit(5)
+
+      if (mediaError) {
+        console.error('Error loading media:', mediaError)
+      }
 
       // Combine and sort updates
       const allUpdates: LiveUpdate[] = [

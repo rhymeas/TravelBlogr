@@ -280,7 +280,7 @@ export function FollowList({ userId, type, currentUserId, className = '' }: Foll
         .from('user_follows')
         .select(`
           *,
-          ${type === 'followers' ? 'follower:users!follower_id(*)' : 'following:users!following_id(*)'}
+          ${type === 'followers' ? 'follower:profiles!follower_id(*)' : 'following:profiles!following_id(*)'}
         `)
 
       if (type === 'followers') {

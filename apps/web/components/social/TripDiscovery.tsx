@@ -119,7 +119,7 @@ export function TripDiscovery({ currentUserId, className = '' }: TripDiscoveryPr
         .from('trips')
         .select(`
           *,
-          user:users!user_id(id, full_name, username, avatar_url)
+          user:profiles!user_id(id, full_name, username, avatar_url)
         `)
         .eq('is_public', true)
         .neq('user_id', currentUserId) // Don't show own trips

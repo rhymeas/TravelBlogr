@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
         end_date,
         location_data,
         created_at,
-        users!inner (
+        user_id,
+        profiles!user_id (
           id,
           full_name,
           avatar_url,
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest) {
           published_at,
           view_count,
           like_count,
-          author:users (
+          author:profiles!author_id (
             id,
             full_name,
             avatar_url
@@ -108,7 +109,7 @@ export async function GET(request: NextRequest) {
         published_at,
         view_count,
         like_count,
-        author:users!cms_posts_author_id_fkey (
+        author:profiles!author_id (
           id,
           full_name,
           avatar_url,
@@ -137,7 +138,7 @@ export async function GET(request: NextRequest) {
         view_count,
         like_count,
         user_id,
-        users!posts_user_id_fkey (
+        profiles!user_id (
           id,
           full_name,
           avatar_url,
@@ -169,7 +170,7 @@ export async function GET(request: NextRequest) {
         view_count,
         like_count,
         category,
-        author:users!cms_posts_author_id_fkey (
+        author:profiles!author_id (
           id,
           full_name,
           avatar_url,
@@ -188,7 +189,7 @@ export async function GET(request: NextRequest) {
     // Transform data for frontend consumption
     const transformedTrips = featuredTrips?.map(trip => ({
       ...trip,
-      author: trip.users,
+      author: trip.profiles?.[0] || null,
       postsCount: trip.posts?.length || 0,
       duration: trip.start_date && trip.end_date
         ? Math.ceil((new Date(trip.end_date).getTime() - new Date(trip.start_date).getTime()) / (1000 * 60 * 60 * 24))
@@ -218,7 +219,7 @@ export async function GET(request: NextRequest) {
         ...post,
         type: 'trip_post',
         published_at: post.post_date,
-        author: post.users
+        author: post.profiles?.[0] || null
       })) || []),
       ...(recentCMSPosts?.map(post => ({
         ...post,

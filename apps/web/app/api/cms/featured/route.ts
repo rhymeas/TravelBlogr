@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         like_count,
         comment_count,
         created_at,
-        author:users!cms_posts_author_id_fkey (
+        author:profiles!author_id (
           id,
           full_name,
           avatar_url,
