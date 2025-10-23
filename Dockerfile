@@ -42,8 +42,13 @@ WORKDIR /app
 COPY package*.json ./
 COPY apps/web/package*.json ./apps/web/
 
-# Install dependencies
+# Install dependencies at root level
 RUN npm install --legacy-peer-deps
+
+# Install dependencies in apps/web (where the build happens)
+WORKDIR /app/apps/web
+RUN npm install --legacy-peer-deps
+WORKDIR /app
 
 # Copy application code
 COPY . .
