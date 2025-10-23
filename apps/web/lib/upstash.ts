@@ -21,17 +21,21 @@ let redis: Redis | null = null
 
 /**
  * Get Upstash Redis client (singleton pattern)
+ * Works on both client and server (gracefully degrades on client)
  */
 export function getUpstashRedis(): Redis {
   if (redis) return redis
 
-  const url = process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+  // Check if we're on the server (process.env is only available server-side)
+  const isServer = typeof window === 'undefined'
+
+  const url = isServer ? process.env.UPSTASH_REDIS_REST_URL : undefined
+  const token = isServer ? process.env.UPSTASH_REDIS_REST_TOKEN : undefined
 
   if (!url || !token) {
-    console.warn('⚠️ Upstash Redis not configured. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN')
-    console.warn('⚠️ Falling back to in-memory cache (will be lost on restart)')
-    
+    // Silently fall back to in-memory cache (Upstash is optional or client-side)
+    // To enable: Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in Railway
+
     // Return a mock client that does nothing (graceful degradation)
     return {
       get: async () => null,
