@@ -57,7 +57,7 @@ export function getCDNUrl(
 
   // ✅ Check if ImageKit is configured
   if (!isImageKitConfigured()) {
-    console.warn('⚠️ ImageKit not configured - using original image URLs')
+    // Silently fall back to original URLs (ImageKit is optional)
     return originalUrl
   }
 
