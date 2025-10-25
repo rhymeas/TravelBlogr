@@ -5,6 +5,7 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { SmartImage as Image } from '@/components/ui/SmartImage'
 import { Star, Heart, Eye, MapPin, Calendar, Users, Share2, Bookmark, Edit2, RefreshCw } from 'lucide-react'
+import { AdminRefetchModal } from './AdminRefetchModal'
 import { Location } from '@/lib/data/locationsData'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -163,6 +164,7 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
   const [isUploadOpen, setIsUploadOpen] = useState(false)
   const [uploadMode, setUploadMode] = useState<'upload' | 'url'>('upload')
   const [urlInput, setUrlInput] = useState('')
+  const [isRefetchModalOpen, setIsRefetchModalOpen] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 })
   // Image attribution + consent
@@ -282,37 +284,16 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
                   Upload Photos
                 </Button>
 
-                {/* Admin Refetch Button - Only for admin users */}
+                {/* Admin Refetch Button - Opens Modal */}
                 <Button
                   variant="outline"
                   size="sm"
                   className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
-                  onClick={async () => {
-                    if (!confirm('Refetch all images and activity images for this location?')) return
-
-                    try {
-                      const response = await fetch('/api/admin/refresh-images', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ locationSlug: location.slug })
-                      })
-
-                      const data = await response.json()
-
-                      if (response.ok) {
-                        alert(`✅ Refetch complete!\n\nFeatured: ${data.featuredImage ? 'Updated' : 'No change'}\nGallery: ${data.galleryCount || 0} images\n\nPage will refresh...`)
-                        window.location.reload()
-                      } else {
-                        alert(`❌ Refetch failed: ${data.error}`)
-                      }
-                    } catch (error) {
-                      alert(`❌ Refetch failed: ${error}`)
-                    }
-                  }}
-                  title="Admin: Refetch all images and activity images"
+                  onClick={() => setIsRefetchModalOpen(true)}
+                  title="Admin: Refetch location data with granular options"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Refetch Images
+                  Refetch Data
                 </Button>
               </>
             )}
@@ -873,6 +854,15 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
           </div>
         </div>
       )}
+
+      {/* Admin Refetch Modal */}
+      <AdminRefetchModal
+        isOpen={isRefetchModalOpen}
+        onClose={() => setIsRefetchModalOpen(false)}
+        locationSlug={location.slug}
+        locationName={location.name}
+        locationCountry={location.country}
+      />
     </main>
   )
 }
