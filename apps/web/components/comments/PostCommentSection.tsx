@@ -26,21 +26,28 @@ interface Comment {
   replies: Comment[]
 }
 
-export function PostCommentSection({ 
-  postId, 
-  postOwnerId, 
+export function PostCommentSection({
+  postId,
+  postOwnerId,
   className = '',
-  compact = false 
+  compact = false
 }: PostCommentSectionProps) {
   const { user } = useAuth()
   const [comments, setComments] = useState<Comment[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const supabase = createClientSupabase()
+  const [supabase, setSupabase] = useState<any>(null)
+
+  // Initialize Supabase client on client side only
+  useEffect(() => {
+    setSupabase(createClientSupabase())
+  }, [])
 
   // Fetch comments on mount
   useEffect(() => {
-    fetchComments()
-  }, [postId])
+    if (supabase) {
+      fetchComments()
+    }
+  }, [postId, supabase])
 
   // Subscribe to real-time comment updates
   useRealtimeComments({

@@ -1,8 +1,49 @@
 /* Custom styling for react-comments-section to match TravelBlogr design system */
 
-/* Main container */
-.comments-section {
+/* NUCLEAR OPTION: Maximum specificity with attribute selectors */
+.comments-section[class],
+.comments-section[class] *[class],
+.comments-section[class] *,
+.comments-section div[class],
+.comments-section div,
+.comments-section span[class],
+.comments-section span,
+.comments-section p[class],
+.comments-section p,
+.comments-section a[class],
+.comments-section a,
+.comments-section button[class],
+.comments-section button,
+.comments-section input[class],
+.comments-section input,
+.comments-section textarea[class],
+.comments-section textarea,
+.comments-section h1[class],
+.comments-section h1,
+.comments-section h2[class],
+.comments-section h2,
+.comments-section h3[class],
+.comments-section h3,
+.comments-section h4[class],
+.comments-section h4,
+.comments-section h5[class],
+.comments-section h5,
+.comments-section h6[class],
+.comments-section h6 {
   font-family: inherit !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+/* Comment count heading - slightly larger */
+.comments-section[class] > div:first-child,
+.comments-section[class] > div:first-child *,
+.comments-section > div:first-child[class],
+.comments-section > div:first-child[class] * {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: #222222 !important;
+  margin-bottom: 16px !important;
 }
 
 /* Comment input area */
@@ -19,7 +60,7 @@
   border: 1px solid #DDDDDD !important;
   border-radius: 8px !important;
   padding: 12px 16px !important;
-  font-size: 15px !important;
+  font-size: 14px !important;
   line-height: 1.5 !important;
   color: #222222 !important;
   font-family: inherit !important;
@@ -29,18 +70,20 @@
 
 .comments-section .inputBox textarea:focus {
   outline: none !important;
-  border-color: #FF385C !important;
-  box-shadow: 0 0 0 2px rgba(255, 56, 92, 0.1) !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1) !important;
 }
 
 .comments-section .inputBox textarea::placeholder {
   color: #717171 !important;
+  font-size: 14px !important;
 }
 
 /* Submit button */
 .comments-section .postBtn,
 .comments-section .cancelBtn,
-.comments-section .replyBtn {
+.comments-section .replyBtn,
+.comments-section button {
   border-radius: 8px !important;
   padding: 10px 20px !important;
   font-size: 14px !important;
@@ -51,12 +94,12 @@
 }
 
 .comments-section .postBtn {
-  background: linear-gradient(to right, #E61E4D 0%, #E31C5F 50%, #D70466 100%) !important;
+  background: #2563eb !important;
   color: white !important;
 }
 
 .comments-section .postBtn:hover {
-  background: linear-gradient(to right, #D01346 0%, #C9195B 50%, #C00461 100%) !important;
+  background: #1d4ed8 !important;
   transform: scale(1.02) !important;
 }
 
@@ -71,6 +114,15 @@
   border-color: #B0B0B0 !important;
 }
 
+/* Comment count text */
+.comments-section > div:first-child,
+.comments-section .comment-count {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: #222222 !important;
+  margin-bottom: 16px !important;
+}
+
 /* Individual comment */
 .comments-section .comment {
   background: #F7F7F7 !important;
@@ -78,10 +130,15 @@
   border-radius: 12px !important;
   padding: 16px !important;
   margin-bottom: 16px !important;
+  display: flex !important;
+  gap: 12px !important;
 }
 
 .comments-section .comment .userInfo {
-  margin-bottom: 12px !important;
+  margin-bottom: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
 }
 
 .comments-section .comment .userInfo .commentsTwo {
@@ -98,20 +155,42 @@
 }
 
 .comments-section .comment .commentText {
-  font-size: 15px !important;
+  font-size: 14px !important;
   line-height: 1.6 !important;
   color: #484848 !important;
-  margin-bottom: 12px !important;
+  margin-bottom: 8px !important;
   word-wrap: break-word !important;
 }
 
-/* Avatar */
-.comments-section .userImg {
+/* Avatar - CRITICAL: Force display */
+.comments-section .userImg,
+.comments-section img[alt*="userprofile"],
+.comments-section .comment img {
+  display: block !important;
   width: 40px !important;
   height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  margin-right: 0 !important;
+  flex-shrink: 0 !important;
+  background: #e5e7eb !important;
+}
+
+/* Input area avatar */
+.comments-section .inputBox img,
+.comments-section .inputBox .userImg {
+  display: block !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
   border-radius: 50% !important;
   object-fit: cover !important;
   margin-right: 12px !important;
+  flex-shrink: 0 !important;
+  background: #e5e7eb !important;
 }
 
 /* Action buttons (edit, delete, reply) */
@@ -157,7 +236,7 @@
 
 /* Login prompt */
 .comments-section .loginBtn {
-  background: linear-gradient(to right, #E61E4D 0%, #E31C5F 50%, #D70466 100%) !important;
+  background: #2563eb !important;
   color: white !important;
   border: none !important;
   border-radius: 8px !important;
@@ -169,7 +248,7 @@
 }
 
 .comments-section .loginBtn:hover {
-  background: linear-gradient(to right, #D01346 0%, #C9195B 50%, #C00461 100%) !important;
+  background: #1d4ed8 !important;
   transform: scale(1.02) !important;
 }
 
@@ -181,7 +260,7 @@
 }
 
 .comments-section .noComments h3 {
-  font-size: 18px !important;
+  font-size: 16px !important;
   font-weight: 600 !important;
   color: #484848 !important;
   margin-bottom: 8px !important;
@@ -190,6 +269,23 @@
 .comments-section .noComments p {
   font-size: 14px !important;
   color: #717171 !important;
+}
+
+/* Fix any oversized text elements */
+.comments-section h1,
+.comments-section h2,
+.comments-section h3,
+.comments-section h4,
+.comments-section h5,
+.comments-section h6 {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+}
+
+.comments-section p,
+.comments-section span,
+.comments-section div {
+  font-size: 14px !important;
 }
 
 /* Edit mode */

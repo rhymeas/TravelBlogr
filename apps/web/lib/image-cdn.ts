@@ -40,6 +40,13 @@ export function getCDNUrl(
     return originalUrl
   }
 
+  // CRITICAL FIX: If the URL doesn't look like a valid URL (e.g., just a location name),
+  // return placeholder instead of trying to route through ImageKit
+  if (!originalUrl.startsWith('http://') && !originalUrl.startsWith('https://') && !originalUrl.startsWith('/')) {
+    console.warn(`⚠️ Invalid image URL (not a URL): "${originalUrl}" - using placeholder`)
+    return '/placeholder-location.jpg'
+  }
+
   // Skip if already an ImageKit URL
   if (originalUrl.includes('imagekit.io')) {
     return originalUrl
@@ -55,30 +62,15 @@ export function getCDNUrl(
     return originalUrl
   }
 
-  // ✅ Check if ImageKit is configured
-  if (!isImageKitConfigured()) {
-    // Silently fall back to original URLs (ImageKit is optional)
-    return originalUrl
-  }
+  // ✅ CRITICAL FIX: Disable ImageKit for now
+  // ImageKit URL construction was causing 400 errors with Next.js Image component
+  // Next.js Image tries to optimize the ImageKit URL again, creating invalid URLs
+  // Solution: Use original URLs directly (Next.js Image will optimize them)
+  // TODO: Re-enable ImageKit with proper configuration when needed
 
-  const {
-    width = 800,
-    quality = 85,           // ✅ OPTIMIZED: 85 is the sweet spot
-    format = 'auto'
-  } = options
-
-  // ImageKit transformation parameters
-  // Docs: https://docs.imagekit.io/features/image-transformations
-  const transformations = [
-    `w-${width}`,           // Width
-    `q-${quality}`,         // Quality (1-100)
-    `f-${format}`,          // Format (auto = WebP/AVIF based on browser support)
-  ].join(',')
-
-  // ImageKit URL format with Web Proxy origin (PATH-BASED):
-  // https://ik.imagekit.io/{imagekit_id}/tr:{transformations}/{external_url}
-  // Note: Use path-based transformations, NOT query params
-  return `${IMAGEKIT_URL_ENDPOINT}/tr:${transformations}/${originalUrl}`
+  // For now, just return the original URL
+  // Next.js Image component will handle optimization automatically
+  return originalUrl
 }
 
 /**

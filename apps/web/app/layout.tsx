@@ -88,9 +88,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning translate="yes">
       <head>
         <ImagePreconnect />
+
+        {/* Browser Translation Support */}
+        <meta httpEquiv="content-language" content="en" />
+        <meta name="google" content="notranslate" />
 
         {/* ImageKit CDN - Preconnect for faster image loading */}
         <link rel="preconnect" href="https://ik.imagekit.io" />
@@ -110,26 +114,26 @@ export default function RootLayout({
           <AuthModalProvider>
             <ProgressBar />
             <div className="relative flex min-h-screen flex-col" suppressHydrationWarning>
-              <AuthAwareHeader />
-              <main className="flex-1">{children}</main>
-              <Footer />
-              <MobileNavigation />
-              <FeedbackButton />
-            </div>
-            {/* <PWAInstallPrompt /> */}
-            <Toaster
-              position="bottom-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: 'hsl(var(--background))',
-                  color: 'hsl(var(--foreground))',
-                  border: '1px solid hsl(var(--border))',
-                },
-              }}
-            />
-          </AuthModalProvider>
-        </AuthProvider>
+                <AuthAwareHeader />
+                <main className="flex-1">{children}</main>
+                <Footer />
+                <MobileNavigation />
+                <FeedbackButton />
+              </div>
+              {/* <PWAInstallPrompt /> */}
+              <Toaster
+                position="bottom-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: 'hsl(var(--background))',
+                    color: 'hsl(var(--foreground))',
+                    border: '1px solid hsl(var(--border))',
+                  },
+                }}
+              />
+            </AuthModalProvider>
+          </AuthProvider>
       </body>
     </html>
   )

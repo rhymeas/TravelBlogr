@@ -198,14 +198,14 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
   RETURN QUERY
-  SELECT 
+  SELECT
     lc.user_id,
     p.full_name,
     p.username,
     p.avatar_url,
     COUNT(*) as contribution_count,
     MAX(lc.created_at) as last_contribution_at,
-    ARRAY_AGG(DISTINCT lc.contribution_type) as contribution_types
+    ARRAY_AGG(DISTINCT lc.contribution_type)::TEXT[] as contribution_types
   FROM location_contributions lc
   JOIN profiles p ON p.id = lc.user_id
   WHERE lc.location_id = p_location_id

@@ -1,18 +1,11 @@
 /**
  * Refetch images for latest 10 locations with NEW social media integration
  * Includes Reddit, Flickr, Pinterest images!
- * Also fixes missing activity images!
  */
 
-import { config } from 'dotenv'
-import { resolve } from 'path'
 import { createClient } from '@supabase/supabase-js'
 import { fetchLocationGalleryHighQuality } from '../apps/web/lib/services/enhancedImageService'
 import { fetchSocialImages } from '../apps/web/lib/services/socialImageScraperService'
-import { fetchActivityImage } from '../apps/web/lib/services/robustImageService'
-
-// Load environment variables from apps/web/.env.local
-config({ path: resolve(__dirname, '../apps/web/.env.local') })
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,8 +20,8 @@ interface ImageResult {
   title?: string
 }
 
-async function refetchImagesForLocation(locationId: string, locationName: string, country: string) {
-  console.log(`\n📍 Refetching images for: ${locationName}, ${country}`)
+async function refetchImagesForLocation(locationId: string, locationName: string) {
+  console.log(`\n📍 Refetching images for: ${locationName}`)
   console.log(`   Location ID: ${locationId}`)
 
   try {
@@ -75,65 +68,18 @@ async function refetchImagesForLocation(locationId: string, locationName: string
       console.log(`   ✅ Updated successfully!`)
       console.log(`      Featured: ${uniqueImages[0].substring(0, 60)}...`)
       console.log(`      Gallery: ${uniqueImages.length} images`)
-
+      
       // Show breakdown by platform
       const redditCount = socialImages.filter(img => img.platform === 'Reddit').length
       const flickrCount = socialImages.filter(img => img.platform === 'Flickr').length
       const pinterestCount = socialImages.filter(img => img.platform === 'Pinterest').length
-
+      
       if (redditCount > 0 || flickrCount > 0 || pinterestCount > 0) {
         console.log(`      Social breakdown:`)
         if (redditCount > 0) console.log(`        - Reddit: ${redditCount} images`)
         if (flickrCount > 0) console.log(`        - Flickr: ${flickrCount} images`)
         if (pinterestCount > 0) console.log(`        - Pinterest: ${pinterestCount} images`)
       }
-    }
-
-    // Also fix activity images for this location with enhanced contextualization
-    console.log('   🎯 Fixing activity images with location + country context...')
-    const { data: activities } = await supabase
-      .from('location_activity_links')
-      .select('id, activity_name, image_url')
-      .eq('location_id', locationId)
-      .or('image_url.is.null,image_url.eq.')
-      .limit(10)
-
-    if (activities && activities.length > 0) {
-      console.log(`   📸 Found ${activities.length} activities without images`)
-      let fixed = 0
-
-      for (const activity of activities) {
-        try {
-          // Enhanced: Include country for better contextualization
-          const imageUrl = await fetchActivityImage(
-            activity.activity_name,
-            locationName,
-            country
-          )
-
-          if (imageUrl && imageUrl !== '/placeholder-activity.svg') {
-            await supabase
-              .from('location_activity_links')
-              .update({
-                image_url: imageUrl,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', activity.id)
-
-            fixed++
-            console.log(`      ✅ ${activity.activity_name}`)
-          }
-        } catch (err) {
-          console.log(`      ⚠️ Failed: ${activity.activity_name}`)
-        }
-
-        // Small delay
-        await new Promise(resolve => setTimeout(resolve, 300))
-      }
-
-      console.log(`   ✅ Fixed ${fixed}/${activities.length} activity images`)
-    } else {
-      console.log(`   ✅ All activities have images`)
     }
 
   } catch (error) {
@@ -146,10 +92,10 @@ async function main() {
   console.log('   Sources: Pexels, Unsplash, Wikimedia, Reddit, Flickr, Pinterest')
   console.log('   Filters: Excluding army, veterans, navy, medicines\n')
 
-  // Get latest 10 locations with country data
+  // Get latest 10 locations
   const { data: locations, error } = await supabase
     .from('locations')
-    .select('id, name, slug, country, created_at')
+    .select('id, name, slug, created_at')
     .order('created_at', { ascending: false })
     .limit(10)
 
@@ -172,8 +118,8 @@ async function main() {
 
   // Process each location
   for (const location of locations) {
-    await refetchImagesForLocation(location.id, location.name, location.country)
-
+    await refetchImagesForLocation(location.id, location.name)
+    
     // Add delay to avoid rate limiting
     await new Promise(resolve => setTimeout(resolve, 2000))
   }

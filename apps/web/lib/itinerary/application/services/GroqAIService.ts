@@ -18,6 +18,8 @@ export interface AIGenerationContext {
   budget: 'budget' | 'moderate' | 'luxury'
   maxTravelHoursPerDay?: number // User preference for max travel time per day
   transportMode?: 'car' | 'train' | 'bike' | 'flight' | 'bus' | 'mixed' // Transport mode preference
+  tripType?: string // Trip style (e.g., road-trip, family, luxury, city, solo, wellness)
+  tripVision?: string // Free-text user preferences
   locationsData: Array<{
     name: string
     slug: string
@@ -379,6 +381,78 @@ ${this.calculateIntermediateStops(context.fromLocation, context.toLocation, dist
   }
 
   /**
+   * Get trip type specific guidance
+   */
+  private getTripTypeGuidance(tripType?: string): string {
+    switch (tripType) {
+      case 'specific':
+        return `TRIP TYPE: SINGLE DESTINATION
+- Base yourself in ONE city/resort; no intercity transfers
+- Go deep: neighborhoods, markets, hidden gems, signature museums
+- Day trips max 1–2h from base (optional)
+- Minimize travel time; maximize immersion and variety within the city`
+      case 'journey':
+        return `TRIP TYPE: POINT A → B (WITH STOPS)
+- Linear route from origin to destination with realistic intermediate stops
+- Enforce max daily travel hours; balance travel vs. exploration
+- Each travel day includes lunch/coffee break and at least one POI
+- End with 1–2 full days in the final destination (not just arrival)`
+      case 'multi-destination':
+        return `TRIP TYPE: MULTI‑DESTINATION (SEVERAL CITIES)
+- Logical flow (minimize backtracking); 1–3 nights per city
+- Mid‑day transfers to keep mornings/evenings free for exploring
+- Cluster attractions by neighborhood to reduce transit fatigue
+- Clear narrative arc (intro city → highlights → finale city)`
+      case 'road-trip':
+        return `TRIP TYPE: ROAD TRIP
+- Flexible timing and stops; scenic viewpoints and detours
+- Moderate, comfortable accommodations with easy parking
+- Include roadside attractions and short scenic walks
+- Freedom to deviate; recommend optional scenic byways`
+      case 'bike':
+        return `TRIP TYPE: BIKE TRIP
+- Bike‑friendly lodging (hostels, B&Bs, cyclist lodging)
+- Realistic daily distances (40–80km casual, 80–120km experienced)
+- Prefer flatter terrain and scenic cycle paths; avoid highways
+- Secure bike storage; rest days every 3–4 days`
+      case 'family':
+        return `TRIP TYPE: FAMILY TRIP
+- Kid‑friendly activities and venues; backup indoor options
+- Moderate pace with playgrounds/rest windows
+- Family rooms/apartments with kitchens
+- Stay near groceries, pharmacies, easy transport`
+      case 'adventure':
+        return `TRIP TYPE: ADVENTURE
+- Hiking, water sports, climbing; early starts; safety/permit notes
+- Gear rental info; weather windows/daylight considered
+- Efficient logistics around activity hubs`
+      case 'luxury':
+        return `TRIP TYPE: LUXURY
+- 4–5★ or boutique stays, spa access
+- Fine dining, private tours, premium experiences
+- Prefer convenience and comfort over budget`
+      case 'city':
+        return `TRIP TYPE: CULTURAL/CITY
+- Museums, galleries, architecture, neighborhoods
+- Food markets and signature restaurants
+- Walkable areas and public transport; minimize car usage`
+      case 'solo':
+        return `TRIP TYPE: SOLO
+- Safe, well‑lit areas; social hostels/hotels
+- Group tours for connection; midday intercity travel
+- Clear navigation and meetup spots`
+      case 'wellness':
+        return `TRIP TYPE: WELLNESS/RETREAT
+- Spas, thermal baths, yoga/meditation; quiet settings
+- Light daily schedule; nature walks
+- Healthy/vegetarian dining options`
+      default:
+        return ''
+    }
+  }
+
+
+  /**
    * Build optimized prompt for Groq
    */
   private buildPrompt(context: AIGenerationContext, startDate: string): string {
@@ -388,6 +462,10 @@ ${this.calculateIntermediateStops(context.fromLocation, context.toLocation, dist
 
     // Transport mode specific guidance
     const transportGuidance = this.getTransportModeGuidance(context.transportMode)
+    const tripTypeGuidance = this.getTripTypeGuidance(context.tripType)
+    const userVision = (context.tripVision && context.tripVision.trim().length > 0)
+      ? `\nUSER PREFERENCES (MANDATORY TO INCORPORATE):\n${context.tripVision.trim()}\n`
+      : ''
 
     return `Create a ${context.totalDays}-day travel plan from ${context.fromLocation} to ${context.toLocation}.
 
@@ -398,7 +476,8 @@ ROUTE INFORMATION:
 - Transport mode: ${context.transportMode || 'car'}
 
 ${transportGuidance}
-
+${tripTypeGuidance}
+${userVision}
 ⚠️ CRITICAL VALIDATION FOR ${context.transportMode?.toUpperCase() || 'CAR'} MODE:
 ${this.getValidationRules(context)}
 
@@ -460,6 +539,13 @@ ${i + 1}. ${loc.name} ${(loc as any).hasCompleteData ? '✅ COMPLETE DATA' : '�
 - CRITICAL: The final destination is ${context.toLocation} - the last day(s) MUST include activities in ${context.toLocation}, not just travel!
 - Allocate at least 1 full day for exploring ${context.toLocation} with actual activities and restaurants
 
+🚨 CRITICAL VALIDATION RULES (MUST FOLLOW):
+1. **NO DUPLICATE ACTIVITIES**: Each activity/travel item should appear ONLY ONCE per day
+2. **NO RECURRING TRAVEL**: Do NOT repeat the same "Travel to X" activity multiple times in one day
+3. **REALISTIC DAILY HOURS**: Total activity time per day should NOT exceed 12 hours (including travel, meals, activities)
+4. **ONE TRAVEL SEGMENT PER DAY**: For travel days, include ONE travel item, not multiple identical ones
+5. **VALIDATE BEFORE RETURNING**: Check your JSON output to ensure no activity appears more than once per day
+
 🗺️ POINTS OF INTEREST ALONG ROUTE:
 ${this.formatPOIsForPrompt(context.structuredContext)}
 
@@ -496,10 +582,13 @@ CRITICAL: For trips with ${Math.round(context.routeDuration)} hours of travel ti
 
 ${context.routeDuration > 8 ? `
 ⚠️ This trip requires ${Math.ceil(context.routeDuration / 8)} overnight stops!
-Suggested breakdown:
-- Day 1: ${context.fromLocation} → [Intermediate City 1] (~6-8 hours) → Stay overnight
-${Math.ceil(context.routeDuration / 8) > 1 ? `- Day 2: [Intermediate City 1] → [Intermediate City 2] (~6-8 hours) → Stay overnight` : ''}
-- Final Day: [Last Stop] → ${context.toLocation} (remaining distance)
+
+CRITICAL: You MUST use REAL city names for intermediate stops!
+- Research actual cities/towns along the route between ${context.fromLocation} and ${context.toLocation}
+- DO NOT use placeholder names like "Intermediate City 1", "Intermediate City 2", etc.
+- Use real, specific city names that exist on the route
+- If you don't know specific cities, suggest the user add more destinations manually
+- Example: "Paris → Lyon → Marseille" NOT "Paris → Intermediate City 1 → Marseille"
 ` : `✅ This trip can be completed in 1-2 days with proper rest stops.`}
 
 TRAVEL PACING RULES:

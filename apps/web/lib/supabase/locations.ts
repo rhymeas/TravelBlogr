@@ -102,8 +102,7 @@ export interface SupabaseRestaurant {
 export interface SupabaseActivity {
   id: string
   location_id: string
-  activity_name: string  // Note: location_activity_links uses 'activity_name' not 'name'
-  name?: string  // Keep for backwards compatibility
+  name: string
   description?: string
   category?: string
   address?: string
@@ -114,20 +113,11 @@ export interface SupabaseActivity {
   opening_hours?: any
   price_info?: string
   duration?: string
-  duration_minutes?: number
   rating?: number
   image_url?: string
-  link_url?: string  // NEW: Activity link from location_activity_links
   source: string
-  type?: string  // NEW: Link type (official, guide, booking, etc.)
-  confidence?: number  // NEW: Confidence score
-  tags?: string[]  // NEW: Activity tags
-  cost_level?: string  // NEW: Cost level
   external_id?: string
-  is_verified?: boolean
-  original_activity_name?: string  // NEW: For translations
-  original_description?: string  // NEW: For translations
-  original_language?: string  // NEW: For translations
+  is_verified: boolean
   created_at: string
   updated_at: string
 }
@@ -138,15 +128,40 @@ export interface SupabaseActivity {
 export async function getLocationBySlug(slug: string) {
   try {
     // First, try to get the location without is_published filter
-    const { data, error } = await supabase
+    // Try exact slug match first
+    let { data, error } = await supabase
       .from('locations')
       .select(`
         *,
         restaurants (*),
-        location_activity_links (*)
+        activities (*)
       `)
       .eq('slug', slug)
       .single()
+
+    // FALLBACK: If not found, try partial match (e.g., "lofthus-norway" → "lofthus")
+    // This handles legacy locations created before slug fix
+    if (error && slug.includes('-')) {
+      console.log(`⚠️ Exact slug not found: "${slug}", trying partial match...`)
+
+      // Try first part of slug (e.g., "lofthus-norway" → "lofthus")
+      const partialSlug = slug.split('-')[0]
+      const { data: partialData, error: partialError } = await supabase
+        .from('locations')
+        .select(`
+          *,
+          restaurants (*),
+          activities (*)
+        `)
+        .eq('slug', partialSlug)
+        .single()
+
+      if (!partialError && partialData) {
+        console.log(`✅ Found location with partial slug: "${partialSlug}"`)
+        data = partialData
+        error = null
+      }
+    }
 
     if (error) {
       console.error('Error fetching location:', error)
@@ -155,7 +170,7 @@ export async function getLocationBySlug(slug: string) {
 
     return data as SupabaseLocation & {
       restaurants: SupabaseRestaurant[]
-      location_activity_links: SupabaseActivity[]
+      activities: SupabaseActivity[]
     }
   } catch (error) {
     console.error('Error in getLocationBySlug:', error)

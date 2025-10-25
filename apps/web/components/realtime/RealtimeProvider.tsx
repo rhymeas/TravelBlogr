@@ -30,7 +30,12 @@ interface RealtimeProviderProps {
 export function RealtimeProvider({ children }: RealtimeProviderProps) {
   const [isConnected, setIsConnected] = useState(false)
   const [channels, setChannels] = useState<Map<string, RealtimeChannel>>(new Map())
-  const supabase = createClientSupabase()
+  const [supabase, setSupabase] = useState<any>(null)
+
+  // Initialize Supabase client on client side only
+  useEffect(() => {
+    setSupabase(createClientSupabase())
+  }, [])
 
   useEffect(() => {
     // Monitor connection status

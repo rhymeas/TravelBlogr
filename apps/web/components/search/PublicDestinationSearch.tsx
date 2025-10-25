@@ -200,7 +200,7 @@ export function PublicDestinationSearch({
                           {location.name}
                         </div>
                         <div className="text-body-small text-sleek-gray">
-                          {location.region}, {location.country}
+                          {location.country}
                         </div>
                         <div className="flex items-center gap-2 mt-1">
                           <div className="flex items-center gap-1">

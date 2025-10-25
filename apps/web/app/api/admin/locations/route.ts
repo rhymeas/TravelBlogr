@@ -6,6 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
 
+import { isAmbiguousLocationName, DUPLICATE_COORD_THRESHOLD } from '@/lib/utils/locationValidation'
+
 // Force dynamic rendering for admin routes
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -32,6 +34,59 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
         { status: 400 }
+      )
+    }
+
+    // Block unclear/ambiguous location names
+    if (isAmbiguousLocationName(name)) {
+      return NextResponse.json(
+        { success: false, error: 'Ambiguous location name. Please provide a specific city/town/place (not borders, checkpoints, or placeholders).' },
+        { status: 400 }
+      )
+    }
+
+    // Duplicate protection by slug
+    const { data: slugExisting } = await supabase
+      .from('locations')
+      .select('id')
+      .eq('slug', slug)
+      .maybeSingle()
+
+    if (slugExisting) {
+      return NextResponse.json(
+        { success: false, error: 'Location already exists (duplicate slug)' },
+        { status: 409 }
+      )
+    }
+
+    // Duplicate protection by name
+    const { data: nameDupes } = await supabase
+      .from('locations')
+      .select('id')
+      .ilike('name', name)
+      .limit(1)
+
+    if (nameDupes && nameDupes.length > 0) {
+      return NextResponse.json(
+        { success: false, error: 'Location with this name already exists' },
+        { status: 409 }
+      )
+    }
+
+    // Duplicate protection by proximity
+    const { data: nearDupes } = await supabase
+      .from('locations')
+      .select('id')
+      .gte('latitude', latitude - DUPLICATE_COORD_THRESHOLD)
+      .lte('latitude', latitude + DUPLICATE_COORD_THRESHOLD)
+      .gte('longitude', longitude - DUPLICATE_COORD_THRESHOLD)
+      .lte('longitude', longitude + DUPLICATE_COORD_THRESHOLD)
+      .limit(1)
+
+    if (nearDupes && nearDupes.length > 0) {
+      return NextResponse.json(
+        { success: false, error: 'A nearby location already exists (duplicate by proximity)' },
+        { status: 409 }
       )
     }
 

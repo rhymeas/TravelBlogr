@@ -1,15 +1,17 @@
 /**
  * Geocoding Service
- * 
+ *
  * Converts location names to coordinates using FREE geocoding APIs:
  * 1. Nominatim (OpenStreetMap) - Primary, completely free
  * 2. OpenRouteService Geocoding - Fallback, 2000 requests/day
- * 
+ *
  * Implements caching to minimize API calls
  */
 
 import { createServerSupabase } from '@/lib/supabase-server'
 import { getOrSet, CacheKeys, CacheTTL } from '@/lib/upstash'
+
+import { isAmbiguousLocationName, DUPLICATE_COORD_THRESHOLD } from '@/lib/utils/locationValidation'
 
 const ORS_API_KEY = process.env.OPENROUTESERVICE_API_KEY || process.env.NEXT_PUBLIC_OPENROUTESERVICE_API_KEY
 const ORS_GEOCODE_URL = 'https://api.openrouteservice.org/geocode'
@@ -91,13 +93,13 @@ async function geocodeWithNominatim(locationName: string): Promise<GeocodedLocat
     }
 
     const data = await response.json()
-    
+
     if (!data || data.length === 0) {
       return null
     }
 
     const result = data[0]
-    
+
     return {
       lat: parseFloat(result.lat),
       lng: parseFloat(result.lon),
@@ -141,7 +143,7 @@ async function geocodeWithOpenRouteService(locationName: string): Promise<Geocod
     }
 
     const data = await response.json()
-    
+
     if (!data.features || data.features.length === 0) {
       return null
     }
@@ -149,7 +151,7 @@ async function geocodeWithOpenRouteService(locationName: string): Promise<Geocod
     const feature = data.features[0]
     const coords = feature.geometry.coordinates
     const props = feature.properties
-    
+
     return {
       lat: coords[1],
       lng: coords[0],
@@ -170,7 +172,7 @@ async function geocodeWithOpenRouteService(locationName: string): Promise<Geocod
 async function getCachedGeocode(locationName: string): Promise<GeocodedLocation | null> {
   try {
     const supabase = await createServerSupabase()
-    
+
     // Check locations table first
     const { data: location } = await supabase
       .from('locations')
@@ -180,7 +182,7 @@ async function getCachedGeocode(locationName: string): Promise<GeocodedLocation 
       .not('longitude', 'is', null)
       .limit(1)
       .single()
-    
+
     if (location && location.latitude && location.longitude) {
       return {
         lat: Number(location.latitude),
@@ -205,20 +207,29 @@ async function getCachedGeocode(locationName: string): Promise<GeocodedLocation 
 async function cacheGeocode(locationName: string, result: GeocodedLocation): Promise<void> {
   try {
     const supabase = await createServerSupabase()
-    
-    // Generate slug from location name
+
+    // Skip ambiguous/placeholder names
+    if (isAmbiguousLocationName(locationName)) {
+      console.warn(`⏭️ Skipping ambiguous location auto-create: "${locationName}"`)
+      return
+    }
+
+    // CRITICAL FIX: Use original user input for slug generation (matches LocationDiscoveryService)
+    // This ensures consistency: "Lofthus Norway" → slug "lofthus-norway" (not "lofthus")
     const slug = locationName
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '')
-    
-    // Check if location already exists
+
+    console.log(`🔗 Caching geocode with slug: "${locationName}" → "${slug}"`)
+
+    // Check if location already exists by slug
     const { data: existing } = await supabase
       .from('locations')
       .select('id')
       .eq('slug', slug)
-      .single()
-    
+      .maybeSingle()
+
     if (existing) {
       // Update existing location
       await supabase
@@ -231,22 +242,50 @@ async function cacheGeocode(locationName: string, result: GeocodedLocation): Pro
           region: result.region
         })
         .eq('id', existing.id)
-    } else {
-      // Insert new location
-      await supabase
-        .from('locations')
-        .insert({
-          name: locationName,
-          slug,
-          latitude: result.lat,
-          longitude: result.lng,
-          country: result.country || 'Unknown',
-          city: result.city,
-          region: result.region,
-          description: `Location: ${result.displayName}`,
-          is_published: false // Mark as auto-generated, not manually curated
-        })
+      return
     }
+
+    // Additional duplicate checks: same name (case-insensitive) or nearby coordinates
+    let nameDuplicate: any = null
+    try {
+      const { data } = await supabase
+        .from('locations')
+        .select('id')
+        .ilike('name', locationName)
+        .limit(1)
+      if (data && data.length > 0) nameDuplicate = data[0]
+    } catch {}
+
+    const lat = result.lat
+    const lng = result.lng
+    const { data: nearby } = await supabase
+      .from('locations')
+      .select('id')
+      .gte('latitude', lat - DUPLICATE_COORD_THRESHOLD)
+      .lte('latitude', lat + DUPLICATE_COORD_THRESHOLD)
+      .gte('longitude', lng - DUPLICATE_COORD_THRESHOLD)
+      .lte('longitude', lng + DUPLICATE_COORD_THRESHOLD)
+      .limit(1)
+
+    if (nameDuplicate || (nearby && nearby.length > 0)) {
+      console.log('🔁 Skipping insert (likely duplicate by name or proximity)')
+      return
+    }
+
+    // Insert new location
+    await supabase
+      .from('locations')
+      .insert({
+        name: locationName,
+        slug,
+        latitude: result.lat,
+        longitude: result.lng,
+        country: result.country || 'Unknown',
+        city: result.city,
+        region: result.region,
+        description: `Location: ${result.displayName}`,
+        is_published: false // Mark as auto-generated, not manually curated
+      })
   } catch (error) {
     console.error('Error caching geocode result:', error)
   }
@@ -260,17 +299,58 @@ export async function batchGeocodeLocations(
   locationNames: string[]
 ): Promise<Map<string, GeocodedLocation>> {
   const results = new Map<string, GeocodedLocation>()
-  
+
   for (const locationName of locationNames) {
     const result = await geocodeLocation(locationName)
     if (result) {
       results.set(locationName, result)
     }
-    
+
     // Rate limiting: Wait 1 second between requests for Nominatim
     await new Promise(resolve => setTimeout(resolve, 1000))
   }
-  
+
   return results
+}
+
+/**
+ * Reverse geocode: Get country from coordinates
+ * Used for health checks to verify location accuracy
+ */
+export async function getCountryFromCoordinates(
+  lat: number,
+  lng: number
+): Promise<string | null> {
+  try {
+    console.log(`🌍 Reverse geocoding coordinates: ${lat}, ${lng}`)
+
+    // Use Nominatim reverse geocoding (free)
+    const response = await fetch(
+      `${NOMINATIM_URL}/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=en`,
+      {
+        headers: {
+          'User-Agent': 'TravelBlogr/1.0'
+        }
+      }
+    )
+
+    if (!response.ok) {
+      console.error('Nominatim reverse geocoding failed:', response.statusText)
+      return null
+    }
+
+    const data = await response.json()
+    const country = data.address?.country
+
+    if (country) {
+      console.log(`✅ Detected country from coordinates: ${country}`)
+      return country
+    }
+
+    return null
+  } catch (error) {
+    console.error('Error reverse geocoding:', error)
+    return null
+  }
 }
 

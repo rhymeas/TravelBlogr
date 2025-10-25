@@ -3,6 +3,8 @@ import { createServerSupabase, createServiceSupabase } from '@/lib/supabase-serv
 import { revalidatePath } from 'next/cache'
 import { deleteCached, CacheKeys } from '@/lib/upstash'
 
+import { isAmbiguousLocationName } from '@/lib/utils/locationValidation'
+
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -132,6 +134,14 @@ export async function POST(request: NextRequest) {
               .replace(/-/g, ' ')
               .replace(/\b\w/g, (c: string) => c.toUpperCase())
               .slice(0, 200)
+
+        // Do not auto-create ambiguous stub locations
+        if (isAmbiguousLocationName(defaultName)) {
+          return NextResponse.json(
+            { error: 'Ambiguous location name/slug; not auto-created. Please provide a specific place.' },
+            { status: 400 }
+          )
+        }
 
         const { data: created, error: insertError } = await supabaseAdmin
           .from('locations')

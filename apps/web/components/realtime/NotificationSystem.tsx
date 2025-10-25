@@ -45,13 +45,19 @@ export function NotificationSystem({ userId }: NotificationSystemProps) {
     }
   })
   const [filter, setFilter] = useState<'all' | 'unread'>('all')
+  const [supabase, setSupabase] = useState<any>(null)
 
-  const supabase = createClientSupabase()
+  // Initialize Supabase client on client side only
+  useEffect(() => {
+    setSupabase(createClientSupabase())
+  }, [])
 
   useEffect(() => {
+    if (!supabase) return
+
     loadNotifications()
     loadSettings()
-    
+
     // Subscribe to real-time notifications
     const channel = supabase
       .channel(`notifications:${userId}`)
@@ -63,7 +69,7 @@ export function NotificationSystem({ userId }: NotificationSystemProps) {
           table: 'notifications',
           filter: `user_id=eq.${userId}`
         },
-        (payload) => {
+        (payload: any) => {
           handleNewNotification(payload.new)
         }
       )
@@ -77,7 +83,7 @@ export function NotificationSystem({ userId }: NotificationSystemProps) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [userId])
+  }, [userId, supabase])
 
   const loadNotifications = async () => {
     try {
@@ -97,7 +103,7 @@ export function NotificationSystem({ userId }: NotificationSystemProps) {
 
       if (error) throw error
 
-      const formattedNotifications: Notification[] = (data || []).map(notif => ({
+      const formattedNotifications: Notification[] = (data || []).map((notif: any) => ({
         id: notif.id,
         type: notif.type,
         title: notif.title,

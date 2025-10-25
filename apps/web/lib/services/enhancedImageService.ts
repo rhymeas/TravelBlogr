@@ -8,9 +8,11 @@
  * - Support for 20+ images per location
  * - Filters out irrelevant images (people portraits, etc.)
  * - High-quality fallbacks instead of placeholders
+ * - Brave Search API integration (Priority #2 - fantastic images!)
  */
 
 import { getLocationFallbackImage, isPlaceholderImage } from './fallbackImageService'
+import { searchImages as braveSearchImages } from './braveSearchService'
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 hours
 const imageCache = new Map<string, { url: string; timestamp: number }>()
@@ -20,6 +22,60 @@ const MIN_IMAGE_WIDTH = 1200
 const MIN_IMAGE_HEIGHT = 800
 const PREFERRED_ASPECT_RATIO_MIN = 1.2 // Landscape preferred
 const PREFERRED_ASPECT_RATIO_MAX = 2.0
+
+/**
+ * Brave Search API - Fetch FANTASTIC high-quality images
+ * Priority #2 in the image stack
+ *
+ * @param locationName - The location name to search for
+ * @param limit - Maximum number of images to fetch
+ * @param country - Country name for disambiguation (e.g., "Norway" vs "USA")
+ * @param region - Region/state name for additional context (e.g., "Vestland")
+ */
+async function fetchBraveImages(
+  locationName: string,
+  limit: number = 10,
+  country?: string,
+  region?: string
+): Promise<string[]> {
+  try {
+    // Build context-aware search query to avoid ambiguous location names
+    let searchQuery = locationName
+
+    // Add region if available and different from location name
+    if (region && region !== locationName && !locationName.includes(region)) {
+      searchQuery += ` ${region}`
+    }
+
+    // Add country if available and different from location name (CRITICAL for disambiguation)
+    if (country && country !== locationName && !locationName.includes(country)) {
+      searchQuery += ` ${country}`
+    }
+
+    // Add search terms
+    searchQuery += ' cityscape travel'
+
+    console.log(`🔍 [BRAVE] Context-aware search: "${searchQuery}"`)
+    const results = await braveSearchImages(searchQuery, limit)
+
+    // Extract thumbnail URLs (16:9 optimized from imgs.search.brave.com)
+    const urls = results
+      .map(r => r.thumbnail || r.url)
+      .filter(url => url && url.startsWith('http'))
+
+    if (urls.length > 0) {
+      console.log(`✅ [BRAVE] Found ${urls.length} fantastic images for "${searchQuery}"`)
+      console.log(`   First image: ${urls[0].substring(0, 100)}...`)
+    } else {
+      console.warn(`⚠️ [BRAVE] No images found for "${searchQuery}"`)
+    }
+
+    return urls
+  } catch (error) {
+    console.error(`❌ [BRAVE] API error for "${locationName}":`, error)
+    return []
+  }
+}
 
 /**
  * Enhanced Wikimedia Commons - Fetch HIGH RESOLUTION images WITH FILTERING
@@ -374,8 +430,21 @@ async function fetchUnsplashHighRes(searchTerm: string): Promise<string | null> 
  * Uses 10 STRICT FILTERS to remove ALL non-environment content
  * UPGRADED: Same filtering as test page Reddit ULTRA method
  */
-async function fetchRedditImages(locationName: string, count: number = 20): Promise<string[]> {
+export async function fetchRedditImages(
+  locationName: string,
+  count: number = 20,
+  country?: string,
+  region?: string
+): Promise<string[]> {
   const images: string[] = []
+
+  // Build context-aware search query
+  let searchQuery = locationName
+  if (country && country !== locationName && !locationName.includes(country)) {
+    searchQuery += ` ${country}`
+  }
+
+  console.log(`🔍 [REDDIT] Context-aware search: "${searchQuery}"`)
 
   // STRATEGY: Search travel photography subreddits for location name
   const travelSubreddits = [
@@ -393,8 +462,8 @@ async function fetchRedditImages(locationName: string, count: number = 20): Prom
     for (const subreddit of travelSubreddits) {
       if (images.length >= count) break
 
-      // Search subreddit for location name
-      const searchUrl = `https://www.reddit.com/r/${subreddit}/search.json?q=${encodeURIComponent(locationName)}&restrict_sr=1&sort=top&t=all&limit=50`
+      // Search subreddit for location name with country context
+      const searchUrl = `https://www.reddit.com/r/${subreddit}/search.json?q=${encodeURIComponent(searchQuery)}&restrict_sr=1&sort=top&t=all&limit=50`
 
       const response = await fetch(searchUrl, {
         headers: {
@@ -402,7 +471,10 @@ async function fetchRedditImages(locationName: string, count: number = 20): Prom
         }
       })
 
-      if (!response.ok) continue
+      if (!response.ok) {
+        console.warn(`⚠️ [REDDIT] r/${subreddit} returned ${response.status}`)
+        continue
+      }
 
       const data = await response.json()
       const posts = data?.data?.children || []
@@ -490,13 +562,23 @@ async function fetchRedditImages(locationName: string, count: number = 20): Prom
 
         images.push(imageUrl)
       }
+
+      if (images.length > 0) {
+        console.log(`✅ [REDDIT] r/${subreddit}: Found ${images.length} images so far`)
+      }
     }
 
-    console.log(`✅ Reddit ULTRA: Found ${images.length} ULTRA-FILTERED images for "${locationName}"`)
+    if (images.length > 0) {
+      console.log(`✅ [REDDIT] Total: ${images.length} ULTRA-FILTERED images for "${locationName}"`)
+      console.log(`   First image: ${images[0].substring(0, 100)}...`)
+    } else {
+      console.warn(`⚠️ [REDDIT] No images found for "${locationName}"`)
+    }
+
     return images
 
   } catch (error) {
-    console.error('❌ Reddit ULTRA error:', error)
+    console.error(`❌ [REDDIT] Error:`, error)
     return images
   }
 }
@@ -838,16 +920,29 @@ function generateLocationSearchTerms(locationName: string): string[] {
 }
 
 /**
- * Fetch HIGH QUALITY location image (single) with hierarchical fallback
+ * Fetch HIGH QUALITY location image (single) with ENHANCED hierarchical fallback
+ *
+ * NEW: Uses smart hierarchical fallback system
+ * - Searches Local → District → County → Regional → National → Continental → Global
+ * - Fetches 1-5 images per level (not 20+) to avoid overwhelming APIs
+ * - Stops when we have enough contextual images
+ * - Caches results to avoid repeated API calls
+ *
  * @param locationName - Primary location name (e.g., "Vilnius")
  * @param region - Region/state (e.g., "Vilnius County")
  * @param country - Country (e.g., "Lithuania")
+ * @param additionalData - Optional district, county, continent data
  */
 export async function fetchLocationImageHighQuality(
   locationName: string,
   manualUrl?: string,
   region?: string,
-  country?: string
+  country?: string,
+  additionalData?: {
+    district?: string
+    county?: string
+    continent?: string
+  }
 ): Promise<string> {
   if (manualUrl && !isPlaceholderImage(manualUrl)) {
     return manualUrl
@@ -859,12 +954,33 @@ export async function fetchLocationImageHighQuality(
     return cached.url
   }
 
-  console.log(`🔍 Fetching HIGH QUALITY FEATURED image from ALL providers`)
+  console.log(`🔍 Fetching HIGH QUALITY FEATURED image with ENHANCED hierarchical fallback`)
   console.log(`   📍 Location: ${locationName}`)
   if (region) console.log(`   📍 Region: ${region}`)
   if (country) console.log(`   📍 Country: ${country}`)
+  if (additionalData?.district) console.log(`   📍 District: ${additionalData.district}`)
+  if (additionalData?.county) console.log(`   📍 County: ${additionalData.county}`)
 
-  // HIERARCHICAL SEARCH: Try city → region → country
+  // NEW: Use enhanced hierarchical fallback system
+  const {
+    parseLocationHierarchy,
+    fetchImagesWithHierarchicalFallback,
+    flattenHierarchicalResults
+  } = await import('./hierarchicalImageFallback')
+
+  const hierarchy = parseLocationHierarchy(locationName, region, country, additionalData)
+  const hierarchicalResults = await fetchImagesWithHierarchicalFallback(hierarchy, 5) // Only need 1-5 for featured
+  const hierarchicalImages = flattenHierarchicalResults(hierarchicalResults, 5)
+
+  if (hierarchicalImages.length > 0) {
+    console.log(`✅ Found ${hierarchicalImages.length} images via hierarchical fallback`)
+    const bestImage = hierarchicalImages[0]
+    imageCache.set(cacheKey, { url: bestImage, timestamp: Date.now() })
+    return bestImage
+  }
+
+  // FALLBACK: Original hierarchical search (city → region → country)
+  console.log(`⚠️ Hierarchical fallback found no images, trying original search...`)
   const searchLevels = [
     { name: locationName, level: 'city', priority: 10 },
     ...(region ? [{ name: region, level: 'region', priority: 7 }] : []),
@@ -885,16 +1001,56 @@ export async function fetchLocationImageHighQuality(
       `${name} downtown`                // Good: City center
     ]
 
-    // 1. Pexels (best quality, unlimited)
+    // PRIORITY #1: Brave Search API (FANTASTIC high-quality images!)
+    console.log(`🥇 PRIORITY #1: Brave Search API for "${name}"...`)
+    fetchPromises.push(
+      fetchBraveImages(name, 10, country, region)
+        .then(urls => {
+          if (urls.length > 0) {
+            console.log(`✅ Brave API: Found ${urls.length} fantastic images for "${name}"`)
+            urls.forEach(url => {
+              allCandidates.push({
+                url,
+                source: 'Brave API',
+                score: priority + 20, // HIGHEST PRIORITY - Brave is best!
+                level
+              })
+            })
+          }
+        })
+        .catch(err => console.error('Brave API error:', err))
+    )
+
+    // PRIORITY #2: Reddit ULTRA (BEST location-specific images with 10 STRICT FILTERS!)
+    console.log(`🥈 PRIORITY #2: Reddit ULTRA for "${name}"...`)
+    fetchPromises.push(
+      fetchRedditImages(name, 5)
+        .then(urls => {
+          if (urls.length > 0) {
+            console.log(`✅ Reddit ULTRA: Found ${urls.length} ULTRA-FILTERED images for "${name}"`)
+            urls.forEach(url => {
+              allCandidates.push({
+                url,
+                source: 'Reddit ULTRA',
+                score: priority + 18, // Second priority - Reddit ULTRA is excellent!
+                level
+              })
+            })
+          }
+        })
+        .catch(err => console.error(`Reddit ULTRA error for "${name}":`, err))
+    )
+
+    // PRIORITY #3: Pexels (high quality stock photos with URL validation)
     for (const term of searchTerms) {
       fetchPromises.push(
         fetchPexelsHighRes(term)
           .then(url => {
-            if (url) {
+            if (url && url.startsWith('http') && !url.includes('placeholder') && !url.includes('undefined')) {
               allCandidates.push({
                 url,
                 source: 'Pexels',
-                score: priority + 10, // Higher score for city-level
+                score: priority + 15, // Third priority - validated URLs only
                 level
               })
             }
@@ -903,7 +1059,27 @@ export async function fetchLocationImageHighQuality(
       )
     }
 
-    // 2. Unsplash (high quality, 50/hour)
+    // PRIORITY #4: Flickr ULTRA (NO API KEY! Same strict filtering as Reddit)
+    console.log(`📍 PRIORITY #4: Flickr ULTRA for "${name}"...`)
+    fetchPromises.push(
+      fetchFlickrImages(name, 5)
+        .then(urls => {
+          if (urls.length > 0) {
+            console.log(`✅ Flickr ULTRA: Found ${urls.length} filtered images for "${name}"`)
+            urls.forEach(url => {
+              allCandidates.push({
+                url,
+                source: 'Flickr ULTRA',
+                score: priority + 12, // Fourth priority
+                level
+              })
+            })
+          }
+        })
+        .catch(err => console.error('Flickr ULTRA error:', err))
+    )
+
+    // PRIORITY #5: Unsplash (high quality, 50/hour)
     for (const term of searchTerms) {
       fetchPromises.push(
         fetchUnsplashHighRes(term)
@@ -921,7 +1097,7 @@ export async function fetchLocationImageHighQuality(
       )
     }
 
-    // 3. Wikimedia (free, high-res available)
+    // PRIORITY #6: Wikimedia (free, high-res available)
     for (const term of searchTerms) {
       fetchPromises.push(
         fetchWikimediaHighRes(term)
@@ -939,7 +1115,7 @@ export async function fetchLocationImageHighQuality(
       )
     }
 
-    // 4. Wikipedia original
+    // PRIORITY #7: Wikipedia original
     fetchPromises.push(
       fetchWikipediaHighRes(name)
         .then(url => {
@@ -957,44 +1133,132 @@ export async function fetchLocationImageHighQuality(
   }
 
   // Wait for all providers to respond
+  console.log(`⏳ Waiting for ${fetchPromises.length} image providers to respond...`)
   await Promise.all(fetchPromises)
 
+  // CRITICAL: Validate all image URLs before using them
+  const validCandidates = allCandidates.filter(candidate => {
+    const url = candidate.url
+
+    // Must be a valid HTTP/HTTPS URL
+    if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+      console.warn(`❌ Invalid URL (not HTTP): "${url?.substring(0, 50)}..."`)
+      return false
+    }
+
+    // Must not contain non-Latin characters (Arabic, Berber, etc.)
+    if (/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\u2D30-\u2D7F]/.test(url)) {
+      console.warn(`❌ Invalid URL (contains non-Latin characters): "${url.substring(0, 50)}..."`)
+      return false
+    }
+
+    // Must have a valid image extension or be from known image CDN
+    const hasImageExtension = /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(url)
+    const isKnownCDN = url.includes('unsplash.com') ||
+                       url.includes('imgur.com') ||
+                       url.includes('reddit.com') ||
+                       url.includes('imgs.search.brave.com') ||
+                       url.includes('wikimedia.org') ||
+                       url.includes('pexels.com')
+
+    if (!hasImageExtension && !isKnownCDN) {
+      console.warn(`❌ Invalid URL (no image extension or known CDN): "${url.substring(0, 50)}..."`)
+      return false
+    }
+
+    return true
+  })
+
+  // Log results from each provider
+  console.log(`📊 Image fetch results:`)
+  console.log(`   Total candidates: ${allCandidates.length}`)
+  console.log(`   Valid candidates: ${validCandidates.length}`)
+  console.log(`   Rejected: ${allCandidates.length - validCandidates.length}`)
+
+  if (validCandidates.length > 0) {
+    const bySource = validCandidates.reduce((acc, c) => {
+      acc[c.source] = (acc[c.source] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+    Object.entries(bySource).forEach(([source, count]) => {
+      console.log(`   ${source}: ${count} valid images`)
+    })
+  }
+
   // Pick the BEST image (highest score = city-level + provider quality)
-  if (allCandidates.length > 0) {
-    const best = allCandidates.sort((a, b) => b.score - a.score)[0]
+  if (validCandidates.length > 0) {
+    const best = validCandidates.sort((a, b) => b.score - a.score)[0]
     console.log(`✅ Selected BEST featured image:`)
     console.log(`   Source: ${best.source}`)
     console.log(`   Level: ${best.level}`)
     console.log(`   Score: ${best.score}`)
-    console.log(`   Total candidates: ${allCandidates.length}`)
+    console.log(`   URL: ${best.url.substring(0, 100)}...`)
     imageCache.set(cacheKey, { url: best.url, timestamp: Date.now() })
     return best.url
   }
 
   // High-quality fallback instead of placeholder
-  console.log('⚠️ No featured image found from any provider, using high-quality fallback')
+  console.warn(`⚠️ No featured image found from ANY provider for "${locationName}"`)
+  console.warn(`   Brave API: Check if API key is set`)
+  console.warn(`   Reddit: Check if subreddits are accessible`)
+  console.warn(`   Using country-specific fallback for: ${country}`)
   return getLocationFallbackImage(locationName, country)
 }
 
 /**
- * Fetch HIGH QUALITY location gallery (20+ images) with hierarchical fallback
+ * Fetch HIGH QUALITY location gallery (20+ images) with ENHANCED hierarchical fallback
+ *
+ * NEW: Uses smart hierarchical fallback system
+ * - Searches Local → District → County → Regional → National → Continental → Global
+ * - Fetches 1-5 images per level until we have enough
+ * - Stops when we reach target count
+ * - Caches results to avoid repeated API calls
+ *
  * @param locationName - Primary location name
  * @param count - Target number of images
  * @param region - Region/state for fallback
  * @param country - Country for fallback
+ * @param additionalData - Optional district, county, continent data
  */
 export async function fetchLocationGalleryHighQuality(
   locationName: string,
   count: number = 20,
   region?: string,
-  country?: string
+  country?: string,
+  additionalData?: {
+    district?: string
+    county?: string
+    continent?: string
+  }
 ): Promise<string[]> {
-  console.log(`🖼️ Fetching ${count} HIGH QUALITY gallery images`)
+  console.log(`🖼️ Fetching ${count} HIGH QUALITY gallery images with ENHANCED hierarchical fallback`)
   console.log(`   📍 Location: ${locationName}`)
   if (region) console.log(`   📍 Region: ${region}`)
   if (country) console.log(`   📍 Country: ${country}`)
+  if (additionalData?.district) console.log(`   📍 District: ${additionalData.district}`)
+  if (additionalData?.county) console.log(`   📍 County: ${additionalData.county}`)
 
-  const allImages: string[] = []
+  // NEW: Use enhanced hierarchical fallback system
+  const {
+    parseLocationHierarchy,
+    fetchImagesWithHierarchicalFallback,
+    flattenHierarchicalResults
+  } = await import('./hierarchicalImageFallback')
+
+  const hierarchy = parseLocationHierarchy(locationName, region, country, additionalData)
+  const hierarchicalResults = await fetchImagesWithHierarchicalFallback(hierarchy, count)
+  const hierarchicalImages = flattenHierarchicalResults(hierarchicalResults, count)
+
+  if (hierarchicalImages.length >= count * 0.5) {
+    // If we got at least 50% of target from hierarchical search, use it
+    console.log(`✅ Found ${hierarchicalImages.length} images via hierarchical fallback (target: ${count})`)
+    return hierarchicalImages
+  }
+
+  // FALLBACK: Original search if hierarchical didn't find enough
+  console.log(`⚠️ Hierarchical fallback found only ${hierarchicalImages.length} images, trying original search...`)
+
+  const allImages: string[] = [...hierarchicalImages] // Start with what we have
   const fetchPromises: Promise<void>[] = []
 
   // HIERARCHICAL SEARCH: Prioritize city, fallback to region/country
@@ -1004,8 +1268,21 @@ export async function fetchLocationGalleryHighQuality(
 
   const primaryLocation = searchNames[0] // Use first (most specific) for search terms
 
-  // PRIORITY #1: Reddit ULTRA (BEST location-specific images with 10 STRICT FILTERS!)
-  console.log('🥇 PRIORITY #1: Reddit ULTRA (travel photography subreddits with ULTRA-FILTERING)...')
+  // PRIORITY #1: Brave Search API (FANTASTIC high-quality images!)
+  console.log('🥇 PRIORITY #1: Brave Search API (fantastic high-quality images)...')
+  fetchPromises.push(
+    fetchBraveImages(primaryLocation, 20, country, region)
+      .then(urls => {
+        if (urls.length > 0) {
+          console.log(`✅ Brave API: Found ${urls.length} fantastic images`)
+          allImages.push(...urls)
+        }
+      })
+      .catch(err => console.error('Brave API error:', err))
+  )
+
+  // PRIORITY #2: Reddit ULTRA (BEST location-specific images with 10 STRICT FILTERS!)
+  console.log('🥈 PRIORITY #2: Reddit ULTRA (travel photography subreddits with ULTRA-FILTERING)...')
   fetchPromises.push(
     fetchRedditImages(primaryLocation, 20)
       .then(urls => {
@@ -1017,10 +1294,10 @@ export async function fetchLocationGalleryHighQuality(
       .catch(err => console.error('Reddit ULTRA error:', err))
   )
 
-  // PRIORITY #2: Pexels (high quality stock photos with smart filtering)
+  // PRIORITY #3: Pexels (high quality stock photos with smart filtering + URL validation)
   const pexelsKey = process.env.PEXELS_API_KEY
   if (pexelsKey) {
-    console.log('🥈 PRIORITY #2: Pexels (high-res images with smart filtering)...')
+    console.log('🥉 PRIORITY #3: Pexels (high-res images with smart filtering + URL validation)...')
     const pexelsSearchTerms = [
       `${primaryLocation} cityscape`,
       `${primaryLocation} skyline`,
@@ -1115,9 +1392,20 @@ export async function fetchLocationGalleryHighQuality(
                 return hasLocation || hasRelevantKeyword
               })
 
-              const urls = filteredPhotos.map((p: any) => p.src.original || p.src.large2x || p.src.large)
-              allImages.push(...urls)
-              console.log(`✅ Pexels: ${urls.length}/${data.photos.length} relevant images for "${term}"`)
+              // ✅ URL VALIDATION: Only include valid HTTP(S) URLs
+              const validUrls = filteredPhotos
+                .map((p: any) => p.src.original || p.src.large2x || p.src.large)
+                .filter((url: string) => {
+                  // Must be valid HTTP(S) URL
+                  if (!url || typeof url !== 'string') return false
+                  if (!url.startsWith('http://') && !url.startsWith('https://')) return false
+                  // Reject placeholder patterns
+                  if (url.includes('placeholder') || url.includes('undefined') || url.includes('null')) return false
+                  return true
+                })
+
+              allImages.push(...validUrls)
+              console.log(`✅ Pexels: ${validUrls.length}/${data.photos.length} valid images for "${term}"`)
             }
           })
           .catch(err => console.error('Pexels error:', err))
@@ -1125,8 +1413,8 @@ export async function fetchLocationGalleryHighQuality(
     }
   }
 
-  // PRIORITY #3: Flickr ULTRA (NO API KEY! Lighter filtering than Reddit)
-  console.log('🥉 PRIORITY #3: Flickr ULTRA (NO API KEY with lighter filtering)...')
+  // PRIORITY #4: Flickr ULTRA (NO API KEY! Lighter filtering than Reddit)
+  console.log('📍 PRIORITY #4: Flickr ULTRA (NO API KEY with lighter filtering)...')
   fetchPromises.push(
     fetchFlickrImages(primaryLocation, 20)
       .then(urls => {
@@ -1371,9 +1659,30 @@ export async function fetchLocationGalleryHighQuality(
   // Wait for all API calls
   await Promise.all(fetchPromises)
 
+  // CRITICAL: Validate all image URLs before using them
+  const validImages = allImages.filter(url => {
+    // Must be a valid HTTP/HTTPS URL
+    if (!url || (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/'))) {
+      console.warn(`❌ Invalid gallery URL (not HTTP): "${url?.substring(0, 50)}..."`)
+      return false
+    }
+
+    // Must not contain non-Latin characters (Arabic, Berber, etc.)
+    if (/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\u2D30-\u2D7F]/.test(url)) {
+      console.warn(`❌ Invalid gallery URL (contains non-Latin characters): "${url.substring(0, 50)}..."`)
+      return false
+    }
+
+    return true
+  })
+
   // Deduplicate
-  const uniqueImages = Array.from(new Set(allImages))
-  console.log(`🎉 Total unique HIGH QUALITY images: ${uniqueImages.length}`)
+  const uniqueImages = Array.from(new Set(validImages))
+  console.log(`🎉 Gallery images:`)
+  console.log(`   Total fetched: ${allImages.length}`)
+  console.log(`   Valid: ${validImages.length}`)
+  console.log(`   Unique: ${uniqueImages.length}`)
+  console.log(`   Rejected: ${allImages.length - validImages.length}`)
 
   // If we have fewer than 10 images, add community upload placeholder
   const MIN_IMAGES_THRESHOLD = 10
@@ -1388,5 +1697,137 @@ export async function fetchLocationGalleryHighQuality(
 
   // Return requested count
   return uniqueImages.slice(0, count)
+}
+
+/**
+ * Smart Fallback Gallery Fetcher with Backend Cache & User Uploads
+ *
+ * Priority order:
+ * 1. Brave Search (primary - best quality)
+ * 2. Reddit Ultra (secondary - if Brave fails)
+ * 3. Backend cache (tertiary - existing location images < 1 month old)
+ * 4. User-uploaded images (quaternary - community contributions)
+ *
+ * @param locationId - Location ID for backend cache lookup
+ * @param locationName - Location name for Brave/Reddit search
+ * @param count - Target number of images
+ * @param region - Region for hierarchical fallback
+ * @param country - Country for hierarchical fallback
+ */
+export async function fetchLocationGalleryWithSmartFallback(
+  locationId: string,
+  locationName: string,
+  count: number = 20,
+  region?: string,
+  country?: string
+): Promise<string[]> {
+  console.log(`🎯 Smart Fallback Gallery Fetcher for "${locationName}"`)
+  console.log(`   Priority: Brave → Reddit → Backend Cache (< 1mo) → User Uploads`)
+
+  const allImages: string[] = []
+
+  // PRIORITY #1: Brave Search API (FANTASTIC high-quality images!)
+  console.log(`🥇 PRIORITY #1: Brave Search API...`)
+  try {
+    const braveUrls = await fetchBraveImages(locationName, 20, country, region)
+    if (braveUrls.length > 0) {
+      console.log(`✅ Brave: Found ${braveUrls.length} images - using these!`)
+      allImages.push(...braveUrls)
+      return allImages.slice(0, count)
+    }
+    console.log(`⚠️ Brave: No images found, trying Reddit...`)
+  } catch (error) {
+    console.error(`❌ Brave error:`, error)
+  }
+
+  // PRIORITY #2: Reddit ULTRA (if Brave failed)
+  console.log(`🥈 PRIORITY #2: Reddit ULTRA...`)
+  try {
+    const redditUrls = await fetchRedditImages(locationName, 20, country, region)
+    if (redditUrls.length > 0) {
+      console.log(`✅ Reddit: Found ${redditUrls.length} images - using these!`)
+      allImages.push(...redditUrls)
+      return allImages.slice(0, count)
+    }
+    console.log(`⚠️ Reddit: No images found, checking backend cache...`)
+  } catch (error) {
+    console.error(`❌ Reddit error:`, error)
+  }
+
+  // PRIORITY #3: Backend Cache (existing location images < 1 month old)
+  console.log(`🥉 PRIORITY #3: Backend Cache (< 1 month old)...`)
+  try {
+    const { createServerSupabase } = await import('@/lib/supabase-server')
+    const supabase = await createServerSupabase()
+
+    // Get existing location images that are less than 1 month old
+    const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+    const { data: existingLocation, error } = await supabase
+      .from('locations')
+      .select('gallery_images, updated_at')
+      .eq('id', locationId)
+      .gt('updated_at', oneMonthAgo)
+      .single()
+
+    if (existingLocation?.gallery_images && Array.isArray(existingLocation.gallery_images)) {
+      const validCacheImages = existingLocation.gallery_images.filter((url: string) => {
+        // Filter out placeholders and invalid URLs
+        if (!url || typeof url !== 'string') return false
+        if (!url.startsWith('http')) return false
+        if (url.includes('placeholder') || url.includes('undefined') || url.includes('null')) return false
+        return true
+      })
+
+      if (validCacheImages.length > 0) {
+        console.log(`✅ Backend Cache: Found ${validCacheImages.length} recent images - using these!`)
+        allImages.push(...validCacheImages)
+        return allImages.slice(0, count)
+      }
+    }
+    console.log(`⚠️ Backend Cache: No recent images found, checking user uploads...`)
+  } catch (error) {
+    console.error(`❌ Backend cache error:`, error)
+  }
+
+  // PRIORITY #4: User-Uploaded Images (community contributions)
+  console.log(`📍 PRIORITY #4: User-Uploaded Images...`)
+  try {
+    const { createServerSupabase } = await import('@/lib/supabase-server')
+    const supabase = await createServerSupabase()
+
+    // Get user-uploaded images for this location
+    const { data: userImages, error } = await supabase
+      .from('location_images')
+      .select('image_url')
+      .eq('location_id', locationId)
+      .eq('is_approved', true)
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    if (userImages && userImages.length > 0) {
+      const userImageUrls = userImages
+        .map((img: any) => img.image_url)
+        .filter((url: string) => {
+          if (!url || typeof url !== 'string') return false
+          if (!url.startsWith('http')) return false
+          if (url.includes('placeholder') || url.includes('undefined') || url.includes('null')) return false
+          return true
+        })
+
+      if (userImageUrls.length > 0) {
+        console.log(`✅ User Uploads: Found ${userImageUrls.length} community images - using these!`)
+        allImages.push(...userImageUrls)
+        return allImages.slice(0, count)
+      }
+    }
+    console.log(`⚠️ User Uploads: No community images found`)
+  } catch (error) {
+    console.error(`❌ User uploads error:`, error)
+  }
+
+  // FALLBACK: Return empty array (no images available)
+  console.log(`❌ No images found from any source - returning empty array`)
+  return []
 }
 

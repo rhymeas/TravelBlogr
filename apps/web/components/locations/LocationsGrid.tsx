@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 // Number of locations to load per batch (infinite scroll)
@@ -20,6 +20,7 @@ import {
 import { InFeedAd } from '@/components/ads/InFeedAd'
 import { generateRandomInFeedPositions } from '@/lib/utils/adHelpers'
 import { useAuth } from '@/hooks/useAuth'
+import { isAdmin as checkIsAdmin } from '@/lib/utils/adminCheck'
 import { LocationEditModal } from '@/components/admin/LocationEditModal'
 
 interface Location {
@@ -61,12 +62,22 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [editingLocation, setEditingLocation] = useState<Location | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [isDeleting, setIsDeleting] = useState(false)
+  // Local copy to support client-side removal without full reload
+  const [localLocations, setLocalLocations] = useState<Location[]>(locations)
+  useEffect(() => {
+    setLocalLocations(locations)
+  }, [locations])
+
+  // Track items being removed for fade-out animation
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
+
   const loadMoreRef = useRef<HTMLDivElement>(null)
-  const { profile } = useAuth()
-  const isAdmin = (profile as any)?.role === 'admin'
+  const { profile, user } = useAuth()
+  const isAdmin = checkIsAdmin(user?.email)
 
   // Filter locations based on search params
-  const filteredLocations = locations.filter(location => {
+  const filteredLocations = localLocations.filter(location => {
     const searchQuery = searchParams.get('q')?.toLowerCase()
     const category = searchParams.get('category')
     const country = searchParams.get('country')
@@ -152,14 +163,64 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
     // Trigger parent refresh if needed
   }
 
+  const handleDelete = async (location: Location) => {
+    console.log('🗑️ Delete button clicked for:', location.name)
+    console.log('🔐 Is admin:', isAdmin, 'Email:', user?.email)
+
+    if (!confirm(`Delete "${location.name}"? This action cannot be undone.`)) {
+      console.log('❌ User cancelled delete')
+      return
+    }
+
+    console.log('✅ User confirmed delete, calling API...')
+    setIsDeleting(true)
+    try {
+      const response = await fetch('/api/admin/delete-location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          locationId: location.id,
+          locationName: location.name
+        })
+      })
+
+      console.log('📡 API response status:', response.status)
+      const data = await response.json()
+      console.log('📦 API response data:', data)
+
+      if (!response.ok) {
+        console.error('❌ Delete failed:', data.error)
+        alert(`Error: ${data.error}`)
+        return
+      }
+
+      console.log('✅ Delete successful!')
+      // Trigger fade-out animation then remove from UI without full reload
+      setDeletingIds(prev => {
+        const next = new Set(prev)
+        next.add(location.id)
+        return next
+      })
+      // Give the animation time to play, then remove from local state
+      setTimeout(() => {
+        setLocalLocations(prev => prev.filter(l => l.id !== location.id))
+      }, 300)
+    } catch (error) {
+      console.error('❌ Delete error:', error)
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* View Mode Toggle */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-600">
           Showing {displayedCount} of {filteredLocations.length} location{filteredLocations.length !== 1 ? 's' : ''}
-          {filteredLocations.length !== locations.length && (
-            <span className="text-gray-400"> (filtered from {locations.length} total)</span>
+          {filteredLocations.length !== localLocations.length && (
+            <span className="text-gray-400"> (filtered from {localLocations.length} total)</span>
           )}
         </p>
 
@@ -185,13 +246,14 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
       {viewMode === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {displayedLocations.map((location, index) => (
-            <>
+            <React.Fragment key={`${location.id}-${refreshKey}`}>
               <LocationCard
-                key={`${location.id}-${refreshKey}`}
                 location={location}
                 priority={index < 8}
                 isAdmin={isAdmin}
                 onEdit={() => setEditingLocation(location)}
+                onDelete={handleDelete}
+                isDeletingItem={deletingIds.has(location.id)}
               />
               {/* In-feed ad randomized between cards (min gap 4–7) */}
               {adPositions.has(index) && (
@@ -201,7 +263,7 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
                   page="locations"
                 />
               )}
-            </>
+            </React.Fragment>
           ))}
         </div>
       )}
@@ -216,6 +278,8 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
               priority={index < 6}
               isAdmin={isAdmin}
               onEdit={() => setEditingLocation(location)}
+              onDelete={handleDelete}
+              isDeletingItem={deletingIds.has(location.id)}
             />
           ))}
         </div>
@@ -238,7 +302,7 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
       {/* All Loaded Message */}
       {!hasMore && displayedCount > LOCATIONS_PER_PAGE && (
         <div className="py-8 text-center text-gray-500 text-sm">
-          ✨ You've seen all {locations.length} locations!
+          ✨ You've seen all {localLocations.length} locations!
         </div>
       )}
 
@@ -259,19 +323,23 @@ function LocationCard({
   location,
   priority = false,
   isAdmin = false,
-  onEdit
+  onEdit,
+  onDelete,
+  isDeletingItem = false
 }: {
   location: Location
   priority?: boolean
   isAdmin?: boolean
   onEdit?: () => void
+  onDelete?: (location: Location) => void
+  isDeletingItem?: boolean
 }) {
   const [showMenu, setShowMenu] = useState(false)
   const latestPost = location.location_posts?.[0]
   const formatted = formatLocationName(location.name)
 
   return (
-    <div className="group block relative">
+    <div className={`group block relative transition-all duration-300 ${isDeletingItem ? 'opacity-0 -translate-y-2 scale-[0.98] pointer-events-none' : ''}`}>
       <Link href={`/locations/${location.slug}`}>
         <div className="card-elevated hover:shadow-sleek-large transition-all duration-300 overflow-hidden">
           {/* Featured Image */}
@@ -334,6 +402,18 @@ function LocationCard({
                         <Edit className="h-4 w-4 mr-2" />
                         Edit Location
                       </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setShowMenu(false)
+                          onDelete?.(location)
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Location
+                      </button>
                     </div>
                   </>
                 )}
@@ -374,7 +454,7 @@ function LocationCard({
             <div className="flex items-center gap-1 text-body-medium text-sleek-dark-gray">
               <MapPin className="h-4 w-4" />
               <span>
-                {formatted.region && `${formatted.region}, `}{formatted.country || location.country}
+                {location.country}
               </span>
             </div>
           </div>
@@ -427,19 +507,23 @@ function LocationListItem({
   location,
   priority = false,
   isAdmin = false,
-  onEdit
+  onEdit,
+  onDelete,
+  isDeletingItem = false
 }: {
   location: Location
   priority?: boolean
   isAdmin?: boolean
   onEdit?: () => void
+  onDelete?: (location: Location) => void
+  isDeletingItem?: boolean
 }) {
   const [showMenu, setShowMenu] = useState(false)
   const latestPost = location.location_posts?.[0]
   const formatted = formatLocationName(location.name)
 
   return (
-    <Card className="hover:shadow-md transition-shadow duration-200 relative">
+    <Card className={`hover:shadow-md transition-shadow duration-200 relative transition-all ${isDeletingItem ? 'opacity-0 -translate-y-1 scale-[0.99] pointer-events-none' : ''}`}>
       <div className="flex">
         {/* Image - Reduced from w-48 to w-32 */}
         <div className="relative w-32 h-24 flex-shrink-0">
@@ -474,7 +558,7 @@ function LocationListItem({
               <div className="flex items-center gap-1 text-xs text-gray-600">
                 <MapPin className="h-3 w-3" />
                 <span className="truncate">
-                  {formatted.region && `${formatted.region}, `}{formatted.country || location.country}
+                  {location.country}
                 </span>
               </div>
             </div>
@@ -531,6 +615,18 @@ function LocationListItem({
                         >
                           <Edit className="h-4 w-4 mr-2" />
                           Edit Location
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setShowMenu(false)
+                            onDelete?.(location)
+                          }}
+                          className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Location
                         </button>
                       </div>
                     </>

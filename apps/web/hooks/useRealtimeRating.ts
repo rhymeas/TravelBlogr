@@ -2,12 +2,12 @@
 
 /**
  * Real-Time Rating Hook
- * 
+ *
  * Subscribes to Supabase Realtime for instant rating updates.
  * Updates when any user rates a location.
  */
 
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import { getBrowserSupabase } from '@/lib/supabase'
 
 interface UseRealtimeRatingOptions {
@@ -19,7 +19,7 @@ interface UseRealtimeRatingOptions {
 
 /**
  * Subscribe to real-time rating updates
- * 
+ *
  * @example
  * ```tsx
  * useRealtimeRating({
@@ -38,10 +38,17 @@ export function useRealtimeRating({
   onRatingUpdate,
   enabled = true
 }: UseRealtimeRatingOptions) {
-  const supabase = getBrowserSupabase()
+  const [supabase, setSupabase] = useState<any>(null)
+
+  // Initialize Supabase client on client side only
+  useEffect(() => {
+    setSupabase(getBrowserSupabase())
+  }, [])
 
   // Fetch updated rating stats from cached columns (much faster!)
   const fetchRatingStats = useCallback(async () => {
+    if (!supabase) return
+
     try {
       // Fetch cached stats from locations table
       const { data, error } = await supabase
@@ -70,7 +77,7 @@ export function useRealtimeRating({
   }, [locationId, locationSlug, onRatingUpdate, supabase])
 
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled || !supabase) return
 
     const channelName = `location:${locationSlug}:rating`
 

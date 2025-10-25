@@ -16,19 +16,40 @@ import {
 } from '@/lib/services/fallbackImageService'
 
 /**
+ * Validate if a URL is a valid image URL
+ */
+function isValidImageUrl(url: string | null | undefined): boolean {
+  if (!url || typeof url !== 'string') return false
+
+  // Must start with http/https
+  if (!url.startsWith('http://') && !url.startsWith('https://')) return false
+
+  // Must not contain non-Latin characters (Arabic, Berber, etc.)
+  if (/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\u2D30-\u2D7F]/.test(url)) {
+    console.warn(`❌ Invalid featured image (non-Latin characters): "${url.substring(0, 50)}..."`)
+    return false
+  }
+
+  // Must have reasonable length
+  if (url.length < 20 || url.length > 2000) return false
+
+  return true
+}
+
+/**
  * Map Supabase location to frontend Location interface
  */
 export function mapSupabaseLocationToFrontend(
   supabaseData: SupabaseLocation & {
     restaurants?: SupabaseRestaurant[]
     activities?: SupabaseActivity[]
-    location_activity_links?: SupabaseActivity[]  // NEW: Support new table name
   }
 ): Location {
   // Build images array with featured_image ALWAYS first
   // Use high-quality fallback if no featured image or if it's a placeholder
   const rawFeaturedImage = supabaseData.featured_image
-  const featuredImage = isPlaceholderImage(rawFeaturedImage)
+  const isValidFeatured = isValidImageUrl(rawFeaturedImage)
+  const featuredImage = !isValidFeatured || isPlaceholderImage(rawFeaturedImage)
     ? getLocationFallbackImage(supabaseData.name, supabaseData.country)
     : rawFeaturedImage
 
@@ -41,9 +62,6 @@ export function mapSupabaseLocationToFrontend(
 
   // Always start with featured image, then add real gallery images
   const images = [featuredImage, ...galleryImages]
-
-  // Support both old 'activities' and new 'location_activity_links' table names
-  const activitiesData = supabaseData.location_activity_links || supabaseData.activities || []
 
   return {
     id: supabaseData.id,
@@ -59,7 +77,7 @@ export function mapSupabaseLocationToFrontend(
     created_at: formatDate(supabaseData.created_at),
     images: images,
     posts: [], // User posts - separate feature
-    activities: mapActivities(activitiesData),
+    activities: mapActivities(supabaseData.activities || []),
     restaurants: mapRestaurants(supabaseData.restaurants || []),
     experiences: [], // Curated experiences - can be added later
     did_you_know: [], // Fun facts - can be added later
@@ -105,13 +123,10 @@ function mapRestaurants(supabaseRestaurants: SupabaseRestaurant[]): LocationRest
  */
 function mapActivities(supabaseActivities: SupabaseActivity[]): LocationActivity[] {
   return supabaseActivities.map(activity => {
-    // Support both 'activity_name' (new table) and 'name' (old table)
-    const activityName = activity.activity_name || activity.name || 'Unnamed Activity'
-
     // Generate tags automatically
     const tags = generateActivityTags({
       category: activity.category,
-      name: activityName,
+      name: activity.name,
       description: activity.description,
       price_info: activity.price_info,
       duration: activity.duration,
@@ -120,12 +135,12 @@ function mapActivities(supabaseActivities: SupabaseActivity[]): LocationActivity
 
     // Use high-quality fallback for activity images
     const activityImage = isPlaceholderImage(activity.image_url)
-      ? getActivityFallbackImage(activityName, activity.category)
+      ? getActivityFallbackImage(activity.name, activity.category)
       : activity.image_url
 
     return {
       id: activity.id,
-      name: activityName,
+      name: activity.name,
       category: mapActivityCategory(activity.category) as any,
       description: activity.description || '',
       completed: false,
@@ -138,15 +153,11 @@ function mapActivities(supabaseActivities: SupabaseActivity[]): LocationActivity
       rating: activity.rating || 0,
       image: activityImage,
       address: activity.address || 'Address not available',
-      website: activity.website || activity.link_url || undefined,  // NEW: Use link_url if website not available
+      website: activity.website || undefined,
       opening_hours: formatOpeningHours(activity.opening_hours),
-      verified: activity.is_verified !== false,  // Default to true if not specified
+      verified: activity.is_verified,
       latitude: activity.latitude,
-      longitude: activity.longitude,
-      // NEW: Map additional fields from location_activity_links
-      image_url: activity.image_url,
-      link_url: activity.link_url,
-      link_source: activity.type as any  // Map 'type' to 'link_source'
+      longitude: activity.longitude
     }
   })
 }

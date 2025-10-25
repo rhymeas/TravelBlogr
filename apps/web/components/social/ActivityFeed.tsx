@@ -45,27 +45,31 @@ export function ActivityFeed({
   const [hasMore, setHasMore] = useState(true)
   const [page, setPage] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  
+  const [supabase, setSupabase] = useState<any>(null)
+
   // Use refs to avoid stale closures
   const isMounted = useRef(true)
   const loadingRef = useRef(false)
   const subscriptionRef = useRef<any>(null)
-  
-  const supabase = getBrowserSupabase()
+
+  // Initialize Supabase client on client side only
+  useEffect(() => {
+    setSupabase(getBrowserSupabase())
+  }, [])
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       isMounted.current = false
-      if (subscriptionRef.current) {
+      if (subscriptionRef.current && supabase) {
         supabase.removeChannel(subscriptionRef.current)
       }
     }
-  }, [])
+  }, [supabase])
 
   // Set up real-time subscription
   useEffect(() => {
-    if (!realTimeUpdates) return
+    if (!realTimeUpdates || !supabase) return
 
     // Subscribe to new activities
     const channel = supabase
@@ -79,7 +83,7 @@ export function ActivityFeed({
         },
         async (payload) => {
           if (!isMounted.current) return
-          
+
           // Fetch the full activity with user data
           const { data: newActivity } = await supabase
             .from('activity_feed')
@@ -109,12 +113,14 @@ export function ActivityFeed({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [feedType, userId, realTimeUpdates])
+  }, [feedType, userId, realTimeUpdates, supabase])
 
   // Load activities when feed type or user changes
   useEffect(() => {
-    loadActivities(true)
-  }, [feedType, userId])
+    if (supabase) {
+      loadActivities(true)
+    }
+  }, [feedType, userId, supabase])
 
   const shouldShowActivity = (activity: ActivityItem, type: string, currentUserId: string) => {
     if (type === 'personal') {

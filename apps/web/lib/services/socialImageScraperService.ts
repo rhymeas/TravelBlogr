@@ -1,12 +1,12 @@
 /**
  * Social Media Image Scraper Service
  * Scrapes images from Reddit, Twitter/X, Pinterest WITHOUT API keys
- * 
+ *
  * Uses open-source GitHub solutions:
  * - Reddit: YARS (Yet Another Reddit Scraper) - https://github.com/datavorous/yars
  * - Twitter/X: Twikit - https://github.com/d60/twikit
  * - Pinterest: pinterest-image-scrap - https://github.com/iamatulsingh/pinterest-image-scrap
- * 
+ *
  * All methods work without API keys using web scraping
  */
 
@@ -35,7 +35,7 @@ export async function scrapeRedditImages(
   maxImages: number = 20
 ): Promise<SocialImage[]> {
   const images: SocialImage[] = []
-  
+
   // Photography subreddits with high-quality travel images
   const subreddits = [
     'itookapicture',
@@ -53,7 +53,7 @@ export async function scrapeRedditImages(
 
       // Use Reddit's public JSON API (no auth needed!)
       const searchUrl = `https://www.reddit.com/r/${subreddit}/search.json?q=${encodeURIComponent(searchQuery)}&restrict_sr=1&sort=top&limit=25`
-      
+
       console.log(`🔍 Searching r/${subreddit} for "${searchQuery}"...`)
 
       const response = await fetch(searchUrl, {
@@ -74,10 +74,10 @@ export async function scrapeRedditImages(
         if (images.length >= maxImages) break
 
         const postData = post.data
-        
+
         // Only get image posts
         if (!postData.url) continue
-        
+
         // Check if it's an image URL
         const imageUrl = postData.url
         const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(imageUrl) ||
@@ -133,13 +133,13 @@ export async function scrapeTwitterImages(
     // Twitter's public search (works without login for some queries)
     // Note: This is limited and may require cookies for full access
     const searchUrl = `https://twitter.com/search?q=${encodeURIComponent(searchQuery + ' filter:images')}&f=image`
-    
+
     console.log(`🔍 Searching Twitter for "${searchQuery}"...`)
 
     // For now, return empty array - Twitter requires more complex scraping
     // Would need to use Puppeteer/Playwright to render JS and extract images
     console.log(`⚠️ Twitter: Requires browser automation (Puppeteer) - skipping for now`)
-    
+
     return images
 
   } catch (error) {
@@ -161,7 +161,7 @@ export async function scrapePinterestImages(
   try {
     // Pinterest's public search endpoint
     const searchUrl = `https://www.pinterest.com/resource/BaseSearchResource/get/?source_url=/search/pins/?q=${encodeURIComponent(searchQuery)}&data={"options":{"query":"${encodeURIComponent(searchQuery)}","scope":"pins"},"context":{}}`
-    
+
     console.log(`🔍 Searching Pinterest for "${searchQuery}"...`)
 
     const response = await fetch(searchUrl, {
@@ -183,7 +183,7 @@ export async function scrapePinterestImages(
       if (images.length >= maxImages) break
 
       // Get the highest quality image
-      const imageUrl = pin.images?.orig?.url || 
+      const imageUrl = pin.images?.orig?.url ||
                       pin.images?.['736x']?.url ||
                       pin.images?.['564x']?.url
 
@@ -222,11 +222,11 @@ export async function scrapeFlickrImages(
   try {
     // Flickr's public feed (no API key needed!)
     const feedUrl = `https://www.flickr.com/services/feeds/photos_public.gne?tags=${encodeURIComponent(searchQuery)}&format=json&nojsoncallback=1`
-    
+
     console.log(`🔍 Searching Flickr for "${searchQuery}"...`)
 
     const response = await fetch(feedUrl)
-    
+
     if (!response.ok) {
       console.log(`⚠️ Flickr: HTTP ${response.status}`)
       return images
@@ -267,6 +267,26 @@ export async function scrapeFlickrImages(
  * Fetch images from ALL social platforms
  * Combines Reddit, Twitter, Pinterest, Flickr
  */
+
+
+/**
+ * Search Reddit for location images (wrapper for scraper)
+ */
+export async function searchRedditLocationImages(
+  searchQuery: string,
+  limit: number = 20
+): Promise<Array<{ url: string; title?: string; author?: string; permalink?: string; score?: number }>> {
+  const images = await scrapeRedditImages(searchQuery, limit)
+  return images.map(img => ({
+    url: img.url,
+    title: img.title,
+    author: img.author,
+    permalink: img.sourceUrl,
+    score: img.score
+  }))
+}
+
+
 export async function fetchSocialImages(
   searchQuery: string,
   maxImagesPerPlatform: number = 10

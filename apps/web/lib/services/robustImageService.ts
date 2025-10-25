@@ -27,7 +27,7 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 hours
  * Wikimedia Commons Image Search
  * FREE - No API key needed - Unlimited requests
  */
-async function fetchWikimediaImage(searchTerm: string): Promise<string | null> {
+export async function fetchWikimediaImage(searchTerm: string): Promise<string | null> {
   try {
     const response = await fetch(
       `https://commons.wikimedia.org/w/api.php?` +
@@ -83,7 +83,7 @@ async function fetchWikimediaImage(searchTerm: string): Promise<string | null> {
  * Wikipedia REST API Image
  * FREE - No API key needed - Unlimited requests
  */
-async function fetchWikipediaImage(searchTerm: string): Promise<string | null> {
+export async function fetchWikipediaImage(searchTerm: string): Promise<string | null> {
   try {
     const response = await fetch(
       `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(searchTerm)}`
@@ -115,7 +115,7 @@ async function fetchWikipediaImage(searchTerm: string): Promise<string | null> {
  * FREE - Unlimited requests - Requires API key
  * Enhanced with quality filtering and better search terms
  */
-async function fetchPexelsImage(searchTerm: string): Promise<string | null> {
+export async function fetchPexelsImage(searchTerm: string): Promise<string | null> {
   const apiKey = process.env.PEXELS_API_KEY
 
   if (!apiKey) {
@@ -169,7 +169,7 @@ async function fetchPexelsImage(searchTerm: string): Promise<string | null> {
  * FREE - 50 requests/hour - Requires API key
  * Enhanced with quality filtering
  */
-async function fetchUnsplashImage(searchTerm: string): Promise<string | null> {
+export async function fetchUnsplashImage(searchTerm: string): Promise<string | null> {
   const apiKey = process.env.UNSPLASH_ACCESS_KEY
 
   if (!apiKey) {
@@ -578,47 +578,21 @@ export async function fetchRestaurantImage(
 }
 
 /**
- * Fetch Activity Image with Enhanced Contextualization
- *
- * Searches with BOTH location name AND country for highly specific, contextualized images
- * Example: "Neuschwanstein Castle Magdeburg Germany" instead of just "Neuschwanstein Castle"
- *
- * @param activityName - Name of the activity/attraction
- * @param locationName - Name of the location (city)
- * @param country - Country name for additional context
- * @param manualUrl - Optional manual URL override
- * @returns Image URL or placeholder
+ * Fetch Activity Image
  */
 export async function fetchActivityImage(
   activityName: string,
   locationName: string,
-  country?: string,
   manualUrl?: string
 ): Promise<string> {
   if (manualUrl) return manualUrl
 
-  // Enhanced search query with location + country context
-  const contextualQuery = country
-    ? `${activityName} ${locationName} ${country}`
-    : `${activityName} ${locationName}`
+  const activityImage = await fetchPexelsImage(`${activityName} ${locationName}`)
+  if (activityImage) return activityImage
 
-  console.log(`🔍 Fetching activity image with context: "${contextualQuery}"`)
-
-  // Try Pexels with full context
-  const activityImage = await fetchPexelsImage(contextualQuery)
-  if (activityImage) {
-    console.log(`✅ Found contextualized image from Pexels`)
-    return activityImage
-  }
-
-  // Fallback to Wikipedia with activity name only
   const genericImage = await fetchWikipediaImage(activityName)
-  if (genericImage) {
-    console.log(`✅ Found generic image from Wikipedia`)
-    return genericImage
-  }
+  if (genericImage) return genericImage
 
-  console.log(`⚠️ No image found, using placeholder`)
   return '/placeholder-activity.svg'
 }
 

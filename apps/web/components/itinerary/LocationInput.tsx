@@ -3,11 +3,13 @@
 /**
  * Multi-location input with drag-and-drop reordering
  * A → B → C style
+ * Now with distance preview between consecutive locations
  */
 
 import { useState } from 'react'
 import { LocationAutocomplete } from './LocationAutocomplete'
 import { Plus, Loader2 } from 'lucide-react'
+import { calculateDistance } from '@/lib/utils'
 
 interface Location {
   id: string
@@ -35,6 +37,26 @@ export function LocationInput({ locations, onChange }: LocationInputProps) {
   const [loadingStops, setLoadingStops] = useState<number | null>(null)
   const [suggestedStops, setSuggestedStops] = useState<Record<number, SuggestedStop[]>>({})
   const [showSuggestions, setShowSuggestions] = useState<number | null>(null)
+
+  // Calculate distance between two locations
+  const getDistanceBetween = (loc1: Location, loc2: Location): number | null => {
+    if (!loc1.latitude || !loc1.longitude || !loc2.latitude || !loc2.longitude) {
+      return null
+    }
+    return calculateDistance(loc1.latitude, loc1.longitude, loc2.latitude, loc2.longitude)
+  }
+
+  // Calculate total distance for the entire trip
+  const getTotalDistance = (): number => {
+    let total = 0
+    for (let i = 0; i < locations.length - 1; i++) {
+      const dist = getDistanceBetween(locations[i], locations[i + 1])
+      if (dist !== null) {
+        total += dist
+      }
+    }
+    return total
+  }
 
   const addLocation = () => {
     onChange([
@@ -140,8 +162,26 @@ export function LocationInput({ locations, onChange }: LocationInputProps) {
     setShowSuggestions(null)
   }
 
+  const totalDist = getTotalDistance()
+
   return (
     <div className="space-y-3">
+      {/* Header with total distance on same line */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900">Where are you going?</h2>
+          <p className="text-xs text-gray-600 mt-0.5">Start with your journey basics</p>
+        </div>
+        {locations.length >= 2 && totalDist > 0 && (
+          <div className="text-right">
+            <div className="text-xs font-medium text-gray-500">Total Distance</div>
+            <div className="text-sm font-bold text-gray-900">
+              {totalDist < 1 ? '< 1 km' : `${Math.round(totalDist)} km`}
+            </div>
+          </div>
+        )}
+      </div>
+
       {locations.map((location, index) => (
         <div
           key={location.id}
@@ -229,13 +269,25 @@ export function LocationInput({ locations, onChange }: LocationInputProps) {
             )}
           </div>
 
-          {/* Connecting Line (simple dashed line) */}
-          {index < locations.length - 1 && (
-            <div className="relative">
-              {/* Dashed Line */}
-              <div className="absolute left-[52px] top-[56px] w-0.5 h-[32px] bg-gray-300 border-l-2 border-dashed border-gray-300" style={{ background: 'transparent' }} />
-            </div>
-          )}
+          {/* Connecting Line with Distance Preview */}
+          {index < locations.length - 1 && (() => {
+            const nextLocation = locations[index + 1]
+            const distance = getDistanceBetween(locations[index], nextLocation)
+
+            return (
+              <div className="relative">
+                {/* Dashed Line */}
+                <div className="absolute left-[52px] top-[56px] w-0.5 h-[32px] bg-gray-300 border-l-2 border-dashed border-gray-300" style={{ background: 'transparent' }} />
+
+                {/* Distance Badge */}
+                {distance !== null && (
+                  <div className="absolute left-[80px] top-[60px] bg-blue-50 border border-blue-200 rounded-full px-2.5 py-1 text-xs font-medium text-blue-700 whitespace-nowrap">
+                    {distance < 1 ? '< 1 km' : `${Math.round(distance)} km`}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
 
           {/* Suggested Stops Dropdown (triggered from "Add stop along the way" button) */}
           {index < locations.length - 1 && showSuggestions === index && suggestedStops[index] && suggestedStops[index].length > 0 && (
@@ -304,7 +356,7 @@ export function LocationInput({ locations, onChange }: LocationInputProps) {
 
       {/* Helper Text */}
       <p className="text-xs text-gray-500 pl-13">
-        {locations.length === 2 
+        {locations.length === 2
           ? 'Add stops to visit places along your route'
           : `${locations.length - 2} stop${locations.length > 3 ? 's' : ''} added`
         }

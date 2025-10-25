@@ -10,7 +10,7 @@
  * - Caches routes in database to minimize API calls
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, memo } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
@@ -19,25 +19,35 @@ interface TripOverviewMapProps {
     name: string
     latitude: number
     longitude: number
+    isHighlighted?: boolean
   }>
   transportMode?: 'car' | 'bike' | 'foot' | 'train' | 'flight' | 'bus' | 'mixed'
   className?: string
+  highlightedIndex?: number // Index of the location to highlight
+  // Optional: preview an alternative route without changing primary route
+  previewLocations?: Array<{ latitude: number; longitude: number }>
 }
 
-export function TripOverviewMap({ locations, transportMode = 'car', className = '' }: TripOverviewMapProps) {
+function TripOverviewMapComponent({ locations, transportMode = 'car', className = '', previewLocations }: TripOverviewMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
   const markers = useRef<maplibregl.Marker[]>([])
   const [routeLoading, setRouteLoading] = useState(false)
   const [routeProvider, setRouteProvider] = useState<string | null>(null)
 
+  // CRITICAL FIX: Use stable location key to prevent re-initialization on hover
+  // Only re-initialize if actual locations change (add/remove), not on every render
+  const locationKey = locations.map(l => `${l.name}-${l.latitude}-${l.longitude}`).join('|')
+  const previousLocationKey = useRef<string>('')
+
   useEffect(() => {
+    // Only initialize if map doesn't exist and container is ready
     if (!mapContainer.current || map.current) return
 
     // Small delay to ensure container is rendered
     const timer = setTimeout(() => {
       try {
-        if (!mapContainer.current) return
+        if (!mapContainer.current || map.current) return // Double-check map doesn't exist
 
         // Initialize map with CARTO basemap
         map.current = new maplibregl.Map({
@@ -89,17 +99,30 @@ export function TripOverviewMap({ locations, transportMode = 'car', className = 
         map.current.on('load', () => {
           if (!map.current) return
 
-          // Add markers for each location
+          // Add markers for each location with highlighting support
           locations.forEach((location, index) => {
             const el = document.createElement('div')
-            el.className = 'w-8 h-8 bg-teal-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:scale-110 transition-transform'
+            // SIMPLIFIED: All pins are red, same size, no fly-in animation
+            el.className = 'w-8 h-8 bg-red-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:scale-110 transition-transform'
+            el.style.display = 'flex'
+            el.style.alignItems = 'center'
+            el.style.justifyContent = 'center'
             el.textContent = (index + 1).toString()
 
-            const marker = new maplibregl.Marker({ element: el })
+            const marker = new maplibregl.Marker({
+              element: el,
+              anchor: 'center'
+            })
               .setLngLat([location.longitude, location.latitude])
               .setPopup(
-                new maplibregl.Popup({ offset: 25 })
-                  .setHTML(`<div class="font-semibold">${location.name}</div>`)
+                new maplibregl.Popup({
+                  offset: 25,
+                  maxWidth: '400px',
+                  className: 'location-popup-custom',
+                  closeButton: true,
+                  closeOnClick: false
+                })
+                  .setHTML(`<div class="font-semibold text-base p-3 whitespace-normal break-words leading-relaxed">${location.name}</div>`)
               )
               .addTo(map.current!)
 
@@ -211,7 +234,147 @@ export function TripOverviewMap({ locations, transportMode = 'car', className = 
       map.current?.remove()
       map.current = null
     }
-  }, [locations])
+  }, []) // CRITICAL FIX: Empty dependency array - map initializes ONCE and never re-renders
+
+  // Update markers, route, and fit bounds when locations or transport mode change
+  useEffect(() => {
+    if (!map.current) return
+
+    try {
+      // Prevent unnecessary work if nothing changed
+      if (previousLocationKey.current === locationKey) return
+      previousLocationKey.current = locationKey
+
+      const m = map.current
+
+      // Remove old markers
+      markers.current.forEach(marker => marker.remove())
+      markers.current = []
+
+      // Add new markers
+      locations.forEach((location, index) => {
+        const el = document.createElement('div')
+        el.className = 'w-8 h-8 bg-red-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white font-bold text-sm'
+        el.textContent = (index + 1).toString()
+        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([location.longitude, location.latitude])
+          .addTo(m!)
+        markers.current.push(marker)
+      })
+
+      // Remove existing route
+      if (m.getSource('route')) {
+        if (m.getLayer('route')) m.removeLayer('route')
+        m.removeSource('route')
+      }
+
+      // Update route
+      if (locations.length > 1) {
+        setRouteLoading(true)
+        fetchRealRoute(locations, transportMode)
+          .then(routeData => {
+            if (!map.current) return
+            const mm = map.current
+            if (mm.getSource('route')) {
+              if (mm.getLayer('route')) mm.removeLayer('route')
+              mm.removeSource('route')
+            }
+            mm.addSource('route', {
+              type: 'geojson',
+              data: { type: 'Feature', properties: {}, geometry: routeData.geometry }
+            })
+            mm.addLayer({
+              id: 'route',
+              type: 'line',
+              source: 'route',
+              layout: { 'line-join': 'round', 'line-cap': 'round' },
+              paint: { 'line-color': '#14b8a6', 'line-width': 3, 'line-opacity': 0.85 }
+            })
+            setRouteProvider(routeData.provider)
+            setRouteLoading(false)
+          })
+          .catch(() => {
+            // Fallback to straight line
+            if (!map.current) return
+            const mm = map.current
+            const coordinates = locations.map(loc => [loc.longitude, loc.latitude])
+            mm.addSource('route', {
+              type: 'geojson',
+              data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates } }
+            })
+            mm.addLayer({
+              id: 'route',
+              type: 'line',
+              source: 'route',
+              layout: { 'line-join': 'round', 'line-cap': 'round' },
+              paint: { 'line-color': '#14b8a6', 'line-width': 3, 'line-opacity': 0.8, 'line-dasharray': [2, 2] }
+            })
+            setRouteProvider('osrm')
+            setRouteLoading(false)
+          })
+      }
+
+      // Fit bounds with animation
+      if (locations.length > 0) {
+        const bounds = new maplibregl.LngLatBounds()
+        locations.forEach(loc => bounds.extend([loc.longitude, loc.latitude]))
+        m.fitBounds(bounds, { padding: 50, maxZoom: 10, duration: 300 })
+      }
+    } catch (err) {
+      console.warn('Map update failed:', err)
+    }
+  }, [locationKey, transportMode])
+
+  // Preview alternative route overlay (hover in Change Route modal)
+  const previewKey = (previewLocations || []).map(l => `${l.latitude},${l.longitude}`).join('|')
+  useEffect(() => {
+    if (!map.current) return
+    const m = map.current
+
+    // Remove previous preview layer/source
+    if (m.getSource('preview-route')) {
+      if (m.getLayer('preview-route')) m.removeLayer('preview-route')
+      m.removeSource('preview-route')
+    }
+
+    if (!previewLocations || previewLocations.length < 2) return
+
+    // Fetch and render preview route
+    fetchRealRoute(previewLocations, transportMode)
+      .then(routeData => {
+        if (!map.current) return
+        const mm = map.current
+        // Safety: remove if still exists
+        if (mm.getSource('preview-route')) {
+          if (mm.getLayer('preview-route')) mm.removeLayer('preview-route')
+          mm.removeSource('preview-route')
+        }
+        mm.addSource('preview-route', {
+          type: 'geojson',
+          data: { type: 'Feature', properties: {}, geometry: routeData.geometry }
+        })
+        mm.addLayer({
+          id: 'preview-route',
+          type: 'line',
+          source: 'preview-route',
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: {
+            'line-color': '#3b82f6',
+            'line-width': 2,
+            'line-opacity': 0.65,
+            'line-dasharray': [1, 2]
+          }
+        })
+      })
+      .catch(() => {
+        // Silent fail for preview
+      })
+  }, [previewKey, transportMode])
+
+
+  // DISABLED: No automatic animation on hover/scroll - too sensitive and annoying
+  // Map stays static and users can manually pan/zoom if needed
+  // This prevents the constant resetting and restarting of zoom animations
 
   return (
     <div className="relative">
@@ -235,6 +398,9 @@ export function TripOverviewMap({ locations, transportMode = 'car', className = 
     </div>
   )
 }
+
+// Memoize component to prevent unnecessary re-renders when parent updates
+export const TripOverviewMap = memo(TripOverviewMapComponent)
 
 /**
  * Fetch real road route from routing API

@@ -76,7 +76,7 @@ CREATE TRIGGER trip_contributions_count_trigger
 
 -- View: Top contributors per trip
 CREATE OR REPLACE VIEW trip_top_contributors AS
-SELECT 
+SELECT
   tc.trip_id,
   tc.user_id,
   p.full_name,
@@ -84,7 +84,7 @@ SELECT
   p.avatar_url,
   COUNT(*) as contribution_count,
   MAX(tc.created_at) as last_contribution_at,
-  ARRAY_AGG(DISTINCT tc.contribution_type) as contribution_types
+  ARRAY_AGG(DISTINCT tc.contribution_type)::TEXT[] as contribution_types
 FROM trip_contributions tc
 JOIN profiles p ON p.id = tc.user_id
 GROUP BY tc.trip_id, tc.user_id, p.full_name, p.username, p.avatar_url
