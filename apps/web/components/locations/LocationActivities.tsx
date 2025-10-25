@@ -89,10 +89,31 @@ export function LocationActivities({ activities, locationName }: LocationActivit
                 {isChecked && <Check className="h-4 w-4 text-white" />}
               </div>
 
-              {/* Activity Icon */}
-              <div className="flex-shrink-0 w-10 h-10 bg-rausch-50 rounded-sleek-small flex items-center justify-center">
-                <IconComponent className="h-5 w-5 text-rausch-500" />
-              </div>
+              {/* Activity Image or Icon */}
+              {activity.image_url ? (
+                <div className="flex-shrink-0 w-16 h-16 rounded-sleek-small overflow-hidden bg-gray-100">
+                  <img
+                    src={activity.image_url}
+                    alt={activity.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback to icon if image fails to load
+                      e.currentTarget.style.display = 'none'
+                      e.currentTarget.parentElement!.innerHTML = `
+                        <div class="w-full h-full bg-rausch-50 flex items-center justify-center">
+                          <svg class="h-6 w-6 text-rausch-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                          </svg>
+                        </div>
+                      `
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="flex-shrink-0 w-16 h-16 bg-rausch-50 rounded-sleek-small flex items-center justify-center">
+                  <IconComponent className="h-6 w-6 text-rausch-500" />
+                </div>
+              )}
 
               {/* Activity Details */}
               <div className="flex-1 min-w-0">

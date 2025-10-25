@@ -580,8 +580,13 @@ export async function fetchRestaurantImage(
 /**
  * Fetch Activity Image with Enhanced Contextualization
  *
- * Searches with BOTH location name AND country for highly specific, contextualized images
- * Example: "Neuschwanstein Castle Magdeburg Germany" instead of just "Neuschwanstein Castle"
+ * PRIORITY ORDER (as per user requirements):
+ * 1. Brave Images API (best quality, web-scale search)
+ * 2. Reddit Ultra System (community photos, high engagement)
+ * 3. Pexels (stock photos, unlimited)
+ * 4. Unsplash (professional photography)
+ * 5. Wikipedia/Wikimedia (location-specific)
+ * 6. Openverse (Creative Commons)
  *
  * @param activityName - Name of the activity/attraction
  * @param locationName - Name of the location (city)
@@ -604,21 +609,66 @@ export async function fetchActivityImage(
 
   console.log(`🔍 Fetching activity image with context: "${contextualQuery}"`)
 
-  // Try Pexels with full context
-  const activityImage = await fetchPexelsImage(contextualQuery)
-  if (activityImage) {
-    console.log(`✅ Found contextualized image from Pexels`)
-    return activityImage
+  // PRIORITY 1: Brave Images API (if API key available)
+  const braveApiKey = process.env.BRAVE_SEARCH_API_KEY
+  if (braveApiKey) {
+    try {
+      const braveUrl = `https://api.search.brave.com/res/v1/images/search?q=${encodeURIComponent(contextualQuery)}&count=1`
+      const braveResponse = await fetch(braveUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'Accept-Encoding': 'gzip',
+          'X-Subscription-Token': braveApiKey
+        }
+      })
+
+      if (braveResponse.ok) {
+        const braveData = await braveResponse.json()
+        const braveImage = braveData.results?.[0]?.thumbnail?.src || braveData.results?.[0]?.properties?.url
+        if (braveImage) {
+          console.log(`✅ PRIORITY 1: Found image from Brave Images API`)
+          return braveImage
+        }
+      }
+    } catch (err) {
+      console.error('Brave Images API error:', err)
+    }
   }
 
-  // Fallback to Wikipedia with activity name only
-  const genericImage = await fetchWikipediaImage(activityName)
-  if (genericImage) {
-    console.log(`✅ Found generic image from Wikipedia`)
-    return genericImage
+  // PRIORITY 2: Reddit Ultra System (community photos)
+  try {
+    const { scrapeRedditImages } = await import('./socialImageScraperService')
+    const redditImages = await scrapeRedditImages(contextualQuery, 1)
+    if (redditImages.length > 0) {
+      console.log(`✅ PRIORITY 2: Found image from Reddit Ultra`)
+      return redditImages[0].url
+    }
+  } catch (err) {
+    console.error('Reddit Ultra error:', err)
   }
 
-  console.log(`⚠️ No image found, using placeholder`)
+  // PRIORITY 3: Pexels (stock photos, unlimited)
+  const pexelsImage = await fetchPexelsImage(contextualQuery)
+  if (pexelsImage) {
+    console.log(`✅ PRIORITY 3: Found image from Pexels`)
+    return pexelsImage
+  }
+
+  // PRIORITY 4: Unsplash (professional photography)
+  const unsplashImage = await fetchUnsplashImage(contextualQuery)
+  if (unsplashImage) {
+    console.log(`✅ PRIORITY 4: Found image from Unsplash`)
+    return unsplashImage
+  }
+
+  // PRIORITY 5: Wikipedia/Wikimedia (location-specific)
+  const wikipediaImage = await fetchWikipediaImage(activityName)
+  if (wikipediaImage) {
+    console.log(`✅ PRIORITY 5: Found image from Wikipedia`)
+    return wikipediaImage
+  }
+
+  console.log(`⚠️ No image found from any source, using placeholder`)
   return '/placeholder-activity.svg'
 }
 
