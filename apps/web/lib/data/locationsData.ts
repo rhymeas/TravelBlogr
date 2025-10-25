@@ -13,6 +13,7 @@ export interface LocationActivity {
   image_url?: string
   link_url?: string
   link_source?: 'wikipedia' | 'wikivoyage' | 'google' | 'official' | 'booking' | 'guide'
+  website?: string  // Legacy field for backwards compatibility
 }
 
 export interface LocationRestaurant {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Clock, DollarSign, Mountain, Users, Utensils, Waves, Heart } from 'lucide-react'
+import { Check, Clock, DollarSign, Mountain, Users, Utensils, Waves, Heart, ExternalLink } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { LocationActivity } from '@/lib/data/locationsData'
@@ -122,9 +122,23 @@ export function LocationActivities({ activities, locationName }: LocationActivit
                     )}
                   </div>
                 </div>
-                <p className="text-body-medium text-sleek-dark-gray">
+                <p className="text-body-medium text-sleek-dark-gray mb-2">
                   {activity.description}
                 </p>
+
+                {/* Activity Link */}
+                {(activity.link_url || activity.website) && (
+                  <a
+                    href={activity.link_url || activity.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-rausch-500 hover:text-rausch-600 font-medium transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Learn more
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                )}
               </div>
             </div>
           )
