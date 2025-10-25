@@ -4,10 +4,15 @@
  * Also fixes missing activity images!
  */
 
+import { config } from 'dotenv'
+import { resolve } from 'path'
 import { createClient } from '@supabase/supabase-js'
 import { fetchLocationGalleryHighQuality } from '../apps/web/lib/services/enhancedImageService'
 import { fetchSocialImages } from '../apps/web/lib/services/socialImageScraperService'
 import { fetchActivityImage } from '../apps/web/lib/services/robustImageService'
+
+// Load environment variables from apps/web/.env.local
+config({ path: resolve(__dirname, '../apps/web/.env.local') })
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
