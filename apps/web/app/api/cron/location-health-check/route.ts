@@ -1,18 +1,20 @@
 /**
  * Automated Background Job: Location Health Check & Auto-Fix
- * 
+ *
  * Comprehensive maintenance system that automatically:
  * 1. Replaces placeholder images with real photos
  * 2. Fixes incorrect descriptions (language issues, wrong location types)
  * 3. Validates and fixes broken image URLs
  * 4. Ensures data quality and consistency
- * 
+ * 5. Fixes missing activity images in location_activity_links
+ *
  * Runs every 8 hours, processes 5 locations per batch.
  * Uses smart detection to identify problematic locations.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
+import { fetchActivityImage } from '@/lib/services/robustImageService'
 
 // Force dynamic rendering for cron routes
 export const dynamic = 'force-dynamic'
@@ -123,6 +125,50 @@ export async function GET(request: NextRequest) {
               status: 'success',
               fixes: Object.keys(fixes)
             })
+          }
+        }
+
+        // 3. Fix missing activity images for this location
+        console.log('  🎯 Checking activity images...')
+        const { data: activities } = await supabase
+          .from('location_activity_links')
+          .select('id, activity_name, image_url')
+          .eq('location_id', location.id)
+          .or('image_url.is.null,image_url.eq.')
+          .limit(5) // Fix up to 5 activities per location
+
+        if (activities && activities.length > 0) {
+          console.log(`  📸 Found ${activities.length} activities without images`)
+          let activityImagesFailed = 0
+          let activityImagesFixed = 0
+
+          for (const activity of activities) {
+            try {
+              const imageUrl = await fetchActivityImage(activity.activity_name, location.name)
+
+              if (imageUrl && imageUrl !== '/placeholder-activity.svg') {
+                await supabase
+                  .from('location_activity_links')
+                  .update({
+                    image_url: imageUrl,
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', activity.id)
+
+                activityImagesFixed++
+                console.log(`    ✅ Fixed image for: ${activity.activity_name}`)
+              }
+            } catch (err) {
+              activityImagesFailed++
+              console.log(`    ⚠️ Failed to fetch image for: ${activity.activity_name}`)
+            }
+
+            // Small delay between activity image fetches
+            await new Promise(resolve => setTimeout(resolve, 300))
+          }
+
+          if (activityImagesFixed > 0) {
+            console.log(`  ✅ Fixed ${activityImagesFixed} activity images`)
           }
         }
 

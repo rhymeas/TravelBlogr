@@ -1,6 +1,6 @@
 /**
  * Location Linking Utility
- * 
+ *
  * Automatically detects location names in text and creates links to location detail pages
  * Used in blog posts to link mentioned locations to their detail pages
  */
@@ -16,6 +16,58 @@ export function locationToSlug(locationName: string): string {
     .replace(/\s+/g, '-')          // Replace spaces with hyphens
     .replace(/-+/g, '-')           // Remove duplicate hyphens
     .trim()
+}
+
+/**
+ * Get simple location name (just city name, no region/country)
+ * Example: "Magdeburg, Saxony-Anhalt, Germany" → "Magdeburg"
+ */
+export function getSimpleLocationName(fullName: string): string {
+  if (!fullName) return ''
+  // Split by comma and take first part (city name)
+  return fullName.split(',')[0].trim()
+}
+
+/**
+ * Create simple slug from city name and country
+ * Example: "Magdeburg" + "Germany" → "magdeburg-germany"
+ */
+export function createSimpleSlug(cityName: string, country: string): string {
+  const citySlug = cityName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim()
+
+  const countrySlug = country
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim()
+
+  return `${citySlug}-${countrySlug}`
+}
+
+/**
+ * Parse location name into components
+ * Example: "Magdeburg, Saxony-Anhalt, Germany" → { city: "Magdeburg", region: "Saxony-Anhalt", country: "Germany" }
+ */
+export function parseLocationName(fullName: string): { city: string; region?: string; country?: string } {
+  if (!fullName) return { city: '' }
+
+  const parts = fullName.split(',').map(p => p.trim())
+
+  if (parts.length === 1) {
+    return { city: parts[0] }
+  } else if (parts.length === 2) {
+    return { city: parts[0], country: parts[1] }
+  } else if (parts.length >= 3) {
+    return { city: parts[0], region: parts[1], country: parts[2] }
+  }
+
+  return { city: fullName }
 }
 
 /**

@@ -1,11 +1,13 @@
 /**
  * Refetch images for latest 10 locations with NEW social media integration
  * Includes Reddit, Flickr, Pinterest images!
+ * Also fixes missing activity images!
  */
 
 import { createClient } from '@supabase/supabase-js'
 import { fetchLocationGalleryHighQuality } from '../apps/web/lib/services/enhancedImageService'
 import { fetchSocialImages } from '../apps/web/lib/services/socialImageScraperService'
+import { fetchActivityImage } from '../apps/web/lib/services/robustImageService'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -68,18 +70,60 @@ async function refetchImagesForLocation(locationId: string, locationName: string
       console.log(`   ✅ Updated successfully!`)
       console.log(`      Featured: ${uniqueImages[0].substring(0, 60)}...`)
       console.log(`      Gallery: ${uniqueImages.length} images`)
-      
+
       // Show breakdown by platform
       const redditCount = socialImages.filter(img => img.platform === 'Reddit').length
       const flickrCount = socialImages.filter(img => img.platform === 'Flickr').length
       const pinterestCount = socialImages.filter(img => img.platform === 'Pinterest').length
-      
+
       if (redditCount > 0 || flickrCount > 0 || pinterestCount > 0) {
         console.log(`      Social breakdown:`)
         if (redditCount > 0) console.log(`        - Reddit: ${redditCount} images`)
         if (flickrCount > 0) console.log(`        - Flickr: ${flickrCount} images`)
         if (pinterestCount > 0) console.log(`        - Pinterest: ${pinterestCount} images`)
       }
+    }
+
+    // Also fix activity images for this location
+    console.log('   🎯 Fixing activity images...')
+    const { data: activities } = await supabase
+      .from('location_activity_links')
+      .select('id, activity_name, image_url')
+      .eq('location_id', locationId)
+      .or('image_url.is.null,image_url.eq.')
+      .limit(10)
+
+    if (activities && activities.length > 0) {
+      console.log(`   📸 Found ${activities.length} activities without images`)
+      let fixed = 0
+
+      for (const activity of activities) {
+        try {
+          const imageUrl = await fetchActivityImage(activity.activity_name, locationName)
+
+          if (imageUrl && imageUrl !== '/placeholder-activity.svg') {
+            await supabase
+              .from('location_activity_links')
+              .update({
+                image_url: imageUrl,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', activity.id)
+
+            fixed++
+            console.log(`      ✅ ${activity.activity_name}`)
+          }
+        } catch (err) {
+          console.log(`      ⚠️ Failed: ${activity.activity_name}`)
+        }
+
+        // Small delay
+        await new Promise(resolve => setTimeout(resolve, 300))
+      }
+
+      console.log(`   ✅ Fixed ${fixed}/${activities.length} activity images`)
+    } else {
+      console.log(`   ✅ All activities have images`)
     }
 
   } catch (error) {

@@ -13,6 +13,7 @@ import { LocationRestaurants } from './LocationRestaurants'
 import { LocationExperiences } from './LocationExperiences'
 import { LocationDidYouKnow } from './LocationDidYouKnow'
 import { LocationRecommendations } from './LocationRecommendations'
+import { getSimpleLocationName } from '@/lib/utils/locationLinking'
 import { EditableLocationDescription } from './EditableLocationDescription'
 import { EditableLocationActivities } from './EditableLocationActivities'
 import { EditableLocationRestaurants } from './EditableLocationRestaurants'
@@ -212,7 +213,7 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
             {location.country}
           </Link>
           <span className="text-sleek-gray">›</span>
-          <span className="text-sleek-black">{location.name}</span>
+          <span className="text-sleek-black">{getSimpleLocationName(location.name)}</span>
         </nav>
       </div>
 

@@ -5,6 +5,7 @@ import { Edit2, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/hooks/useAuth'
 import toast from 'react-hot-toast'
+import { getSimpleLocationName } from '@/lib/utils/locationLinking'
 
 interface EditableLocationTitleProps {
   locationId: string
@@ -114,7 +115,7 @@ export function EditableLocationTitle({
   return (
     <div className="group relative inline-block">
       <h1 className="text-display-medium font-bold text-sleek-black mb-2">
-        {name}
+        {getSimpleLocationName(name)}
       </h1>
       {isAuthenticated && enabled && (
         <button
