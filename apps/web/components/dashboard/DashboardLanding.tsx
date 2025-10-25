@@ -17,7 +17,8 @@ import {
   PenLine,
   Heart,
   Check,
-  StickyNote
+  StickyNote,
+  Image as ImageIcon
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -120,6 +121,12 @@ export function DashboardLanding() {
           {/* Admin Buttons - Only visible to admins */}
           {userIsAdmin && (
             <div className="flex items-center gap-2">
+              <Link href="/test-activity-images">
+                <Button variant="outline" className="flex items-center gap-2 border-blue-200 hover:bg-blue-50">
+                  <ImageIcon className="h-4 w-4 text-blue-600" />
+                  <span className="text-blue-600 font-medium">Image Test</span>
+                </Button>
+              </Link>
               <Link href="/dashboard/batch">
                 <Button variant="outline" className="flex items-center gap-2 border-purple-200 hover:bg-purple-50">
                   <Zap className="h-4 w-4 text-purple-600" />

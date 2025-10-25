@@ -220,6 +220,11 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'www.reddit.com',
       },
+      // Brave image thumbnails
+      {
+        protocol: 'https',
+        hostname: '*.search.brave.com',
+      },
       // Imgur images
       {
         protocol: 'https',

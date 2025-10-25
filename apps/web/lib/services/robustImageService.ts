@@ -123,43 +123,41 @@ async function fetchPexelsImage(searchTerm: string): Promise<string | null> {
   }
 
   try {
-    // Fetch more results to filter for quality
+    // Fetch fewer results for speed, use small images
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 3000) // 3s timeout
+
     const response = await fetch(
-      `https://api.pexels.com/v1/search?query=${encodeURIComponent(searchTerm)}&per_page=10&orientation=landscape`,
+      `https://api.pexels.com/v1/search?query=${encodeURIComponent(searchTerm)}&per_page=3&orientation=landscape`,
       {
         headers: {
           'Authorization': apiKey
-        }
+        },
+        signal: controller.signal
       }
     )
+
+    clearTimeout(timeoutId)
 
     if (!response.ok) return null
 
     const data = await response.json()
 
     if (data.photos && data.photos.length > 0) {
-      // Filter for high-quality, relevant images
-      // Prefer images with higher width (better quality)
-      // Avoid images that are too narrow or too square
-      const qualityPhotos = data.photos.filter((photo: any) => {
-        const width = photo.width
-        const height = photo.height
-        const aspectRatio = width / height
-
-        // Prefer landscape images (aspect ratio between 1.3 and 2.5)
-        // Minimum width of 1920px for quality
-        return width >= 1920 && aspectRatio >= 1.3 && aspectRatio <= 2.5
-      })
-
-      const selectedPhoto = qualityPhotos[0] || data.photos[0]
+      const selectedPhoto = data.photos[0]
 
       console.log(`✅ Pexels: Found image for "${searchTerm}" (${selectedPhoto.width}x${selectedPhoto.height})`)
-      return selectedPhoto.src.large2x || selectedPhoto.src.large
+      // Use SMALL or MEDIUM size for fast loading (not large2x!)
+      return selectedPhoto.src.medium || selectedPhoto.src.small || selectedPhoto.src.large
     }
 
     return null
-  } catch (error) {
-    console.error('Pexels error:', error)
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.error('Pexels timeout after 3s')
+    } else {
+      console.error('Pexels error:', error)
+    }
     return null
   }
 }
@@ -177,33 +175,41 @@ async function fetchUnsplashImage(searchTerm: string): Promise<string | null> {
   }
 
   try {
-    // Fetch more results and use orientation filter
+    // Fetch fewer results for speed, add timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 3000) // 3s timeout
+
     const response = await fetch(
-      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchTerm)}&per_page=10&orientation=landscape`,
+      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchTerm)}&per_page=3&orientation=landscape`,
       {
         headers: {
           'Authorization': `Client-ID ${apiKey}`
-        }
+        },
+        signal: controller.signal
       }
     )
+
+    clearTimeout(timeoutId)
 
     if (!response.ok) return null
 
     const data = await response.json()
 
     if (data.results && data.results.length > 0) {
-      // Filter for high-quality images
-      // Prefer images with more likes (better quality/relevance)
-      const sortedResults = data.results.sort((a: any, b: any) => b.likes - a.likes)
-      const selectedImage = sortedResults[0]
+      const selectedImage = data.results[0]
 
       console.log(`✅ Unsplash: Found image for "${searchTerm}" (${selectedImage.likes} likes)`)
-      return selectedImage.urls.regular
+      // Use SMALL size for fast loading (not regular!)
+      return selectedImage.urls.small || selectedImage.urls.regular
     }
 
     return null
-  } catch (error) {
-    console.error('Unsplash error:', error)
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.error('Unsplash timeout after 3s')
+    } else {
+      console.error('Unsplash error:', error)
+    }
     return null
   }
 }
@@ -611,16 +617,24 @@ export async function fetchActivityImage(
 
   // PRIORITY 1: Brave Images API (if API key available)
   const braveApiKey = process.env.BRAVE_SEARCH_API_KEY
+  console.log(`🔑 Brave API key available: ${braveApiKey ? 'YES' : 'NO'}`)
   if (braveApiKey) {
+    console.log(`🚀 Calling Brave Images API for: "${contextualQuery}"`)
     try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 2000) // 2s timeout for Brave
+
       const braveUrl = `https://api.search.brave.com/res/v1/images/search?q=${encodeURIComponent(contextualQuery)}&count=1`
       const braveResponse = await fetch(braveUrl, {
         headers: {
           'Accept': 'application/json',
           'Accept-Encoding': 'gzip',
           'X-Subscription-Token': braveApiKey
-        }
+        },
+        signal: controller.signal
       })
+
+      clearTimeout(timeoutId)
 
       if (braveResponse.ok) {
         const braveData = await braveResponse.json()
@@ -630,8 +644,12 @@ export async function fetchActivityImage(
           return braveImage
         }
       }
-    } catch (err) {
-      console.error('Brave Images API error:', err)
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.error('Brave API timeout after 2s')
+      } else {
+        console.error('Brave Images API error:', err)
+      }
     }
   }
 

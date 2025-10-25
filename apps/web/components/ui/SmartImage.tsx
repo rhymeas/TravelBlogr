@@ -5,7 +5,7 @@
  */
 
 import Image, { ImageProps } from 'next/image'
-import { getCDNUrl } from '@/lib/image-cdn'
+import { getCDNUrl, isImageKitConfigured } from '@/lib/image-cdn'
 
 interface SmartImageProps extends Omit<ImageProps, 'src'> {
   src: string
@@ -20,10 +20,7 @@ export function SmartImage({ src, alt, ...props }: SmartImageProps) {
   // Check if the image is an SVG
   const isSVG = src.endsWith('.svg')
 
-  // ✅ Route through ImageKit CDN (except SVGs and local images)
-  const cdnSrc = isSVG || src.startsWith('/') ? src : getCDNUrl(src)
-
-  // For SVG files, use unoptimized mode
+  // ✅ For SVG files, use unoptimized mode
   if (isSVG) {
     return (
       <Image
@@ -35,10 +32,36 @@ export function SmartImage({ src, alt, ...props }: SmartImageProps) {
     )
   }
 
-  // For other images, use ImageKit CDN URL
+  // ✅ For local images, use Next.js Image optimization directly
+  if (src.startsWith('/')) {
+    return (
+      <Image
+        src={src}
+        alt={alt}
+        {...props}
+      />
+    )
+  }
+
+  // ✅ For external images:
+  // If ImageKit is configured, use it directly (unoptimized to avoid double-encoding)
+  // Otherwise, use Next.js Image optimization
+  if (isImageKitConfigured()) {
+    const cdnSrc = getCDNUrl(src)
+    return (
+      <Image
+        src={cdnSrc}
+        alt={alt}
+        unoptimized  // ✅ CRITICAL: Prevent double-encoding with Next.js Image
+        {...props}
+      />
+    )
+  }
+
+  // Fallback: Use Next.js Image optimization for external images
   return (
     <Image
-      src={cdnSrc}
+      src={src}
       alt={alt}
       {...props}
     />

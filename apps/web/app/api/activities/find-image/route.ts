@@ -15,6 +15,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing activityName or locationName' }, { status: 400 })
     }
 
+    // Debug: Check if Brave API key is available
+    const braveKey = process.env.BRAVE_SEARCH_API_KEY
+    console.log(`🔑 [API Route] Brave API key available: ${braveKey ? 'YES (' + braveKey.substring(0, 10) + '...)' : 'NO'}`)
+
     // Enhanced: Include country for better contextualization
     const url = await fetchActivityImage(activityName, locationName, country)
     return NextResponse.json({ success: true, url })
