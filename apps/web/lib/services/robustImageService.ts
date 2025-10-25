@@ -578,21 +578,47 @@ export async function fetchRestaurantImage(
 }
 
 /**
- * Fetch Activity Image
+ * Fetch Activity Image with Enhanced Contextualization
+ *
+ * Searches with BOTH location name AND country for highly specific, contextualized images
+ * Example: "Neuschwanstein Castle Magdeburg Germany" instead of just "Neuschwanstein Castle"
+ *
+ * @param activityName - Name of the activity/attraction
+ * @param locationName - Name of the location (city)
+ * @param country - Country name for additional context
+ * @param manualUrl - Optional manual URL override
+ * @returns Image URL or placeholder
  */
 export async function fetchActivityImage(
   activityName: string,
   locationName: string,
+  country?: string,
   manualUrl?: string
 ): Promise<string> {
   if (manualUrl) return manualUrl
 
-  const activityImage = await fetchPexelsImage(`${activityName} ${locationName}`)
-  if (activityImage) return activityImage
+  // Enhanced search query with location + country context
+  const contextualQuery = country
+    ? `${activityName} ${locationName} ${country}`
+    : `${activityName} ${locationName}`
 
+  console.log(`🔍 Fetching activity image with context: "${contextualQuery}"`)
+
+  // Try Pexels with full context
+  const activityImage = await fetchPexelsImage(contextualQuery)
+  if (activityImage) {
+    console.log(`✅ Found contextualized image from Pexels`)
+    return activityImage
+  }
+
+  // Fallback to Wikipedia with activity name only
   const genericImage = await fetchWikipediaImage(activityName)
-  if (genericImage) return genericImage
+  if (genericImage) {
+    console.log(`✅ Found generic image from Wikipedia`)
+    return genericImage
+  }
 
+  console.log(`⚠️ No image found, using placeholder`)
   return '/placeholder-activity.svg'
 }
 

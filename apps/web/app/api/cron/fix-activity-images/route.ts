@@ -79,11 +79,12 @@ export async function GET(request: NextRequest) {
       console.log(`\n📍 [CRON] Processing: ${activity.activity_name} in ${location.name}`)
 
       try {
-        // Fetch image for activity
-        console.log(`  🖼️ Fetching image...`)
+        // Fetch image for activity with enhanced contextualization (location + country)
+        console.log(`  🖼️ Fetching contextualized image...`)
         const imageUrl = await fetchActivityImage(
           activity.activity_name,
-          location.name
+          location.name,
+          location.country // Enhanced: Include country for better context
         )
 
         if (!imageUrl || imageUrl === '/placeholder-activity.svg') {

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { SmartImage as Image } from '@/components/ui/SmartImage'
-import { Star, Heart, Eye, MapPin, Calendar, Users, Share2, Bookmark, Edit2 } from 'lucide-react'
+import { Star, Heart, Eye, MapPin, Calendar, Users, Share2, Bookmark, Edit2, RefreshCw } from 'lucide-react'
 import { Location } from '@/lib/data/locationsData'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -280,6 +280,39 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
                   onClick={() => setIsUploadOpen(true)}
                 >
                   Upload Photos
+                </Button>
+
+                {/* Admin Refetch Button - Only for admin users */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
+                  onClick={async () => {
+                    if (!confirm('Refetch all images and activity images for this location?')) return
+
+                    try {
+                      const response = await fetch('/api/admin/refresh-images', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ locationSlug: location.slug })
+                      })
+
+                      const data = await response.json()
+
+                      if (response.ok) {
+                        alert(`✅ Refetch complete!\n\nFeatured: ${data.featuredImage ? 'Updated' : 'No change'}\nGallery: ${data.galleryCount || 0} images\n\nPage will refresh...`)
+                        window.location.reload()
+                      } else {
+                        alert(`❌ Refetch failed: ${data.error}`)
+                      }
+                    } catch (error) {
+                      alert(`❌ Refetch failed: ${error}`)
+                    }
+                  }}
+                  title="Admin: Refetch all images and activity images"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refetch Images
                 </Button>
               </>
             )}

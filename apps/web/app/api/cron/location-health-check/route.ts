@@ -144,7 +144,12 @@ export async function GET(request: NextRequest) {
 
           for (const activity of activities) {
             try {
-              const imageUrl = await fetchActivityImage(activity.activity_name, location.name)
+              // Enhanced: Include country for better contextualization
+              const imageUrl = await fetchActivityImage(
+                activity.activity_name,
+                location.name,
+                location.country
+              )
 
               if (imageUrl && imageUrl !== '/placeholder-activity.svg') {
                 await supabase

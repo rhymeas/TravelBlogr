@@ -22,8 +22,8 @@ interface ImageResult {
   title?: string
 }
 
-async function refetchImagesForLocation(locationId: string, locationName: string) {
-  console.log(`\n📍 Refetching images for: ${locationName}`)
+async function refetchImagesForLocation(locationId: string, locationName: string, country: string) {
+  console.log(`\n📍 Refetching images for: ${locationName}, ${country}`)
   console.log(`   Location ID: ${locationId}`)
 
   try {
@@ -84,8 +84,8 @@ async function refetchImagesForLocation(locationId: string, locationName: string
       }
     }
 
-    // Also fix activity images for this location
-    console.log('   🎯 Fixing activity images...')
+    // Also fix activity images for this location with enhanced contextualization
+    console.log('   🎯 Fixing activity images with location + country context...')
     const { data: activities } = await supabase
       .from('location_activity_links')
       .select('id, activity_name, image_url')
@@ -99,7 +99,12 @@ async function refetchImagesForLocation(locationId: string, locationName: string
 
       for (const activity of activities) {
         try {
-          const imageUrl = await fetchActivityImage(activity.activity_name, locationName)
+          // Enhanced: Include country for better contextualization
+          const imageUrl = await fetchActivityImage(
+            activity.activity_name,
+            locationName,
+            country
+          )
 
           if (imageUrl && imageUrl !== '/placeholder-activity.svg') {
             await supabase
@@ -136,10 +141,10 @@ async function main() {
   console.log('   Sources: Pexels, Unsplash, Wikimedia, Reddit, Flickr, Pinterest')
   console.log('   Filters: Excluding army, veterans, navy, medicines\n')
 
-  // Get latest 10 locations
+  // Get latest 10 locations with country data
   const { data: locations, error } = await supabase
     .from('locations')
-    .select('id, name, slug, created_at')
+    .select('id, name, slug, country, created_at')
     .order('created_at', { ascending: false })
     .limit(10)
 
@@ -162,8 +167,8 @@ async function main() {
 
   // Process each location
   for (const location of locations) {
-    await refetchImagesForLocation(location.id, location.name)
-    
+    await refetchImagesForLocation(location.id, location.name, location.country)
+
     // Add delay to avoid rate limiting
     await new Promise(resolve => setTimeout(resolve, 2000))
   }
