@@ -92,7 +92,7 @@ export function useRealtimeRating({
           table: 'location_ratings',
           filter: `location_id=eq.${locationId}`
         },
-        (payload) => {
+        (payload: any) => {
           console.log('⭐ New rating received:', payload.new)
           fetchRatingStats()
         }
@@ -105,7 +105,7 @@ export function useRealtimeRating({
           table: 'location_ratings',
           filter: `location_id=eq.${locationId}`
         },
-        (payload) => {
+        (payload: any) => {
           console.log('⭐ Rating updated:', payload.new)
           fetchRatingStats()
         }
@@ -118,12 +118,12 @@ export function useRealtimeRating({
           table: 'location_ratings',
           filter: `location_id=eq.${locationId}`
         },
-        (payload) => {
+        (payload: any) => {
           console.log('⭐ Rating deleted:', payload.old)
           fetchRatingStats()
         }
       )
-      .subscribe((status) => {
+      .subscribe((status: any) => {
         if (status === 'SUBSCRIBED') {
           console.log(`✅ Subscribed to ${channelName}`)
         } else if (status === 'CHANNEL_ERROR') {

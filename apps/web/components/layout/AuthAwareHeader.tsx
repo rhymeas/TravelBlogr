@@ -292,17 +292,6 @@ export function AuthAwareHeader() {
           ) : isAuthenticated ? (
             // Authenticated User Menu
             <div className="hidden lg:flex items-center gap-3">
-              {/* Credits Display */}
-              {!creditsLoading && (
-                <button
-                  onClick={() => setShowCreditsModal(true)}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-colors"
-                  title="View credits"
-                >
-                  <Coins className="h-5 w-5" />
-                  <span className="font-semibold">{credits}</span>
-                </button>
-              )}
 
               <Button
                 asChild
@@ -375,7 +364,7 @@ export function AuthAwareHeader() {
                             {user?.email}
                           </div>
                         </div>
-                        
+
                         <Link
                           href="/dashboard"
                           onClick={() => setShowUserMenu(false)}
@@ -384,7 +373,7 @@ export function AuthAwareHeader() {
                           <UserIcon className="h-4 w-4 mr-2" />
                           Dashboard
                         </Link>
-                        
+
                         <Link
                           href="/dashboard/trips"
                           onClick={() => setShowUserMenu(false)}
@@ -393,6 +382,24 @@ export function AuthAwareHeader() {
                           <MapPin className="h-4 w-4 mr-2" />
                           My Trips
                         </Link>
+
+                        {/* Credits in User Menu */}
+                        <div className="flex items-center justify-between w-full px-4 py-2">
+                          <div className="flex items-center text-body-medium text-sleek-dark-gray">
+                            <Coins className="h-4 w-4 mr-2" />
+                            <span>Credits</span>
+                          </div>
+                          <div className="text-body-medium font-semibold text-sleek-black">
+                            {creditsLoading ? '—' : credits}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => { setShowCreditsModal(true); setShowUserMenu(false); }}
+                          className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-sleek-background-secondary transition-colors text-left"
+                        >
+                          <Wallet className="h-4 w-4 mr-2" />
+                          Manage Credits
+                        </button>
 
                         <div className="border-t border-sleek-border-light mt-1 pt-1">
                           <Link
@@ -422,7 +429,7 @@ export function AuthAwareHeader() {
                           <Settings className="h-4 w-4 mr-2" />
                           Settings
                         </Link>
-                        
+
                         <div className="border-t border-sleek-border-light">
                           <button
                             onClick={handleSignOut}
@@ -434,7 +441,7 @@ export function AuthAwareHeader() {
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Click outside to close menu */}
                     <div
                       className="fixed inset-0 z-40"
@@ -529,6 +536,13 @@ export function AuthAwareHeader() {
                         </span>
                       </div>
                     )}
+                        {/* Mobile Credits Line */}
+                        <div className="mt-1 text-xs text-gray-600 flex items-center gap-1">
+                          <Coins className="h-3 w-3 text-gray-500" />
+                          <span>Credits</span>
+                          <span className="font-semibold text-gray-900 ml-1">{creditsLoading ? '\u2014' : credits}</span>
+                        </div>
+
                   </div>
                 </div>
                 <div className="border-t border-gray-200 my-2" />

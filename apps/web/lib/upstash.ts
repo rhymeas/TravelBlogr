@@ -303,6 +303,13 @@ export const CacheKeys = {
   tripComments: (tripId: string) => `comments:trip:${tripId}`,
   blogTestimonials: (featured: boolean, limit: number) =>
     `testimonials:${featured}:${limit}`,
+
+  // Additional keys for image discovery and Brave services
+  imageDiscovery: (query: string, limit: number) => `image:discover:${query}:${limit}`,
+  activityData: (locationContext: string, activityName?: string) => activityName ? `activity:${locationContext}:${activityName}` : `activity:${locationContext}`,
+  restaurantData: (composite: string) => `restaurant:${composite}`,
+  braveWebSearch: (query: string, limit: number) => `brave:web:${query}:${limit}`,
+  braveImageSearch: (query: string, limit: number) => `brave:image:${query}:${limit}`,
 } as const
 
 /**

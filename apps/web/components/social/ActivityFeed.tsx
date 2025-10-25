@@ -81,7 +81,7 @@ export function ActivityFeed({
           schema: 'public',
           table: 'activity_feed'
         },
-        async (payload) => {
+        async (payload: any) => {
           if (!isMounted.current) return
 
           // Fetch the full activity with user data
@@ -171,7 +171,7 @@ export function ActivityFeed({
 
         if (followError) throw followError
 
-        const followingUserIds = followingIds?.map(f => f.following_id) || []
+        const followingUserIds = followingIds?.map((f: any) => f.following_id) || []
         
         if (followingUserIds.length === 0) {
           // If not following anyone, show empty state
@@ -196,7 +196,7 @@ export function ActivityFeed({
       if (error) throw error
 
       // Check if user has liked each activity
-      const activityIds = data?.map(a => a.id) || []
+      const activityIds = data?.map((a: any) => a.id) || []
       let likedActivities: string[] = []
       
       if (activityIds.length > 0) {
@@ -206,12 +206,12 @@ export function ActivityFeed({
           .in('activity_id', activityIds)
           .eq('user_id', userId)
         
-        likedActivities = likes?.map(l => l.activity_id) || []
+        likedActivities = likes?.map((l: any) => l.activity_id) || []
       }
 
       // Get like and comment counts
       const enrichedActivities = await Promise.all(
-        (data || []).map(async (activity) => {
+        (data || []).map(async (activity: any) => {
           const [{ count: likeCount }, { count: commentCount }] = await Promise.all([
             supabase
               .from('activity_likes')
