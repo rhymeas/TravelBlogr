@@ -6,7 +6,8 @@
 
 /**
  * Get a fallback image for a location
- * Uses Unsplash Source API with location-specific keywords
+ * CRITICAL: ALWAYS use country-specific fallback images
+ * This ensures fallback images are contextually relevant to the location
  */
 export function getLocationFallbackImage(
   locationName: string,
@@ -14,7 +15,57 @@ export function getLocationFallbackImage(
   width: number = 1200,
   height: number = 800
 ): string {
-  // Create search query from location name and country
+  // CRITICAL: Use country-specific fallback images
+  // This prevents showing random/irrelevant images when APIs fail
+
+  // Country-specific high-quality Unsplash images
+  const countryFallbacks: Record<string, string> = {
+    // Europe
+    'norway': 'https://images.unsplash.com/photo-1513519245088-0e12902e35ca?w=1200&h=800&fit=crop', // Norwegian fjords
+    'morocco': 'https://images.unsplash.com/photo-1489749798305-4fea3ae63d43?w=1200&h=800&fit=crop', // Marrakesh
+    'france': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1200&h=800&fit=crop', // Paris
+    'italy': 'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=1200&h=800&fit=crop', // Venice
+    'spain': 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=1200&h=800&fit=crop', // Barcelona
+    'greece': 'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=1200&h=800&fit=crop', // Santorini
+    'switzerland': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=800&fit=crop', // Swiss Alps
+    'germany': 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=1200&h=800&fit=crop', // Berlin
+    'netherlands': 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=1200&h=800&fit=crop', // Amsterdam
+    'portugal': 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=1200&h=800&fit=crop', // Lisbon
+
+    // Asia
+    'japan': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1200&h=800&fit=crop', // Tokyo
+    'thailand': 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=1200&h=800&fit=crop', // Bangkok
+    'china': 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=1200&h=800&fit=crop', // Shanghai
+    'india': 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=1200&h=800&fit=crop', // Taj Mahal
+    'singapore': 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=1200&h=800&fit=crop', // Singapore
+    'vietnam': 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=1200&h=800&fit=crop', // Vietnam
+    'indonesia': 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=1200&h=800&fit=crop', // Bali
+
+    // Americas
+    'united states': 'https://images.unsplash.com/photo-1485738422979-f5c462d49f74?w=1200&h=800&fit=crop', // NYC
+    'canada': 'https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=1200&h=800&fit=crop', // Vancouver
+    'mexico': 'https://images.unsplash.com/photo-1518638150340-f706e86654de?w=1200&h=800&fit=crop', // Mexico
+    'brazil': 'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=1200&h=800&fit=crop', // Rio
+    'argentina': 'https://images.unsplash.com/photo-1589909202802-8f4aadce1849?w=1200&h=800&fit=crop', // Buenos Aires
+
+    // Oceania
+    'australia': 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=1200&h=800&fit=crop', // Sydney
+    'new zealand': 'https://images.unsplash.com/photo-1507699622108-4be3abd695ad?w=1200&h=800&fit=crop', // NZ
+
+    // Africa
+    'south africa': 'https://images.unsplash.com/photo-1484318571209-661cf29a69c3?w=1200&h=800&fit=crop', // Cape Town
+    'egypt': 'https://images.unsplash.com/photo-1539768942893-daf53e448371?w=1200&h=800&fit=crop', // Pyramids
+    'kenya': 'https://images.unsplash.com/photo-1516426122078-c23e76319801?w=1200&h=800&fit=crop', // Safari
+  }
+
+  // Try to find country-specific fallback
+  const countryKey = country?.toLowerCase() || ''
+  if (countryFallbacks[countryKey]) {
+    console.log(`✅ Using country-specific fallback for ${country}`)
+    return countryFallbacks[countryKey]
+  }
+
+  // Fallback: Use Unsplash Source with location + country
   const searchTerms = [locationName, country]
     .filter(Boolean)
     .join(',')
@@ -22,8 +73,7 @@ export function getLocationFallbackImage(
     .replace(/[^a-z0-9,\s]/g, '')
     .replace(/\s+/g, ',')
 
-  // Use Unsplash Source API (free, no key required)
-  // Format: https://source.unsplash.com/{width}x{height}/?{keywords}
+  console.log(`⚠️ Using generic Unsplash fallback for ${locationName}, ${country}`)
   return `https://source.unsplash.com/${width}x${height}/?${searchTerms},travel,landscape`
 }
 

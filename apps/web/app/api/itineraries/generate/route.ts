@@ -1,7 +1,7 @@
 /**
  * API Route: Generate plan
  * POST /api/itineraries/generate
- * 
+ *
  * Presentation layer - handles HTTP requests/responses
  */
 
@@ -93,7 +93,9 @@ export async function POST(request: NextRequest) {
       budget: body.budget || 'moderate',
       maxTravelHoursPerDay: body.maxTravelHoursPerDay, // Optional travel pacing preference
       transportMode: body.transportMode || 'car', // Transport mode (default: car)
-      proMode: body.proMode || false // Pro mode flag (default: false)
+      proMode: body.proMode || false, // Pro mode flag (default: false)
+      tripType: body.tripType,
+      tripVision: body.tripVision
     })
 
     // 7. Handle result
@@ -115,6 +117,13 @@ export async function POST(request: NextRequest) {
 
     const generationTime = Date.now() - startTime
 
+    // Provider health (non-blocking)
+    let providerHealth: any = null
+    try {
+      const healthRes = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/health/providers`, { cache: 'no-store' })
+      providerHealth = await healthRes.json()
+    } catch {}
+
     return NextResponse.json({
       success: true,
       plan: result.plan?.toJSON(), // Use 'plan' instead of 'data' for clarity
@@ -123,11 +132,16 @@ export async function POST(request: NextRequest) {
       locationImages: result.locationImages || {},
       // NEW: expose structured context so the client can render metrics/POIs
       structuredContext: result.structuredContext || null,
+      // NEW: GROQ-generated headline and subtitle
+      groqHeadline: result.groqHeadline || result.plan?.title,
+      groqSubtitle: result.groqSubtitle || result.plan?.summary,
       meta: {
         generationTimeMs: generationTime,
         generatedAt: new Date().toISOString(),
         usedCredit,
         isAdmin, // Include admin status in response for debugging
+        providerHealth,
+        generationMode: (result as any)?.generationMode || (body.proMode ? 'pro' : 'standard')
       }
     })
 
@@ -159,6 +173,9 @@ export async function GET() {
       to: 'string (required) - Destination location slug (e.g., "kyoto")',
       startDate: 'string (required) - ISO date (e.g., "2025-05-15")',
       endDate: 'string (required) - ISO date (e.g., "2025-05-20")',
+      tripType: 'string (optional) - e.g., "road-trip" | "bike" | "family" | "luxury" | "city" | "solo" | "wellness"',
+      tripVision: 'string (optional) - Free text preferences (dietary, kids, mobility, budget notes, must-sees)',
+
       interests: 'string[] (optional) - e.g., ["temples", "food", "nature"]',
       budget: 'string (optional) - "budget" | "moderate" | "luxury" (default: "moderate")'
     },

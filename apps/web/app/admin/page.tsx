@@ -14,7 +14,8 @@ import {
   Zap,
   TestTube2,
   FileText,
-  Settings
+  Settings,
+  Trash2
 } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -166,6 +167,13 @@ export default async function AdminPage() {
             icon={ImageIcon}
             href="/admin/images"
             color="bg-orange-600"
+          />
+          <QuickAction
+            title="Location Cleanup"
+            description="Clean up location names and remove duplicates"
+            icon={Trash2}
+            href="/admin/location-cleanup"
+            color="bg-red-600"
           />
           <QuickAction
             title="User Management"

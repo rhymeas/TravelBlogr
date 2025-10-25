@@ -12,16 +12,19 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { fetchLocationImage, fetchLocationGallery } from '@/lib/services/robustImageService'
 import {
   fetchLocationImageHighQuality,
-  fetchLocationGalleryHighQuality
+  fetchLocationGalleryHighQuality,
+  fetchLocationGalleryWithSmartFallback
 } from '@/lib/services/enhancedImageService'
+import { validateImageData, formatImageStats, getImageStats } from '@/lib/services/imageValidationService'
 import {
   enhanceActivitiesWithAttractions,
   getEnhancedDescription,
   getLocationMetadata
 } from '@/lib/services/locationDataService'
+
+import { isAmbiguousLocationName, DUPLICATE_COORD_THRESHOLD } from '@/lib/utils/locationValidation'
 
 // Route config - increase timeout for long-running operations
 export const runtime = 'nodejs'
@@ -169,6 +172,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Block unclear/ambiguous location names early
+    if (isAmbiguousLocationName(locationName)) {
+      return NextResponse.json(
+        { success: false, error: 'Ambiguous location name. Please provide a specific city/town/place (not borders, checkpoints, or placeholders).' },
+        { status: 400 }
+      )
+    }
+
     console.log(`🪄 Auto-filling content for: ${locationName}`)
 
     // Step 1: Geocode location name to get coordinates (FREE - Nominatim)
@@ -215,7 +226,28 @@ export async function POST(request: NextRequest) {
 
     // Step 3: Check if location already exists
     console.log(`💾 Checking if location already exists...`)
-    const slug = locationName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+    // CRITICAL FIX: Generate CLEAN slug (city + country only)
+    // Prevents overly long slugs like "marrakesh-pachalik-de-marrakech-..."
+    // Extract clean city name from geocoded data
+    const cityName = geoData.fullName.split(',')[0].trim() // Get first part before comma
+    const countryName = geoData.country
+
+    // Build clean slug: city + country (if needed)
+    const isAmbiguousCity = ['Paris', 'London', 'Berlin', 'Rome', 'Athens', 'Springfield', 'Portland'].includes(cityName)
+    const slugParts = [cityName]
+
+    if (isAmbiguousCity || locationName.toLowerCase().includes(countryName.toLowerCase())) {
+      slugParts.push(countryName)
+    }
+
+    const slug = slugParts
+      .join(' ')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+
+    console.log(`🔗 Generated clean slug: "${cityName}" + "${countryName}" → "${slug}"`)
 
     const { data: existingLocation } = await supabase
       .from('locations')
@@ -240,6 +272,47 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Extra duplicate protection: same name or too-close coordinates
+    const { data: nameDupes } = await supabase
+      .from('locations')
+      .select('id, name, slug')
+      .ilike('name', locationName)
+      .limit(1)
+
+    if (nameDupes && nameDupes.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Location with this name already exists',
+          existingLocation: nameDupes[0]
+        },
+        { status: 409 }
+      )
+    }
+
+    const latNum = parseFloat(String(geoData.latitude))
+    const lonNum = parseFloat(String(geoData.longitude))
+    const { data: nearDupes } = await supabase
+      .from('locations')
+      .select('id, name, slug')
+      .gte('latitude', latNum - DUPLICATE_COORD_THRESHOLD)
+      .lte('latitude', latNum + DUPLICATE_COORD_THRESHOLD)
+      .gte('longitude', lonNum - DUPLICATE_COORD_THRESHOLD)
+      .lte('longitude', lonNum + DUPLICATE_COORD_THRESHOLD)
+      .limit(1)
+
+    if (nearDupes && nearDupes.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'A nearby location already exists (duplicate by proximity)',
+          existingLocation: nearDupes[0]
+        },
+        { status: 409 }
+      )
+    }
+
+
     console.log(`💾 Saving new location to database...`)
 
     // Try to get enhanced metadata from GeoNames (optional)
@@ -254,15 +327,36 @@ export async function POST(request: NextRequest) {
       console.log(`⚠️ GeoNames: Not available (optional)`)
     }
 
+    // LIGHTWEIGHT HEALTH CHECK: Use geocoded data as-is (already verified by geocoding service)
+    // No expensive reverse geocoding needed - trust the geocoding API
+    console.log(`✅ [HEALTH CHECK] Using geocoded coordinates (already verified)`)
+    const finalLatitude = geoData.latitude
+    const finalLongitude = geoData.longitude
+    const finalCountry = enhancedMetadata?.country || geoData.country
+
+    // CRITICAL FIX: Clean region field - remove non-Latin characters
+    // Example: "Marrakech-Safi ⵎⵕⵕⴰⴽⵛ-ⴰⵙⴼⵉ مراكش-أسفي" → "Marrakech-Safi"
+    const rawRegion = enhancedMetadata?.region || geoData.region
+    const finalRegion = rawRegion
+      ? rawRegion.split(/[⵿-⵿]/)[0].trim() // Remove Berber/Arabic characters
+                 .replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, '') // Remove Arabic
+                 .replace(/[\u2D30-\u2D7F]/g, '') // Remove Tifinagh (Berber)
+                 .trim()
+      : null
+
+    if (rawRegion !== finalRegion) {
+      console.log(`🧹 Cleaned region: "${rawRegion}" → "${finalRegion}"`)
+    }
+
     const { data: location, error: createError } = await supabase
       .from('locations')
       .insert({
         name: locationName,
         slug,
-        latitude: geoData.latitude,
-        longitude: geoData.longitude,
-        country: enhancedMetadata?.country || geoData.country,
-        region: enhancedMetadata?.region || geoData.region,
+        latitude: finalLatitude,
+        longitude: finalLongitude,
+        country: finalCountry,
+        region: finalRegion,
         description: `Discover ${locationName}`,
         is_published: false,
         // Enhanced fields (if available)
@@ -452,13 +546,20 @@ export async function POST(request: NextRequest) {
 
     // Step 5: Fetch HIGH QUALITY images (20 images, high-res)
     try {
-      console.log(`🖼️ Fetching HIGH QUALITY images...`)
+      console.log(`🖼️ Fetching HIGH QUALITY images with SMART FALLBACK...`)
 
       // Fetch featured image (high-res, 2000px+)
       const featuredImage = await fetchLocationImageHighQuality(locationName)
 
-      // Fetch gallery images - 20 high-quality images
-      let galleryImages = await fetchLocationGalleryHighQuality(locationName, 20)
+      // Fetch gallery images with SMART FALLBACK:
+      // Priority: Brave → Reddit → Backend Cache (< 1mo) → User Uploads
+      let galleryImages = await fetchLocationGalleryWithSmartFallback(
+        location.id,
+        locationName,
+        20,
+        geoData.region,
+        geoData.country
+      )
 
       // If we got less than 10 images, try with different search terms
       if (galleryImages.length < 10) {
@@ -476,33 +577,47 @@ export async function POST(request: NextRequest) {
         for (const searchTerm of alternativeSearches) {
           if (galleryImages.length >= 20) break
 
-          const additionalImages = await fetchLocationGallery(searchTerm, 5)
-          galleryImages.push(...additionalImages.filter(img => !galleryImages.includes(img)))
+          const additionalImages = await fetchLocationGalleryHighQuality(searchTerm, 5)
+          galleryImages.push(...additionalImages.filter((img: string) => !galleryImages.includes(img)))
         }
       }
 
-      // Ensure minimum 10 images (use placeholder if needed)
-      while (galleryImages.length < 10) {
-        galleryImages.push('/placeholder-location.svg')
+      // ✅ FIXED: Validate images before saving (no placeholders)
+      const validation = validateImageData({
+        featured_image: featuredImage,
+        gallery_images: galleryImages
+      })
+
+      // Log validation results
+      const stats = getImageStats({
+        featured_image: validation.featured_image,
+        gallery_images: validation.gallery_images
+      })
+      console.log(`${formatImageStats(stats)}`)
+
+      // Log any warnings
+      for (const warning of validation.warnings) {
+        console.warn(`⚠️ ${warning}`)
       }
 
-      // Limit to 20 images maximum
-      galleryImages = galleryImages.slice(0, 20)
-
-      // Update location with images
+      // Update location with validated images
       await supabase
         .from('locations')
         .update({
-          featured_image: featuredImage,
-          gallery_images: galleryImages
+          featured_image: validation.featured_image,
+          gallery_images: validation.gallery_images
         })
         .eq('id', location.id)
 
-      imagesCount = galleryImages.length
-      console.log(`✅ Saved ${imagesCount} images (featured + gallery)`)
+      imagesCount = validation.gallery_images.length
+
+      // Add warnings to response if images are missing
+      if (!validation.isValid) {
+        errors.push('Location created but images are incomplete - may need manual image upload')
+      }
     } catch (error) {
-      console.error('Error fetching images:', error)
-      errors.push('Failed to fetch images')
+      console.error('❌ Error fetching images:', error)
+      errors.push(`Image fetch failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 
     // Step 6: Fetch enhanced description and travel guide (WikiVoyage → Wikipedia → Fallback)

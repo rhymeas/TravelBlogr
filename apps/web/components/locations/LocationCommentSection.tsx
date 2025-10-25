@@ -1,11 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CommentSection } from 'react-comments-section'
-import 'react-comments-section/dist/index.css'
-import '@/styles/comments-override.css'
 import { useAuth } from '@/hooks/useAuth'
 import { useRealtimeComments } from '@/hooks/useRealtimeComments'
+import { CustomCommentSection } from '@/components/comments/CustomCommentSection'
 import toast from 'react-hot-toast'
 
 interface LocationCommentSectionProps {
@@ -14,8 +12,8 @@ interface LocationCommentSectionProps {
 }
 
 interface Comment {
+  id: string
   userId: string
-  comId: string
   fullName: string
   avatarUrl: string
   userProfile?: string
@@ -59,16 +57,16 @@ export function LocationCommentSection({
 
       if (response.ok) {
         const transformedComments = data.comments.map((comment: any) => ({
+          id: comment.id,
           userId: comment.user_id,
-          comId: comment.id,
           fullName: comment.user?.full_name || 'Anonymous',
           avatarUrl: comment.user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.user?.full_name || 'User')}&background=random`,
           userProfile: `/~${comment.user?.username}`,
           text: comment.content,
           timestamp: comment.created_at,
           replies: comment.replies?.map((reply: any) => ({
+            id: reply.id,
             userId: reply.user_id,
-            comId: reply.id,
             fullName: reply.user?.full_name || 'Anonymous',
             avatarUrl: reply.user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(reply.user?.full_name || 'User')}&background=random`,
             userProfile: `/~${reply.user?.username}`,
@@ -87,16 +85,7 @@ export function LocationCommentSection({
     }
   }
 
-  const handleSubmitComment = async (data: {
-    userId: string
-    comId: string
-    avatarUrl: string
-    userProfile?: string
-    fullName: string
-    text: string
-    replies: any
-    commentId?: string
-  }) => {
+  const handleSubmitComment = async (text: string, parentId?: string) => {
     try {
       const response = await fetch(`/api/locations/${locationSlug}/comments`, {
         method: 'POST',
@@ -104,8 +93,8 @@ export function LocationCommentSection({
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          content: data.text,
-          parentId: data.commentId || null
+          content: text,
+          parentId: parentId || null
         })
       })
 
@@ -120,6 +109,7 @@ export function LocationCommentSection({
     } catch (error) {
       console.error('Error posting comment:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to post comment')
+      throw error
     }
   }
 
@@ -142,18 +132,15 @@ export function LocationCommentSection({
     }
   }
 
-  const handleEditComment = async (data: {
-    comId: string
-    text: string
-  }) => {
+  const handleEditComment = async (commentId: string, text: string) => {
     try {
-      const response = await fetch(`/api/locations/${locationSlug}/comments/${data.comId}`, {
+      const response = await fetch(`/api/locations/${locationSlug}/comments/${commentId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          content: data.text
+          content: text
         })
       })
 
@@ -168,50 +155,37 @@ export function LocationCommentSection({
     } catch (error) {
       console.error('Error editing comment:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to edit comment')
+      throw error
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className={className}>
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-20 bg-gray-200 rounded"></div>
-          <div className="h-20 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className={className}>
-      <CommentSection
+    <div className={`${className} bg-white rounded-xl border border-gray-200 p-6 prevent-overflow`}>
+      {/* Header */}
+      <div className="mb-6 pb-4 border-b border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+          💬 Community Discussion
+        </h3>
+        <p className="text-sm text-gray-600">
+          Share your experiences and ask questions about this location
+        </p>
+      </div>
+
+      {/* Custom Comment Section */}
+      <CustomCommentSection
+        comments={comments}
         currentUser={user ? {
-          currentUserId: user.id,
-          currentUserImg: user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.user_metadata?.full_name || 'User')}&background=random`,
-          currentUserProfile: `/~${user.user_metadata?.username}`,
-          currentUserFullName: user.user_metadata?.full_name || 'User'
-        } : null}
-        logIn={{
-          onLogin: () => {
-            window.location.href = `/auth/signin?redirect=/locations/${locationSlug}`
-          },
-          signUpLink: '/auth/signup'
+          id: user.id,
+          fullName: user.user_metadata?.full_name || 'User',
+          avatarUrl: user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.user_metadata?.full_name || 'User')}&background=random`
+        } : undefined}
+        onSubmit={handleSubmitComment}
+        onEdit={handleEditComment}
+        onDelete={handleDeleteComment}
+        onSignIn={() => {
+          window.location.href = `/auth/signin?redirect=/locations/${locationSlug}`
         }}
-        commentData={comments}
-        onSubmitAction={handleSubmitComment}
-        onDeleteAction={(data: any) => handleDeleteComment(data.comIdToDelete)}
-        onEditAction={handleEditComment}
-        currentData={(data: any) => {
-          console.log('Current comment data:', data)
-        }}
-        placeHolder="Share your thoughts about this location..."
-        customNoComment={() => (
-          <div className="text-center py-8 text-gray-500">
-            <p className="text-lg font-medium">No comments yet</p>
-            <p className="text-sm mt-1">Be the first to share your experience!</p>
-          </div>
-        )}
+        isLoading={isLoading}
       />
     </div>
   )

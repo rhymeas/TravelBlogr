@@ -56,13 +56,19 @@ export function JourneyVisualizer({
   const [selectedTypes, setSelectedTypes] = useState<string[]>(['waypoint', 'photo', 'accommodation', 'restaurant', 'attraction'])
   const [routeProvider, setRouteProvider] = useState<'openrouteservice' | 'osrm' | 'cache' | null>(null)
   const [externalPolyline, setExternalPolyline] = useState<[number, number][]>([])
+  const [supabase, setSupabase] = useState<any>(null)
 
-  const supabase = createClientSupabase()
+  // Initialize Supabase client on client side only
+  useEffect(() => {
+    setSupabase(createClientSupabase())
+  }, [])
 
   // Load journey data
   useEffect(() => {
-    loadJourneyData()
-  }, [tripId])
+    if (supabase) {
+      loadJourneyData()
+    }
+  }, [tripId, supabase])
 
   const loadJourneyData = async () => {
     try {

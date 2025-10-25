@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
-import { fetchLocationImage, fetchLocationGallery, fetchActivityImage } from '@/lib/services/robustImageService'
+import { fetchLocationImage, fetchLocationGallery } from '@/lib/services/robustImageService'
 import {
   fetchLocationImageHighQuality,
   fetchLocationGalleryHighQuality
@@ -76,51 +76,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Also fix activity images for this location
-    console.log('🎯 Fixing activity images...')
-    const { data: activities } = await supabase
-      .from('location_activity_links')
-      .select('id, activity_name, image_url')
-      .eq('location_id', location.id)
-      .or('image_url.is.null,image_url.eq.')
-      .limit(20)
-
-    let activityImagesFixed = 0
-    if (activities && activities.length > 0) {
-      console.log(`📸 Found ${activities.length} activities without images`)
-
-      for (const activity of activities) {
-        try {
-          // Enhanced: Include country for better contextualization
-          const imageUrl = await fetchActivityImage(
-            activity.activity_name,
-            location.name,
-            location.country
-          )
-
-          if (imageUrl && imageUrl !== '/placeholder-activity.svg') {
-            await supabase
-              .from('location_activity_links')
-              .update({
-                image_url: imageUrl,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', activity.id)
-
-            activityImagesFixed++
-            console.log(`  ✅ Fixed: ${activity.activity_name}`)
-          }
-        } catch (err) {
-          console.log(`  ⚠️ Failed: ${activity.activity_name}`)
-        }
-
-        // Small delay
-        await new Promise(resolve => setTimeout(resolve, 300))
-      }
-
-      console.log(`✅ Fixed ${activityImagesFixed}/${activities.length} activity images`)
-    }
-
     console.log('✅ Images refreshed successfully!')
 
     return NextResponse.json({
@@ -129,8 +84,7 @@ export async function POST(request: NextRequest) {
         location: location.name,
         featured_image: featuredImage,
         gallery_count: galleryImages.length,
-        gallery_images: galleryImages,
-        activity_images_fixed: activityImagesFixed
+        gallery_images: galleryImages
       }
     })
 

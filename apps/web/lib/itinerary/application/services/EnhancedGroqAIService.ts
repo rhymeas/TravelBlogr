@@ -182,6 +182,8 @@ Rules:
     }
     const avgSpeed = speedMap[transportMode] || 80
 
+    const tripTypeGuidance = this.getTripTypeGuidance((context as any).tripType)
+
     return `Create a ${context.totalDays}-day travel itinerary with Pro-level detail and reasoning.
 
 ═══════════════════════════════════════════════════════════════
@@ -218,6 +220,11 @@ TRAVELER PREFERENCES
 Budget Level: ${context.budget.toUpperCase()}
 Primary Interests: ${interests}
 ${context.maxTravelHoursPerDay ? `Max Travel Hours/Day: ${context.maxTravelHoursPerDay}h (user preference)` : 'No travel time restrictions'}
+
+Trip Style: ${(context as any).tripType || 'unspecified'}
+${tripTypeGuidance ? `${tripTypeGuidance}` : ''}
+${(context as any).tripVision ? `USER PREFERENCES (MANDATORY TO INCORPORATE):\n${(context as any).tripVision}` : ''}
+
 
 ${(context as any).structuredContext?.poisByLocation ? `
 POINTS OF INTEREST (pre-fetched - LEGACY)
@@ -298,10 +305,13 @@ CRITICAL: For trips with ${Math.round(context.routeDuration)} hours of travel ti
 Example for ${Math.round(context.routeDistance)} km trip:
 ${context.routeDuration > 8 ? `
 ⚠️ This trip requires ${Math.ceil(context.routeDuration / 8)} overnight stops!
-Suggested breakdown:
-- Day 1: ${context.fromLocation} → [Intermediate City 1] (${Math.round(context.routeDistance / (Math.ceil(context.routeDuration / 8) + 1))} km, ~6-8 hours) → Stay overnight
-${Math.ceil(context.routeDuration / 8) > 1 ? `- Day 2: [Intermediate City 1] → [Intermediate City 2] (${Math.round(context.routeDistance / (Math.ceil(context.routeDuration / 8) + 1))} km, ~6-8 hours) → Stay overnight` : ''}
-- Final Day: [Last Stop] → ${context.toLocation} (remaining distance)
+
+CRITICAL: You MUST use REAL city names for intermediate stops!
+- Research actual cities/towns along the route between ${context.fromLocation} and ${context.toLocation}
+- DO NOT use placeholder names like "Intermediate City 1", "Intermediate City 2", etc.
+- Use real, specific city names that exist on the route
+- If you don't know specific cities, suggest the user add more destinations manually
+- Example: "Paris → Lyon → Marseille" NOT "Paris → Intermediate City 1 → Marseille"
 ` : `✅ This trip can be completed in 1-2 days with proper rest stops.`}
 
 ═══════════════════════════════════════════════════════════════
@@ -392,7 +402,41 @@ For travel segments longer than 3-4 hours, use this structure:
 For short travel (<3h), omit the waypoints array.
 
 Return ONLY the JSON itinerary. No explanations, no markdown formatting.`
+
   }
+
+  /**
+   * Trip type guidance (Pro Mode)
+   */
+  private getTripTypeGuidance(tripType?: string): string {
+    switch (tripType) {
+      case 'specific':
+        return `TRIP TYPE: SINGLE DESTINATION\n- Base in one city/resort; no intercity transfers\n- Deep dive into neighborhoods/markets/museums\n- Optional day trips (max 1–2h)\n- Minimize transit; maximize immersion`
+      case 'journey':
+        return `TRIP TYPE: POINT A → B\n- Linear route with realistic intermediate stops\n- Enforce max daily travel hours; balance travel/explore\n- Each travel day: lunch/coffee break + one POI\n- Finish with 1–2 full days in final city`
+      case 'multi-destination':
+        return `TRIP TYPE: MULTI-DESTINATION\n- Logical flow, minimize backtracking\n- 1–3 nights per city; mid-day transfers\n- Cluster sights by neighborhood\n- Clear arc: intro → highlights → finale`
+      case 'road-trip':
+        return `TRIP TYPE: ROAD TRIP\n- Scenic byways, viewpoints, short walks\n- Easy parking, flexible stops\n- Add optional detours`
+      case 'bike':
+        return `TRIP TYPE: BIKE TRIP\n- 40–80km/day casual, 80–120km experienced\n- Bike storage, rest days every 3–4 days\n- Avoid highways; prefer cycle paths`
+      case 'family':
+        return `TRIP TYPE: FAMILY\n- Kid‑friendly picks; backup indoor options\n- Moderate pace, playgrounds/rest windows\n- Family rooms/apartments near essentials`
+      case 'adventure':
+        return `TRIP TYPE: ADVENTURE\n- Hiking/water/climbing; early starts\n- Safety, permits, weather windows\n- Base near activity hubs`
+      case 'luxury':
+        return `TRIP TYPE: LUXURY\n- 4–5★/boutique, spa access\n- Fine dining, private tours\n- Convenience over budget`
+      case 'city':
+        return `TRIP TYPE: CULTURAL/CITY\n- Museums/galleries/architecture\n- Food markets & signature restaurants\n- Walkable, public transport focus`
+      case 'solo':
+        return `TRIP TYPE: SOLO\n- Safe/central areas, social stays\n- Group tours, midday transfers\n- Clear meetup/navigation`
+      case 'wellness':
+        return `TRIP TYPE: WELLNESS/RETREAT\n- Spas/thermal/yoga; light schedule\n- Nature walks; healthy dining`
+      default:
+        return ''
+    }
+  }
+
 
   /**
    * Get transport-specific strategy and recommendations
@@ -466,7 +510,7 @@ Return ONLY the JSON itinerary. No explanations, no markdown formatting.`
       result.summary = `An optimized ${context.totalDays}-day itinerary by ${context.transportMode || 'car'}`
     }
     if (!result.totalCostEstimate) {
-      result.totalCostEstimate = result.days.reduce((sum: number, day: any) => 
+      result.totalCostEstimate = result.days.reduce((sum: number, day: any) =>
         sum + (day.items?.reduce((daySum: number, item: any) => daySum + (item.costEstimate || 0), 0) || 0), 0
       )
     }

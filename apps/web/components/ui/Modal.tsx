@@ -13,6 +13,7 @@ interface ModalProps {
   showCloseButton?: boolean
   closeOnOverlayClick?: boolean
   footer?: ReactNode
+  blur?: boolean
 }
 
 export function Modal({
@@ -23,7 +24,8 @@ export function Modal({
   size = 'md',
   showCloseButton = true,
   closeOnOverlayClick = true,
-  footer
+  footer,
+  blur = true
 }: ModalProps) {
   // Close on Escape key
   useEffect(() => {
@@ -59,7 +61,7 @@ export function Modal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Overlay */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className={`absolute inset-0 ${blur ? 'bg-black/50 backdrop-blur-sm' : 'bg-black/50'}`}
         onClick={closeOnOverlayClick ? onClose : undefined}
         aria-hidden="true"
       />

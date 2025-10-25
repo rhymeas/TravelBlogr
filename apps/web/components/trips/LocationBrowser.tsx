@@ -53,6 +53,8 @@ export function LocationBrowser({ onSelectLocation, selectedLocationId }: Locati
   }, [searchQuery])
 
   const loadLocations = async () => {
+    if (typeof window === 'undefined') return
+
     setLoading(true)
     const supabase = getBrowserSupabase()
 
@@ -79,6 +81,8 @@ export function LocationBrowser({ onSelectLocation, selectedLocationId }: Locati
   }
 
   const searchLocations = async () => {
+    if (typeof window === 'undefined') return
+
     setLoading(true)
     const supabase = getBrowserSupabase()
 

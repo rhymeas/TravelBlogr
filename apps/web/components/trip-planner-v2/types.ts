@@ -2,7 +2,18 @@
  * Type definitions for Trip Planner V2
  */
 
-export type TripType = 'specific' | 'journey' | 'multi-destination' | 'adventure' | 'bike'
+export type TripType =
+  | 'specific'
+  | 'journey'
+  | 'multi-destination'
+  | 'road-trip'
+  | 'bike'
+  | 'family'
+  | 'adventure'
+  | 'luxury'
+  | 'city'
+  | 'solo'
+  | 'wellness'
 
 export type TransportMode = 'car' | 'train' | 'bike' | 'flight' | 'bus' | 'mixed' | 'foot'
 
@@ -77,6 +88,7 @@ export interface TripPlanData {
   // Phase 4: Travel Style
   pace: TravelPace
   travelStyle: string[]
+  tripVision?: string
   dailyTravelHours?: number
   
   // Phase 5: Practical Details

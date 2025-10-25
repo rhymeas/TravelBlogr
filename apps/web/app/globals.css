@@ -35,6 +35,14 @@
 
 /* Custom utilities */
 @layer utilities {
+  /* Prevent overflow in grid/flex layouts */
+  .prevent-overflow {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -691,22 +699,31 @@ input:-webkit-autofill:active {
   border-radius: 12px !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
   overflow: hidden !important;
+  min-width: 200px !important;
 }
 
+/* Smaller, less prominent close button */
 .maplibregl-popup-close-button {
-  font-size: 22px !important;
-  padding: 8px 10px !important;
-  color: #6b7280 !important;
-  right: 6px !important;
-  top: 6px !important;
-  border-radius: 6px !important;
+  font-size: 16px !important;
+  padding: 4px 6px !important;
+  color: #9ca3af !important;
+  right: 4px !important;
+  top: 4px !important;
+  border-radius: 4px !important;
   transition: all 0.2s ease !important;
+  opacity: 0.6 !important;
+  line-height: 1 !important;
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .maplibregl-popup-close-button:hover {
   background-color: #f3f4f6 !important;
   color: #1f2937 !important;
-  transform: scale(1.1) !important;
+  opacity: 1 !important;
 }
 
 .maplibregl-popup-tip {

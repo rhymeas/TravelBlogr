@@ -14,7 +14,8 @@ import {
   Shield,
   TestTube2,
   FileText,
-  Settings
+  Settings,
+  Trash2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -23,6 +24,7 @@ interface NavItem {
   href: string
   icon: React.ComponentType<{ className?: string }>
   description: string
+  category?: string
 }
 
 const navItems: NavItem[] = [
@@ -30,143 +32,152 @@ const navItems: NavItem[] = [
     name: 'Dashboard',
     href: '/admin',
     icon: LayoutDashboard,
-    description: 'Overview and quick stats'
+    description: 'Overview and quick stats',
+    category: 'Main'
   },
   {
     name: 'Feature Flags',
     href: '/admin/feature-flags',
     icon: Settings,
-    description: 'Toggle experimental features'
+    description: 'Toggle experimental features',
+    category: 'Configuration'
   },
   {
     name: 'AI Monitoring',
     href: '/admin/ai-monitoring',
     icon: Activity,
-    description: 'Track AI requests and costs'
+    description: 'Track AI requests and costs',
+    category: 'Monitoring'
   },
   {
     name: 'Crawler',
     href: '/admin/crawler',
     icon: Globe,
-    description: 'Content crawler dashboard'
+    description: 'Content crawler dashboard',
+    category: 'Content'
   },
   {
     name: 'Auto-Fill',
     href: '/admin/auto-fill',
     icon: Wand2,
-    description: 'Auto-populate location data'
+    description: 'Auto-populate location data',
+    category: 'Content'
   },
   {
     name: 'Image Management',
     href: '/admin/images',
     icon: ImageIcon,
-    description: 'Manage location images'
+    description: 'Manage location images',
+    category: 'Content'
+  },
+  {
+    name: 'Location Cleanup',
+    href: '/admin/location-cleanup',
+    icon: Trash2,
+    description: 'Clean up location names',
+    category: 'Content'
   },
   {
     name: 'User Management',
     href: '/admin/users',
     icon: Users,
-    description: 'Manage users and permissions'
+    description: 'Manage users and permissions',
+    category: 'Users'
   },
   {
     name: 'Analytics',
     href: '/admin/analytics',
     icon: BarChart3,
-    description: 'Platform analytics'
+    description: 'Platform analytics',
+    category: 'Monitoring'
   },
   {
     name: 'Cost Tracking',
     href: '/admin/costs',
     icon: DollarSign,
-    description: 'Monitor service costs'
+    description: 'Monitor service costs',
+    category: 'Monitoring'
   },
   {
     name: 'Reddit Images',
     href: '/test/reddit-images',
     icon: TestTube2,
-    description: 'Test Reddit ULTRA image fetching'
+    description: 'Test Reddit ULTRA image fetching',
+    category: 'Testing'
   },
   {
     name: 'Blog CMS',
     href: '/blog-cms',
     icon: FileText,
-    description: 'Edit and manage blog posts'
+    description: 'Edit and manage blog posts',
+    category: 'Content'
   }
 ]
+
+// Group items by category
+const groupedItems = navItems.reduce((acc, item) => {
+  const category = item.category || 'Other'
+  if (!acc[category]) acc[category] = []
+  acc[category].push(item)
+  return acc
+}, {} as Record<string, NavItem[]>)
+
+const categoryOrder = ['Main', 'Content', 'Users', 'Monitoring', 'Configuration', 'Testing', 'Other']
 
 export function AdminNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="bg-white border-b border-gray-200">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between py-4">
-          {/* Logo/Title */}
-          <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-red-600" />
-            <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
-          </div>
+    <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 overflow-y-auto">
+      <div className="p-6">
+        {/* Logo */}
+        <Link href="/admin" className="flex items-center gap-2 mb-8">
+          <Shield className="h-8 w-8 text-red-600" />
+          <span className="text-xl font-bold text-gray-900">Admin</span>
+        </Link>
 
-          {/* Navigation Links */}
-          <div className="hidden lg:flex items-center gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href
-              
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-red-50 text-red-700'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  )}
-                  title={item.description}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.name}</span>
-                </Link>
-              )
-            })}
-          </div>
+        {/* Navigation Items - Grouped by Category */}
+        <nav className="space-y-6">
+          {categoryOrder.map((category) => {
+            const items = groupedItems[category]
+            if (!items) return null
 
-          {/* Mobile Menu Button */}
-          <button className="lg:hidden p-2 text-gray-600 hover:text-gray-900">
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        </div>
+            return (
+              <div key={category}>
+                {category !== 'Main' && (
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">
+                    {category}
+                  </h3>
+                )}
+                <div className="space-y-1">
+                  {items.map((item) => {
+                    const Icon = item.icon
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
 
-        {/* Mobile Navigation */}
-        <div className="lg:hidden pb-4">
-          <div className="grid grid-cols-2 gap-2">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href
-              
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-red-50 text-red-700'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.name}</span>
-                </Link>
-              )
-            })}
-          </div>
-        </div>
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors group',
+                          isActive
+                            ? 'bg-red-50 text-red-700 border-r-2 border-red-700'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                        )}
+                        title={item.description}
+                      >
+                        <Icon className="h-4 w-4 flex-shrink-0" />
+                        <span className="flex-1">{item.name}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </nav>
       </div>
-    </nav>
+    </aside>
   )
 }
 

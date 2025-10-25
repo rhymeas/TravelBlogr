@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
-import { fetchLocationImage, fetchLocationGallery } from '@/lib/services/robustImageService'
+import { fetchLocationImageHighQuality, fetchLocationGalleryHighQuality } from '@/lib/services/enhancedImageService'
 
 // Force dynamic rendering for admin routes
 export const dynamic = 'force-dynamic'
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     // Get all locations
     const { data: locations, error } = await supabase
       .from('locations')
-      .select('id, name, slug, country, featured_image, gallery_images')
+      .select('id, name, slug, country, region, featured_image, gallery_images')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -64,19 +64,28 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        // Fetch featured image
+        // Fetch featured image using HIGH QUALITY service
         let featuredImage = location.featured_image
         if (!hasValidFeaturedImage) {
-          console.log(`  🖼️ Fetching featured image...`)
-          featuredImage = await fetchLocationImage(location.name)
-          console.log(`  ✅ Featured image: ${featuredImage.substring(0, 60)}...`)
+          console.log(`  🖼️ Fetching HIGH QUALITY featured image...`)
+          featuredImage = await fetchLocationImageHighQuality(
+            location.name,
+            location.region,
+            location.country
+          )
+          console.log(`  ✅ Featured image: ${featuredImage?.substring(0, 60)}...`)
         }
 
-        // Fetch gallery images
+        // Fetch gallery images using HIGH QUALITY service
         let galleryImages = location.gallery_images
         if (!hasValidGallery) {
-          console.log(`  🖼️ Fetching gallery images...`)
-          galleryImages = await fetchLocationGallery(location.name, 6)
+          console.log(`  🖼️ Fetching HIGH QUALITY gallery images...`)
+          galleryImages = await fetchLocationGalleryHighQuality(
+            location.name,
+            6,
+            location.region,
+            location.country
+          )
           console.log(`  ✅ Gallery images: ${galleryImages.length} images`)
         }
 

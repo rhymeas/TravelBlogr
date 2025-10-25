@@ -27,7 +27,7 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 hours
  * Wikimedia Commons Image Search
  * FREE - No API key needed - Unlimited requests
  */
-async function fetchWikimediaImage(searchTerm: string): Promise<string | null> {
+export async function fetchWikimediaImage(searchTerm: string): Promise<string | null> {
   try {
     const response = await fetch(
       `https://commons.wikimedia.org/w/api.php?` +
@@ -83,7 +83,7 @@ async function fetchWikimediaImage(searchTerm: string): Promise<string | null> {
  * Wikipedia REST API Image
  * FREE - No API key needed - Unlimited requests
  */
-async function fetchWikipediaImage(searchTerm: string): Promise<string | null> {
+export async function fetchWikipediaImage(searchTerm: string): Promise<string | null> {
   try {
     const response = await fetch(
       `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(searchTerm)}`
@@ -115,7 +115,7 @@ async function fetchWikipediaImage(searchTerm: string): Promise<string | null> {
  * FREE - Unlimited requests - Requires API key
  * Enhanced with quality filtering and better search terms
  */
-async function fetchPexelsImage(searchTerm: string): Promise<string | null> {
+export async function fetchPexelsImage(searchTerm: string): Promise<string | null> {
   const apiKey = process.env.PEXELS_API_KEY
 
   if (!apiKey) {
@@ -167,7 +167,7 @@ async function fetchPexelsImage(searchTerm: string): Promise<string | null> {
  * FREE - 50 requests/hour - Requires API key
  * Enhanced with quality filtering
  */
-async function fetchUnsplashImage(searchTerm: string): Promise<string | null> {
+export async function fetchUnsplashImage(searchTerm: string): Promise<string | null> {
   const apiKey = process.env.UNSPLASH_ACCESS_KEY
 
   if (!apiKey) {
@@ -586,19 +586,12 @@ export async function fetchRestaurantImage(
 /**
  * Fetch Activity Image with Enhanced Contextualization
  *
- * PRIORITY ORDER (as per user requirements):
- * 1. Brave Images API (best quality, web-scale search)
- * 2. Reddit Ultra System (community photos, high engagement)
- * 3. Pexels (stock photos, unlimited)
- * 4. Unsplash (professional photography)
- * 5. Wikipedia/Wikimedia (location-specific)
- * 6. Openverse (Creative Commons)
- *
- * @param activityName - Name of the activity/attraction
- * @param locationName - Name of the location (city)
- * @param country - Country name for additional context
- * @param manualUrl - Optional manual URL override
- * @returns Image URL or placeholder
+ * Priority order:
+ * 1. Brave Images API
+ * 2. Reddit Ultra System
+ * 3. Pexels
+ * 4. Unsplash
+ * 5. Wikipedia/Wikimedia
  */
 export async function fetchActivityImage(
   activityName: string,
@@ -608,10 +601,7 @@ export async function fetchActivityImage(
 ): Promise<string> {
   if (manualUrl) return manualUrl
 
-  // Enhanced search query with location + country context
-  const contextualQuery = country
-    ? `${activityName} ${locationName} ${country}`
-    : `${activityName} ${locationName}`
+  const contextualQuery = country ? `${activityName} ${locationName} ${country}` : `${activityName} ${locationName}`
 
   console.log(`🔍 Fetching activity image with context: "${contextualQuery}"`)
 

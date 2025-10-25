@@ -8,7 +8,7 @@
 import { useState } from 'react'
 import { Users, Car, Sparkles, DollarSign, Zap, Scale, TrendingUp, Wallet, CreditCard, Gem, User, UserPlus, Home, Plane, Train, Bus, Bike } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import type { TripPlanData } from '../types'
+import type { TripPlanData, TransportMode, TripType } from '../types'
 import type { LucideIcon } from 'lucide-react'
 
 interface PhaseProps {
@@ -46,9 +46,28 @@ const COMPANIONS = [
 ]
 
 export function PhaseTwoNew({ data, updateData, onNext, onBack }: PhaseProps) {
+  // Map trip type to default transport mode
+  const getDefaultTransportMode = (tripType: TripType | null): TransportMode => {
+    switch (tripType) {
+      case 'bike':
+        return 'bike'
+      case 'road-trip':
+        return 'car'
+      case 'city':
+      case 'multi-destination':
+        return 'train'
+      case 'adventure':
+        return 'mixed'
+      default:
+        return 'car'
+    }
+  }
+
   const [pace, setPace] = useState(data.pace || 'moderate')
   const [budget, setBudget] = useState(data.budget || 'mid-range')
-  const [transportMode, setTransportMode] = useState(data.transportMode || 'car')
+  const [transportMode, setTransportMode] = useState<TransportMode | null>(
+    data.transportMode || getDefaultTransportMode(data.tripType)
+  )
   const [companions, setCompanions] = useState(data.companions || 'solo')
   const [groupSize, setGroupSize] = useState(data.groupSize || 1)
 
@@ -82,16 +101,16 @@ export function PhaseTwoNew({ data, updateData, onNext, onBack }: PhaseProps) {
               <button
                 key={paceOption.id}
                 onClick={() => setPace(paceOption.id)}
-                className={`p-2 rounded-lg border transition-all text-center ${
+                className={`py-[7px] px-2 rounded-lg border transition-all text-center ${
                   pace === paceOption.id
                     ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
                 }`}
               >
-                <div className={`w-8 h-8 mx-auto mb-1 rounded-full flex items-center justify-center ${
+                <div className={`w-[28px] h-[28px] mx-auto mb-0.5 rounded-full flex items-center justify-center ${
                   pace === paceOption.id ? 'bg-green-100' : 'bg-gray-100'
                 }`}>
-                  <IconComponent className={`w-4 h-4 ${
+                  <IconComponent className={`w-[14px] h-[14px] ${
                     pace === paceOption.id ? 'text-green-700' : 'text-gray-700'
                   }`} />
                 </div>
@@ -112,16 +131,16 @@ export function PhaseTwoNew({ data, updateData, onNext, onBack }: PhaseProps) {
               <button
                 key={b.id}
                 onClick={() => setBudget(b.id)}
-                className={`p-2 rounded-lg border transition-all text-center ${
+                className={`py-[7px] px-2 rounded-lg border transition-all text-center ${
                   budget === b.id
                     ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
                 }`}
               >
-                <div className={`w-8 h-8 mx-auto mb-1 rounded-full flex items-center justify-center ${
+                <div className={`w-[28px] h-[28px] mx-auto mb-0.5 rounded-full flex items-center justify-center ${
                   budget === b.id ? 'bg-green-100' : 'bg-gray-100'
                 }`}>
-                  <IconComponent className={`w-4 h-4 ${
+                  <IconComponent className={`w-[14px] h-[14px] ${
                     budget === b.id ? 'text-green-700' : 'text-gray-700'
                   }`} />
                 </div>
@@ -142,16 +161,16 @@ export function PhaseTwoNew({ data, updateData, onNext, onBack }: PhaseProps) {
               <button
                 key={mode.id}
                 onClick={() => setTransportMode(mode.id)}
-                className={`p-2 rounded-lg border transition-all text-center ${
+                className={`py-[7px] px-2 rounded-lg border transition-all text-center ${
                   transportMode === mode.id
                     ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
                 }`}
               >
-                <div className={`w-8 h-8 mx-auto mb-1 rounded-full flex items-center justify-center ${
+                <div className={`w-[28px] h-[28px] mx-auto mb-0.5 rounded-full flex items-center justify-center ${
                   transportMode === mode.id ? 'bg-green-100' : 'bg-gray-100'
                 }`}>
-                  <IconComponent className={`w-4 h-4 ${
+                  <IconComponent className={`w-[14px] h-[14px] ${
                     transportMode === mode.id ? 'text-green-700' : 'text-gray-700'
                   }`} />
                 </div>
@@ -172,16 +191,16 @@ export function PhaseTwoNew({ data, updateData, onNext, onBack }: PhaseProps) {
               <button
                 key={companion.id}
                 onClick={() => { setCompanions(companion.id); setGroupSize(companion.size) }}
-                className={`p-2 rounded-lg border transition-all text-center ${
+                className={`py-[7px] px-2 rounded-lg border transition-all text-center ${
                   companions === companion.id
                     ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
                 }`}
               >
-                <div className={`w-8 h-8 mx-auto mb-1 rounded-full flex items-center justify-center ${
+                <div className={`w-[28px] h-[28px] mx-auto mb-0.5 rounded-full flex items-center justify-center ${
                   companions === companion.id ? 'bg-green-100' : 'bg-gray-100'
                 }`}>
-                  <IconComponent className={`w-4 h-4 ${
+                  <IconComponent className={`w-[14px] h-[14px] ${
                     companions === companion.id ? 'text-green-700' : 'text-gray-700'
                   }`} />
                 </div>

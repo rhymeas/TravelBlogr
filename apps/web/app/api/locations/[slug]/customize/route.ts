@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
+import { getLocationBySlug } from '@/lib/supabase/locations'
 
 /**
  * GET /api/locations/[slug]/customize
@@ -18,12 +19,18 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Get location by slug to get the actual location ID
+    const location = await getLocationBySlug(params.slug)
+    if (!location) {
+      return NextResponse.json({ error: 'Location not found' }, { status: 404 })
+    }
+
     // Get user's customization for this location
     const { data: customization, error } = await supabase
       .from('user_locations')
       .select('*')
       .eq('user_id', user.id)
-      .eq('location_id', params.slug)
+      .eq('location_id', location.id)
       .maybeSingle()
 
     if (error) {
@@ -48,7 +55,7 @@ export async function POST(
 ) {
   try {
     const supabase = await createServerSupabase()
-    
+
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -77,14 +84,9 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid visibility level' }, { status: 400 })
     }
 
-    // Verify location exists
-    const { data: location, error: locationError } = await supabase
-      .from('locations')
-      .select('id')
-      .eq('id', params.slug)
-      .single()
-
-    if (locationError || !location) {
+    // Get location by slug to get the actual location ID
+    const location = await getLocationBySlug(params.slug)
+    if (!location) {
       return NextResponse.json({ error: 'Location not found' }, { status: 404 })
     }
 
@@ -93,7 +95,7 @@ export async function POST(
       .from('user_locations')
       .upsert({
         user_id: user.id,
-        location_id: params.slug,
+        location_id: location.id,
         personal_notes: personalNotes,
         user_rating: userRating,
         is_wishlisted: isWishlisted ?? false,
@@ -118,7 +120,7 @@ export async function POST(
     if (isVisited) {
       await supabase.rpc('increment', {
         table_name: 'locations',
-        row_id: params.slug,
+        row_id: location.id,
         column_name: 'visit_count'
       })
     }
@@ -140,7 +142,7 @@ export async function PATCH(
 ) {
   try {
     const supabase = await createServerSupabase()
-    
+
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -157,6 +159,12 @@ export async function PATCH(
     // Validate visibility if provided
     if (body.visibility && !['public', 'private', 'friends'].includes(body.visibility)) {
       return NextResponse.json({ error: 'Invalid visibility level' }, { status: 400 })
+    }
+
+    // Get location by slug to get the actual location ID
+    const location = await getLocationBySlug(params.slug)
+    if (!location) {
+      return NextResponse.json({ error: 'Location not found' }, { status: 404 })
     }
 
     // Build update object (only include provided fields)
@@ -178,7 +186,7 @@ export async function PATCH(
       .from('user_locations')
       .update(updateData)
       .eq('user_id', user.id)
-      .eq('location_id', params.slug)
+      .eq('location_id', location.id)
       .select()
       .single()
 
@@ -211,12 +219,18 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Get location by slug to get the actual location ID
+    const location = await getLocationBySlug(params.slug)
+    if (!location) {
+      return NextResponse.json({ error: 'Location not found' }, { status: 404 })
+    }
+
     // Delete user location customization
     const { error: deleteError } = await supabase
       .from('user_locations')
       .delete()
       .eq('user_id', user.id)
-      .eq('location_id', params.slug)
+      .eq('location_id', location.id)
 
     if (deleteError) {
       console.error('Error deleting user location:', deleteError)

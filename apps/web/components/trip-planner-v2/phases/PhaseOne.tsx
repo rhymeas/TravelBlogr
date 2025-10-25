@@ -6,8 +6,9 @@
  */
 
 import { useState, useEffect } from 'react'
-import { Calendar, MapPin, Navigation, Map, Mountain, Bike } from 'lucide-react'
+import { Calendar, MapPin, Navigation, Map, Mountain, Bike, Car, Home, Gem, User, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { Modal } from '@/components/ui/Modal'
 import { LocationInput } from '@/components/itinerary/LocationInput'
 import { DateRangePicker } from '@/components/itinerary/DateRangePicker'
 import type { PhaseProps, TripType, Destination } from '../types'
@@ -33,18 +34,60 @@ const TRIP_TYPES: { id: TripType; label: string; icon: LucideIcon; description: 
     description: 'Multiple cities'
   },
   {
-    id: 'adventure',
-    label: 'Adventure',
-    icon: Mountain,
-    description: 'Hiking or road trip'
+    id: 'road-trip',
+    label: 'Road Trip',
+    icon: Car,
+    description: 'Flexible scenic driving'
   },
   {
     id: 'bike',
     label: 'Bike Trip',
     icon: Bike,
     description: 'Cycling adventure'
+  },
+  {
+    id: 'family',
+    label: 'Family Trip',
+    icon: Home,
+    description: 'Kid-friendly with downtime'
+  },
+  {
+    id: 'adventure',
+    label: 'Adventure',
+    icon: Mountain,
+    description: 'Active outdoor experiences'
+  },
+  {
+    id: 'luxury',
+    label: 'Luxury Trip',
+    icon: Gem,
+    description: 'Premium stays & fine dining'
+  },
+  {
+    id: 'city',
+    label: 'Cultural/City Trip',
+    icon: MapPin,
+    description: 'Museums, galleries, neighborhoods'
+  },
+  {
+    id: 'solo',
+    label: 'Solo Travel',
+    icon: User,
+    description: 'Safe, flexible, social options'
+  },
+  {
+    id: 'wellness',
+    label: 'Wellness/Retreat',
+    icon: Sparkles,
+    description: 'Spa, yoga, restorative pace'
   }
+
 ]
+
+
+const QUICK_TYPE_IDS: TripType[] = ['road-trip', 'family', 'adventure']
+const QUICK_TYPES = TRIP_TYPES.filter(t => QUICK_TYPE_IDS.includes(t.id))
+const OTHER_TYPES = TRIP_TYPES.filter(t => !QUICK_TYPE_IDS.includes(t.id))
 
 export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
   // Convert Destination[] to Location[] format for LocationInput
@@ -64,6 +107,9 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
       { id: crypto.randomUUID(), value: '' }
     ]
   })
+
+
+  const [isTypeModalOpen, setIsTypeModalOpen] = useState(false)
 
   const [selectedTripType, setSelectedTripType] = useState<TripType | null>(data.tripType)
   const [dateRange, setDateRange] = useState({
@@ -118,12 +164,6 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
 
   return (
     <div className="space-y-2.5">
-      {/* Header - Larger titles */}
-      <div>
-        <h2 className="text-lg font-bold text-gray-900">Where are you going?</h2>
-        <p className="text-xs text-gray-600 mt-0.5">Start with your journey basics</p>
-      </div>
-
       {/* Destinations - Compact */}
       <div>
         <LocationInput
@@ -132,47 +172,105 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
         />
       </div>
 
-      {/* Trip Type - Larger buttons with green selection */}
+      {/* Trip Type - Quick access top 3 + modal for the rest */}
       <div className="space-y-1.5">
         <h3 className="text-sm font-bold text-gray-900">Trip Type</h3>
-        <div className="grid grid-cols-2 gap-2">
-          {TRIP_TYPES.map((type) => {
+
+        {/* Quick access — 1 row, 3 columns */}
+        <div className="grid grid-cols-3 gap-2">
+          {QUICK_TYPES.map((type) => {
             const IconComponent = type.icon
+            const selected = selectedTripType === type.id
             return (
               <button
                 key={type.id}
                 onClick={() => setSelectedTripType(type.id)}
-                className={`p-3 rounded-lg border transition-all text-left ${
-                  selectedTripType === type.id
+                aria-pressed={selected}
+                className={`w-full p-3 rounded-lg border transition-all text-left ${
+                  selected
                     ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    selectedTripType === type.id ? 'bg-green-100' : 'bg-gray-100'
+                    selected ? 'bg-green-100' : 'bg-gray-100'
                   }`}>
-                    <IconComponent className={`w-4 h-4 ${
-                      selectedTripType === type.id ? 'text-green-700' : 'text-gray-700'
-                    }`} />
+                    <IconComponent className={`w-4 h-4 ${selected ? 'text-green-700' : 'text-gray-700'}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-gray-900 text-xs leading-tight truncate">{type.label}</div>
-                    <div className="text-[9px] text-gray-600 leading-tight truncate">{type.description}</div>
+                    <div className="font-semibold text-gray-900 text-xs leading-tight">{type.label}</div>
+                    <div className="text-[9px] text-gray-600 leading-tight">{type.description}</div>
                   </div>
                 </div>
               </button>
             )
           })}
         </div>
+
+        {/* More types trigger - shows selected type if from modal */}
+        <div className="pt-1">
+          <Button
+            variant="outline"
+            size="sm"
+            className={`w-full border-gray-300 text-gray-800 hover:text-gray-900 ${
+              selectedTripType && !QUICK_TYPE_IDS.includes(selectedTripType) ? 'bg-green-50 border-green-300' : ''
+            }`}
+            onClick={() => setIsTypeModalOpen(true)}
+          >
+            {selectedTripType && !QUICK_TYPE_IDS.includes(selectedTripType)
+              ? `${TRIP_TYPES.find(t => t.id === selectedTripType)?.label} • Change`
+              : 'More trip types…'
+            }
+          </Button>
+        </div>
       </div>
 
+      {/* Trip Type modal */}
+      <Modal
+        isOpen={isTypeModalOpen}
+        onClose={() => setIsTypeModalOpen(false)}
+        title="Choose a trip type"
+        size="lg"
+      >
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {OTHER_TYPES.map((type) => {
+            const IconComponent = type.icon
+            const selected = selectedTripType === type.id
+            return (
+              <button
+                key={type.id}
+                onClick={() => {
+                  setSelectedTripType(type.id)
+                  setIsTypeModalOpen(false)
+                }}
+                aria-pressed={selected}
+                className={`p-3 rounded-lg border transition-all text-left ${
+                  selected
+                    ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
+                    : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    selected ? 'bg-green-100' : 'bg-gray-100'
+                  }`}>
+                    <IconComponent className={`w-4 h-4 ${selected ? 'text-green-700' : 'text-gray-700'}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-gray-900 text-xs leading-tight">{type.label}</div>
+                    <div className="text-[9px] text-gray-600 leading-tight">{type.description}</div>
+                  </div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </Modal>
+
       {/* Dates - White Background */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-gray-500" />
-          Travel Dates
-        </h3>
+      <div className="space-y-1.5">
+        <h3 className="text-sm font-bold text-gray-900">Travel Dates</h3>
         <div className="bg-white rounded-xl p-4 border border-gray-200 space-y-3">
           <DateRangePicker
             startDate={dateRange.startDate ? new Date(dateRange.startDate) : undefined}

@@ -17,9 +17,11 @@ interface PhaseProps {
   onBack: () => void
   isGenerating?: boolean
   error?: string | null
+  tripVision?: string
+  onTripVisionChange?: (vision: string) => void
 }
 
-export function PhaseThreeNew({ data, onNext, onBack, isGenerating, error }: PhaseProps) {
+export function PhaseThreeNew({ data, onNext, onBack, isGenerating, error, tripVision = '', onTripVisionChange }: PhaseProps) {
   const formatDateRange = () => {
     if (!data.dateRange) return 'Not set'
     const start = data.dateRange.startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -134,6 +136,27 @@ export function PhaseThreeNew({ data, onNext, onBack, isGenerating, error }: Pha
             </div>
           </div>
         </div>
+        {/* Trip Vision / Free input summary */}
+        {data.tripVision && data.tripVision.trim().length > 0 && (
+          <div className="p-4 rounded-xl border border-gray-200 bg-white hover:shadow-sm transition-all">
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Your trip vision</div>
+            <p className="text-sm text-gray-800 whitespace-pre-line">{data.tripVision}</p>
+          </div>
+        )}
+
+      </div>
+
+      {/* Trip Vision - Free text input */}
+      <div className="space-y-1.5 p-4 rounded-xl border border-gray-200 bg-white">
+        <h3 className="text-sm font-bold text-gray-900">Tell us more about your trip vision</h3>
+        <p className="text-[11px] text-gray-600">Share any special interests, must-see places, dietary needs, mobility considerations, budget range, or specific experiences you're dreaming about.</p>
+        <textarea
+          value={tripVision}
+          onChange={(e) => onTripVisionChange?.(e.target.value)}
+          rows={3}
+          placeholder="e.g., Vegetarian family, kids love animals, moderate budget, prefer shorter drives, stroller-friendly paths"
+          className="w-full text-sm p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+        />
       </div>
 
       {/* Error Message */}

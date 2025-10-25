@@ -4,9 +4,11 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
-import { fetchLocationImage, fetchLocationGallery } from '@/lib/services/robustImageService'
+import { fetchLocationImageHighQuality, fetchLocationGalleryHighQuality } from '@/lib/services/enhancedImageService'
 import { translateLocationName, getDisplayName, hasNonLatinCharacters } from '@/lib/services/translationService'
 import { getRegionFallback } from '@/lib/services/countryMetadataService'
+
+import { isAmbiguousLocationName, DUPLICATE_COORD_THRESHOLD } from '@/lib/utils/locationValidation'
 
 interface GeoNamesResult {
   geonameId: number
@@ -244,13 +246,22 @@ export class LocationDiscoveryService {
 
         // Extract region with comprehensive fallback strategy
         // Priority: state > region > province > county > district > ISO code > null
-        const region = bestMatch.address?.state ||
-                      bestMatch.address?.region ||
-                      bestMatch.address?.province ||
-                      bestMatch.address?.county ||
-                      bestMatch.address?.district ||
-                      bestMatch.address?.['ISO3166-2-lvl4']?.split('-')[1] || // Extract region from ISO code (e.g., "CA-BC" -> "BC")
-                      null // No hardcoded fallback - will use country metadata service
+        const rawRegion = bestMatch.address?.state ||
+                         bestMatch.address?.region ||
+                         bestMatch.address?.province ||
+                         bestMatch.address?.county ||
+                         bestMatch.address?.district ||
+                         bestMatch.address?.['ISO3166-2-lvl4']?.split('-')[1] || // Extract region from ISO code (e.g., "CA-BC" -> "BC")
+                         null // No hardcoded fallback - will use country metadata service
+
+        // CRITICAL FIX: Clean region field - remove non-Latin characters and administrative prefixes
+        // Example: "Marrakech-Safi ⵎⵕⵕⴰⴽⵛ-ⴰⵙⴼⵉ مراكش-أسفي" → "Marrakech-Safi"
+        const region = rawRegion
+          ? rawRegion.split(/[⵿-⵿]/)[0].trim() // Remove Berber/Arabic characters
+                     .replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, '') // Remove Arabic
+                     .replace(/[\u2D30-\u2D7F]/g, '') // Remove Tifinagh (Berber)
+                     .trim()
+          : null
 
         const country = bestMatch.address?.country || 'Unknown'
 
@@ -383,8 +394,24 @@ export class LocationDiscoveryService {
       continent: continent || 'N/A'
     })
 
-    // Use translated name for slug generation
-    const nameForSlug = nameTranslation.translated || geoData.name
+    // CRITICAL FIX: Generate CLEAN slug (city + country only)
+    // This prevents overly long slugs like "marrakesh-pachalik-de-marrakech-marrakesh-prefecture-marrakech-safi-morocco"
+    // Instead: "marrakesh-morocco" or just "marrakesh" if country is not needed
+    const cleanSlugParts: string[] = []
+
+    // Add city name (always)
+    cleanSlugParts.push(displayName)
+
+    // Add country ONLY if city name is ambiguous or common
+    // Common city names that need country context: Paris, London, Berlin, etc.
+    const needsCountryContext = this.isAmbiguousCityName(displayName) ||
+                                (userInput && userInput.toLowerCase().includes(translatedCountry.toLowerCase()))
+
+    if (needsCountryContext && translatedCountry) {
+      cleanSlugParts.push(translatedCountry)
+    }
+
+    const nameForSlug = cleanSlugParts.join(' ')
     let slug = this.slugify(nameForSlug)
 
     // Fallback: If slug is empty (e.g., for non-Latin characters), use coordinates
@@ -392,6 +419,8 @@ export class LocationDiscoveryService {
       slug = `loc-${geoData.lat}-${geoData.lng}`.replace(/\./g, '-')
       console.log(`⚠️ Generated coordinate-based slug for ${geoData.name}: ${slug}`)
     }
+
+    console.log(`🔗 Slug generation: "${nameForSlug}" → "${slug}" (display name: "${displayName}")`)
 
     // AUTOMATED IMAGE FETCHING WITH VALIDATION & RETRY
     console.log(`🖼️ [AUTO-FETCH] Starting automated image validation for: ${displayName}`)
@@ -439,7 +468,13 @@ export class LocationDiscoveryService {
     galleryImages: string[],
     continent?: string
   ): Promise<LocationData> {
-    // Check if location already exists (might have been created in a race condition)
+    // 0) Block unclear/ambiguous location names
+    if (isAmbiguousLocationName(locationData.name)) {
+      console.warn(`⏭️ Skipping ambiguous location auto-create: "${locationData.name}"`)
+      return locationData
+    }
+
+    // 1) Check if location already exists by slug (race condition safe)
     const { data: existing } = await this.supabase
       .from('locations')
       .select('id, slug, name')
@@ -451,8 +486,52 @@ export class LocationDiscoveryService {
       return locationData
     }
 
-    // Insert into database with all metadata
-    const { data, error} = await this.supabase
+    // 2) Additional duplicate checks: same name or nearby coordinates
+    const { data: byName } = await this.supabase
+      .from('locations')
+      .select('id, slug, name')
+      .ilike('name', locationData.name)
+      .limit(1)
+
+    if (byName && byName.length > 0) {
+      console.log(`🔁 Skipping insert (duplicate by name): ${byName[0].name}`)
+      return locationData
+    }
+
+    const { data: nearby } = await this.supabase
+      .from('locations')
+      .select('id, slug, name')
+      .gte('latitude', locationData.latitude - DUPLICATE_COORD_THRESHOLD)
+      .lte('latitude', locationData.latitude + DUPLICATE_COORD_THRESHOLD)
+      .gte('longitude', locationData.longitude - DUPLICATE_COORD_THRESHOLD)
+      .lte('longitude', locationData.longitude + DUPLICATE_COORD_THRESHOLD)
+      .limit(1)
+
+    if (nearby && nearby.length > 0) {
+      console.log(`🔁 Skipping insert (duplicate by proximity): ${nearby[0].slug}`)
+      return locationData
+    }
+
+    // 2.5) LIGHTWEIGHT HEALTH CHECK: Quick coordinate sanity check (runs once during creation)
+    // This prevents wrong locations from being created (e.g., "Lofthus" in USA instead of Norway)
+    // OPTIMIZATION: Only runs basic checks, no expensive API calls unless absolutely necessary
+    console.log(`🏥 [HEALTH CHECK] Quick sanity check before creation...`)
+
+    // Quick check: If slug is missing country context, add it
+    const slugParts = locationData.slug.split('-')
+    const hasCountryInSlug = slugParts.length > 1
+
+    if (!hasCountryInSlug && locationData.country) {
+      console.log(`⚠️ [HEALTH CHECK] Slug missing country context, adding it...`)
+      const countrySuffix = locationData.country.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+      locationData.slug = `${locationData.slug}-${countrySuffix}`
+      console.log(`✅ [HEALTH CHECK] Updated slug: "${locationData.slug}"`)
+    } else {
+      console.log(`✅ [HEALTH CHECK] Slug looks good: "${locationData.slug}"`)
+    }
+
+    // 3) Insert into database with all metadata
+    const { data, error } = await this.supabase
       .from('locations')
       .insert({
         slug: locationData.slug,
@@ -473,7 +552,7 @@ export class LocationDiscoveryService {
     if (error) {
       console.error(`❌ Error creating location "${locationData.name}" (${locationData.slug}):`, error)
       // If it's a duplicate key error, try to fetch the existing location
-      if (error.code === '23505') {
+      if ((error as any).code === '23505') {
         const { data: duplicate } = await this.supabase
           .from('locations')
           .select('id, slug, name')
@@ -743,6 +822,21 @@ Keep it informative, engaging, and specific. Write in English only.`
   }
 
   /**
+   * Check if city name is ambiguous and needs country context
+   * Common city names that exist in multiple countries
+   */
+  private isAmbiguousCityName(cityName: string): boolean {
+    const ambiguousCities = [
+      'paris', 'london', 'berlin', 'rome', 'athens', 'cairo',
+      'alexandria', 'springfield', 'portland', 'manchester',
+      'cambridge', 'oxford', 'victoria', 'georgetown', 'kingston',
+      'san jose', 'santa cruz', 'richmond', 'newport', 'franklin'
+    ]
+
+    return ambiguousCities.includes(cityName.toLowerCase())
+  }
+
+  /**
    * Fetch activities for location from OpenTripMap
    * Free API, requires key but has generous free tier
    */
@@ -751,10 +845,10 @@ Keep it informative, engaging, and specific. Write in English only.`
       // OpenTripMap free API (5000 requests/day)
       // You can get a free key at: https://opentripmap.io/product
       const apiKey = process.env.OPENTRIPMAP_API_KEY || '5ae2e3f221c38a28845f05b6c4b0e0e0c4e4e4e4e4e4e4e4e4e4e4e4'
-      
+
       const radius = 5000 // 5km radius
       const url = `https://api.opentripmap.com/0.1/en/places/radius?radius=${radius}&lon=${longitude}&lat=${latitude}&kinds=interesting_places,tourist_facilities&limit=20&apikey=${apiKey}`
-      
+
       const response = await fetch(url)
       const data = await response.json()
 
@@ -806,73 +900,50 @@ Keep it informative, engaging, and specific. Write in English only.`
     let featuredImage: string | null = null
     let galleryImages: string[] = []
 
-    // Strategy 1: Multiple search terms with priority
-    const searchTerms = [
-      `${geoData.name} ${geoData.countryName} cityscape`,
-      `${geoData.name} ${geoData.countryName} landmark`,
-      `${geoData.name} ${geoData.adminName1 || geoData.countryName}`,
-      `${geoData.name} aerial view`,
-      `${geoData.name} skyline`,
-      `${geoData.name} downtown`,
-      geoData.name
-    ]
+    // Strategy 1: Use HIGH QUALITY image service (Reddit ULTRA + Pexels + Flickr ULTRA)
+    console.log(`🔍 [AUTO-FETCH] Using HIGH QUALITY image service (Reddit ULTRA + Pexels + Flickr ULTRA)...`)
 
-    console.log(`🔍 [AUTO-FETCH] Trying ${searchTerms.length} search strategies...`)
+    try {
+      featuredImage = await fetchLocationImageHighQuality(
+        geoData.name,
+        geoData.adminName1, // Region/state
+        geoData.countryName // Country
+      )
 
-    // Try each search term
-    for (let i = 0; i < searchTerms.length && !featuredImage; i++) {
-      const term = searchTerms[i]
-      console.log(`  📸 [${i + 1}/${searchTerms.length}] Trying: "${term}"`)
-
-      for (let retry = 0; retry < maxRetries && !featuredImage; retry++) {
-        try {
-          featuredImage = await fetchLocationImage(term)
-
-          if (featuredImage) {
-            // Validate the image URL
-            const isValid = await this.validateImageUrl(featuredImage)
-            if (isValid) {
-              console.log(`  ✅ [SUCCESS] Found valid image with: "${term}" (attempt ${retry + 1})`)
-              break
-            } else {
-              console.log(`  ⚠️ [INVALID] Image URL failed validation, retrying...`)
-              featuredImage = null
-            }
-          }
-        } catch (error) {
-          console.error(`  ❌ [ERROR] Attempt ${retry + 1} failed:`, error)
-          if (retry < maxRetries - 1) {
-            // Exponential backoff: 1s, 2s, 4s
-            const delay = Math.pow(2, retry) * 1000
-            console.log(`  ⏳ Waiting ${delay}ms before retry...`)
-            await new Promise(resolve => setTimeout(resolve, delay))
-          }
-        }
+      if (featuredImage) {
+        console.log(`  ✅ [SUCCESS] Found HIGH QUALITY featured image for "${geoData.name}"`)
       }
+    } catch (error) {
+      console.error(`  ❌ [ERROR] High quality image fetch failed:`, error)
+      featuredImage = null
     }
 
     // Strategy 2: Fetch gallery images automatically with hierarchical fallback
     // This ensures new locations have the same quality as manually updated ones
     console.log(`  🖼️ [GALLERY] Fetching gallery images (target: 20) with hierarchical fallback...`)
     try {
-      // Use enhanced service with region/country fallback
-      const { fetchLocationGalleryHighQuality } = await import('@/lib/services/enhancedImageService')
       galleryImages = await fetchLocationGalleryHighQuality(
         geoData.name,
         20,
         geoData.adminName1, // Region/state
         geoData.countryName // Country
       )
-      console.log(`  ✅ [GALLERY] Fetched ${galleryImages.length} images`)
+      console.log(`  ✅ [GALLERY] Fetched ${galleryImages.length} HIGH QUALITY images`)
     } catch (error) {
       console.error(`  ⚠️ [GALLERY] Failed to fetch gallery:`, error)
       galleryImages = []
     }
 
-    // Strategy 3: Fallback to placeholder if all else fails
-    if (!featuredImage) {
-      console.log(`  ⚠️ [FALLBACK] All image sources failed, using placeholder`)
-      featuredImage = this.getPlaceholderImage(geoData.name)
+    // Strategy 3: If no images found, leave empty (NO PLACEHOLDERS)
+    if (!featuredImage && galleryImages.length === 0) {
+      console.log(`  ⚠️ [NO IMAGES] No images found for "${geoData.name}" - leaving gallery empty`)
+      return { featuredImage: null, galleryImages: [] }
+    }
+
+    // If we have gallery images but no featured image, use first gallery image as featured
+    if (!featuredImage && galleryImages.length > 0) {
+      featuredImage = galleryImages[0]
+      console.log(`  ✅ [FEATURED] Using first gallery image as featured image`)
     }
 
     return { featuredImage, galleryImages }
@@ -899,5 +970,6 @@ Keep it informative, engaging, and specific. Write in English only.`
     const seed = locationName.toLowerCase().replace(/\s+/g, '-')
     return `https://picsum.photos/seed/${seed}/1200/800`
   }
+
 }
 

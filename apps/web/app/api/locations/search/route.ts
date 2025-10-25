@@ -47,44 +47,13 @@ export async function GET(request: NextRequest) {
       async () => {
         console.log(`🔍 Searching locations for: "${query}"`)
 
-        // 1. Search database first
-        const { data: dbResults, error: dbError } = await supabase
-          .from('locations')
-          .select('id, name, slug, country, region, latitude, longitude')
-          .or(`name.ilike.%${query}%,country.ilike.%${query}%,region.ilike.%${query}%`)
-          .limit(limit)
-
-        const databaseResults: LocationSearchResult[] = (dbResults || []).map(loc => ({
-          id: loc.id,
-          name: loc.name,
-          slug: loc.slug,
-          country: loc.country,
-          region: loc.region,
-          latitude: loc.latitude,
-          longitude: loc.longitude,
-          displayName: `${loc.name}, ${loc.region ? loc.region + ', ' : ''}${loc.country}`,
-          source: 'database' as const,
-          importance: 1.0
-        }))
-
-        // 2. If we have enough database results, return them
-        if (databaseResults.length >= 3) {
-          return databaseResults
-        }
-
-        // 3. Otherwise, search geocoding API for more options
+        // ONLY return geocoding results for autocomplete
+        // Backend will check database when generating trip to avoid duplicates
         const geocodingResults = await searchGeocodingAPI(query, limit)
 
-        // 4. Combine and deduplicate results
-        const allResults = [...databaseResults, ...geocodingResults]
-        const uniqueResults = deduplicateResults(allResults)
-
-        // 5. Sort by importance (database results first, then by geocoding importance)
-        uniqueResults.sort((a, b) => {
-          if (a.source === 'database' && b.source !== 'database') return -1
-          if (a.source !== 'database' && b.source === 'database') return 1
-          return (b.importance || 0) - (a.importance || 0)
-        })
+        // Deduplicate and sort by importance
+        const uniqueResults = deduplicateResults(geocodingResults)
+        uniqueResults.sort((a, b) => (b.importance || 0) - (a.importance || 0))
 
         return uniqueResults.slice(0, limit)
       },
@@ -159,15 +128,113 @@ async function searchGeocodingAPI(query: string, limit: number): Promise<Locatio
 }
 
 /**
- * Remove duplicate locations (same name + country)
+ * Remove duplicate locations with ULTRA-STRICT fuzzy matching
+ * Handles cases like "Berlin", "Berlin, Berlin", "Berlin, Brandenburg", "Berlin, Germany"
+ * Also removes locations that are very close to each other (< 5km)
+ *
+ * CRITICAL: This prevents duplicate suggestions in autocomplete dropdown
  */
 function deduplicateResults(results: LocationSearchResult[]): LocationSearchResult[] {
-  const seen = new Set<string>()
-  return results.filter(loc => {
-    const key = `${loc.name.toLowerCase()}-${loc.country.toLowerCase()}`
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
+  const seen = new Map<string, LocationSearchResult>()
+  const seenCoordinates: Array<{ lat: number; lng: number; result: LocationSearchResult }> = []
+
+  for (const loc of results) {
+    // ULTRA-STRICT normalization: remove ALL variations
+    const normalizedName = loc.name
+      .toLowerCase()
+      .replace(/,.*$/, '') // Remove everything after comma: "Berlin, Germany" → "Berlin"
+      .replace(/\s+(city|town|village|municipality|county|state|region|district|province)$/i, '') // Remove administrative suffixes
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim()
+
+    const country = loc.country.toLowerCase().trim()
+
+    // CRITICAL FIX: Check if this location is very close to any existing location
+    // This prevents duplicates like "Braak, Lower Saxony" and "Braak, Schleswig-Holstein"
+    // when they're actually the same small village
+    let isDuplicate = false
+    for (const existing of seenCoordinates) {
+      const distance = calculateDistance(
+        existing.lat, existing.lng,
+        loc.latitude, loc.longitude
+      )
+
+      // If locations are very close (< 1km) and have same name, it's a duplicate
+      if (distance < 1 && normalizedName === existing.result.name.toLowerCase().replace(/,.*$/, '').trim()) {
+        isDuplicate = true
+        // Keep the one with higher importance
+        if ((loc.importance || 0) > (existing.result.importance || 0)) {
+          // Replace existing with this one
+          const existingKey = `${normalizedName}|${existing.result.country.toLowerCase()}`
+          seen.set(existingKey, loc)
+          existing.lat = loc.latitude
+          existing.lng = loc.longitude
+          existing.result = loc
+        }
+        break
+      }
+    }
+
+    if (isDuplicate) {
+      continue // Skip this duplicate
+    }
+
+    // Create unique key: normalized name + country
+    const key = `${normalizedName}|${country}`
+
+    // Check if we already have this exact location
+    const existing = seen.get(key)
+    if (existing) {
+      // PRIORITY RULES:
+      // 1. Database results ALWAYS win over geocoding results
+      if (existing.source === 'database') {
+        continue // Keep database result, skip geocoding duplicate
+      }
+
+      // 2. If both are geocoding results, check proximity
+      const distance = calculateDistance(
+        existing.latitude, existing.longitude,
+        loc.latitude, loc.longitude
+      )
+
+      // If locations are very close (< 5km), keep the one with higher importance
+      if (distance < 5) {
+        if ((loc.importance || 0) > (existing.importance || 0)) {
+          seen.set(key, loc) // Replace with higher importance
+          // Update coordinates tracking
+          const coordIndex = seenCoordinates.findIndex(c => c.result === existing)
+          if (coordIndex >= 0) {
+            seenCoordinates[coordIndex] = { lat: loc.latitude, lng: loc.longitude, result: loc }
+          }
+        }
+        // Otherwise keep existing
+      } else {
+        // Different locations with same name in same country (rare but possible)
+        // Keep both by creating a unique key with coordinates
+        const uniqueKey = `${normalizedName}|${country}|${loc.latitude.toFixed(2)},${loc.longitude.toFixed(2)}`
+        seen.set(uniqueKey, loc)
+        seenCoordinates.push({ lat: loc.latitude, lng: loc.longitude, result: loc })
+      }
+    } else {
+      seen.set(key, loc)
+      seenCoordinates.push({ lat: loc.latitude, lng: loc.longitude, result: loc })
+    }
+  }
+
+  return Array.from(seen.values())
+}
+
+/**
+ * Calculate distance between two coordinates in kilometers
+ */
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371 // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+  return R * c
 }
 

@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { SmartImage as Image } from '@/components/ui/SmartImage'
-import { Star, Heart, Eye, MapPin, Calendar, Users, Share2, Bookmark, Edit2, RefreshCw } from 'lucide-react'
-import { AdminRefetchModal } from './AdminRefetchModal'
+import { Star, Heart, Eye, MapPin, Calendar, Users, Share2, Bookmark, Edit2, RefreshCw, Trash2 } from 'lucide-react'
 import { Location } from '@/lib/data/locationsData'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -14,15 +13,16 @@ import { LocationRestaurants } from './LocationRestaurants'
 import { LocationExperiences } from './LocationExperiences'
 import { LocationDidYouKnow } from './LocationDidYouKnow'
 import { LocationRecommendations } from './LocationRecommendations'
-import { getSimpleLocationName } from '@/lib/utils/locationLinking'
 import { EditableLocationDescription } from './EditableLocationDescription'
 import { EditableLocationActivities } from './EditableLocationActivities'
 import { EditableLocationRestaurants } from './EditableLocationRestaurants'
 import { EditableLocationTitle } from './EditableLocationTitle'
+import { EditLocationMetadata } from './EditLocationMetadata'
 import { LocationWeather } from './LocationWeather'
 import { AuthenticatedLocationActions } from './AuthenticatedLocationActions'
 import { SignUpPrompt } from '../auth/SignUpPrompt'
 import { useAuth } from '@/hooks/useAuth'
+import { isAdmin } from '@/lib/utils/adminCheck'
 import { SimpleLocationMap } from '@/components/maps/SimpleLocationMap'
 import { LocationImageGallery } from './LocationImageGallery'
 import { LocationRating } from './LocationRating'
@@ -52,119 +52,13 @@ interface LocationDetailTemplateProps {
   relatedLocations: Location[]
 }
 
-// Sleek loading skeleton component - matches actual page layout
-function LocationDetailSkeleton() {
-  return (
-    <main className="min-h-screen bg-gray-50">
-      {/* Breadcrumb skeleton */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-16 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded" />
-            <span className="text-gray-300">›</span>
-            <div className="h-4 w-20 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded" />
-            <span className="text-gray-300">›</span>
-            <div className="h-4 w-32 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded" />
-          </div>
-        </div>
-      </div>
-
-      {/* Title and rating skeleton */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8 py-6">
-          <div className="h-12 w-80 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded-lg mb-4" />
-          <div className="flex items-center gap-4 mb-4">
-            <div className="h-6 w-32 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded" />
-            <div className="h-6 w-40 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded" />
-          </div>
-          {/* Rating stars skeleton */}
-          <div className="flex items-center gap-2">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-5 w-5 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded" />
-            ))}
-            <div className="h-5 w-24 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded ml-2" />
-          </div>
-        </div>
-      </div>
-
-      {/* Image gallery skeleton */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-4 gap-2 h-[500px]">
-            <div className="col-span-2 row-span-2 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded-xl" />
-            <div className="bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded-xl" />
-            <div className="bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded-xl" />
-            <div className="bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded-xl" />
-            <div className="bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded-xl" />
-          </div>
-        </div>
-      </div>
-
-      {/* Content skeleton - 2/3 + 1/3 layout */}
-      <div className="mx-auto max-w-7xl px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main content - 2 columns */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Description section */}
-            <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
-              <div className="h-7 w-48 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded" />
-              <div className="space-y-3">
-                <div className="h-4 w-full bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded" />
-                <div className="h-4 w-full bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded" />
-                <div className="h-4 w-5/6 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded" />
-                <div className="h-4 w-full bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded" />
-                <div className="h-4 w-3/4 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded" />
-              </div>
-            </div>
-
-            {/* Activities section */}
-            <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
-              <div className="h-7 w-40 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded" />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-24 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded-lg" />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar - 1 column */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Ad skeleton */}
-            <div className="bg-white rounded-xl shadow-sm p-4">
-              <div className="h-64 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded-lg" />
-            </div>
-            {/* Weather skeleton */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="h-32 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded-lg" />
-            </div>
-            {/* Actions skeleton */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="h-48 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer rounded-lg" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Loading indicator - centered at bottom */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-white rounded-full shadow-lg px-6 py-3 flex items-center gap-3 border border-gray-200 z-50">
-        <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
-        <span className="text-sm font-medium text-gray-700">Loading location details...</span>
-      </div>
-    </main>
-  )
-
-}
-
 export function LocationDetailTemplate({ location, relatedLocations }: LocationDetailTemplateProps) {
   const { isAuthenticated, user } = useAuth()
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(true)
   const [isEditMode, setIsEditMode] = useState(false)
   const [isUploadOpen, setIsUploadOpen] = useState(false)
   const [uploadMode, setUploadMode] = useState<'upload' | 'url'>('upload')
   const [urlInput, setUrlInput] = useState('')
-  const [isRefetchModalOpen, setIsRefetchModalOpen] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 })
   // Image attribution + consent
@@ -173,20 +67,49 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
   const [sourceName, setSourceName] = useState<string>(defaultSourceName)
   const [sourceUrl, setSourceUrl] = useState<string>('')
   const [consent, setConsent] = useState<boolean>(false)
+  const [isRefetching, setIsRefetching] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showRefetchModal, setShowRefetchModal] = useState(false)
+  const [includeImageRefetch, setIncludeImageRefetch] = useState(true)
 
+  // Admin: Refetch location data
+  const handleRefetch = async () => {
+    setShowRefetchModal(false)
+    setIsRefetching(true)
 
-  useEffect(() => {
-    // Simulate content loading - show skeleton briefly for smooth transition
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 300)
+    try {
+      const response = await fetch('/api/admin/refetch-location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          locationId: location.id,
+          locationName: location.name,
+          includeImages: includeImageRefetch
+        })
+      })
 
-    return () => clearTimeout(timer)
-  }, [])
+      const data = await response.json()
 
-  // Show loading skeleton while content is loading
-  if (isLoading) {
-    return <LocationDetailSkeleton />
+      if (!response.ok) {
+        alert(`Error: ${data.error}`)
+        return
+      }
+
+      // Check if slug was updated (legacy location fix)
+      if (data.results.slugUpdated && data.results.newSlug) {
+        alert(`✅ Location refetched and slug updated!\n\n${data.message}\n\nImages: ${data.results.images}\nRestaurants: ${data.results.restaurants}\nActivities: ${data.results.activities}\n\nRedirecting to new URL...`)
+        // Redirect to new slug
+        window.location.href = `/locations/${data.results.newSlug}`
+      } else {
+        alert(`✅ Location refetched!\n\n${data.message}\n\nImages: ${data.results.images}\nRestaurants: ${data.results.restaurants}\nActivities: ${data.results.activities}`)
+        // Reload page to show updated data
+        router.refresh()
+      }
+    } catch (error) {
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsRefetching(false)
+    }
   }
 
   return (
@@ -215,7 +138,7 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
             {location.country}
           </Link>
           <span className="text-sleek-gray">›</span>
-          <span className="text-sleek-black">{getSimpleLocationName(location.name)}</span>
+          <span className="text-sleek-black">{location.name}</span>
         </nav>
       </div>
 
@@ -229,6 +152,20 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
               locationName={location.name}
               enabled={isEditMode}
             />
+
+            {/* Edit Location Metadata */}
+            {isEditMode && (
+              <EditLocationMetadata
+                locationId={location.id}
+                locationSlug={location.slug}
+                country={location.country}
+                region={location.region}
+                latitude={location.latitude}
+                longitude={location.longitude}
+                enabled={isEditMode}
+              />
+            )}
+
             <div className="flex flex-col gap-3">
               {/* Star Rating Component */}
               <LocationRating
@@ -247,7 +184,7 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
                 <div className="flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
                   <span>
-                    {location.region && `${location.region}, `}{location.country}
+                    {location.country}
                   </span>
                 </div>
               </div>
@@ -283,19 +220,21 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
                 >
                   Upload Photos
                 </Button>
-
-                {/* Admin Refetch Button - Opens Modal */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
-                  onClick={() => setIsRefetchModalOpen(true)}
-                  title="Admin: Refetch location data with granular options"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refetch Data
-                </Button>
               </>
+            )}
+
+            {/* Admin-only Refetch Button */}
+            {isAuthenticated && isAdmin(user?.email) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowRefetchModal(true)}
+                disabled={isRefetching}
+                className="border-amber-300 hover:bg-amber-50 text-amber-700"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
+                {isRefetching ? 'Refetching...' : 'Refetch Data'}
+              </Button>
             )}
 
             {/* Share & Save Actions */}
@@ -332,7 +271,7 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
           {/* Main Content Column */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 prevent-overflow">
 
             {/* Edit Mode Banner */}
             {isEditMode && (
@@ -484,18 +423,15 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
             </Card>
 
             {/* Community Comments Section */}
-            <Card className="card-elevated p-6 mb-8">
-              <h2 className="text-title-medium font-semibold text-sleek-black mb-6">
-                Community Discussion
-              </h2>
+            <div className="mb-8">
               <LocationCommentSection
                 locationSlug={location.slug}
               />
-            </Card>
+            </div>
           </div>
 
           {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
+          <div className="lg:col-span-1 space-y-6 prevent-overflow">
             {/* Sidebar Ad - Top Position */}
             <SidebarAd
               slot="location_detail_sidebar"
@@ -855,14 +791,64 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
         </div>
       )}
 
-      {/* Admin Refetch Modal */}
-      <AdminRefetchModal
-        isOpen={isRefetchModalOpen}
-        onClose={() => setIsRefetchModalOpen(false)}
-        locationSlug={location.slug}
-        locationName={location.name}
-        locationCountry={location.country}
-      />
+      {/* Refetch Data Modal */}
+      {showRefetchModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <RefreshCw className="h-6 w-6 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  Refetch Location Data
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Update restaurants, activities, and optionally images for "{location.name}"
+                </p>
+              </div>
+            </div>
+
+            {/* Image Refetch Toggle */}
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeImageRefetch}
+                  onChange={(e) => setIncludeImageRefetch(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                />
+                <div className="flex-1">
+                  <div className="font-medium text-gray-900 text-sm mb-1">
+                    Include Image Refetch
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    Fetch fresh images from external sources. This may take longer but ensures up-to-date visuals.
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowRefetchModal(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleRefetch}
+                className="flex-1 bg-amber-600 hover:bg-amber-700"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refetch Now
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
