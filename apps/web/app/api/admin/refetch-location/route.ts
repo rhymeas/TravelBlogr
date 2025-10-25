@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase } from '@/lib/supabase-server'
+import { createServiceSupabase } from '@/lib/supabase-server'
 import {
   fetchLocationImageHighQuality,
   fetchLocationGalleryHighQuality
@@ -15,7 +15,7 @@ import { translateContent } from '@/lib/services/contentTranslationService'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createServerSupabase()
+    const supabase = createServiceSupabase()  // Use service role to bypass RLS
     const body = await request.json()
     const {
       locationSlug,
@@ -98,15 +98,21 @@ export async function POST(request: NextRequest) {
             )
             
             if (imageUrl && imageUrl !== '/placeholder-activity.svg') {
-              await supabase
+              const { data: updateData, error: updateError } = await supabase
                 .from('location_activity_links')
                 .update({
                   image_url: imageUrl,
                   updated_at: new Date().toISOString()
                 })
                 .eq('id', activity.id)
-              
-              activityImagesFixed++
+                .select()
+
+              if (updateError) {
+                console.error(`❌ Failed to update image for ${activity.activity_name}:`, updateError)
+              } else {
+                console.log(`✅ Updated image for ${activity.activity_name}`)
+                activityImagesFixed++
+              }
             }
           } catch (err) {
             console.error(`Failed to fetch image for ${activity.activity_name}:`, err)
@@ -142,7 +148,7 @@ export async function POST(request: NextRequest) {
             )
             
             if (linkData && linkData.url) {
-              await supabase
+              const { data: updateData, error: updateError } = await supabase
                 .from('location_activity_links')
                 .update({
                   link_url: linkData.url,
@@ -151,8 +157,14 @@ export async function POST(request: NextRequest) {
                   updated_at: new Date().toISOString()
                 })
                 .eq('id', activity.id)
-              
-              activityLinksFixed++
+                .select()
+
+              if (updateError) {
+                console.error(`❌ Failed to update link for ${activity.activity_name}:`, updateError)
+              } else {
+                console.log(`✅ Updated link for ${activity.activity_name}: ${linkData.url}`)
+                activityLinksFixed++
+              }
             }
           } catch (err) {
             console.error(`Failed to fetch link for ${activity.activity_name}:`, err)
