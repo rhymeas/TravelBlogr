@@ -22,6 +22,7 @@ export function mapSupabaseLocationToFrontend(
   supabaseData: SupabaseLocation & {
     restaurants?: SupabaseRestaurant[]
     activities?: SupabaseActivity[]
+    location_activity_links?: SupabaseActivity[]  // NEW: Support new table name
   }
 ): Location {
   // Build images array with featured_image ALWAYS first
@@ -41,6 +42,9 @@ export function mapSupabaseLocationToFrontend(
   // Always start with featured image, then add real gallery images
   const images = [featuredImage, ...galleryImages]
 
+  // Support both old 'activities' and new 'location_activity_links' table names
+  const activitiesData = supabaseData.location_activity_links || supabaseData.activities || []
+
   return {
     id: supabaseData.id,
     name: supabaseData.name,
@@ -55,7 +59,7 @@ export function mapSupabaseLocationToFrontend(
     created_at: formatDate(supabaseData.created_at),
     images: images,
     posts: [], // User posts - separate feature
-    activities: mapActivities(supabaseData.activities || []),
+    activities: mapActivities(activitiesData),
     restaurants: mapRestaurants(supabaseData.restaurants || []),
     experiences: [], // Curated experiences - can be added later
     did_you_know: [], // Fun facts - can be added later
@@ -101,10 +105,13 @@ function mapRestaurants(supabaseRestaurants: SupabaseRestaurant[]): LocationRest
  */
 function mapActivities(supabaseActivities: SupabaseActivity[]): LocationActivity[] {
   return supabaseActivities.map(activity => {
+    // Support both 'activity_name' (new table) and 'name' (old table)
+    const activityName = activity.activity_name || activity.name || 'Unnamed Activity'
+
     // Generate tags automatically
     const tags = generateActivityTags({
       category: activity.category,
-      name: activity.name,
+      name: activityName,
       description: activity.description,
       price_info: activity.price_info,
       duration: activity.duration,
@@ -113,12 +120,12 @@ function mapActivities(supabaseActivities: SupabaseActivity[]): LocationActivity
 
     // Use high-quality fallback for activity images
     const activityImage = isPlaceholderImage(activity.image_url)
-      ? getActivityFallbackImage(activity.name, activity.category)
+      ? getActivityFallbackImage(activityName, activity.category)
       : activity.image_url
 
     return {
       id: activity.id,
-      name: activity.name,
+      name: activityName,
       category: mapActivityCategory(activity.category) as any,
       description: activity.description || '',
       completed: false,
@@ -131,11 +138,15 @@ function mapActivities(supabaseActivities: SupabaseActivity[]): LocationActivity
       rating: activity.rating || 0,
       image: activityImage,
       address: activity.address || 'Address not available',
-      website: activity.website || undefined,
+      website: activity.website || activity.link_url || undefined,  // NEW: Use link_url if website not available
       opening_hours: formatOpeningHours(activity.opening_hours),
-      verified: activity.is_verified,
+      verified: activity.is_verified !== false,  // Default to true if not specified
       latitude: activity.latitude,
-      longitude: activity.longitude
+      longitude: activity.longitude,
+      // NEW: Map additional fields from location_activity_links
+      image_url: activity.image_url,
+      link_url: activity.link_url,
+      link_source: activity.type as any  // Map 'type' to 'link_source'
     }
   })
 }

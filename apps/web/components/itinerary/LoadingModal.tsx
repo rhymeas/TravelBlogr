@@ -14,10 +14,30 @@ interface LoadingModalProps {
 export function LoadingModal({ isOpen }: LoadingModalProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const steps = [
-    'Analyzing locations',
-    'Calculating routes',
-    'Finding attractions',
-    'Optimizing itinerary'
+    {
+      title: 'Analyzing locations',
+      description: 'Gathering location data and coordinates'
+    },
+    {
+      title: 'Calculating routes',
+      description: 'Finding the best paths between destinations'
+    },
+    {
+      title: 'Finding attractions',
+      description: 'Discovering points of interest and activities'
+    },
+    {
+      title: 'Fetching activity images',
+      description: 'Updating gallery images for each location'
+    },
+    {
+      title: 'Discovering activity links',
+      description: 'Adding booking and information links'
+    },
+    {
+      title: 'Optimizing itinerary',
+      description: 'Finalizing your perfect travel plan'
+    }
   ]
 
   useEffect(() => {
@@ -26,10 +46,10 @@ export function LoadingModal({ isOpen }: LoadingModalProps) {
       return
     }
 
-    // Cycle through steps every 2 seconds
+    // Cycle through steps every 2.5 seconds (slightly longer for readability)
     const interval = setInterval(() => {
       setCurrentStep(prev => (prev + 1) % steps.length)
-    }, 2000)
+    }, 2500)
 
     return () => clearInterval(interval)
   }, [isOpen])
@@ -69,10 +89,10 @@ export function LoadingModal({ isOpen }: LoadingModalProps) {
         </div>
 
         {/* Animated Steps - One at a time, centered */}
-        <div className="flex flex-col items-center justify-center min-h-[120px]">
+        <div className="flex flex-col items-center justify-center min-h-[140px]">
           {steps.map((step, index) => (
             <div
-              key={step}
+              key={step.title}
               className={`absolute transition-all duration-700 ${
                 index === currentStep
                   ? 'opacity-100 scale-100 translate-y-0'
@@ -81,15 +101,20 @@ export function LoadingModal({ isOpen }: LoadingModalProps) {
                   : 'opacity-0 scale-95 translate-y-4'
               }`}
             >
-              <div className="flex flex-col items-center gap-4">
+              <div className="flex flex-col items-center gap-3">
                 {/* Step indicator */}
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-rausch-500 animate-pulse"></div>
                   <span className="text-lg font-medium text-gray-700">
-                    {step}
+                    {step.title}
                   </span>
                   <div className="w-2 h-2 rounded-full bg-rausch-500 animate-pulse"></div>
                 </div>
+
+                {/* Step description */}
+                <p className="text-sm text-gray-500 text-center max-w-xs">
+                  {step.description}
+                </p>
 
                 {/* Progress dots */}
                 <div className="flex gap-2">

@@ -102,7 +102,8 @@ export interface SupabaseRestaurant {
 export interface SupabaseActivity {
   id: string
   location_id: string
-  name: string
+  activity_name: string  // Note: location_activity_links uses 'activity_name' not 'name'
+  name?: string  // Keep for backwards compatibility
   description?: string
   category?: string
   address?: string
@@ -113,11 +114,20 @@ export interface SupabaseActivity {
   opening_hours?: any
   price_info?: string
   duration?: string
+  duration_minutes?: number
   rating?: number
   image_url?: string
+  link_url?: string  // NEW: Activity link from location_activity_links
   source: string
+  type?: string  // NEW: Link type (official, guide, booking, etc.)
+  confidence?: number  // NEW: Confidence score
+  tags?: string[]  // NEW: Activity tags
+  cost_level?: string  // NEW: Cost level
   external_id?: string
-  is_verified: boolean
+  is_verified?: boolean
+  original_activity_name?: string  // NEW: For translations
+  original_description?: string  // NEW: For translations
+  original_language?: string  // NEW: For translations
   created_at: string
   updated_at: string
 }
@@ -133,7 +143,7 @@ export async function getLocationBySlug(slug: string) {
       .select(`
         *,
         restaurants (*),
-        activities (*)
+        location_activity_links (*)
       `)
       .eq('slug', slug)
       .single()
@@ -145,7 +155,7 @@ export async function getLocationBySlug(slug: string) {
 
     return data as SupabaseLocation & {
       restaurants: SupabaseRestaurant[]
-      activities: SupabaseActivity[]
+      location_activity_links: SupabaseActivity[]
     }
   } catch (error) {
     console.error('Error in getLocationBySlug:', error)
