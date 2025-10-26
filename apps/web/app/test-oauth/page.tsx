@@ -1,5 +1,8 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
+
 import { useState } from 'react'
 import { useSupabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'

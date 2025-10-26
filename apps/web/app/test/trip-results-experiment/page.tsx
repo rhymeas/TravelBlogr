@@ -1,5 +1,8 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
+
 /**
  * Trip Results Experiment Page
  * Demonstrates the itinerary results layout from Iternarary-Modal-V2-experiment.js

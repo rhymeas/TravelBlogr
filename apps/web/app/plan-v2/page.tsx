@@ -1,5 +1,8 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
+
 /**
  * Trip Planner V2 - Experimental Progressive Workflow
  * /plan-v2

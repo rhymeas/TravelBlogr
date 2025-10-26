@@ -1,5 +1,8 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
+
 import { useState } from 'react'
 
 type Pack = { name: string; credits: number; priceCents: number; featured?: boolean; description?: string }

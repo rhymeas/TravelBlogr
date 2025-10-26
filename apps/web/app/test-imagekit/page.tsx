@@ -1,5 +1,8 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
+
 /**
  * ImageKit Test Page
  * Verifies that ImageKit is properly configured and working
