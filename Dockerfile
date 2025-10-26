@@ -69,7 +69,17 @@ ENV SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
 
 # Build the Next.js application
 WORKDIR /app/apps/web
-RUN npm run build
+
+# Debug: Show environment variables (without exposing secrets)
+RUN echo "Building with NEXT_PUBLIC_SITE_URL: $NEXT_PUBLIC_SITE_URL"
+
+# Run the build with explicit error handling
+RUN npm run build || (echo "Build failed! Checking for common issues..." && \
+    echo "Node version:" && node --version && \
+    echo "NPM version:" && npm --version && \
+    echo "Package.json exists:" && ls -la package.json && \
+    echo "Next.js installed:" && npm list next && \
+    exit 1)
 
 # Expose port (Railway will set PORT env var)
 EXPOSE 3000
