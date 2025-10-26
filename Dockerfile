@@ -73,12 +73,17 @@ WORKDIR /app/apps/web
 # Debug: Show environment variables (without exposing secrets)
 RUN echo "Building with NEXT_PUBLIC_SITE_URL: $NEXT_PUBLIC_SITE_URL"
 
-# Run the build with explicit error handling
-RUN npm run build || (echo "Build failed! Checking for common issues..." && \
+# Set environment to allow build warnings (not errors)
+ENV CI=false
+
+# Run the build - exit code 0 means success even with export warnings
+RUN npm run build && echo "✅ Build completed successfully!" || \
+    (echo "❌ Build failed! Diagnostics:" && \
     echo "Node version:" && node --version && \
     echo "NPM version:" && npm --version && \
-    echo "Package.json exists:" && ls -la package.json && \
-    echo "Next.js installed:" && npm list next && \
+    echo "Package.json:" && ls -la package.json && \
+    echo "Next.js version:" && npm list next && \
+    echo "Build output:" && ls -la .next 2>/dev/null || echo "No .next directory" && \
     exit 1)
 
 # Expose port (Railway will set PORT env var)
