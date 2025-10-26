@@ -4,6 +4,8 @@ import Groq from 'groq-sdk'
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY
 })
+import { createServerSupabase } from '@/lib/supabase-server'
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -112,6 +114,66 @@ Include realistic coordinates, diverse activities, and practical tips.`
     }
 
     console.log('✅ Day data generated successfully for:', dayData.location)
+
+    // Enrich: fetch gallery images for the location (Brave + Reddit ULTRA stack)
+    let gallery: string[] = []
+    try {
+      const { fetchLocationGalleryHighQuality } = await import('@/lib/services/enhancedImageService')
+      gallery = await fetchLocationGalleryHighQuality(dayData.location, 12)
+    } catch (e) {
+      console.warn('⚠️ Failed to fetch gallery images for new day:', e)
+      gallery = []
+    }
+
+    // Map stops -> items (ResultsView expects day.items)
+    const baseItems = Array.isArray(dayData.stops) ? dayData.stops : []
+    const items = baseItems.map((s: any) => ({
+      time: s.time || '10:00',
+      title: s.title,
+      type: s.type === 'meal' ? 'meal' : (s.type === 'travel' ? 'travel' : 'activity'),
+      duration: s.duration
+    }))
+
+    // Enrich each item with a 16:9 image (Brave Activity) and cache in DB for reuse
+    try {
+      const { fetchActivityImage } = await import('@/lib/services/braveActivityService')
+      const supabase = await createServerSupabase()
+
+      await Promise.all(
+        items.map(async (it: any) => {
+          const img = await fetchActivityImage(it.title, dayData.location).catch(() => null)
+          if (img) {
+            it.image = img
+            // Cache in poi_images for reuse across users
+            try {
+              await supabase
+                .from('poi_images')
+                .upsert({
+                  poi_name: it.title,
+                  location: dayData.location,
+                  category: it.type,
+                  image_url: img,
+                  source: 'brave'
+                }, { onConflict: 'poi_name,location' })
+            } catch (cacheErr) {
+              console.warn('Non-critical: failed to cache POI image', cacheErr)
+            }
+          }
+        })
+      )
+    } catch (e) {
+      console.warn('⚠️ Failed to fetch activity images for new day:', e)
+    }
+
+    // Attach images to location metadata
+    dayData.locationMetadata = dayData.locationMetadata || {}
+    dayData.locationMetadata.images = {
+      featured: gallery[0] || null,
+      gallery
+    }
+
+    // Normalize structure for client
+    dayData.items = items
 
     return NextResponse.json({
       success: true,

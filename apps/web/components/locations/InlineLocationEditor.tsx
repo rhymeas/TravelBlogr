@@ -11,6 +11,7 @@ import toast from 'react-hot-toast'
 interface InlineLocationEditorProps {
   locationId: string
   locationSlug: string
+  locationCountry?: string
   field: 'description' | 'activities' | 'restaurants' | 'images'
   value: any
   onUpdate?: (newValue: any) => void
@@ -20,6 +21,7 @@ interface InlineLocationEditorProps {
 export function InlineLocationEditor({
   locationId,
   locationSlug,
+  locationCountry,
   field,
   value,
   onUpdate,
@@ -174,6 +176,7 @@ export function InlineLocationEditor({
               activities={editValue}
               onChange={setEditValue}
               locationLabel={locationSlug}
+              country={locationCountry}
               locationId={locationId}
               onAutoPersist={async (nextActivities) => {
                 try {
@@ -219,7 +222,7 @@ export function InlineLocationEditor({
 // Activity Editor Component
 type LinkSuggestion = { title: string; url: string; source: string }
 
-function ActivityEditor({ activities, onChange, locationLabel, locationId, onAutoPersist }: { activities: any[], onChange: (val: any) => void, locationLabel?: string, locationId?: string, onAutoPersist?: (nextActivities: any[]) => void }) {
+function ActivityEditor({ activities, onChange, locationLabel, country, locationId, onAutoPersist }: { activities: any[], onChange: (val: any) => void, locationLabel?: string, country?: string, locationId?: string, onAutoPersist?: (nextActivities: any[]) => void }) {
   const { user } = useAuth()
   const [loadingImg, setLoadingImg] = useState<Record<number, boolean>>({})
   const [loadingLinks, setLoadingLinks] = useState<Record<number, boolean>>({})
@@ -287,7 +290,9 @@ function ActivityEditor({ activities, onChange, locationLabel, locationId, onAut
     setLoadingDesc(s => ({ ...s, [index]: true }))
     try {
       const a = activities[index]
-      const res = await fetch(`/api/activities/generate-description?activityName=${encodeURIComponent(a.name)}&locationName=${encodeURIComponent(locationLabel || '')}`)
+      const loc = (locationLabel || '').replace(/-/g, ' ').trim()
+      const url = `/api/activities/generate-description?activityName=${encodeURIComponent(a.name)}&locationName=${encodeURIComponent(loc)}${country ? `&country=${encodeURIComponent(country)}` : ''}`
+      const res = await fetch(url)
       const json = await res.json()
       if (json?.success && json.description) updateActivity(index, 'description', json.description)
     } finally {

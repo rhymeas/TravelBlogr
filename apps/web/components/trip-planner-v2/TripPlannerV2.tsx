@@ -15,6 +15,8 @@ import { ResultsView } from './ResultsView'
 import { ProgressIndicator } from './ProgressIndicator'
 import { TripSummary } from './TripSummary'
 import { Logo } from '@/components/ui/Logo'
+import { useAuth } from '@/hooks/useAuth'
+import { isAdmin } from '@/lib/utils/adminCheck'
 
 interface TripPlannerV2Props {
   showVersionToggle?: boolean
@@ -33,6 +35,9 @@ const PHASES = [
 ]
 
 export function TripPlannerV2({ showVersionToggle, onVersionToggle, currentVersion }: TripPlannerV2Props = {}) {
+  const { user } = useAuth()
+  const userIsAdmin = isAdmin(user?.email)
+
   const [currentPhase, setCurrentPhase] = useState(1)
   const [showResults, setShowResults] = useState(false)
   const [generatedPlan, setGeneratedPlan] = useState<any>(null)
@@ -293,8 +298,8 @@ export function TripPlannerV2({ showVersionToggle, onVersionToggle, currentVersi
       {/* Progress indicator - V1 style */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-6 py-3">
-          {/* Provider health banner (admin-only feel, non-blocking) */}
-          {providerHealth && providerHealth.ok === false && (
+          {/* Provider health banner (admin-only) */}
+          {userIsAdmin && providerHealth && providerHealth.ok === false && (
             <div className="mb-2 rounded-md border border-amber-300 bg-amber-50 text-amber-900 px-3 py-2 text-sm">
               <strong>Warning:</strong> One or more providers are failing.
               <span className="ml-2">Brave: {providerHealth.brave?.ok ? 'OK' : 'Fail'}</span>
@@ -361,7 +366,9 @@ export function TripPlannerV2({ showVersionToggle, onVersionToggle, currentVersi
                   tripData.tripType === 'city' || tripData.tripType === 'multi-destination' ? 'train' :
                   tripData.transportMode || 'car'
                 }
-                className="w-full h-[600px] rounded-xl"
+                className="w-[calc(100%+150px)] -mr-[150px] h-[600px] rounded-xl"
+                showElevation={false}
+                showProviderBadge={userIsAdmin}
               />
             </div>
           </div>

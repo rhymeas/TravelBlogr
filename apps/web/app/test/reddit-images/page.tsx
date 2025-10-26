@@ -14,19 +14,19 @@ interface RedditImage {
 export default function RedditImagesTestPage() {
   const [location, setLocation] = useState('Tokyo')
   const [loading, setLoading] = useState(false)
-  const [currentImages, setCurrentImages] = useState<RedditImage[]>([])
+  const [braveImages, setBraveImages] = useState<any[]>([])
   const [smartImages, setSmartImages] = useState<RedditImage[]>([])
   const [flickrImages, setFlickrImages] = useState<any[]>([])
   const [legacyImages, setLegacyImages] = useState<any[]>([])
 
-  const fetchCurrentMethod = async () => {
+  const fetchBraveMethod = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/test/reddit-images?location=${encodeURIComponent(location)}&method=current`)
+      const response = await fetch(`/api/test/reddit-images?location=${encodeURIComponent(location)}&method=brave`)
       const data = await response.json()
-      setCurrentImages(data.images || [])
+      setBraveImages(data.images || [])
     } catch (error) {
-      console.error('Error fetching current method:', error)
+      console.error('Error fetching Brave method:', error)
     }
     setLoading(false)
   }
@@ -70,7 +70,7 @@ export default function RedditImagesTestPage() {
   const fetchAll = async () => {
     setLoading(true)
     await Promise.all([
-      fetchCurrentMethod(),
+      fetchBraveMethod(),
       fetchSmartMethod(),
       fetchFlickrMethod(),
       fetchLegacyMethod()
@@ -109,11 +109,11 @@ export default function RedditImagesTestPage() {
 
           <div className="mt-4 grid grid-cols-4 gap-3">
             <button
-              onClick={fetchCurrentMethod}
+              onClick={fetchBraveMethod}
               disabled={loading}
-              className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 text-sm"
+              className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 text-sm"
             >
-              Reddit: Subreddit
+              Brave API 🚀
             </button>
             <button
               onClick={fetchSmartMethod}
@@ -141,23 +141,23 @@ export default function RedditImagesTestPage() {
 
         {/* Results Comparison */}
         <div className="grid grid-cols-4 gap-4">
-          {/* Current Method */}
+          {/* Brave API Method */}
           <div>
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <span className="w-3 h-3 bg-gray-500 rounded-full"></span>
-                Current Method (Subreddit-Specific)
+                <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
+                Brave Search API 🚀
               </h2>
               <p className="text-sm text-gray-600 mb-4">
-                Searches 6 travel subreddits: itookapicture, travelphotography, earthporn, cityporn, villageporn, architectureporn
+                Uses Brave Search API for high-quality location images
               </p>
               <div className="text-sm font-medium mb-4">
-                Found: {currentImages.length} images
+                Found: {braveImages.length} images
               </div>
 
-              {currentImages.length > 0 && (
+              {braveImages.length > 0 && (
                 <div className="space-y-4">
-                  {currentImages.map((img, idx) => (
+                  {braveImages.map((img: any, idx: number) => (
                     <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
                       <div className="relative h-48 bg-gray-100">
                         <Image
@@ -169,8 +169,8 @@ export default function RedditImagesTestPage() {
                         />
                       </div>
                       <div className="p-3">
-                        <div className="text-xs font-medium text-rausch-500 mb-1">
-                          r/{img.subreddit} • {img.score} upvotes
+                        <div className="text-xs font-medium text-blue-500 mb-1">
+                          {img.source}
                         </div>
                         <div className="text-sm text-gray-900 line-clamp-2">
                           {img.title}
@@ -181,7 +181,7 @@ export default function RedditImagesTestPage() {
                 </div>
               )}
 
-              {currentImages.length === 0 && !loading && (
+              {braveImages.length === 0 && !loading && (
                 <div className="text-center py-8 text-gray-500">
                   No images found. Try testing!
                 </div>
@@ -342,17 +342,17 @@ export default function RedditImagesTestPage() {
         </div>
 
         {/* Analysis */}
-        {(currentImages.length > 0 || smartImages.length > 0 || flickrImages.length > 0 || legacyImages.length > 0) && (
+        {(braveImages.length > 0 || smartImages.length > 0 || flickrImages.length > 0 || legacyImages.length > 0) && (
           <div className="mt-8 bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-bold mb-4">Analysis - Image Count Comparison</h2>
             <div className="grid grid-cols-4 gap-4">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="text-sm text-gray-600 mb-2">Reddit (Subreddit)</div>
-                <div className="text-3xl font-bold text-gray-700">
-                  {currentImages.length}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="text-sm text-blue-600 mb-2">Brave API 🚀</div>
+                <div className="text-3xl font-bold text-blue-700">
+                  {braveImages.length}
                 </div>
-                <div className="text-xs text-gray-500 mt-2">
-                  {new Set(currentImages.map(i => i.subreddit)).size} subreddits
+                <div className="text-xs text-blue-500 mt-2">
+                  High-quality search results
                 </div>
               </div>
               <div className="bg-indigo-50 p-4 rounded-lg">

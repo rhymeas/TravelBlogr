@@ -10,6 +10,12 @@ export const metadata: Metadata = {
   description: 'Simple, transparent pricing for sharing your travel stories. Start free, upgrade when you need more.',
 }
 
+const PACKS = [
+  { name: 'Starter', credits: 10, priceCents: 1000, description: 'Great to try out AI trips' },
+  { name: 'Explorer', credits: 30, priceCents: 3000, featured: true, description: 'Plan multiple trips' },
+  { name: 'Adventurer', credits: 100, priceCents: 10000, description: 'For power users and teams' },
+]
+
 const plans = [
   {
     name: 'Free',
@@ -118,7 +124,32 @@ export default function PricingPage() {
           </div>
         </section>
 
-        {/* Pricing Cards */}
+        {/* Credits (Pay-as-you-go) */}
+        <section className="py-12 lg:py-16 bg-gray-50">
+          <div className="mx-auto max-w-7xl px-6 lg:px-8">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-sleek-black">Pay-as-you-go Credits</h2>
+              <p className="text-sleek-gray mt-2">No subscriptions. Buy credits when you need them.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {PACKS.map((p) => (
+                <div key={p.name} className={`rounded-lg border ${p.featured ? 'border-rausch-500 shadow-lg' : 'border-sleek-border'} p-6 flex flex-col bg-white`}>
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-bold mb-2">{p.name}</h3>
+                    <p className="text-sleek-gray mb-4">{p.description}</p>
+                    <div className="text-4xl font-extrabold mb-2">${(p.priceCents/100).toFixed(0)}</div>
+                    <div className="text-sm text-sleek-gray">{p.credits} credits</div>
+                  </div>
+                  <Button asChild className={`${p.featured ? 'bg-rausch-600 hover:bg-rausch-700 text-white' : 'bg-sleek-black hover:bg-sleek-dark text-white'} mt-6`}>
+                    <Link href="/credits">Buy now</Link>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Subscriptions */}
         <section className="py-16 lg:py-24">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

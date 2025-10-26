@@ -17,11 +17,13 @@ import toast from 'react-hot-toast'
 
 interface AuthenticatedLocationActionsProps {
   locationId: string
+  locationSlug: string
   locationName: string
 }
 
 export function AuthenticatedLocationActions({
   locationId,
+  locationSlug,
   locationName
 }: AuthenticatedLocationActionsProps) {
   const { isAuthenticated } = useAuth()
@@ -70,7 +72,7 @@ export function AuthenticatedLocationActions({
 
   const loadCustomization = async () => {
     try {
-      const response = await fetch(`/api/locations/${locationId}/customize`)
+      const response = await fetch(`/api/locations/${locationSlug}/customize`)
       const data = await response.json()
 
       if (response.ok && data.customization) {
@@ -88,7 +90,7 @@ export function AuthenticatedLocationActions({
   const saveCustomization = async (updates: any) => {
     setSaving(true)
     try {
-      const response = await fetch(`/api/locations/${locationId}/customize`, {
+      const response = await fetch(`/api/locations/${locationSlug}/customize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)

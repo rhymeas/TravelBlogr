@@ -1,16 +1,31 @@
 /**
  * Brave Activity/POI/Restaurant Service
- * 
+ *
  * Fetches high-quality 16:9 images and booking links for:
  * - Activities & POIs
  * - Restaurants
  * - Experiences
- * 
+ *
  * Uses Brave Search API for fantastic images and official links
  */
 
 import { searchImages, searchWeb, searchActivity, searchRestaurant } from './braveSearchService'
 import { getCached, setCached, CacheKeys, CacheTTL } from '@/lib/upstash'
+
+// Simple concurrency limiter to prevent POI image bursts from exceeding RPS
+async function mapWithConcurrency<T, R>(items: T[], limit: number, worker: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array(items.length)
+  let idx = 0
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const current = idx++
+      if (current >= items.length) break
+      results[current] = await worker(items[current], current)
+    }
+  })
+  await Promise.all(runners)
+  return results
+}
 
 export interface BraveActivityData {
   images: Array<{
@@ -26,6 +41,10 @@ export interface BraveActivityData {
     url: string
     description: string
     type: 'official' | 'booking' | 'guide' | 'affiliate' | 'unknown'
+    phone?: string
+    website?: string
+    address?: string
+    directionsUrl?: string
   }>
 }
 
@@ -71,7 +90,11 @@ export async function fetchActivityData(
       title: link.title,
       url: link.url,
       description: link.description,
-      type: (link.type === 'restaurant' ? 'booking' : (['official','booking','guide','affiliate'].includes(link.type as any) ? (link.type as any) : 'unknown'))
+      type: (link.type === 'restaurant' ? 'booking' : (['official','booking','guide','affiliate'].includes(link.type as any) ? (link.type as any) : 'unknown')),
+      phone: (link as any).phone,
+      website: (link as any).website || link.url,
+      address: (link as any).address,
+      directionsUrl: (link as any).address ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent((link as any).address)}` : undefined,
     }))
 
     const result: BraveActivityData = { images, links }
@@ -130,7 +153,11 @@ export async function fetchRestaurantData(
       title: link.title,
       url: link.url,
       description: link.description,
-      type: (link.type === 'restaurant' ? 'booking' : (['official','booking','guide','affiliate'].includes(link.type as any) ? (link.type as any) : 'unknown'))
+      type: (link.type === 'restaurant' ? 'booking' : (['official','booking','guide','affiliate'].includes(link.type as any) ? (link.type as any) : 'unknown')),
+      phone: (link as any).phone,
+      website: (link as any).website || link.url,
+      address: (link as any).address,
+      directionsUrl: (link as any).address ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent((link as any).address)}` : undefined,
     }))
 
     const result: BraveActivityData = { images, links }
@@ -233,14 +260,14 @@ export async function fetchMultipleActivityImages(
 ): Promise<Map<string, string>> {
   const results = new Map<string, string>()
 
-  await Promise.all(
-    activities.map(async ({ name, locationName }) => {
-      const image = await fetchActivityImage(name, locationName)
-      if (image) {
-        results.set(name, image)
-      }
-    })
-  )
+  const concurrency = 6 // extra defensive cap to avoid bursts
+  await mapWithConcurrency(activities, concurrency, async ({ name, locationName }) => {
+    const image = await fetchActivityImage(name, locationName)
+    if (image) {
+      results.set(name, image)
+    }
+    return image as any
+  })
 
   return results
 }
@@ -255,14 +282,14 @@ export async function fetchMultipleRestaurantImages(
 ): Promise<Map<string, string>> {
   const results = new Map<string, string>()
 
-  await Promise.all(
-    restaurants.map(async ({ name, locationName }) => {
-      const image = await fetchRestaurantImage(name, locationName)
-      if (image) {
-        results.set(name, image)
-      }
-    })
-  )
+  const concurrency = 6 // extra defensive cap to avoid bursts
+  await mapWithConcurrency(restaurants, concurrency, async ({ name, locationName }) => {
+    const image = await fetchRestaurantImage(name, locationName)
+    if (image) {
+      results.set(name, image)
+    }
+    return image as any
+  })
 
   return results
 }

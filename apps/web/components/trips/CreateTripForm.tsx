@@ -161,7 +161,8 @@ export function CreateTripForm({ onSuccess, onCancel }: CreateTripFormProps) {
       if (onSuccess) {
         onSuccess(trip)
       } else {
-        router.push(`/dashboard/trips/${trip.id}`)
+        // Redirect to manual trip editor (V2 Results template)
+        router.push(`/dashboard/trips/${trip.id}/edit`)
       }
 
     } catch (error) {
@@ -331,7 +332,7 @@ export function CreateTripForm({ onSuccess, onCancel }: CreateTripFormProps) {
                       Private
                     </div>
                     <div className="text-xs text-gray-500">
-                      Only you can view
+                      Only you, family & friends can view
                     </div>
                   </div>
                 </button>
@@ -398,7 +399,7 @@ export function CreateTripForm({ onSuccess, onCancel }: CreateTripFormProps) {
                   Creating trip...
                 </span>
               ) : (
-                'Create trip'
+                'Start planning trip'
               )}
             </Button>
           </div>

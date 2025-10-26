@@ -1,10 +1,10 @@
 /**
  * Routing Service - Real Road Routes
- * 
+ *
  * Provides real road routing using:
  * 1. OpenRouteService (primary) - 2,000 requests/day, requires API key
  * 2. OSRM Demo Server (fallback) - Unlimited, no API key
- * 
+ *
  * Automatically caches routes in database to minimize API calls
  */
 
@@ -42,24 +42,49 @@ export interface RouteResult {
  */
 export async function getRoute(
   coordinates: RouteCoordinate[],
-  profile: TransportProfile = 'driving-car'
+  profile: TransportProfile = 'driving-car',
+  preference?: 'fastest' | 'shortest' | 'recommended' | 'scenic' | 'longest'
 ): Promise<RouteResult> {
   if (coordinates.length < 2) {
     throw new Error('At least 2 coordinates required for routing')
   }
 
   // Check cache first
-  const cacheKey = generateCacheKey(coordinates, profile)
+  const cacheKey = generateCacheKey(coordinates, profile, preference)
   const cached = await getCachedRoute(cacheKey)
   if (cached) {
     console.log('✅ Route from cache:', cacheKey)
     return { ...cached, provider: 'cache' }
   }
 
+  // Special handling for 'longest': Use OSRM alternatives and pick the longest
+  if (preference === 'longest') {
+    try {
+      const osrmProfile = mapToOSRMProfile(profile)
+      const route = await getOSRMLongestRoute(coordinates, osrmProfile)
+      await cacheRoute(cacheKey, route)
+      console.log('✅ Longest route from OSRM alternatives')
+      return { ...route, provider: 'osrm' }
+    } catch (error) {
+      console.warn('⚠️ OSRM longest failed, trying OpenRouteService recommended as fallback:', error)
+      // Fallback to ORS recommended
+      if (process.env.OPENROUTESERVICE_API_KEY) {
+        try {
+          const route = await getOpenRouteServiceRoute(coordinates, profile, 'recommended')
+          await cacheRoute(cacheKey, route)
+          console.log('✅ Route from OpenRouteService (recommended fallback)')
+          return { ...route, provider: 'openrouteservice' }
+        } catch (err) {
+          console.warn('⚠️ OpenRouteService fallback failed:', err)
+        }
+      }
+    }
+  }
+
   // Try OpenRouteService first (if API key available)
   if (process.env.OPENROUTESERVICE_API_KEY) {
     try {
-      const route = await getOpenRouteServiceRoute(coordinates, profile)
+      const route = await getOpenRouteServiceRoute(coordinates, profile, mapPreference(preference))
       await cacheRoute(cacheKey, route)
       console.log('✅ Route from OpenRouteService')
       return { ...route, provider: 'openrouteservice' }
@@ -87,7 +112,8 @@ export async function getRoute(
  */
 async function getOpenRouteServiceRoute(
   coordinates: RouteCoordinate[],
-  profile: TransportProfile
+  profile: TransportProfile,
+  preference?: 'fastest' | 'shortest' | 'recommended' | 'scenic'
 ): Promise<Omit<RouteResult, 'provider'>> {
   const coords = coordinates.map(c => [c.longitude, c.latitude])
 
@@ -102,7 +128,9 @@ async function getOpenRouteServiceRoute(
       },
       body: JSON.stringify({
         coordinates: coords,
-        format: 'geojson'
+        format: 'geojson',
+        preference: mapPreference(preference),
+        ...(preference === 'scenic' ? { options: { avoid_features: ['highways'], profile_params: { weightings: { scenic: 1 } } } } : {})
       })
     }
   )
@@ -130,33 +158,50 @@ async function getOSRMRoute(
   coordinates: RouteCoordinate[],
   profile: OSRMProfile
 ): Promise<Omit<RouteResult, 'provider'>> {
-  // Format: lng1,lat1;lng2,lat2;lng3,lat3
-  const coords = coordinates
-    .map(c => `${c.longitude},${c.latitude}`)
-    .join(';')
-
+  const coords = coordinates.map(c => `${c.longitude},${c.latitude}`).join(';')
   const url = `https://router.project-osrm.org/route/v1/${profile}/${coords}?overview=full&geometries=geojson`
-
   const response = await fetch(url)
-
   if (!response.ok) {
     throw new Error(`OSRM error: ${response.status}`)
   }
-
   const data = await response.json()
-
   if (data.code !== 'Ok') {
     throw new Error(`OSRM routing failed: ${data.code}`)
   }
-
   const route = data.routes[0]
-
   return {
     geometry: route.geometry,
     distance: route.distance,
     duration: route.duration
   }
 }
+
+
+async function getOSRMLongestRoute(
+  coordinates: RouteCoordinate[],
+  profile: OSRMProfile
+): Promise<Omit<RouteResult, 'provider'>> {
+  const coords = coordinates.map(c => `${c.longitude},${c.latitude}`).join(';')
+  const url = `https://router.project-osrm.org/route/v1/${profile}/${coords}?overview=full&geometries=geojson&alternatives=true&steps=false`
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`OSRM error: ${response.status}`)
+  const data = await response.json()
+  if (data.code !== 'Ok' || !Array.isArray(data.routes) || data.routes.length === 0) {
+    throw new Error(`OSRM routing failed: ${data.code}`)
+  }
+  // Pick the route with maximum distance
+  let best = data.routes[0]
+  for (let i = 1; i < data.routes.length; i++) {
+    if (data.routes[i].distance > best.distance) best = data.routes[i]
+  }
+  return {
+    geometry: best.geometry,
+    distance: best.distance,
+    duration: best.duration
+  }
+}
+
+
 
 /**
  * Map OpenRouteService profile to OSRM profile
@@ -175,14 +220,24 @@ function mapToOSRMProfile(profile: TransportProfile): OSRMProfile {
   }
 }
 
+function mapPreference(p?: 'fastest' | 'shortest' | 'recommended' | 'scenic' | 'longest') {
+  if (p === 'scenic') return 'recommended'
+  if (p === 'shortest') return 'shortest'
+  if (p === 'fastest') return 'fastest'
+  if (p === 'recommended') return 'recommended'
+  // 'longest' not supported by ORS directly
+  return undefined
+}
+
+
 /**
  * Generate cache key for route
  */
-function generateCacheKey(coordinates: RouteCoordinate[], profile: string): string {
+function generateCacheKey(coordinates: RouteCoordinate[], profile: string, preference?: string): string {
   const coordStr = coordinates
     .map(c => `${c.longitude.toFixed(4)},${c.latitude.toFixed(4)}`)
     .join('|')
-  return `${profile}:${coordStr}`
+  return `${profile}:${preference || 'default'}:${coordStr}`
 }
 
 /**
@@ -191,7 +246,7 @@ function generateCacheKey(coordinates: RouteCoordinate[], profile: string): stri
 async function getCachedRoute(cacheKey: string): Promise<Omit<RouteResult, 'provider'> | null> {
   try {
     const supabase = getSupabaseClient()
-    
+
     const { data, error } = await supabase
       .from('route_cache')
       .select('geometry, distance, duration')
@@ -218,7 +273,7 @@ async function getCachedRoute(cacheKey: string): Promise<Omit<RouteResult, 'prov
 async function cacheRoute(cacheKey: string, route: Omit<RouteResult, 'provider'>): Promise<void> {
   try {
     const supabase = getSupabaseClient()
-    
+
     await supabase
       .from('route_cache')
       .upsert({

@@ -12,13 +12,15 @@ import { TrendingUp, TrendingDown, Mountain } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 
 interface ElevationProfileProps {
-  elevations: number[] // Elevation in meters at each point
-  distances: number[] // Cumulative distance in meters
+  elevations: number[] // Elevation at each point
+  distances: number[] // Cumulative distance (same unit across)
   ascent: number // Total ascent in meters
   descent: number // Total descent in meters
   maxElevation: number
   minElevation: number
   className?: string
+  hoverKm?: number | null
+  onHoverKm?: (km: number | null) => void
 }
 
 export function ElevationProfile({
@@ -28,7 +30,9 @@ export function ElevationProfile({
   descent,
   maxElevation,
   minElevation,
-  className = ''
+  className = '',
+  hoverKm = null,
+  onHoverKm
 }: ElevationProfileProps) {
   // Calculate SVG path for elevation profile
   const { path, viewBox } = useMemo(() => {
@@ -96,12 +100,12 @@ export function ElevationProfile({
   const totalDistance = distances[distances.length - 1]
 
   return (
-    <Card className={`p-5 ${className}`}>
+    <Card className={`p-5 rounded-2xl ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-gray-900 flex items-center gap-2">
-          <Mountain className="h-5 w-5 text-blue-600" />
-          Elevation Profile
+          <Mountain className="h-5 w-5 text-gray-900" />
+          Elevation
         </h3>
         <span className="text-sm text-gray-600">
           {formatDistance(totalDistance)}
@@ -109,11 +113,29 @@ export function ElevationProfile({
       </div>
 
       {/* Elevation Chart */}
-      <div className="mb-4 bg-gradient-to-b from-blue-50 to-white rounded-lg p-4 border border-blue-100">
+      <div className="mb-4 bg-white rounded-2xl p-3 border border-gray-200">
         <svg
           viewBox={viewBox}
           className="w-full h-auto"
           style={{ maxHeight: '200px' }}
+          onMouseMove={(e) => {
+            if (!onHoverKm) return
+            const svg = e.currentTarget as SVGSVGElement
+            const pt = svg.createSVGPoint()
+            pt.x = e.clientX
+            pt.y = e.clientY
+            const ctm = svg.getScreenCTM()
+            if (!ctm) return
+            const inv = ctm.inverse()
+            const p = pt.matrixTransform(inv)
+            const vb = svg.viewBox.baseVal
+            const padding = 20
+            const maxDistance = distances[distances.length - 1]
+            const x = Math.max(padding, Math.min(vb.width - padding, p.x))
+            const km = ((x - padding) / (vb.width - 2 * padding)) * maxDistance
+            onHoverKm(km)
+          }}
+          onMouseLeave={() => onHoverKm && onHoverKm(null)}
         >
           {/* Grid lines */}
           <defs>
@@ -128,80 +150,52 @@ export function ElevationProfile({
           </defs>
           <rect width="100%" height="100%" fill="url(#grid)" />
 
-          {/* Elevation area */}
+          {/* Elevation stroke (sleek) */}
           <path
             d={path}
-            fill="url(#elevationGradient)"
-            stroke="#3b82f6"
+            fill="none"
+            stroke="#065f46"
             strokeWidth="2"
             strokeLinejoin="round"
           />
 
-          {/* Gradient definition */}
-          <defs>
-            <linearGradient id="elevationGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.1" />
-            </linearGradient>
-          </defs>
+          {/* Hover marker line */}
+          {typeof hoverKm === 'number' && hoverKm >= 0 && (
+            (() => {
+              const width = 800 // Must match viewBox width used above
+              const height = 200 // Must match viewBox height used above
+              const padding = 20
+              const maxDistance = distances[distances.length - 1]
+              const clampedKm = Math.min(Math.max(hoverKm, 0), maxDistance)
+              const x = padding + (clampedKm / maxDistance) * (width - 2 * padding)
+              return (
+                <line x1={x} y1={padding} x2={x} y2={height - padding} stroke="#6b7280" strokeWidth="3" strokeDasharray="2 2" />
+              )
+            })()
+          )}
         </svg>
       </div>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {/* Total Ascent */}
-        <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="h-4 w-4 text-green-600" />
-            <span className="text-xs font-medium text-green-700">Ascent</span>
-          </div>
-          <p className="text-lg font-bold text-green-900">
-            {formatElevation(ascent)}
-          </p>
+      {/* Statistics - Sleek pills */}
+      <div className="flex flex-wrap gap-2">
+        <div className="px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200 text-xs text-gray-700">
+          Highest: <span className="font-semibold text-gray-900">{formatElevation(maxElevation)}</span>
         </div>
-
-        {/* Total Descent */}
-        <div className="bg-red-50 rounded-lg p-3 border border-red-200">
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingDown className="h-4 w-4 text-red-600" />
-            <span className="text-xs font-medium text-red-700">Descent</span>
-          </div>
-          <p className="text-lg font-bold text-red-900">
-            {formatElevation(descent)}
-          </p>
+        <div className="px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200 text-xs text-gray-700">
+          Lowest: <span className="font-semibold text-gray-900">{formatElevation(minElevation)}</span>
         </div>
-
-        {/* Max Elevation */}
-        <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-          <div className="flex items-center gap-2 mb-1">
-            <Mountain className="h-4 w-4 text-blue-600" />
-            <span className="text-xs font-medium text-blue-700">Highest</span>
-          </div>
-          <p className="text-lg font-bold text-blue-900">
-            {formatElevation(maxElevation)}
-          </p>
+        <div className="px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200 text-xs text-gray-700">
+          Ascent: <span className="font-semibold text-gray-900">{formatElevation(ascent)}</span>
         </div>
-
-        {/* Min Elevation */}
-        <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-          <div className="flex items-center gap-2 mb-1">
-            <Mountain className="h-4 w-4 text-gray-600" />
-            <span className="text-xs font-medium text-gray-700">Lowest</span>
-          </div>
-          <p className="text-lg font-bold text-gray-900">
-            {formatElevation(minElevation)}
-          </p>
+        <div className="px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200 text-xs text-gray-700">
+          Descent: <span className="font-semibold text-gray-900">{formatElevation(descent)}</span>
         </div>
       </div>
 
       {/* Additional Info */}
-      <div className="mt-3 pt-3 border-t border-gray-200">
-        <p className="text-xs text-gray-600">
-          Elevation gain: <span className="font-semibold text-gray-900">{formatElevation(ascent)}</span>
-          {' • '}
-          Elevation loss: <span className="font-semibold text-gray-900">{formatElevation(descent)}</span>
-          {' • '}
-          Range: <span className="font-semibold text-gray-900">{formatElevation(maxElevation - minElevation)}</span>
+      <div className="mt-3">
+        <p className="text-[11px] text-gray-500">
+          Range: <span className="font-semibold text-gray-800">{formatElevation(maxElevation - minElevation)}</span>
         </p>
       </div>
     </Card>

@@ -179,13 +179,10 @@ export function CreditsOverview() {
             variant="default"
             size="sm"
             className="w-full bg-orange-500 hover:bg-orange-600"
-            onClick={() => {
-              // TODO: Implement Stripe checkout
-              alert('Credit purchase coming soon!')
-            }}
+            onClick={() => { window.location.href = '/credits' }}
           >
             <Plus className="h-4 w-4 mr-1" />
-            Add Credits
+            Buy Credits
           </Button>
         </Card>
       </div>

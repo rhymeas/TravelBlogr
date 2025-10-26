@@ -5,6 +5,7 @@ import { Check, Clock, DollarSign, Mountain, Users, Utensils, Waves, Heart, Exte
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { LocationActivity } from '@/lib/data/locationsData'
+import { useAuth } from '@/hooks/useAuth'
 
 interface LocationActivitiesProps {
   locationSlug?: string
@@ -34,6 +35,7 @@ const costColors = {
 }
 
 export function LocationActivities({ activities, locationName }: LocationActivitiesProps) {
+  const { isAuthenticated } = useAuth()
   const [checkedActivities, setCheckedActivities] = useState<Set<string>>(new Set())
   const [showAll, setShowAll] = useState(false)
 
@@ -73,21 +75,25 @@ export function LocationActivities({ activities, locationName }: LocationActivit
           return (
             <div
               key={activity.id}
-              className={`flex items-start gap-4 p-4 rounded-sleek-medium border transition-all duration-200 cursor-pointer hover:shadow-sleek-small ${
-                isChecked 
-                  ? 'bg-green-50 border-green-200' 
+              className={`flex items-start gap-4 p-4 rounded-sleek-medium border transition-all duration-200 ${
+                isAuthenticated ? 'cursor-pointer' : 'cursor-default'
+              } hover:shadow-sleek-small ${
+                isChecked
+                  ? 'bg-green-50 border-green-200'
                   : 'bg-white border-sleek-border hover:border-sleek-dark-gray'
               }`}
-              onClick={() => toggleActivity(activity.id)}
+              onClick={() => isAuthenticated && toggleActivity(activity.id)}
             >
-              {/* Checkbox */}
-              <div className={`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
-                isChecked 
-                  ? 'bg-green-500 border-green-500' 
-                  : 'border-sleek-border hover:border-green-400'
-              }`}>
-                {isChecked && <Check className="h-4 w-4 text-white" />}
-              </div>
+              {/* Checkbox (auth users only) */}
+              {isAuthenticated && (
+                <div className={`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
+                  isChecked
+                    ? 'bg-green-500 border-green-500'
+                    : 'border-sleek-border hover:border-green-400'
+                }`}>
+                  {isChecked && <Check className="h-4 w-4 text-white" />}
+                </div>
+              )}
 
               {/* Activity Image or Icon */}
               {activity.image_url ? (

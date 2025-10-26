@@ -5,6 +5,7 @@ import { Edit2, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/hooks/useAuth'
 import toast from 'react-hot-toast'
+import { formatLocationDisplay } from '@/lib/utils/locationFormatter'
 
 interface EditableLocationTitleProps {
   locationId: string
@@ -111,10 +112,16 @@ export function EditableLocationTitle({
     )
   }
 
+  // Format location name to show only city and region (e.g., "Langsa, Sumatra" instead of full address)
+  const formatted = formatLocationDisplay(name)
+  const displayName = formatted.secondary?.split(',')[0]
+    ? `${formatted.main}, ${formatted.secondary.split(',')[0]}`
+    : formatted.main
+
   return (
     <div className="group relative inline-block">
       <h1 className="text-display-medium font-bold text-sleek-black mb-2">
-        {name}
+        {displayName}
       </h1>
       {isAuthenticated && enabled && (
         <button

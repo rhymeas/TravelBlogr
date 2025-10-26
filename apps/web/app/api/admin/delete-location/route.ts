@@ -70,6 +70,8 @@ export async function POST(request: NextRequest) {
       'restaurants',
       'activities',
       'attractions',
+      'location_activity_links', // NEW: Activity links table (replaces old activities table)
+      'activity_media', // NEW: Activity media/photos
       'location_images',
       'location_ratings',
       'location_comments',

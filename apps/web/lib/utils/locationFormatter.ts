@@ -50,7 +50,9 @@ export function formatLocationName(name: string): FormattedLocation {
 
   // Extract country and region from comma-separated format
   // e.g., "Kelowna, British Columbia, Canada"
-  const parts = short.split(',').map(p => p.trim())
+  const rawParts = short.split(',').map(p => p.trim())
+  // Remove postal codes and numeric-only segments like "24553"
+  const parts = rawParts.filter(p => p && !/^\d+$/.test(p) && !/[0-9]/.test(p))
   if (parts.length >= 2) {
     short = parts[0]
     region = parts[1]

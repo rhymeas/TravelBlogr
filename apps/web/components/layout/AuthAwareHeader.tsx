@@ -293,6 +293,7 @@ export function AuthAwareHeader() {
             // Authenticated User Menu
             <div className="hidden lg:flex items-center gap-3">
 
+
               <Button
                 asChild
                 variant="outline"
@@ -365,10 +366,25 @@ export function AuthAwareHeader() {
                           </div>
                         </div>
 
+                        {/* Credits bubble - fully clickable */}
+                        <Link
+                          href="/credits"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center justify-between w-full px-4 py-3 border-b border-sleek-border-light bg-gray-50 hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center text-sm text-sleek-dark-gray">
+                            <Coins className="h-4 w-4 mr-2" />
+                            <span>Credits</span>
+                          </div>
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 hover:scale-105 transition-all">
+                            {creditsLoading ? '—' : credits}
+                          </div>
+                        </Link>
+
                         <Link
                           href="/dashboard"
                           onClick={() => setShowUserMenu(false)}
-                          className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-sleek-background-secondary transition-colors"
+                          className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-gray-100 hover:rounded-lg transition-all mx-2"
                         >
                           <UserIcon className="h-4 w-4 mr-2" />
                           Dashboard
@@ -377,35 +393,18 @@ export function AuthAwareHeader() {
                         <Link
                           href="/dashboard/trips"
                           onClick={() => setShowUserMenu(false)}
-                          className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-sleek-background-secondary transition-colors"
+                          className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-gray-100 hover:rounded-lg transition-all mx-2"
                         >
                           <MapPin className="h-4 w-4 mr-2" />
                           My Trips
                         </Link>
 
-                        {/* Credits in User Menu */}
-                        <div className="flex items-center justify-between w-full px-4 py-2">
-                          <div className="flex items-center text-body-medium text-sleek-dark-gray">
-                            <Coins className="h-4 w-4 mr-2" />
-                            <span>Credits</span>
-                          </div>
-                          <div className="text-body-medium font-semibold text-sleek-black">
-                            {creditsLoading ? '—' : credits}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => { setShowCreditsModal(true); setShowUserMenu(false); }}
-                          className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-sleek-background-secondary transition-colors text-left"
-                        >
-                          <Wallet className="h-4 w-4 mr-2" />
-                          Manage Credits
-                        </button>
 
                         <div className="border-t border-sleek-border-light mt-1 pt-1">
                           <Link
                             href="/pricing"
                             onClick={() => setShowUserMenu(false)}
-                            className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-sleek-background-secondary transition-colors"
+                            className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-gray-100 hover:rounded-lg transition-all mx-2"
                           >
                             <CreditCard className="h-4 w-4 mr-2" />
                             Billing & Subscription
@@ -414,7 +413,7 @@ export function AuthAwareHeader() {
                           <Link
                             href="/dashboard/credits"
                             onClick={() => setShowUserMenu(false)}
-                            className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-sleek-background-secondary transition-colors"
+                            className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-gray-100 hover:rounded-lg transition-all mx-2"
                           >
                             <Wallet className="h-4 w-4 mr-2" />
                             Credits & Usage
@@ -424,7 +423,7 @@ export function AuthAwareHeader() {
                         <Link
                           href="/dashboard/settings"
                           onClick={() => setShowUserMenu(false)}
-                          className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-sleek-background-secondary transition-colors"
+                          className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-gray-100 hover:rounded-lg transition-all mx-2"
                         >
                           <Settings className="h-4 w-4 mr-2" />
                           Settings
@@ -447,6 +446,8 @@ export function AuthAwareHeader() {
                       className="fixed inset-0 z-40"
                       onClick={() => setShowUserMenu(false)}
                     />
+
+
                   </>
                 )}
               </div>
@@ -591,6 +592,7 @@ export function AuthAwareHeader() {
               >
                 <span>All Posts</span>
               </Link>
+
             </div>
 
             <div className="border-t border-gray-200 my-2" />

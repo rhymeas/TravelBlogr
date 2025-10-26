@@ -7,7 +7,7 @@
  */
 
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { Calendar, Car, MapPin, Clock, Hotel, Camera, Coffee, Edit, Utensils, Navigation, DollarSign, TrendingUp, Info, ExternalLink, Save, ChevronDown, ChevronUp, X, ArrowUp, StickyNote, CheckSquare, Plus } from 'lucide-react'
+import { Calendar, Car, MapPin, Clock, Hotel, Camera, Coffee, Edit, Utensils, Navigation, DollarSign, TrendingUp, Info, ExternalLink, Save, ChevronDown, ChevronUp, X, ArrowUp, StickyNote, CheckSquare, Plus, Phone, Globe } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { InlineEdit } from '@/components/ui/InlineEdit'
@@ -23,6 +23,7 @@ import { getBrowserSupabase } from '@/lib/supabase'
 import { NotesModal } from './NotesModal'
 import { ChecklistModal } from './ChecklistModal'
 
+import { formatLocationDisplay } from '@/lib/utils/locationFormatter'
 import { LocationAutocomplete } from '@/components/itinerary/LocationAutocomplete'
 
 interface ResultsViewProps {
@@ -249,6 +250,33 @@ function ActivityEnrichment({ activityName, location, tripType, tripVision }: { 
           Learn more <ExternalLink className="w-3 h-3" />
         </a>
       )}
+
+      {/* Extra contact and directions info when expanded */}
+      {expanded && (braveData.phone || braveData.website || braveData.address || braveData.directionsUrl) && (
+        <div className="mt-1.5 grid grid-cols-2 gap-1.5 text-[11px]">
+          {braveData.phone && (
+            <a href={`tel:${braveData.phone}`} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200" title="Call">
+              <Phone className="w-3 h-3" /> {braveData.phone}
+            </a>
+          )}
+          {braveData.website && (
+            <a href={braveData.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200" title="Website">
+              <Globe className="w-3 h-3" /> Website
+            </a>
+          )}
+          {braveData.address && (
+            <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200 col-span-2" title="Address">
+              <MapPin className="w-3 h-3" />
+              <span className="truncate">{braveData.address}</span>
+            </div>
+          )}
+          {braveData.directionsUrl && (
+            <a href={braveData.directionsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200" title="Directions">
+              <Navigation className="w-3 h-3" /> Directions
+            </a>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -347,6 +375,9 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
   const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set())
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null)
   const [isImageModalOpen, setIsImageModalOpen] = useState(false)
+  // Smart Insert Modal state
+  const [smartInsert, setSmartInsert] = useState<null | { poi: any; position: 'before'|'after'; index: number }>(null)
+
   const dayContentRef = useRef<HTMLDivElement>(null)
 
   // Add Day Modal state
@@ -360,6 +391,26 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
 
   // Delete Day Animation state
   const [deletingDayNumber, setDeletingDayNumber] = useState<number | null>(null)
+
+
+  // Sanitize runaway duplicate consecutive days (e.g., same location repeated many times)
+  const sanitizedOnceRef = useRef(false)
+  useEffect(() => {
+    if (sanitizedOnceRef.current || !Array.isArray(days) || days.length < 6) return
+    let consecutive = 0
+    for (let i = 1; i < days.length; i++) {
+      consecutive = days[i].location === days[i - 1].location ? consecutive + 1 : 0
+      if (consecutive >= 5) { // suspicious run of duplicates
+        const collapsed = days
+          .filter((d, idx, arr) => idx === 0 || d.location !== arr[idx - 1].location)
+          .map((d, idx) => ({ ...d, day: idx + 1 }))
+        setDays(collapsed)
+        sanitizedOnceRef.current = true
+        console.warn('Collapsed suspicious duplicate day run for location:', days[i].location)
+        break
+      }
+    }
+  }, [days])
 
   // Location descriptions state
   const [locationDescriptions, setLocationDescriptions] = useState<Record<string, string>>({})
@@ -804,6 +855,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
 
   // Add a new day after the specified day with location - FETCH REAL DATA
   const handleAddDaySubmit = async () => {
+    if (isLoadingNewDay) return
     if (!newDayLocation.trim()) {
       toast.error('Please enter a location')
       return
@@ -861,8 +913,21 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
         }))
       ]
 
-      // Update state with new days
-      setDays(updatedDays)
+      // Update state with new days (functional + dedup)
+      setDays((prev: any[]) => {
+        const base = [
+          ...prev.slice(0, addDayAfterIndex!),
+          newDay,
+          ...prev.slice(addDayAfterIndex!).map((d: any) => ({ ...d, day: d.day + 1 }))
+        ]
+        const seen = new Set<string>()
+        return base.filter((d: any) => {
+          const key = `${d.day}|${d.location}`
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+      })
 
       // Close modal
       setShowAddDayModal(false)
@@ -882,6 +947,59 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
       setIsLoadingNewDay(false)
     }
   }
+
+  // Insert POI into itinerary when dispatched from map
+  useEffect(() => {
+    const handler = (e: any) => {
+      try {
+        const { poi, position, index } = e.detail || {}
+        if (!poi || typeof index !== 'number' || index < 0) return
+
+        // Smart insert: if POI is far from nearest stop, ask user
+        const km = typeof poi.estimatedDistance === 'number' ? poi.estimatedDistance : null
+        if (km !== null && km > 30) {
+          setSmartInsert({ poi, position, index })
+          return
+        }
+
+        // Default: add as activity
+        setDays((prev: any[]) => {
+          const targetIdx = position === 'before' ? index : Math.min(index + 1, prev.length - 1)
+          const copy = prev.map((d: any) => ({ ...d, items: Array.isArray(d.items) ? [...d.items] : [] }))
+          const target = copy[targetIdx]
+          if (!target) return prev
+          const newItem = {
+            time: 'Flexible',
+            title: `Visit ${poi.title}`,
+            type: 'activity',
+            duration: '1-2h',
+            image: poi.imageUrl || undefined
+          }
+          target.items = [...(target.items || []), newItem]
+          return copy
+        })
+        // Persist server-side if trip has been saved
+        if (lastSavedTripId) {
+          fetch(`/api/trips/${lastSavedTripId}/itinerary-items`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              dayIndex: position === 'before' ? index : Math.min(index + 1, days.length - 1),
+              title: `Visit ${poi.title}`,
+              type: 'activity',
+              duration: '1-2h',
+              image: poi.imageUrl || null
+            })
+          }).catch(() => {})
+        }
+        toast.success('Added to itinerary')
+      } catch (err) {
+        console.warn('Failed to insert POI from map event:', err)
+      }
+    }
+    window.addEventListener('plan-v2:insert-poi', handler as any)
+    return () => window.removeEventListener('plan-v2:insert-poi', handler as any)
+  }, [])
 
   // Scroll to top function
   const scrollToTop = () => {
@@ -1199,7 +1317,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
     }
     run()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan, locationImages])
+  }, [days, locationImages])
 
 
   // Generate headline with GROQ
@@ -1392,25 +1510,56 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
   }
 
   const itinerary = useMemo(() => {
-    if (!plan?.days) return []
-
+    if (!days || days.length === 0) return []
 
     // Track per-location image index to avoid duplicate hero images across repeated days
-
     const usedImageIndexMap = new Map<string, number>()
 
     return days.map((day: any, index: number) => {
       // Determine if this is a travel day
       const isTravelDay = day.type === 'travel' || day.travelInfo
 
-      // Build stops from items with deduplication and validation
-      const rawStops = day.items?.map((item: any) => ({
+      // Build stops from items with deduplication and validation + fallbacks
+      let rawStops = (day.items?.map((item: any) => ({
         time: item.time || '09:00',
         title: item.title,
         type: item.type === 'travel' ? 'travel' : item.type === 'meal' ? 'meal' : 'activity',
         icon: item.type === 'travel' ? Navigation : item.type === 'meal' ? Utensils : Camera,
         duration: item.duration ? `${item.duration}h` : undefined
-      })) || []
+      })) || []) as any[]
+
+      // Fallbacks when schedule is empty
+      if (rawStops.length === 0) {
+        if (day.travelInfo) {
+          rawStops.push({
+            time: '09:00',
+            title: `Travel to ${day.location}`,
+            type: 'travel',
+            icon: Navigation,
+            duration: day.travelInfo.duration ? `${Math.round(day.travelInfo.duration)}h` : undefined
+          })
+        }
+        if (Array.isArray(day.highlights) && day.highlights.length > 0) {
+          rawStops.push(
+            ...day.highlights.slice(0, 3).map((h: string, idx: number) => ({
+              time: ['10:00','13:00','16:00'][idx] || '10:00',
+              title: h,
+              type: 'activity',
+              icon: Camera
+            }))
+          )
+        }
+        // Final minimal fallback
+        if (rawStops.length === 0 && day.location) {
+          const { main } = formatLocationDisplay(day.location)
+          rawStops.push({
+            time: '10:00',
+            title: `Explore ${main}`,
+            type: 'activity',
+            icon: Camera
+          })
+        }
+      }
 
       // CRITICAL FIX: Deduplicate stops and validate daily schedule
       const stops = rawStops.filter((stop: any, idx: number, arr: any[]) => {
@@ -1537,7 +1686,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
         locationMetadata: day.locationMetadata // Pass through coordinates for day maps
       }
     })
-  }, [plan, locationImages, fallbackImages])
+  }, [days, locationImages, fallbackImages, brokenImages]) // CRITICAL FIX: Use days state, not plan.days
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1630,13 +1779,13 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
             </div>
           )}
 
-          {/* Auto-Generate Button */}
+          {/* Auto-Generate Title Button */}
           <button
             onClick={generateHeadline}
             disabled={generatingHeadline}
-            className="text-sm text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1.5 mb-3 disabled:opacity-50"
+            className="text-xs text-gray-500 hover:text-gray-700 font-medium flex items-center gap-1 mb-3 disabled:opacity-50 transition-colors"
           >
-            ✨ {generatingHeadline ? 'Generating...' : 'Auto-Generate'}
+            ✨ {generatingHeadline ? 'Generating...' : 'Auto generate Title'}
           </button>
 
           {/* Trip Metadata - Smart Tags */}
@@ -1714,14 +1863,14 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                           </div>
                           <div className="flex-1 min-w-0">
                             <div
-                              className="text-xs font-semibold text-gray-900 truncate leading-tight cursor-pointer hover:text-emerald-600 transition-colors"
+                              className="inline-block text-xs font-semibold text-gray-900 truncate leading-tight cursor-pointer hover:text-emerald-600 hover:underline hover:bg-emerald-50/60 rounded px-1 transition-colors"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 openChangeLocation(day.day)
                               }}
                               title="Click to change location"
                             >
-                              {day.location}
+                              {(() => { const f = formatLocationDisplay(day.location); const region = f.secondary?.split(',')[0]; const display = region ? `${f.main}, ${region}` : f.main; return display; })()}
                             </div>
                             <div className="text-[10px] text-gray-500 leading-tight">{day.date}</div>
                           </div>
@@ -1778,7 +1927,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
           </div>
 
           {/* Main Content - Day Details - Narrower to make room for wider map */}
-          <div className="col-span-12 xl:col-span-6" ref={dayContentRef}>
+          <div className="col-span-12 xl:col-span-5" ref={dayContentRef}>
             <div className="space-y-4">
               {itinerary.filter((day: any) => day.day === selectedDay).map((day: any) => (
                 <div key={day.day}>
@@ -1812,14 +1961,11 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                       />
                     )}
 
-                    {/* Overlay content */}
+                    {/* Overlay content - removed duplicate distance/duration display */}
                     <div className="absolute inset-0 flex items-center justify-center text-white">
                       <div className="text-center">
                         <div className="text-5xl mb-3 drop-shadow-lg">{day.emoji}</div>
-                        <div className="text-2xl font-semibold mb-1.5 drop-shadow-lg">{day.location}</div>
-                        {day.distance && (
-                          <div className="text-base opacity-90 drop-shadow-lg">{day.distance} • {day.duration}</div>
-                        )}
+                        <div className="text-2xl font-semibold mb-1.5 drop-shadow-lg">{(() => { const f = formatLocationDisplay(day.location); const region = f.secondary?.split(',')[0]; const display = region ? `${f.main}, ${region}` : f.main; return display; })()}</div>
                       </div>
                     </div>
                   </div>
@@ -1990,11 +2136,11 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                     if (!lat || !lng) return null
 
                     return (
-                      <div key={`map-${day.location}-${lat}-${lng}`} className="mb-4 bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                      <div key={`map-${day.location}-${lat}-${lng}`} className="relative mb-4 bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                         <div className="p-3 bg-gray-50 border-b border-gray-200">
                           <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
                             <MapPin className="w-4 h-4 text-teal-600" />
-                            {day.location}
+                            {(() => { const f = formatLocationDisplay(day.location); const region = f.secondary?.split(',')[0]; const display = region ? `${f.main}, ${region}` : f.main; return display; })()}
                           </h3>
                         </div>
                         <TripOverviewMap
@@ -2007,6 +2153,16 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                           transportMode={tripData.transportMode || 'car'}
                           className="w-full h-48"
                         />
+                        {Array.isArray(days) && days.length < 2 && (
+                          <div className="absolute bottom-3 inset-x-0 flex justify-center z-10">
+                            <button
+                              onClick={() => handleAddDayClick(selectedDay)}
+                              className="px-2.5 py-1 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full shadow text-[11px] font-medium text-gray-700 hover:bg-white"
+                            >
+                              + Add another location to see route
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )
                   })()}
@@ -2503,7 +2659,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                         <Camera className="w-4 h-4 text-gray-400" />
                         Don't Miss
                       </h3>
-                      <div className="space-y-2 mb-3">
+                      <div className="grid grid-cols-2 gap-2 mb-3">
                         {day.highlights.map((highlight: string, idx: number) => {
                           const q = encodeURIComponent(`${highlight} ${day.location}`)
                           const href = `https://search.brave.com/search?q=${q}`
@@ -2626,7 +2782,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
           </div>
 
           {/* Right Sidebar - Map & Trip Stats - WIDER AND TALLER */}
-          <div className="col-span-12 xl:col-span-4">
+          <div className="col-span-12 xl:col-span-5">
             <div className="xl:block hidden">
               <div className="sticky top-20 space-y-4">
                 {/* Overall Trip Map - Shows entire route with numbered markers - DOUBLE HEIGHT */}
@@ -2656,7 +2812,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                     </button>
                   </div>
                   {(() => {
-                    const routeLocations = (plan?.days
+                    const routeLocations = (days
                       ?.filter((day: any) => {
                         // Check multiple sources for coordinates
                         const hasMetadata = day.locationMetadata?.latitude && day.locationMetadata?.longitude
@@ -2668,28 +2824,40 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                         const lat = day.locationMetadata?.latitude || structuredContext?.locations?.[day.location]?.latitude
                         const lng = day.locationMetadata?.longitude || structuredContext?.locations?.[day.location]?.longitude
 
+                        const latNum = typeof lat === 'string' ? parseFloat(lat) : lat
+                        const lngNum = typeof lng === 'string' ? parseFloat(lng) : lng
+
                         return {
                           name: day.location,
-                          latitude: lat,
-                          longitude: lng,
+                          latitude: latNum,
+                          longitude: lngNum,
                           dayNumber: day.day
                         }
                       }) || []) as any[]
 
-                    // REMOVED highlightedIndex to prevent flickering/animation on hover
-                    // Map stays static and shows complete route without constant resets
                     // STABLE KEY: Prevents map from reloading on hover/state changes
-
                     const mapKey = routeLocations.map((loc: any) => `${loc.name}-${loc.latitude}-${loc.longitude}`).join('|')
 
                     return (
-                      <TripOverviewMap
-                        key={`complete-route-${mapKey}`}
-                        locations={routeLocations.map(({ dayNumber, ...rest }: any) => rest)}
-                        transportMode={tripData.transportMode || 'car'}
-                        previewLocations={previewLocations || undefined}
-                        className="w-full h-[640px]"
-                      />
+                      <div className="relative">
+                        <TripOverviewMap
+                          key={`complete-route-${mapKey}`}
+                          locations={routeLocations.map(({ dayNumber, ...rest }: any) => rest)}
+                          transportMode={tripData.transportMode || 'car'}
+                          previewLocations={previewLocations || undefined}
+                          className="w-[calc(100%+150px)] -mr-[150px] h-[640px]"
+                        />
+                        {routeLocations.length < 2 && (
+                          <div className="absolute bottom-4 inset-x-0 flex justify-center z-10">
+                            <button
+                              onClick={() => handleAddDayClick(days.length)}
+                              className="px-3 py-1.5 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full shadow text-xs font-medium text-gray-700 hover:bg-white"
+                            >
+                              + Add a location to preview route
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     )
                   })()}
                   <div className="p-3 bg-white border-t border-gray-100">
@@ -2888,7 +3056,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Trip Saved Successfully! 🎉</h2>
             <p className="text-sm text-gray-600">
-              Your {plan?.days?.length || 0}-day adventure is ready to explore
+              Your {days?.length || 0}-day adventure is ready to explore
             </p>
           </div>
 
@@ -2912,18 +3080,18 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
           <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
             <div className="grid grid-cols-3 gap-4 text-center mb-4">
               <div>
-                <div className="text-2xl font-bold text-emerald-600">{plan?.days?.length || 0}</div>
+                <div className="text-2xl font-bold text-emerald-600">{days?.length || 0}</div>
                 <div className="text-xs text-gray-600">Days</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-teal-600">
-                  {plan?.days?.reduce((sum: number, d: any) => sum + (d.items?.length || 0), 0) || 0}
+                  {days?.reduce((sum: number, d: any) => sum + (d.items?.length || 0), 0) || 0}
                 </div>
                 <div className="text-xs text-gray-600">Activities</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-blue-600">
-                  {new Set(plan?.days?.map((d: any) => d.location)).size || 0}
+                  {new Set((days || []).map((d: any) => d.location)).size || 0}
                 </div>
                 <div className="text-xs text-gray-600">Locations</div>
               </div>
@@ -2931,7 +3099,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
 
             {/* Location Images Preview */}
             <div className="grid grid-cols-3 gap-2">
-              {(plan?.days || []).slice(0, 6).map((d: any, idx: number) => {
+              {(days || []).slice(0, 6).map((d: any, idx: number) => {
                 const key = d.location?.toLowerCase().replace(/\s+/g, '-')
 
                 // Try multiple sources for images
@@ -3031,6 +3199,74 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
         />
       )}
 
+      {/* Smart Insert Modal */}
+      {smartInsert && (
+        <Modal
+          isOpen={!!smartInsert}
+          onClose={() => setSmartInsert(null)}
+          title="This looks a bit far — what do you prefer?"
+        >
+          <div className="space-y-3">
+            <div className="text-sm text-gray-700">
+              "{smartInsert.poi?.title}" appears to be a mid‑leg stop. Add it as an activity to the nearest day, or create a new day?
+            </div>
+            <div className="flex gap-2">
+              <Button
+                className="flex-1 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800"
+                onClick={() => {
+                  // Create a new day with the POI title prefilled
+                  setShowAddDayModal(true)
+                  setNewDayLocation(smartInsert.poi?.title || '')
+                  setAddDayAfterIndex(smartInsert.index)
+                  setSmartInsert(null)
+                }}
+              >
+                New Day
+              </Button>
+              <Button
+                className="flex-1 rounded-full bg-gray-900 hover:bg-black text-white"
+                onClick={() => {
+                  // Proceed with default activity insertion path
+                  const { poi, position, index } = smartInsert
+                  setDays((prev: any[]) => {
+                    const targetIdx = position === 'before' ? index : Math.min(index + 1, prev.length - 1)
+                    const copy = prev.map((d: any) => ({ ...d, items: Array.isArray(d.items) ? [...d.items] : [] }))
+                    const target = copy[targetIdx]
+                    if (!target) return prev
+                    const newItem = {
+                      time: 'Flexible',
+                      title: `Visit ${poi.title}`,
+                      type: 'activity',
+                      duration: '1-2h',
+                      image: poi.imageUrl || undefined
+                    }
+                    target.items = [...(target.items || []), newItem]
+                    return copy
+                  })
+                  if (lastSavedTripId) {
+                    fetch(`/api/trips/${lastSavedTripId}/itinerary-items`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        dayIndex: smartInsert.position === 'before' ? smartInsert.index : Math.min(smartInsert.index + 1, days.length - 1),
+                        title: `Visit ${smartInsert.poi.title}`,
+                        type: 'activity',
+                        duration: '1-2h',
+                        image: smartInsert.poi.imageUrl || null
+                      })
+                    }).catch(() => {})
+                  }
+                  toast.success('Added to itinerary')
+                  setSmartInsert(null)
+                }}
+              >
+                Add as Activity
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {/* Add Day Modal */}
       {showAddDayModal && (
         <Modal
@@ -3104,9 +3340,9 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                     <button
                       key={idx}
                       onClick={() => setNewDayLocation(location)}
-                      className={`px-3 py-2 text-sm rounded-lg border-2 transition-all text-left ${
+                      className={`px-4 py-2 text-sm rounded-full border-2 transition-all text-left ${
                         newDayLocation === location
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700 font-medium'
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700 font-medium shadow-sm'
                           : 'border-gray-200 bg-white hover:border-emerald-300 hover:bg-emerald-50 text-gray-700'
                       }`}
                       disabled={isLoadingNewDay}
@@ -3123,19 +3359,12 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {suggestedLocations.length > 0 ? 'Or enter custom location' : 'Enter location'}
               </label>
-              <input
-                type="text"
+              {/* Bubbly rounded autocomplete */}
+              <LocationAutocomplete
                 value={newDayLocation}
-                onChange={(e) => setNewDayLocation(e.target.value)}
+                onChange={setNewDayLocation}
                 placeholder="Enter location (e.g., Paris, Tokyo, New York)"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                disabled={isLoadingNewDay}
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !isLoadingNewDay) {
-                    handleAddDaySubmit()
-                  }
-                }}
+                className="w-full px-4 py-3 rounded-full border-2 border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white/90 backdrop-blur-sm"
               />
             </div>
 

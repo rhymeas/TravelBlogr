@@ -116,7 +116,7 @@ export function TripPrivacyModal({
       value: 'private' as PrivacyOption,
       icon: Lock,
       label: 'Private',
-      description: 'Only you can view this trip',
+      description: 'Only you, family & friends can view this trip',
       color: 'text-gray-600'
     },
     {

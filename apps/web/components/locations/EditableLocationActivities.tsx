@@ -18,6 +18,7 @@ interface EditableLocationActivitiesProps {
   locationSlug: string
   activities: LocationActivity[]
   locationName: string
+  country?: string
   enabled?: boolean
 }
 
@@ -47,6 +48,7 @@ export function EditableLocationActivities({
   locationSlug,
   activities: initialActivities,
   locationName,
+  country,
   enabled = false,
 }: EditableLocationActivitiesProps) {
   const [activities, setActivities] = useState(initialActivities)
@@ -188,6 +190,7 @@ export function EditableLocationActivities({
       <InlineLocationEditor
         locationId={locationId}
         locationSlug={locationSlug}
+        locationCountry={country}
         field="activities"
         value={activities}
         onUpdate={setActivities}
@@ -300,7 +303,7 @@ export function EditableLocationActivities({
 
               {/* Right 16:9 thumbnail - Brave API or custom */}
               <div
-                className="w-40 aspect-video relative rounded overflow-hidden bg-gray-100 flex-shrink-0 ml-2 group/image"
+                className="w-44 sm:w-56 aspect-video relative rounded overflow-hidden bg-gray-100 flex-shrink-0 ml-2 ml-auto pl-2 group/image"
                 onMouseEnter={() => setHoveringImage(activity.id)}
                 onMouseLeave={() => setHoveringImage(null)}
               >

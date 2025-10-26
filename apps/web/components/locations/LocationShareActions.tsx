@@ -45,12 +45,12 @@ export function LocationShareActions({
 
   // Load wishlist state on mount
   useEffect(() => {
-    if (isAuthenticated && locationId) {
+    if (isAuthenticated && locationSlug) {
       loadWishlistState()
     } else {
       setIsLoading(false)
     }
-  }, [isAuthenticated, locationId])
+  }, [isAuthenticated, locationSlug])
 
   // Listen for wishlist changes from other components
   useEffect(() => {
@@ -66,7 +66,7 @@ export function LocationShareActions({
 
   const loadWishlistState = async () => {
     try {
-      const response = await fetch(`/api/locations/${locationId}/customize`)
+      const response = await fetch(`/api/locations/${locationSlug}/customize`)
       const data = await response.json()
 
       if (response.ok && data.customization) {
@@ -92,7 +92,7 @@ export function LocationShareActions({
     setIsWishlisted(newValue) // Optimistic update
 
     try {
-      const response = await fetch(`/api/locations/${locationId}/customize`, {
+      const response = await fetch(`/api/locations/${locationSlug}/customize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isWishlisted: newValue })

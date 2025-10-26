@@ -25,7 +25,8 @@ const nextConfig = {
       'www.pexels.com',
       'picsum.photos',
       'api.mapbox.com',
-      'live.staticflickr.com' // Flickr images
+      'live.staticflickr.com', // Flickr images
+      'www.expedia.com' // Expedia images
     ],
     remotePatterns: [
       {
@@ -85,6 +86,12 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'live.staticflickr.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.expedia.com',
         port: '',
         pathname: '/**',
       },

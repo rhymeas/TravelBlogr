@@ -166,18 +166,16 @@ export function LocationInput({ locations, onChange }: LocationInputProps) {
 
   return (
     <div className="space-y-3">
-      {/* Header with total distance on same line */}
+      {/* Header with total distance */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-gray-900">Where are you going?</h2>
           <p className="text-xs text-gray-600 mt-0.5">Start with your journey basics</p>
         </div>
-        {locations.length >= 2 && totalDist > 0 && (
-          <div className="text-right">
-            <div className="text-xs font-medium text-gray-500">Total Distance</div>
-            <div className="text-sm font-bold text-gray-900">
-              {totalDist < 1 ? '< 1 km' : `${Math.round(totalDist)} km`}
-            </div>
+        {totalDist > 0 && (
+          <div className="text-sm">
+            <span className="font-semibold text-gray-900">Total Distance:</span>{' '}
+            <span className="text-gray-600">{Math.round(totalDist)} km</span>
           </div>
         )}
       </div>
@@ -279,12 +277,6 @@ export function LocationInput({ locations, onChange }: LocationInputProps) {
                 {/* Dashed Line */}
                 <div className="absolute left-[52px] top-[56px] w-0.5 h-[32px] bg-gray-300 border-l-2 border-dashed border-gray-300" style={{ background: 'transparent' }} />
 
-                {/* Distance Badge */}
-                {distance !== null && (
-                  <div className="absolute left-[80px] top-[60px] bg-blue-50 border border-blue-200 rounded-full px-2.5 py-1 text-xs font-medium text-blue-700 whitespace-nowrap">
-                    {distance < 1 ? '< 1 km' : `${Math.round(distance)} km`}
-                  </div>
-                )}
               </div>
             )
           })()}

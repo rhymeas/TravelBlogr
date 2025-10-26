@@ -1,6 +1,6 @@
 /**
  * Stripe Webhook Handler
- * 
+ *
  * Processes Stripe events, particularly checkout.session.completed
  * to add credits to user accounts after successful payment.
  */
@@ -8,6 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { addCreditsServer } from '@/lib/services/creditService.server'
+
+import { sendPurchaseReceiptEmail } from '@/lib/resend'
 
 // Lazy initialize Stripe to avoid errors during build
 let stripe: Stripe | null = null
@@ -18,9 +20,7 @@ function getStripe(): Stripe {
     if (!apiKey) {
       throw new Error('STRIPE_SECRET_KEY environment variable is not set')
     }
-    stripe = new Stripe(apiKey, {
-      apiVersion: '2025-09-30.clover',
-    })
+    stripe = new Stripe(apiKey)
   }
   return stripe
 }
@@ -88,9 +88,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     console.log('Processing checkout session:', session.id)
 
     // Extract metadata
-    const userId = session.metadata?.user_id || session.client_reference_id
-    const credits = parseInt(session.metadata?.credits || '0')
-    const packName = session.metadata?.pack_name || 'Unknown Pack'
+    const userId = session.metadata?.userId || session.metadata?.user_id || session.client_reference_id
+    const credits = parseInt((session.metadata?.credits as string) || '0')
+    const packName = session.metadata?.pack_name || 'Credits'
 
     if (!userId) {
       console.error('No user_id in session metadata:', session.id)
@@ -112,9 +112,15 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     if (result.success) {
       console.log(`✅ Added ${credits} credits to user ${userId} (${packName})`)
-      
-      // TODO: Send confirmation email
-      // await sendCreditPurchaseEmail(userId, credits, packName)
+      // Send receipt email (best-effort)
+      const email = session?.customer_details?.email || (session as any)?.customer_email
+      if (email) {
+        try {
+          await sendPurchaseReceiptEmail({ to: email, credits, amountCents: (session.amount_total as number) || credits * 100, sessionId: String(session.id) })
+        } catch (e) {
+          console.warn('Failed to send receipt email', e)
+        }
+      }
     } else {
       console.error(`❌ Failed to add credits: ${result.error}`)
     }

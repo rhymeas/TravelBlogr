@@ -71,6 +71,12 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
   const [isDeleting, setIsDeleting] = useState(false)
   const [showRefetchModal, setShowRefetchModal] = useState(false)
   const [includeImageRefetch, setIncludeImageRefetch] = useState(true)
+  const [includeRestaurantsRefetch, setIncludeRestaurantsRefetch] = useState(true)
+  const [includeActivitiesRefetch, setIncludeActivitiesRefetch] = useState(true)
+  const [includeDescriptionRefetch, setIncludeDescriptionRefetch] = useState(true)
+  const [includeMetadataRefetch, setIncludeMetadataRefetch] = useState(false)
+  const [includeWeatherRefetch, setIncludeWeatherRefetch] = useState(false)
+
 
   // Admin: Refetch location data
   const handleRefetch = async () => {
@@ -84,7 +90,12 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
         body: JSON.stringify({
           locationId: location.id,
           locationName: location.name,
-          includeImages: includeImageRefetch
+          includeImages: includeImageRefetch,
+          includeRestaurants: includeRestaurantsRefetch,
+          includeActivities: includeActivitiesRefetch,
+          includeDescription: includeDescriptionRefetch,
+          includeMetadata: includeMetadataRefetch,
+          includeWeather: includeWeatherRefetch
         })
       })
 
@@ -318,6 +329,7 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
                 locationSlug={location.slug}
                 activities={location.activities || []}
                 locationName={location.name}
+                country={location.country}
                 enabled={isEditMode}
               />
             </div>
@@ -444,6 +456,7 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
             {isAuthenticated ? (
               <AuthenticatedLocationActions
                 locationId={location.id}
+                locationSlug={location.slug}
                 locationName={location.name}
               />
             ) : (
@@ -809,24 +822,93 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
               </div>
             </div>
 
-            {/* Image Refetch Toggle */}
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={includeImageRefetch}
-                  onChange={(e) => setIncludeImageRefetch(e.target.checked)}
-                  className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                />
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900 text-sm mb-1">
-                    Include Image Refetch
+            {/* What to Refetch */}
+            <div className="mb-6 space-y-3">
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includeImageRefetch}
+                    onChange={(e) => setIncludeImageRefetch(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 text-sm mb-1">
+                      Images (featured + gallery)
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      Brave + Reddit Ultra + Wikimedia with hierarchical fallback and validation.
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-600">
-                    Fetch fresh images from external sources. This may take longer but ensures up-to-date visuals.
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includeRestaurantsRefetch}
+                    onChange={(e) => setIncludeRestaurantsRefetch(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 text-sm mb-1">Restaurants</div>
+                    <div className="text-xs text-gray-600">Refresh places to eat with latest links</div>
                   </div>
-                </div>
-              </label>
+                </label>
+
+                <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includeActivitiesRefetch}
+                    onChange={(e) => setIncludeActivitiesRefetch(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 text-sm mb-1">Activities</div>
+                    <div className="text-xs text-gray-600">Update attractions + experiences</div>
+                  </div>
+                </label>
+
+                <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includeDescriptionRefetch}
+                    onChange={(e) => setIncludeDescriptionRefetch(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 text-sm mb-1">Description</div>
+                    <div className="text-xs text-gray-600">Refresh short guide from WikiVoyage/Wikipedia</div>
+                  </div>
+                </label>
+
+                <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includeMetadataRefetch}
+                    onChange={(e) => setIncludeMetadataRefetch(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 text-sm mb-1">Metadata</div>
+                    <div className="text-xs text-gray-600">Re-verify coordinates/region/country</div>
+                  </div>
+                </label>
+
+                <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includeWeatherRefetch}
+                    onChange={(e) => setIncludeWeatherRefetch(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 text-sm mb-1">Weather</div>
+                    <div className="text-xs text-gray-600">Refresh average temps & rainfall (if enabled)</div>
+                  </div>
+                </label>
+              </div>
             </div>
 
             {/* Action Buttons */}

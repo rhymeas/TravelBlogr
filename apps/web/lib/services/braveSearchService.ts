@@ -1,12 +1,12 @@
 /**
  * Brave Search API Service
- * 
+ *
  * FREE tier: 2,000 queries/month (66/day)
  * Provides:
  * - Web search results (official pages, booking sites, restaurants)
  * - Image search results (16:9 thumbnails from imgs.search.brave.com)
  * - News results (for trending activities)
- * 
+ *
  * Docs: https://brave.com/search/api/
  */
 
@@ -15,6 +15,21 @@ import { getCached, setCached, CacheKeys, CacheTTL } from '@/lib/upstash'
 const BRAVE_API_KEY = process.env.BRAVE_SEARCH_API_KEY
 const BRAVE_WEB_SEARCH_URL = 'https://api.search.brave.com/res/v1/web/search'
 const BRAVE_IMAGE_SEARCH_URL = 'https://api.search.brave.com/res/v1/images/search'
+const BRAVE_NEWS_SEARCH_URL = 'https://api.search.brave.com/res/v1/news/search'
+
+// Defensive micro-throttle to keep < 20 RPS per session
+let __braveRequestTimes: number[] = []
+async function throttleBraveRPS(maxPerSec: number = 18) {
+  while (true) {
+    const now = Date.now()
+    __braveRequestTimes = __braveRequestTimes.filter(t => now - t < 1000)
+    if (__braveRequestTimes.length < maxPerSec) {
+      __braveRequestTimes.push(now)
+      return
+    }
+    await new Promise(res => setTimeout(res, 30))
+  }
+}
 
 export interface BraveWebResult {
   title: string
@@ -23,6 +38,9 @@ export interface BraveWebResult {
   type: 'official' | 'booking' | 'guide' | 'affiliate' | 'restaurant' | 'unknown'
   favicon?: string
   age?: string
+  phone?: string
+  website?: string
+  address?: string
 }
 
 export interface BraveImageResult {
@@ -59,6 +77,7 @@ export async function searchWeb(
   }
 
   try {
+    await throttleBraveRPS()
     const response = await fetch(
       `${BRAVE_WEB_SEARCH_URL}?q=${encodeURIComponent(query)}&count=${limit}`,
       {
@@ -82,6 +101,9 @@ export async function searchWeb(
       type: classifyLinkType(result.url, result.title),
       favicon: result.profile?.img,
       age: result.age,
+      phone: result.profile?.phone || result.phone,
+      website: result.profile?.url || result.site?.url,
+      address: result.profile?.address || result.address,
     }))
 
     // Cache for 24 hours
@@ -117,6 +139,7 @@ export async function searchImages(
   }
 
   try {
+    await throttleBraveRPS()
     const response = await fetch(
       `${BRAVE_IMAGE_SEARCH_URL}?q=${encodeURIComponent(query)}&count=${limit}`,
       {
@@ -209,8 +232,8 @@ export async function searchLocationImages(
   locationName: string,
   specificPlace?: string
 ): Promise<BraveImageResult[]> {
-  const query = specificPlace 
-    ? `${specificPlace} ${locationName}` 
+  const query = specificPlace
+    ? `${specificPlace} ${locationName}`
     : locationName
 
   return await searchImages(query, 20)
@@ -272,10 +295,166 @@ function classifyLinkType(url: string, title: string): BraveWebResult['type'] {
   }
 
   // Official sites
-  if (urlLower.includes('.org') || urlLower.includes('.gov') || 
+  if (urlLower.includes('.org') || urlLower.includes('.gov') ||
       titleLower.includes('official') || titleLower.includes('museum')) {
     return 'official'
   }
+
+  return 'unknown'
+}
+
+/**
+ * NEW: Search for POIs near a location
+ * Uses Brave Web Search with location-based queries
+ */
+export interface BravePOIResult extends BraveWebResult {
+  estimatedDistance?: number // km from query point
+  category: 'restaurant' | 'attraction' | 'hotel' | 'gas-station' | 'viewpoint' | 'unknown'
+  coordinates?: { latitude: number; longitude: number }
+}
+
+export async function searchPOIsNearLocation(
+  latitude: number,
+  longitude: number,
+  radius: number = 10, // km
+  category?: 'restaurant' | 'attraction' | 'hotel' | 'gas-station'
+): Promise<BravePOIResult[]> {
+  if (!BRAVE_API_KEY) {
+    console.warn('⚠️ BRAVE_SEARCH_API_KEY not configured')
+    return []
+  }
+
+  // Build location-aware query
+  const categoryQuery = category || 'points of interest attractions restaurants'
+  const query = `${categoryQuery} near ${latitude},${longitude} within ${radius}km`
+
+  const cacheKey = `${CacheKeys.braveWebSearch(query, 20)}`
+
+  // Check cache first (24 hours)
+  const cached = await getCached<BravePOIResult[]>(cacheKey)
+  if (cached) {
+    console.log(`✅ Brave POI Cache HIT: ${query}`)
+    return cached
+  }
+
+  try {
+    const response = await fetch(
+      `${BRAVE_WEB_SEARCH_URL}?q=${encodeURIComponent(query)}&count=20`,
+      {
+        headers: {
+          'Accept': 'application/json',
+          'X-Subscription-Token': BRAVE_API_KEY,
+        },
+      }
+    )
+
+    if (!response.ok) {
+      console.error(`❌ Brave POI Search: ${response.status}`)
+      return []
+    }
+
+    const data = await response.json()
+    const results: BravePOIResult[] = (data.web?.results || []).map((result: any) => ({
+      title: result.title,
+      url: result.url,
+      description: result.description || '',
+      type: classifyLinkType(result.url, result.title),
+      category: classifyPOICategory(result.title, result.description),
+      favicon: result.profile?.img,
+      age: result.age,
+    }))
+
+    // Cache for 24 hours
+    await setCached(cacheKey, results, CacheTTL.LONG)
+
+    console.log(`✅ Brave POI: Found ${results.length} POIs near ${latitude},${longitude}`)
+    return results
+  } catch (error) {
+    console.error('Brave POI Search error:', error)
+    return []
+  }
+}
+
+/**
+ * NEW: Search for location news and events
+ * Uses Brave News Search API
+ */
+export interface BraveNewsResult {
+  title: string
+  url: string
+  description: string
+  source: string
+  age: string
+  thumbnail?: string
+}
+
+export async function searchLocationNews(
+  locationName: string,
+  limit: number = 5
+): Promise<BraveNewsResult[]> {
+  if (!BRAVE_API_KEY) {
+    console.warn('⚠️ BRAVE_SEARCH_API_KEY not configured')
+    return []
+  }
+
+  const query = `${locationName} travel events news`
+  const cacheKey = `brave:news:${query}:${limit}`
+
+  // Check cache first (6 hours for news)
+  const cached = await getCached<BraveNewsResult[]>(cacheKey)
+  if (cached) {
+    console.log(`✅ Brave News Cache HIT: ${query}`)
+    return cached
+  }
+
+  try {
+    const response = await fetch(
+      `${BRAVE_NEWS_SEARCH_URL}?q=${encodeURIComponent(query)}&count=${limit}`,
+      {
+        headers: {
+          'Accept': 'application/json',
+          'X-Subscription-Token': BRAVE_API_KEY,
+        },
+      }
+    )
+
+    if (!response.ok) {
+      console.error(`❌ Brave News Search: ${response.status}`)
+      return []
+    }
+
+    const data = await response.json()
+    const results: BraveNewsResult[] = (data.results || []).map((result: any) => ({
+      title: result.title || '',
+      url: result.url || '',
+      description: result.description || '',
+      source: result.source || '',
+      age: result.age || '',
+      thumbnail: result.thumbnail?.src,
+    }))
+
+    // Cache for 6 hours (news changes frequently)
+    await setCached(cacheKey, results, CacheTTL.MEDIUM)
+
+    console.log(`✅ Brave News: Found ${results.length} news items for "${locationName}"`)
+    return results
+  } catch (error) {
+    console.error('Brave News Search error:', error)
+    return []
+  }
+}
+
+/**
+ * Classify POI category based on title and description
+ */
+function classifyPOICategory(title: string, description: string): BravePOIResult['category'] {
+  const text = `${title} ${description}`.toLowerCase()
+
+  if (text.match(/restaurant|cafe|bistro|dining|food|eatery/)) return 'restaurant'
+  if (text.match(/hotel|accommodation|lodge|resort|inn/)) return 'hotel'
+  if (text.match(/museum|gallery|monument|landmark|attraction|park/)) return 'attraction'
+  if (text.match(/gas station|fuel|petrol|service station/)) return 'gas-station'
+  if (text.match(/viewpoint|scenic|overlook|vista|panorama/)) return 'viewpoint'
 
   return 'unknown'
 }

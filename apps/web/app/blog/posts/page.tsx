@@ -10,6 +10,7 @@
 import { useState } from 'react'
 import { useBlogPosts } from '@/hooks/useBlogData'
 import { OptimizedImage } from '@/components/ui/OptimizedImage'
+import { Card } from '@/components/ui/Card'
 import { Calendar, Eye, Search, MapPin, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
@@ -140,18 +141,17 @@ export default function BlogPostsPage() {
                 <Link
                   key={post.id}
                   href={`/blog/posts/${post.slug}`}
-                  className="group block"
                 >
-                  <article className="h-full space-y-4">
-                    {/* Featured Image - Rounded and Elevated */}
-                    <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-gray-100 shadow-lg group-hover:shadow-2xl transition-all duration-500">
+                  <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 group h-full flex flex-col">
+                    {/* Featured Image */}
+                    <div className="relative w-full aspect-[4/3] flex-shrink-0 overflow-hidden">
                       {post.featured_image ? (
                         <OptimizedImage
                           src={post.featured_image}
                           alt={post.title}
                           fill
                           preset="thumbnail"
-                          className="object-cover group-hover:scale-110 transition-transform duration-700"
+                          className="object-cover group-hover:scale-110 transition-transform duration-500"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
@@ -161,8 +161,8 @@ export default function BlogPostsPage() {
 
                       {/* Category Badge - Floating */}
                       {post.category && (
-                        <div className="absolute top-4 left-4">
-                          <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-white/95 backdrop-blur-sm rounded-full text-sm font-medium text-gray-900 shadow-lg">
+                        <div className="absolute top-3 left-3">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/95 backdrop-blur-sm rounded-full text-xs font-semibold text-gray-900 shadow-lg">
                             {categories.find(c => c.id === post.category)?.emoji || '✨'}
                             {post.category}
                           </span>
@@ -171,58 +171,62 @@ export default function BlogPostsPage() {
                     </div>
 
                     {/* Content */}
-                    <div className="space-y-2.5 px-1">
-                      <h3 className="text-xl font-bold text-gray-900 leading-tight line-clamp-2 group-hover:text-rausch-600 transition-colors">
+                    <div className="flex-1 flex flex-col p-5">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-rausch-500 transition-colors">
                         {post.title}
                       </h3>
 
                       {post.excerpt && (
-                        <p className="text-sm text-gray-600 leading-relaxed line-clamp-3">
+                        <p className="text-gray-700 text-sm mb-4 line-clamp-3 flex-1">
                           {post.excerpt}
                         </p>
                       )}
 
-                      {/* Meta Info - Minimal and Clean */}
-                      <div className="flex items-center gap-6 text-sm text-gray-500 pt-2">
-                        <div className="flex items-center gap-2">
+                      {/* Meta Info */}
+                      <div className="flex items-center gap-3 text-gray-600 mb-3 text-sm">
+                        <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
                           <span>{new Date(post.published_at || post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                           <Eye className="h-4 w-4" />
-                          <span>{post.view_count || 0} views</span>
+                          <span>{post.view_count || 0}</span>
                         </div>
                       </div>
 
-                      {/* Author - Subtle */}
+                      {/* Author */}
                       {post.profiles && (
-                        <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
+                        <div className="flex items-center gap-2 mb-4">
                           {post.profiles.avatar_url ? (
                             <img
                               src={post.profiles.avatar_url}
                               alt={post.profiles.full_name || post.profiles.username}
-                              className="h-8 w-8 rounded-full object-cover"
+                              className="h-6 w-6 rounded-full object-cover"
                             />
                           ) : (
-                            <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                            <div className="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center">
                               <span className="text-xs font-medium text-gray-600">
                                 {(post.profiles.full_name || post.profiles.username || 'U').charAt(0).toUpperCase()}
                               </span>
                             </div>
                           )}
-                          <span className="text-sm font-medium text-gray-700">
+                          <span className="text-sm text-gray-700">
                             {post.profiles.full_name || post.profiles.username}
                           </span>
                         </div>
                       )}
 
-                      {/* Read More - Appears on Hover */}
-                      <div className="flex items-center gap-2 text-rausch-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span>Read story</span>
-                        <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      {/* Footer */}
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-auto">
+                        <div className="flex items-center gap-1 text-gray-500 text-sm">
+                          <span>Read story</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-rausch-500 font-semibold group-hover:gap-2 transition-all text-sm">
+                          <ArrowRight className="h-4 w-4" />
+                        </div>
                       </div>
                     </div>
-                  </article>
+                  </Card>
                 </Link>
               ))}
             </div>

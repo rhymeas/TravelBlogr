@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { coordinates, profile = 'driving-car' } = body
+    const { coordinates, profile = 'driving-car', preference } = body
 
     // Validate input
     if (!coordinates || !Array.isArray(coordinates) || coordinates.length < 2) {
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get route from service
-    const route = await getRoute(coordinates as RouteCoordinate[], profile as TransportProfile)
+    const route = await getRoute(coordinates as RouteCoordinate[], profile as TransportProfile, preference as any)
 
     return NextResponse.json(route)
   } catch (error) {

@@ -228,7 +228,36 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         )
       }
-      updates.activities = value
+      // Replace activities for this location in a simple, consistent way
+      // 1) Delete existing
+      const { error: delErr } = await supabaseAdmin
+        .from('activities')
+        .delete()
+        .eq('location_id', locationRecord.id)
+      if (delErr) {
+        console.error('Failed to delete existing activities:', delErr)
+        return NextResponse.json({ error: 'Failed to update activities' }, { status: 500 })
+      }
+      // 2) Insert new
+      const toInsert = (value as any[]).map((a) => ({
+        location_id: locationRecord.id,
+        name: String(a?.name || '').slice(0, 200),
+        description: a?.description ? String(a.description).slice(0, 1000) : null,
+        category: a?.category || null,
+        difficulty: a?.difficulty || null,
+        duration: a?.duration || null,
+        cost: a?.cost || null,
+        image_url: a?.image_url || null,
+        link_url: a?.link_url || a?.website || null,
+        link_source: a?.link_source || null,
+      }))
+      if (toInsert.length) {
+        const { error: insErr } = await supabaseAdmin.from('activities').insert(toInsert)
+        if (insErr) {
+          console.error('Failed to insert activities:', insErr)
+          return NextResponse.json({ error: 'Failed to update activities' }, { status: 500 })
+        }
+      }
     } else if (field === 'restaurants') {
       // Validate restaurants structure
       if (!Array.isArray(value)) {
@@ -237,7 +266,35 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         )
       }
-      updates.restaurants = value
+      // Replace restaurants for this location
+      const { error: delErr } = await supabaseAdmin
+        .from('restaurants')
+        .delete()
+        .eq('location_id', locationRecord.id)
+      if (delErr) {
+        console.error('Failed to delete existing restaurants:', delErr)
+        return NextResponse.json({ error: 'Failed to update restaurants' }, { status: 500 })
+      }
+      const toInsert = (value as any[]).map((r) => ({
+        location_id: locationRecord.id,
+        name: String(r?.name || '').slice(0, 200),
+        description: r?.description ? String(r.description).slice(0, 1000) : null,
+        cuisine: r?.cuisine || null,
+        price_range: r?.price_range || null,
+        rating: typeof r?.rating === 'number' ? r.rating : null,
+        image: r?.image || null,
+        website: r?.website || null,
+        address: r?.address || null,
+        phone: r?.phone || null,
+        specialties: Array.isArray(r?.specialties) ? r?.specialties : [],
+      }))
+      if (toInsert.length) {
+        const { error: insErr } = await supabaseAdmin.from('restaurants').insert(toInsert)
+        if (insErr) {
+          console.error('Failed to insert restaurants:', insErr)
+          return NextResponse.json({ error: 'Failed to update restaurants' }, { status: 500 })
+        }
+      }
     } else if (field === 'experiences') {
       if (!Array.isArray(value)) {
         return NextResponse.json(

@@ -47,7 +47,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { locationId, locationName } = await request.json()
+    const {
+      locationId,
+      locationName,
+      includeImages = true,
+      includeRestaurants = true,
+      includeActivities = true,
+      includeDescription = true,
+      includeMetadata = false,
+      includeWeather = false
+    } = await request.json()
 
     if (!locationId || !locationName) {
       return NextResponse.json(
@@ -145,150 +154,179 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔍 Using full location query: "${fullLocationQuery}" (name: "${location.name}", region: "${location.region || 'N/A'}", country: "${location.country}")`)
 
-    // CRITICAL: Re-geocode location to verify coordinates are correct
-    // Legacy locations might have wrong coordinates (e.g., "Lofthus" in USA instead of Norway)
-    console.log(`📍 Verifying location coordinates...`)
-    const { geocodeLocation } = await import('@/lib/services/geocodingService')
-    const geoData = await geocodeLocation(fullLocationQuery)
-
     let coordinatesUpdated = false
-    if (geoData) {
-      // Check if coordinates are significantly different (> 1 degree = ~111km)
-      const latDiff = Math.abs(geoData.lat - (location.latitude || 0))
-      const lngDiff = Math.abs(geoData.lng - (location.longitude || 0))
 
-      if (latDiff > 1 || lngDiff > 1 || !location.latitude || !location.longitude) {
-        console.log(`⚠️ Coordinates mismatch detected!`)
-        console.log(`   Old: ${location.latitude}, ${location.longitude}`)
-        console.log(`   New: ${geoData.lat}, ${geoData.lng}`)
-        console.log(`   Updating to correct coordinates...`)
+    if (includeMetadata) {
+      // CRITICAL: Re-geocode location to verify coordinates are correct
+      // Legacy locations might have wrong coordinates (e.g., "Lofthus" in USA instead of Norway)
+      console.log(`📍 Verifying location coordinates...`)
+      const { geocodeLocation } = await import('@/lib/services/geocodingService')
+      const geoData = await geocodeLocation(fullLocationQuery)
 
-        // CRITICAL FIX: Clean region field - remove non-Latin characters
-        const rawRegion = geoData.region || location.region
-        const cleanRegion = rawRegion
-          ? rawRegion.split(/[⵿-⵿]/)[0].trim()
-                     .replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, '')
-                     .replace(/[\u2D30-\u2D7F]/g, '')
-                     .trim()
-          : null
+      if (geoData) {
+        // Check if coordinates are significantly different (> 1 degree = ~111km)
+        const latDiff = Math.abs(geoData.lat - (location.latitude || 0))
+        const lngDiff = Math.abs(geoData.lng - (location.longitude || 0))
 
-        if (rawRegion !== cleanRegion) {
-          console.log(`🧹 Cleaned region: "${rawRegion}" → "${cleanRegion}"`)
-        }
+        if (latDiff > 1 || lngDiff > 1 || !location.latitude || !location.longitude) {
+          console.log(`⚠️ Coordinates mismatch detected!`)
+          console.log(`   Old: ${location.latitude}, ${location.longitude}`)
+          console.log(`   New: ${geoData.lat}, ${geoData.lng}`)
+          console.log(`   Updating to correct coordinates...`)
 
-        // Update coordinates in database
-        const { error: coordUpdateError } = await supabase
-          .from('locations')
-          .update({
-            latitude: geoData.lat,
-            longitude: geoData.lng,
-            country: geoData.country || location.country,
-            region: cleanRegion,
-            city: geoData.city || location.city
-          })
-          .eq('id', locationId)
+          // CRITICAL FIX: Clean region field - remove non-Latin characters
+          const rawRegion = geoData.region || location.region
+          const cleanRegion = rawRegion
+            ? rawRegion.split(/[⵿-⵿]/)[0].trim()
+                       .replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, '')
+                       .replace(/[\u2D30-\u2D7F]/g, '')
+                       .trim()
+            : null
 
-        if (!coordUpdateError) {
-          console.log(`✅ Coordinates updated successfully!`)
-          location.latitude = geoData.lat
-          location.longitude = geoData.lng
-          location.country = geoData.country || location.country
-          location.region = cleanRegion || location.region
-          coordinatesUpdated = true
+          if (rawRegion !== cleanRegion) {
+            console.log(`🧹 Cleaned region: "${rawRegion}" → "${cleanRegion}"`)
+          }
+
+          // Update coordinates in database
+          const { error: coordUpdateError } = await supabase
+            .from('locations')
+            .update({
+              latitude: geoData.lat,
+              longitude: geoData.lng,
+              country: geoData.country || location.country,
+              region: cleanRegion,
+              city: geoData.city || location.city
+            })
+            .eq('id', locationId)
+
+          if (!coordUpdateError) {
+            console.log(`✅ Coordinates updated successfully!`)
+            location.latitude = geoData.lat
+            location.longitude = geoData.lng
+            location.country = geoData.country || location.country
+            location.region = cleanRegion || location.region
+            coordinatesUpdated = true
+          } else {
+            console.error(`⚠️ Failed to update coordinates:`, coordUpdateError)
+          }
         } else {
-          console.error(`⚠️ Failed to update coordinates:`, coordUpdateError)
+          console.log(`✅ Coordinates are correct (within 1 degree)`)
         }
       } else {
-        console.log(`✅ Coordinates are correct (within 1 degree)`)
+        console.warn(`⚠️ Could not geocode "${fullLocationQuery}", keeping existing coordinates`)
       }
     } else {
-      console.warn(`⚠️ Could not geocode "${fullLocationQuery}", keeping existing coordinates`)
+      console.log('ℹ️ Skipping metadata/geocoding step (includeMetadata=false)')
     }
 
-    // Step 1: Refetch featured image with ENHANCED hierarchical fallback
-    console.log(`🖼️ Refetching featured image with hierarchical fallback...`)
-    console.log(`   Using: name="${location.name}", region="${location.region || 'N/A'}", country="${location.country}"`)
-    let featuredImage = await fetchLocationImageHighQuality(
-      location.name,  // CRITICAL: Pass ONLY location name, not fullLocationQuery
-      undefined,
-      location.region,
-      location.country
-      // Note: Additional data (district, county, continent) could be added here
-      // if we extract it from location data or geocoding results
-    )
+    // Optional: Images
+    let validation: { featured_image?: string | null; gallery_images: string[] } = { gallery_images: [] }
+    if (includeImages) {
+      console.log(`🖼️ Refetching featured image with hierarchical fallback...`)
+      console.log(`   Using: name="${location.name}", region="${location.region || 'N/A'}", country="${location.country}"`)
+      let featuredImage = await fetchLocationImageHighQuality(
+        location.name,
+        undefined,
+        location.region,
+        location.country
+      )
 
-    // Step 2: Refetch gallery images with smart fallback + hierarchical fallback
-    console.log(`🖼️ Refetching gallery images with hierarchical fallback...`)
-    console.log(`   Using: name="${location.name}", region="${location.region || 'N/A'}", country="${location.country}"`)
-    let galleryImages = await fetchLocationGalleryWithSmartFallback(
-      locationId,
-      location.name,  // CRITICAL: Pass ONLY location name, not fullLocationQuery
-      20,
-      location.region,
-      location.country
-    )
+      console.log(`🖼️ Refetching gallery images with hierarchical fallback...`)
+      console.log(`   Using: name="${location.name}", region="${location.region || 'N/A'}", country="${location.country}"`)
+      let galleryImages = await fetchLocationGalleryWithSmartFallback(
+        locationId,
+        location.name,
+        20,
+        location.region,
+        location.country
+      )
 
-    // Step 2.5: If no featured image but have gallery, use first gallery image
-    if (!featuredImage && galleryImages.length > 0) {
-      console.log(`📸 No featured image found, using first gallery image as featured`)
-      featuredImage = galleryImages[0]
-    }
+      if (!featuredImage && galleryImages.length > 0) {
+        console.log(`📸 No featured image found, using first gallery image as featured`)
+        featuredImage = galleryImages[0]
+      }
 
-    // Step 3: Validate images
-    const validation = validateImageData({
-      featured_image: featuredImage,
-      gallery_images: galleryImages
-    })
+      validation = validateImageData({
+        featured_image: featuredImage,
+        gallery_images: galleryImages
+      })
 
-    console.log(`✅ Images validated: ${validation.gallery_images.length} images`)
-    if (featuredImage) {
-      console.log(`✅ Featured image: ${featuredImage.substring(0, 100)}...`)
+      console.log(`✅ Images validated: ${validation.gallery_images.length} images`)
+      if (validation.featured_image) {
+        console.log(`✅ Featured image: ${validation.featured_image.substring(0, 100)}...`)
+      } else {
+        console.warn(`⚠️ No featured image found!`)
+      }
     } else {
-      console.warn(`⚠️ No featured image found!`)
+      console.log('ℹ️ Skipping images refetch (includeImages=false)')
     }
 
-    // Step 4: Refetch restaurants
-    console.log(`🍽️ Refetching restaurants...`)
-    const { data: existingRestaurants } = await supabase
-      .from('restaurants')
-      .select('id')
-      .eq('location_id', locationId)
+    // Step 4: Refetch restaurants (optional)
+    let restaurantsCount = 0
+    if (includeRestaurants) {
+      console.log(`🍽️ Refetching restaurants...`)
+      const { data: existingRestaurants } = await supabase
+        .from('restaurants')
+        .select('id')
+        .eq('location_id', locationId)
+      restaurantsCount = existingRestaurants?.length || 0
+    } else {
+      console.log('ℹ️ Skipping restaurants refetch (includeRestaurants=false)')
+    }
 
-    let restaurantsCount = existingRestaurants?.length || 0
+    // Step 5: Refetch activities (optional)
+    let activitiesCount = 0
+    if (includeActivities) {
+      console.log(`🎯 Refetching activities...`)
+      const { data: existingActivities } = await supabase
+        .from('activities')
+        .select('id')
+        .eq('location_id', locationId)
+      activitiesCount = existingActivities?.length || 0
+    } else {
+      console.log('ℹ️ Skipping activities refetch (includeActivities=false)')
+    }
 
-    // Step 5: Refetch activities
-    console.log(`🎯 Refetching activities...`)
-    const { data: existingActivities } = await supabase
-      .from('activities')
-      .select('id')
-      .eq('location_id', locationId)
-
-    let activitiesCount = existingActivities?.length || 0
-
-    // Step 6: Refetch description
-    console.log(`📖 Refetching description...`)
+    // Step 6: Refetch description (optional)
     let description = location.description
-    try {
-      // Use full location query for better description accuracy
-      const enhancedDesc = await getEnhancedDescription(fullLocationQuery)
-      if (enhancedDesc) {
-        description = enhancedDesc
-        console.log(`✅ Updated description`)
+    if (includeDescription) {
+      console.log(`📖 Refetching description...`)
+      try {
+        // Use full location query for better description accuracy
+        const enhancedDesc = await getEnhancedDescription(fullLocationQuery)
+        if (enhancedDesc) {
+          description = enhancedDesc
+          console.log(`✅ Updated description`)
+        }
+      } catch (error) {
+        console.error(`⚠️ Failed to fetch description:`, error)
       }
-    } catch (error) {
-      console.error(`⚠️ Failed to fetch description:`, error)
+    } else {
+      console.log('ℹ️ Skipping description refetch (includeDescription=false)')
+    }
+
+    // Optional: Weather (stub)
+    if (includeWeather) {
+      console.log('⛅ Weather refetch requested (not implemented yet)')
     }
 
     // Step 7: Update location in database
     console.log(`💾 Updating location in database...`)
+
+    const updatePayload: Record<string, any> = {
+      updated_at: new Date().toISOString()
+    }
+    if (includeImages) {
+      updatePayload.featured_image = validation.featured_image
+      updatePayload.gallery_images = validation.gallery_images
+    }
+    if (includeDescription) {
+      updatePayload.description = description
+    }
+
     const { error: updateError } = await supabase
       .from('locations')
-      .update({
-        featured_image: validation.featured_image,
-        gallery_images: validation.gallery_images,
-        description: description,
-        updated_at: new Date().toISOString()
-      })
+      .update(updatePayload)
       .eq('id', locationId)
 
     if (updateError) {

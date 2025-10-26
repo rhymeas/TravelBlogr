@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { searchImages as braveSearchImages } from '@/lib/services/braveSearchService'
 
 interface RedditImage {
   url: string
@@ -6,6 +7,13 @@ interface RedditImage {
   subreddit: string
   score: number
   permalink: string
+}
+
+interface BraveImage {
+  url: string
+  thumbnail: string
+  title: string
+  source: string
 }
 
 interface FlickrImage {
@@ -375,7 +383,34 @@ export async function GET(request: NextRequest) {
 
   console.log(`Testing images for "${location}" using ${method} method`)
 
-  // Handle non-Reddit methods
+  // Handle Brave API method (replaces current method)
+  if (method === 'brave') {
+    try {
+      const braveResults = await braveSearchImages(location, 20)
+      const braveImages: BraveImage[] = braveResults.map((img: any) => ({
+        url: img.url,
+        thumbnail: img.thumbnail || img.url,
+        title: img.title || location,
+        source: 'Brave Search API'
+      }))
+      return NextResponse.json({
+        location,
+        method,
+        count: braveImages.length,
+        images: braveImages
+      })
+    } catch (error) {
+      console.error('Brave API error:', error)
+      return NextResponse.json({
+        location,
+        method,
+        count: 0,
+        images: [],
+        error: 'Brave API failed'
+      })
+    }
+  }
+
   if (method === 'flickr') {
     const flickrImages = await fetchFlickrImages(location, 20)
     return NextResponse.json({

@@ -27,6 +27,8 @@ import { PublicDestinationSearch } from '@/components/search/PublicDestinationSe
 import { useAuth } from '@/hooks/useAuth'
 import { HorizontalBannerAd } from '@/components/ads/HorizontalBannerAd'
 
+import { FAQ as MarketingFAQ } from '@/components/marketing/FAQ'
+
 // ✅ Self-hosted videos on Supabase - Fast & Reliable!
 // Videos uploaded to: https://supabase.com/dashboard/project/nchhcxokrzabbkvhzsor/storage/buckets/images/uploads
 const HERO_VIDEOS = [
@@ -658,6 +660,10 @@ export default function HomePage() {
               ))}
             </div>
           </div>
+
+        {/* Marketing FAQ (reusable) */}
+        <MarketingFAQ />
+
         </section>
 
         {/* Final CTA - sleek Style */}
