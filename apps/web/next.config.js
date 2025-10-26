@@ -42,40 +42,45 @@ const nextConfig = {
   // Skip trailing slash for cleaner URLs
   trailingSlash: false,
 
-  // Disable static generation for pages with client-side context
-  // These pages use force-dynamic but still need this config
+  // CRITICAL: Disable static page generation completely
+  // This app uses React Context in the root layout (AuthProvider, AuthModalProvider)
+  // which cannot be statically generated at build time
+  // All pages will be rendered on-demand at runtime (SSR)
+  output: undefined, // Don't use 'export' or 'standalone'
+
+  // Skip trailing slash redirect
   skipTrailingSlashRedirect: true,
 
-  // Disable static generation errors - pages with force-dynamic will be rendered on-demand
+  // On-demand entries configuration
   onDemandEntries: {
     maxInactiveAge: 60 * 1000,
     pagesBufferLength: 5,
   },
 
-  // Skip static generation for pages that use context
-  // This prevents "Cannot read properties of null (reading 'useContext')" errors during build
+  // Disable static page generation timeout
+  // Pages with force-dynamic will be rendered on-demand
   staticPageGenerationTimeout: 0,
 
-  // Disable static export - use dynamic rendering for all pages
-  // This is required because the app uses context providers in the layout
-  // which cannot be statically generated at build time
+  // Experimental features
   experimental: {
+    // Disable ISR memory cache (we use Upstash Redis for caching)
     isrMemoryCacheSize: 0,
+    // Allow server actions
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
   },
 
-  // CRITICAL: Don't fail build on static generation errors
-  // Pages with force-dynamic will be rendered on-demand at runtime
-  // Static generation errors are warnings, not fatal errors
+  // TypeScript and ESLint - keep strict
   typescript: {
-    ignoreBuildErrors: false, // Keep TypeScript strict
+    ignoreBuildErrors: false,
   },
   eslint: {
-    ignoreDuringBuilds: false, // Keep ESLint strict
+    ignoreDuringBuilds: false,
   },
-  // Allow build to succeed even if some pages fail static generation
-  // These pages will be rendered on-demand at runtime instead
+
+  // Custom build ID for Railway/Vercel deployments
   generateBuildId: async () => {
-    // Use git commit hash or timestamp for build ID
     return process.env.RAILWAY_GIT_COMMIT_SHA ||
            process.env.VERCEL_GIT_COMMIT_SHA ||
            `build-${Date.now()}`

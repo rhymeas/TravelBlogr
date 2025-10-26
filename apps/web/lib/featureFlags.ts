@@ -41,16 +41,21 @@ export function logFeatureFlags() {
 /**
  * Get Trip Planner version preference from localStorage
  * Returns true for V2, false for V1
+ *
+ * DEFAULT: V2 is now the default for all users (V2 Milestone Complete)
  */
 export function useTripPlannerV2(): boolean {
-  if (typeof window === 'undefined') return false
+  if (typeof window === 'undefined') return true // Default to V2 on server
 
   try {
     const stored = localStorage.getItem('useTripPlannerV2')
-    return stored === 'true'
+    // If not set, default to V2 (true)
+    // If explicitly set to 'false', use V1
+    // If set to 'true', use V2
+    return stored === null ? true : stored === 'true'
   } catch (error) {
     console.error('Error reading trip planner version:', error)
-    return false
+    return true // Default to V2 on error
   }
 }
 

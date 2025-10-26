@@ -6,70 +6,37 @@ export const dynamic = 'force-dynamic'
  * Trip Planner Page
  * /plan
  *
- * Toggles between V1 (ItineraryGenerator) and V2 (TripPlannerV2) based on feature flag
- * ADMIN-ONLY TOGGLE
+ * V2 Planner is now the default for all users (V2 Milestone Complete)
+ * V1 can still be accessed via feature flag toggle in admin dashboard
  */
 
 import { useState, useEffect } from 'react'
 import { ItineraryGenerator } from '@/components/itinerary/ItineraryGenerator'
 import { TripPlannerV2 } from '@/components/trip-planner-v2/TripPlannerV2'
-import { useTripPlannerV2, toggleTripPlannerVersion } from '@/lib/featureFlags'
-import { useAuth } from '@/hooks/useAuth'
-import { isAdmin as checkIsAdmin } from '@/lib/utils/adminCheck'
-import { Settings } from 'lucide-react'
+import { useTripPlannerV2 } from '@/lib/featureFlags'
 
 export default function PlanPage() {
-  const { user, isLoading } = useAuth()
-  const [useV2, setUseV2] = useState(false)
-  const [showToggle, setShowToggle] = useState(false)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [useV2, setUseV2] = useState(true) // Default to V2
 
-  // Check if user is admin
-  useEffect(() => {
-    if (!user) {
-      setIsAdmin(false)
-      return
-    }
-
-    // Use adminCheck utility to check if user is admin
-    const adminStatus = checkIsAdmin(user.email)
-
-    // TEMPORARY: Force admin for testing
-    // TODO: Remove this after testing
-    setIsAdmin(true)
-  }, [user])
-
-  // Initialize from localStorage - no visible toggle, just use feature flag
+  // Initialize from feature flag
   useEffect(() => {
     const v2Enabled = useTripPlannerV2()
     setUseV2(v2Enabled)
-    // Never show toggle on page, only in admin dashboard
-    setShowToggle(false)
   }, [])
 
-  // Listen for changes from other tabs (admin only)
+  // Listen for feature flag changes (from admin dashboard)
   useEffect(() => {
-    if (!isAdmin) return
-
     const handleChange = () => {
       setUseV2(useTripPlannerV2())
     }
 
     window.addEventListener('tripPlannerVersionChanged', handleChange)
     return () => window.removeEventListener('tripPlannerVersionChanged', handleChange)
-  }, [isAdmin])
-
-  const handleToggle = () => {
-    if (!isAdmin) return
-    const newValue = toggleTripPlannerVersion()
-    setUseV2(newValue)
-  }
+  }, [])
 
   return (
     <div className="relative min-h-screen">
-      {/* No visible toggle - controlled only via admin dashboard */}
-
-      {/* Render V1 or V2 based on feature flag */}
+      {/* Render V2 by default, V1 only if explicitly disabled via admin */}
       {useV2 ? (
         <div className="min-h-screen bg-gray-50">
           <TripPlannerV2 />
