@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { SmartImage as Image } from '@/components/ui/SmartImage'
 import { ImageAttribution, getImageAttribution } from '@/components/ui/ImageAttribution'
 import { useAuth } from '@/hooks/useAuth'
+import { getLocationFallbackImage } from '@/lib/services/fallbackImageService'
 import Lightbox from 'yet-another-react-lightbox'
 import 'yet-another-react-lightbox/styles.css'
 import Zoom from 'yet-another-react-lightbox/plugins/zoom'
@@ -18,14 +19,16 @@ interface LocationImageGalleryProps {
   locationName: string
   locationSlug: string
   locationId: string
+  country?: string
 }
 
-export function LocationImageGallery({ images, locationName, locationSlug, locationId }: LocationImageGalleryProps) {
+export function LocationImageGallery({ images, locationName, locationSlug, locationId, country }: LocationImageGalleryProps) {
   const router = useRouter()
   const { isAuthenticated } = useAuth()
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [uploaderMap, setUploaderMap] = useState<Record<string, { name: string; url?: string }>>({})
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
 
   // Listen for location updates from photos page (cross-tab communication)
   useEffect(() => {
@@ -129,6 +132,23 @@ export function LocationImageGallery({ images, locationName, locationSlug, locat
     alt: locationName,
   }))
 
+  // Handle image load error - use fallback
+  const handleImageError = (imageSrc: string) => {
+    console.warn(`❌ Image failed to load: ${imageSrc}`)
+    setFailedImages(prev => new Set([...prev, imageSrc]))
+  }
+
+  // Get display image with fallback
+  const getDisplayImage = (imageSrc: string | undefined, index: number): string => {
+    if (!imageSrc) {
+      return getLocationFallbackImage(locationName, country)
+    }
+    if (failedImages.has(imageSrc)) {
+      return getLocationFallbackImage(locationName, country)
+    }
+    return imageSrc
+  }
+
   return (
     <>
       {/* sleek-Style Grid */}
@@ -139,14 +159,15 @@ export function LocationImageGallery({ images, locationName, locationSlug, locat
             onClick={() => openLightbox(0)}
             className="col-span-4 lg:col-span-2 lg:row-span-2 relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-rausch-500 focus:ring-offset-2 rounded-l-xl"
           >
-            <div className="relative w-full h-full">
+            <div className="relative w-full h-full bg-gray-100">
               <Image
-                src={displayImages[0] || '/placeholder-location.svg'}
+                src={getDisplayImage(displayImages[0], 0)}
                 alt={locationName}
                 fill
                 className="object-cover transition-transform duration-300 hover:scale-105"
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 priority
+                onError={() => handleImageError(displayImages[0] || '')}
               />
               <ImageAttribution {...withUploader(displayImages[0])} />
             </div>

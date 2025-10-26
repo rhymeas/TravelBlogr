@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/Card'
 import { OptimizedImage } from '@/components/ui/OptimizedImage'
 import { ImageAttribution, getImageAttribution } from '@/components/ui/ImageAttribution'
+import { getLocationFallbackImage, isPlaceholderImage } from '@/lib/services/fallbackImageService'
 import { formatLocationName } from '@/lib/utils/locationFormatter'
 import {
   MapPin, Star, Eye, Heart, Calendar,
@@ -337,6 +338,9 @@ function LocationCard({
   const [showMenu, setShowMenu] = useState(false)
   const latestPost = location.location_posts?.[0]
   const formatted = formatLocationName(location.name)
+  const cardImage = (!location.featured_image || isPlaceholderImage(location.featured_image))
+    ? getLocationFallbackImage(location.name, location.country)
+    : location.featured_image
 
   return (
     <div className={`group block relative transition-all duration-300 ${isDeletingItem ? 'opacity-0 -translate-y-2 scale-[0.98] pointer-events-none' : ''}`}>
@@ -345,7 +349,7 @@ function LocationCard({
           {/* Featured Image */}
           <div className="relative aspect-[4/3] overflow-hidden">
             <OptimizedImage
-              src={location.featured_image || '/placeholder-location.jpg'}
+              src={cardImage}
               alt={location.name}
               fill
               preset="card"
@@ -442,7 +446,7 @@ function LocationCard({
           </div>
 
           {/* Image Attribution */}
-          <ImageAttribution {...getImageAttribution(location.featured_image)} />
+          <ImageAttribution {...getImageAttribution(cardImage)} />
         </div>
 
         {/* Content */}
@@ -521,6 +525,9 @@ function LocationListItem({
   const [showMenu, setShowMenu] = useState(false)
   const latestPost = location.location_posts?.[0]
   const formatted = formatLocationName(location.name)
+  const cardImage = (!location.featured_image || isPlaceholderImage(location.featured_image))
+    ? getLocationFallbackImage(location.name, location.country)
+    : location.featured_image
 
   return (
     <Card className={`hover:shadow-md transition-shadow duration-200 relative transition-all ${isDeletingItem ? 'opacity-0 -translate-y-1 scale-[0.99] pointer-events-none' : ''}`}>
@@ -528,7 +535,7 @@ function LocationListItem({
         {/* Image - Reduced from w-48 to w-32 */}
         <div className="relative w-32 h-24 flex-shrink-0">
           <OptimizedImage
-            src={location.featured_image || '/placeholder-location.jpg'}
+            src={cardImage}
             alt={location.name}
             fill
             preset="thumbnail"
@@ -543,7 +550,7 @@ function LocationListItem({
           )}
 
           {/* Image Attribution */}
-          <ImageAttribution {...getImageAttribution(location.featured_image)} />
+          <ImageAttribution {...getImageAttribution(cardImage)} />
         </div>
 
         {/* Content - Reduced padding */}

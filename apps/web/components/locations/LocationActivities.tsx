@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Check, Clock, DollarSign, Mountain, Users, Utensils, Waves, Heart, ExternalLink } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Check, Clock, DollarSign, Mountain, Users, Utensils, Waves, Heart, ExternalLink, Globe, Phone, MapPin } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { LocationActivity } from '@/lib/data/locationsData'
@@ -44,6 +44,42 @@ export function LocationActivities({ activities, locationName }: LocationActivit
   const displayedActivities = showAll ? activities : activities.slice(0, INITIAL_DISPLAY_COUNT)
   const hasMore = activities.length > INITIAL_DISPLAY_COUNT
 
+  // V2 planner parity: enrichment for images/links via Brave endpoint
+  const [enrichments, setEnrichments] = useState<Record<string, any>>({})
+  const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    let cancelled = false
+    const toFetch = displayedActivities.filter(a => !enrichments[a.id])
+    if (toFetch.length === 0) return
+
+    ;(async () => {
+      for (const a of toFetch) {
+        try {
+          setLoadingIds(prev => new Set(prev).add(a.id))
+          const params = new URLSearchParams({
+            name: a.name,
+            location: locationName,
+            type: 'activity',
+            count: '1'
+          })
+          const res = await fetch(`/api/brave/activity-image?${params.toString()}`)
+          const json = await res.json()
+          const link = json?.data?.links?.[0] || null
+          if (!cancelled) {
+            setEnrichments(prev => ({ ...prev, [a.id]: link || {} }))
+          }
+        } catch (e) {
+          // non-fatal
+        } finally {
+          setLoadingIds(prev => { const next = new Set(prev); next.delete(a.id); return next })
+        }
+      }
+    })()
+
+    return () => { cancelled = true }
+  }, [locationName, displayedActivities.map(a => a.id).join(',')])
+
   const toggleActivity = (activityId: string) => {
     const newChecked = new Set(checkedActivities)
     if (newChecked.has(activityId)) {
@@ -72,6 +108,10 @@ export function LocationActivities({ activities, locationName }: LocationActivit
           const IconComponent = categoryIcons[activity.category] || Mountain
           const isChecked = checkedActivities.has(activity.id)
           
+          const imgUrl = activity.image_url || (activity as any).image || enrichments[activity.id]?.thumbnail
+          const linkHref = activity.link_url || activity.website || enrichments[activity.id]?.url
+          const enrich = enrichments[activity.id] || {}
+
           return (
             <div
               key={activity.id}
@@ -95,11 +135,11 @@ export function LocationActivities({ activities, locationName }: LocationActivit
                 </div>
               )}
 
-              {/* Activity Image or Icon */}
-              {activity.image_url ? (
+              {/* Activity Image or Icon (with V2 enrichment) */}
+              {imgUrl ? (
                 <div className="flex-shrink-0 w-16 h-16 rounded-sleek-small overflow-hidden bg-gray-100">
                   <img
-                    src={activity.image_url}
+                    src={imgUrl}
                     alt={activity.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -153,18 +193,31 @@ export function LocationActivities({ activities, locationName }: LocationActivit
                   {activity.description}
                 </p>
 
-                {/* Activity Link */}
-                {(activity.link_url || activity.website) && (
-                  <a
-                    href={activity.link_url || activity.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-rausch-500 hover:text-rausch-600 font-medium transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    Learn more
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
+                {/* Activity Link (V2 parity: use enrichment + provider pills) */}
+                {linkHref && (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <a
+                      href={linkHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm text-rausch-500 hover:text-rausch-600 font-medium transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Learn more
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                    <div className="inline-flex items-center gap-2 text-xs text-sleek-gray">
+                      {enrich?.phone && (
+                        <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3" />{enrich.phone}</span>
+                      )}
+                      {enrich?.website && (
+                        <span className="inline-flex items-center gap-1"><Globe className="h-3 w-3" />Website</span>
+                      )}
+                      {enrich?.directionsUrl && (
+                        <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />Directions</span>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

@@ -124,7 +124,8 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
   }
 
   return (
-    <main className="animate-in fade-in duration-500">
+    <div className="scale-[0.8] origin-top mx-auto">
+      <main className="animate-in fade-in duration-500">
       {/* View Tracker - Invisible pixel */}
       <LocationViewTracker locationSlug={location.slug} />
 
@@ -274,6 +275,7 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
           locationName={location.name}
           locationSlug={location.slug}
           locationId={location.id}
+          country={location.country}
         />
       </div>
 
@@ -808,129 +810,150 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
       {showRefetchModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-start gap-4 mb-6">
-              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                <RefreshCw className="h-6 w-6 text-amber-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                  Refetch Location Data
+            {/* Loading State */}
+            {isRefetching ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="mb-4">
+                  <RefreshCw className="h-8 w-8 text-amber-600 animate-spin" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Refetching Data
                 </h3>
-                <p className="text-sm text-gray-600">
-                  Update restaurants, activities, and optionally images for "{location.name}"
+                <p className="text-sm text-gray-600 text-center">
+                  Fetching images, restaurants, and activities for "{location.name}"...
                 </p>
+                <div className="mt-4 w-full bg-gray-200 rounded-full h-1">
+                  <div className="bg-amber-600 h-1 rounded-full animate-pulse" style={{ width: '60%' }} />
+                </div>
               </div>
-            </div>
-
-            {/* What to Refetch */}
-            <div className="mb-6 space-y-3">
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={includeImageRefetch}
-                    onChange={(e) => setIncludeImageRefetch(e.target.checked)}
-                    className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900 text-sm mb-1">
-                      Images (featured + gallery)
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      Brave + Reddit Ultra + Wikimedia with hierarchical fallback and validation.
-                    </div>
+            ) : (
+              <>
+                <div className="flex items-start gap-4 mb-6">
+                  <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                    <RefreshCw className="h-6 w-6 text-amber-600" />
                   </div>
-                </label>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={includeRestaurantsRefetch}
-                    onChange={(e) => setIncludeRestaurantsRefetch(e.target.checked)}
-                    className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900 text-sm mb-1">Restaurants</div>
-                    <div className="text-xs text-gray-600">Refresh places to eat with latest links</div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                      Refetch Location Data
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Update restaurants, activities, and optionally images for "{location.name}"
+                    </p>
                   </div>
-                </label>
+                </div>
 
-                <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={includeActivitiesRefetch}
-                    onChange={(e) => setIncludeActivitiesRefetch(e.target.checked)}
-                    className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900 text-sm mb-1">Activities</div>
-                    <div className="text-xs text-gray-600">Update attractions + experiences</div>
+                {/* What to Refetch */}
+                <div className="mb-6 space-y-3 max-h-[400px] overflow-y-auto">
+                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeImageRefetch}
+                        onChange={(e) => setIncludeImageRefetch(e.target.checked)}
+                        className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 text-sm mb-1">
+                          Images (featured + gallery)
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          Brave + Reddit Ultra + Wikimedia with hierarchical fallback and validation.
+                        </div>
+                      </div>
+                    </label>
                   </div>
-                </label>
 
-                <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={includeDescriptionRefetch}
-                    onChange={(e) => setIncludeDescriptionRefetch(e.target.checked)}
-                    className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900 text-sm mb-1">Description</div>
-                    <div className="text-xs text-gray-600">Refresh short guide from WikiVoyage/Wikipedia</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeRestaurantsRefetch}
+                        onChange={(e) => setIncludeRestaurantsRefetch(e.target.checked)}
+                        className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 text-sm mb-1">Restaurants</div>
+                        <div className="text-xs text-gray-600">Refresh places to eat with latest links</div>
+                      </div>
+                    </label>
+
+                    <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeActivitiesRefetch}
+                        onChange={(e) => setIncludeActivitiesRefetch(e.target.checked)}
+                        className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 text-sm mb-1">Activities</div>
+                        <div className="text-xs text-gray-600">Update attractions + experiences</div>
+                      </div>
+                    </label>
+
+                    <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeDescriptionRefetch}
+                        onChange={(e) => setIncludeDescriptionRefetch(e.target.checked)}
+                        className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 text-sm mb-1">Description</div>
+                        <div className="text-xs text-gray-600">Refresh short guide from WikiVoyage/Wikipedia</div>
+                      </div>
+                    </label>
+
+                    <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeMetadataRefetch}
+                        onChange={(e) => setIncludeMetadataRefetch(e.target.checked)}
+                        className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 text-sm mb-1">Metadata</div>
+                        <div className="text-xs text-gray-600">Re-verify coordinates/region/country</div>
+                      </div>
+                    </label>
+
+                    <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeWeatherRefetch}
+                        onChange={(e) => setIncludeWeatherRefetch(e.target.checked)}
+                        className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 text-sm mb-1">Weather</div>
+                        <div className="text-xs text-gray-600">Refresh average temps & rainfall (if enabled)</div>
+                      </div>
+                    </label>
                   </div>
-                </label>
+                </div>
 
-                <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={includeMetadataRefetch}
-                    onChange={(e) => setIncludeMetadataRefetch(e.target.checked)}
-                    className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900 text-sm mb-1">Metadata</div>
-                    <div className="text-xs text-gray-600">Re-verify coordinates/region/country</div>
-                  </div>
-                </label>
-
-                <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={includeWeatherRefetch}
-                    onChange={(e) => setIncludeWeatherRefetch(e.target.checked)}
-                    className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900 text-sm mb-1">Weather</div>
-                    <div className="text-xs text-gray-600">Refresh average temps & rainfall (if enabled)</div>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowRefetchModal(false)}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleRefetch}
-                className="flex-1 bg-amber-600 hover:bg-amber-700"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refetch Now
-              </Button>
-            </div>
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowRefetchModal(false)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleRefetch}
+                    className="flex-1 bg-amber-600 hover:bg-amber-700"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refetch Now
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
     </main>
+    </div>
   )
 }

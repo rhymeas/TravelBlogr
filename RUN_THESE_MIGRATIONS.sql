@@ -54,7 +54,7 @@ CREATE TRIGGER location_contributions_count_trigger
 
 -- View: Top contributors per location
 CREATE OR REPLACE VIEW location_top_contributors AS
-SELECT 
+SELECT
   lc.location_id,
   lc.user_id,
   p.full_name,
@@ -62,7 +62,7 @@ SELECT
   p.avatar_url,
   COUNT(*) as contribution_count,
   MAX(lc.created_at) as last_contribution_at,
-  ARRAY_AGG(DISTINCT lc.contribution_type) as contribution_types
+  ARRAY_AGG(DISTINCT lc.contribution_type)::TEXT[] as contribution_types
 FROM location_contributions lc
 JOIN profiles p ON p.id = lc.user_id
 GROUP BY lc.location_id, lc.user_id, p.full_name, p.username, p.avatar_url

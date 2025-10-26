@@ -114,6 +114,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Automatically trigger image refetch for newly created locations
+    // This ensures new locations have proper hero images instead of fallbacks
+    try {
+      console.log(`🔄 Auto-triggering image refetch for new location: ${name}`)
+      const refetchResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/admin/refetch-location`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          locationId: data.id,
+          locationName: name,
+          includeImages: true,
+          includeRestaurants: false,
+          includeActivities: false,
+          includeDescription: false,
+          includeMetadata: false,
+          includeWeather: false
+        })
+      })
+
+      if (!refetchResponse.ok) {
+        console.warn(`⚠️ Auto-refetch failed for ${name}, but location was created`)
+      } else {
+        console.log(`✅ Auto-refetch completed for ${name}`)
+      }
+    } catch (refetchError) {
+      console.warn(`⚠️ Auto-refetch error (non-critical):`, refetchError)
+    }
+
     return NextResponse.json({
       success: true,
       data
