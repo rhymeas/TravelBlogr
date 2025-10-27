@@ -197,9 +197,14 @@ After enrichment, you should see:
 - ❌ Generic descriptions
 
 **After:**
-- ✅ 80-90% of activities have official links
-- ✅ 85-95% of activities have high-quality images
-- ✅ 90-100% of activities have contextual descriptions
+- ✅ 80-90% of activities have official links (Brave API)
+- ✅ 90-95% of activities have high-quality images (Brave images FIRST, Reddit ULTRA fallback)
+- ✅ 90-100% of activities have contextual descriptions (Brave + GROQ)
+
+**Image Priority:**
+1. **Brave Image Search** (primary - high quality, fast)
+2. **Reddit ULTRA** (fallback - only if Brave fails)
+3. **No placeholder images** (skip if both fail)
 
 ## 🎉 Success Checklist
 

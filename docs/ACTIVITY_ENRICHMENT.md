@@ -16,19 +16,23 @@ The Activity Enrichment System automatically populates location activities with 
 2. For each activity without image/link:
    ↓
 3. ┌─────────────────────────────────────────────────────┐
-   │ STEP 1: Brave API (Primary)                         │
-   │ - Search for official website/booking links         │
+   │ STEP 1: Brave API (Primary - Images + Links!)       │
+   │ - Brave Image Search for high-quality photos        │
+   │ - Brave Web Search for official/booking links       │
    │ - Extract description from search results           │
+   │ - 2 parallel API calls (web + images)               │
    └─────────────────────────────────────────────────────┘
    ↓
 4. ┌─────────────────────────────────────────────────────┐
-   │ STEP 2: Reddit ULTRA Image Engine                   │
+   │ STEP 2: Reddit ULTRA (Fallback for images only)     │
+   │ - ONLY if Brave images failed                       │
    │ - Fetch high-quality contextual images              │
    │ - Use same /api/images/discover as V2 planner       │
    └─────────────────────────────────────────────────────┘
    ↓
 5. ┌─────────────────────────────────────────────────────┐
-   │ STEP 3: GROQ Fallback (if needed)                   │
+   │ STEP 3: GROQ Fallback (if still missing link)       │
+   │ - ONLY if Brave link failed                         │
    │ - Generate contextual 2-line description           │
    │ - Fetch booking URL via Brave search                │
    └─────────────────────────────────────────────────────┘
@@ -41,10 +45,10 @@ The Activity Enrichment System automatically populates location activities with 
 ## Features
 
 ### ✅ Leverages V2 Trip Planner Logic
-- **Same Brave API integration** - Proven to find official links
-- **Same Reddit ULTRA engine** - High-quality contextual images
-- **Same GROQ fallback** - Contextual descriptions when needed
-- **Same rate limiting** - 100ms delay between API calls
+- **Brave API FIRST** - Images + links in parallel (2 API calls)
+- **Reddit ULTRA fallback** - Only if Brave images fail
+- **GROQ fallback** - Only if Brave links fail
+- **Smart rate limiting** - 200ms delay = max 10 activities/sec = 20 API calls/sec (under Brave's 20/sec limit)
 
 ### ✅ Smart Enrichment
 - Only enriches activities missing `image_url` or `link_url`
@@ -81,9 +85,9 @@ npm run enrich-activities:location <location-uuid>
 🚀 Starting Location Activity Enrichment
 
 Using V2 Trip Planner enrichment logic:
-  - Brave API for links and descriptions
-  - Reddit ULTRA for high-quality images
-  - GROQ fallback for missing data
+  - Brave API FIRST (images + links in parallel)
+  - Reddit ULTRA fallback (only if Brave images fail)
+  - GROQ fallback (only if Brave links fail)
 
 📊 Found 25 location(s) to process
 
@@ -209,17 +213,21 @@ CRON_SECRET=your-secure-random-string
 ## Performance
 
 ### Rate Limiting
-- **100ms delay** between API calls
+- **200ms delay** between activities
+- Brave makes 2 parallel API calls per activity (web + images)
+- Max 10 activities/second = 20 API calls/second
+- Stays safely under Brave's 20 calls/second limit
 - Prevents API rate limit errors
-- ~10 activities per second
 
 ### Estimated Times
-| Locations | Activities | Duration |
-|-----------|-----------|----------|
-| 10        | ~80       | ~90s     |
-| 50        | ~400      | ~7min    |
-| 100       | ~800      | ~14min   |
-| 500       | ~4000     | ~70min   |
+| Locations | Activities | Duration | API Calls |
+|-----------|-----------|----------|-----------|
+| 10        | ~80       | ~3min    | ~160      |
+| 50        | ~400      | ~13min   | ~800      |
+| 100       | ~800      | ~27min   | ~1600     |
+| 500       | ~4000     | ~2.2hrs  | ~8000     |
+
+*Note: 200ms per activity = 5 activities/sec = 10 API calls/sec (well under 20/sec limit)*
 
 ### API Costs (Approximate)
 | Service | Cost per 1000 calls | 100 locations |

@@ -46,45 +46,85 @@ interface Location {
 }
 
 /**
- * Fetch activity enrichment from Brave API
+ * Fetch activity enrichment from Brave API (includes images!)
+ * Priority: Brave images FIRST, then links
  */
 async function fetchBraveEnrichment(
   activityName: string,
   locationName: string
-): Promise<{ link?: string; description?: string } | null> {
+): Promise<{ image?: string; link?: string; description?: string } | null> {
   if (!BRAVE_API_KEY) return null
 
   try {
-    const query = `${activityName} ${locationName} official website booking`
-    const response = await fetch(
-      `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=3`,
-      {
-        headers: {
-          'Accept': 'application/json',
-          'Accept-Encoding': 'gzip',
-          'X-Subscription-Token': BRAVE_API_KEY
+    const query = `${activityName} ${locationName}`
+
+    // Fetch web results and images in parallel
+    const [webResponse, imageResponse] = await Promise.all([
+      // Web search for links
+      fetch(
+        `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query + ' official website booking')}&count=3`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'Accept-Encoding': 'gzip',
+            'X-Subscription-Token': BRAVE_API_KEY
+          }
         }
+      ),
+      // Image search for high-quality photos
+      fetch(
+        `https://api.search.brave.com/res/v1/images/search?q=${encodeURIComponent(query)}&count=3`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'Accept-Encoding': 'gzip',
+            'X-Subscription-Token': BRAVE_API_KEY
+          }
+        }
+      )
+    ])
+
+    let link = null
+    let description = null
+    let image = null
+
+    // Extract link from web results
+    if (webResponse.ok) {
+      const webData = await webResponse.json()
+      const results = webData?.web?.results || []
+
+      if (results.length > 0) {
+        const bestResult = results.find((r: any) =>
+          r.url?.includes('official') ||
+          r.url?.includes('booking') ||
+          r.url?.includes('.gov') ||
+          r.url?.includes('.org')
+        ) || results[0]
+
+        link = bestResult.url
+        description = bestResult.description
       }
-    )
-
-    if (!response.ok) return null
-
-    const data = await response.json()
-    const results = data?.web?.results || []
-
-    if (results.length === 0) return null
-
-    const bestResult = results.find((r: any) => 
-      r.url?.includes('official') || 
-      r.url?.includes('booking') ||
-      r.url?.includes('.gov') ||
-      r.url?.includes('.org')
-    ) || results[0]
-
-    return {
-      link: bestResult.url,
-      description: bestResult.description
     }
+
+    // Extract image from image results (PRIORITY!)
+    if (imageResponse.ok) {
+      const imageData = await imageResponse.json()
+      const images = imageData?.results || []
+
+      if (images.length > 0) {
+        const bestImage = images.find((img: any) =>
+          img.properties?.url &&
+          !img.properties.url.includes('placeholder') &&
+          !img.properties.url.includes('icon')
+        ) || images[0]
+
+        image = bestImage?.properties?.url || bestImage?.thumbnail?.src
+      }
+    }
+
+    if (!link && !image) return null
+
+    return { image, link, description }
   } catch (error) {
     console.error(`Brave API error for "${activityName}":`, error)
     return null
@@ -92,9 +132,9 @@ async function fetchBraveEnrichment(
 }
 
 /**
- * Fetch activity image from image discovery API
+ * Fetch activity image from Reddit ULTRA engine (FALLBACK ONLY)
  */
-async function fetchActivityImage(
+async function fetchRedditImage(
   activityName: string,
   locationName: string,
   baseUrl: string
@@ -113,7 +153,7 @@ async function fetchActivityImage(
 
     return images[0].url
   } catch (error) {
-    console.error(`Image fetch error for "${activityName}":`, error)
+    console.error(`Reddit image fetch error for "${activityName}":`, error)
     return null
   }
 }
@@ -183,6 +223,7 @@ Return ONLY the description, no extra text.`
 
 /**
  * Enrich a single activity
+ * Priority: Brave images > Reddit ULTRA > GROQ fallback
  */
 async function enrichActivity(
   activity: Activity,
@@ -200,29 +241,37 @@ async function enrichActivity(
 
   let enriched = { ...activity }
 
-  // Step 1: Brave API for link
-  if (needsLink) {
-    const braveData = await fetchBraveEnrichment(activity.name, locationName)
-    if (braveData?.link) {
-      enriched.link_url = braveData.link
-      enriched.link_source = 'brave'
-      stats.linksAdded++
-    }
-    if (braveData?.description && !enriched.description) {
-      enriched.description = braveData.description
-    }
+  // Step 1: Try Brave API FIRST (images + links in one call!)
+  const braveData = await fetchBraveEnrichment(activity.name, locationName)
+
+  // Extract Brave image (PRIORITY!)
+  if (needsImage && braveData?.image) {
+    enriched.image_url = braveData.image
+    stats.imagesAdded++
   }
 
-  // Step 2: Reddit ULTRA for image
-  if (needsImage) {
-    const image = await fetchActivityImage(activity.name, locationName, baseUrl)
-    if (image) {
-      enriched.image_url = image
+  // Extract Brave link
+  if (needsLink && braveData?.link) {
+    enriched.link_url = braveData.link
+    enriched.link_source = 'brave'
+    stats.linksAdded++
+  }
+
+  // Extract Brave description
+  if (braveData?.description && !enriched.description) {
+    enriched.description = braveData.description
+  }
+
+  // Step 2: Reddit ULTRA fallback (ONLY if Brave image failed)
+  if (needsImage && !enriched.image_url) {
+    const redditImage = await fetchRedditImage(activity.name, locationName, baseUrl)
+    if (redditImage) {
+      enriched.image_url = redditImage
       stats.imagesAdded++
     }
   }
 
-  // Step 3: GROQ fallback
+  // Step 3: GROQ fallback (ONLY if still missing link)
   if (!enriched.link_url && groq) {
     const groqData = await fetchGroqFallback(activity.name, locationName)
     if (groqData?.url) {
@@ -241,8 +290,9 @@ async function enrichActivity(
     stats.activitiesSkipped++
   }
 
-  // Rate limiting
-  await new Promise(resolve => setTimeout(resolve, 100))
+  // Rate limiting: 200ms delay to stay under 20 calls/second
+  // (Brave makes 2 parallel calls, so 200ms = max 10 activities/sec = 20 API calls/sec)
+  await new Promise(resolve => setTimeout(resolve, 200))
 
   return enriched
 }
