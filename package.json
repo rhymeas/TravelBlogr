@@ -23,6 +23,9 @@
     "crawler:install": "npm install crawlee playwright cheerio axios",
     "crawler:setup": "npx playwright install chromium",
     "generate-blog-posts": "tsx scripts/generate-trip-blog-posts.ts",
+    "enrich-activities": "tsx scripts/enrich-location-activities.ts",
+    "enrich-activities:limit": "tsx scripts/enrich-location-activities.ts --limit",
+    "enrich-activities:location": "tsx scripts/enrich-location-activities.ts --location-id",
     "prepare": "husky || true"
   },
   "dependencies": {
