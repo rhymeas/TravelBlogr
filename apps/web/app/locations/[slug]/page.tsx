@@ -6,8 +6,8 @@ import { getOrSet, CacheKeys, CacheTTL } from '@/lib/upstash'
 
 // Allow dynamic params for newly created locations (not in generateStaticParams)
 export const dynamicParams = true
-// Incremental Static Regeneration (ISR)
-export const revalidate = 3600
+// Force dynamic rendering to prevent SSR issues with client components
+export const dynamic = 'force-dynamic'
 
 interface LocationPageProps {
   params: {
@@ -16,15 +16,9 @@ interface LocationPageProps {
 }
 
 export default async function LocationPage({ params }: LocationPageProps) {
-  // Use Upstash cache to avoid refetching on every click
-  const supabaseLocation = await getOrSet(
-    CacheKeys.location(params.slug),
-    async () => {
-      console.log(`🔍 Fetching location from database: ${params.slug}`)
-      return await getLocationBySlug(params.slug)
-    },
-    CacheTTL.LONG // 24 hours
-  )
+  // Fetch directly from database (no cache) to ensure fresh data
+  console.log(`🔍 Fetching location from database: ${params.slug}`)
+  const supabaseLocation = await getLocationBySlug(params.slug)
 
   if (!supabaseLocation) {
     notFound()

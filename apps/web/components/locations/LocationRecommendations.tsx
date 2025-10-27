@@ -53,7 +53,7 @@ export function LocationRecommendations({
               <div className="relative h-48 overflow-hidden">
                 <Link href={`/locations/${location.slug}`} className="block" aria-label={`${location.name} details`}>
                   <img
-                    src={location.featured_image || '/placeholder-location.jpg'}
+                    src={location.featured_image}
                     alt={location.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
@@ -69,14 +69,12 @@ export function LocationRecommendations({
                 )}
 
                 {/* Rating Badge */}
-                {location.rating && location.rating > 0 && (
-                  <div className="absolute top-3 right-3">
-                    <Badge className="bg-white/90 text-sleek-black flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-current text-yellow-400" />
-                      {location.rating}
-                    </Badge>
-                  </div>
-                )}
+                <div className="absolute top-3 right-3">
+                  <Badge className="bg-white/90 text-sleek-black flex items-center gap-1">
+                    <Star className="h-3 w-3 fill-current text-yellow-400" />
+                    {location.rating}
+                  </Badge>
+                </div>
               </div>
 
               {/* Location Details */}
@@ -103,11 +101,11 @@ export function LocationRecommendations({
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1">
                       <Eye className="h-3 w-3" />
-                      <span>{location.visit_count?.toLocaleString() || 0}</span>
+                      <span>{location.visit_count.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Heart className="h-3 w-3" />
-                      <span>{location.posts?.length || 0}</span>
+                      <span>{location.posts.length}</span>
                     </div>
                   </div>
 
