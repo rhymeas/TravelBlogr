@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { isAdmin } from '@/lib/utils/adminCheck'
+import { generateLocationSlug } from '@/lib/utils/locationSlug'
 import {
   fetchLocationImageHighQuality,
   fetchLocationGalleryWithSmartFallback
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest) {
 
     const {
       locationId,
+      locationSlug,
       locationName,
       includeImages = true,
       includeRestaurants = true,
@@ -58,23 +60,44 @@ export async function POST(request: NextRequest) {
       includeWeather = false
     } = await request.json()
 
-    if (!locationId || !locationName) {
+    if ((!locationId && !locationSlug) || !locationName) {
       return NextResponse.json(
-        { success: false, error: 'Missing locationId or locationName' },
+        { success: false, error: 'Missing locationId or locationSlug, or locationName' },
         { status: 400 }
       )
     }
 
-    console.log(`🔄 [ADMIN] Refetching location: ${locationName} (${locationId})`)
+    console.log(`🔄 [ADMIN] Refetching location: ${locationName} (${locationId || locationSlug || 'no-id'})`)
 
-    // Fetch location from database
-    const { data: location, error: fetchError } = await supabase
-      .from('locations')
-      .select('*')
-      .eq('id', locationId)
-      .single()
+    // Fetch location from database (by id first, then slug)
+    let location: any = null
+    let fetchError: any = null
 
-    if (fetchError || !location) {
+    if (locationId) {
+      const res = await supabase
+        .from('locations')
+        .select('*')
+        .eq('id', locationId)
+        .maybeSingle()
+      location = res.data
+      fetchError = res.error
+    }
+
+    if ((!location || fetchError) && locationSlug) {
+      const res2 = await supabase
+        .from('locations')
+        .select('*')
+        .eq('slug', locationSlug)
+        .maybeSingle()
+      if (res2.data) {
+        location = res2.data
+        fetchError = null
+      } else {
+        fetchError = res2.error
+      }
+    }
+
+    if (!location) {
       return NextResponse.json(
         { success: false, error: 'Location not found' },
         { status: 404 }
@@ -100,15 +123,8 @@ export async function POST(request: NextRequest) {
     needsSlugFix = isOverlyLong || missingCountry
 
     if (needsSlugFix) {
-      // Generate CLEAN slug: city name + country (if needed)
-      const cityName = location.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-      const countryName = location.country.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-
-      // List of ambiguous cities that need country context
-      const ambiguousCities = ['paris', 'london', 'berlin', 'rome', 'athens', 'springfield', 'portland']
-      const needsCountry = ambiguousCities.includes(cityName) || isOverlyLong || missingCountry
-
-      const newSlug = needsCountry ? `${cityName}-${countryName}` : cityName
+      // Use canonical generator to derive clean slug
+      const newSlug = generateLocationSlug(location.name, location.region, location.country)
 
       console.log(`🔧 Auto-fixing slug:`)
       console.log(`   Old: "${location.slug}" (${slugParts.length} parts)`)
@@ -121,12 +137,12 @@ export async function POST(request: NextRequest) {
         .eq('slug', newSlug)
         .maybeSingle()
 
-      if (!existingLocation || existingLocation.id === locationId) {
+      if (!existingLocation || existingLocation.id === location.id) {
         // Update slug in database
         const { error: slugUpdateError } = await supabase
           .from('locations')
           .update({ slug: newSlug })
-          .eq('id', locationId)
+          .eq('id', location.id)
 
         if (!slugUpdateError) {
           console.log(`✅ Slug updated successfully!`)
@@ -197,7 +213,7 @@ export async function POST(request: NextRequest) {
               region: cleanRegion,
               city: geoData.city || location.city
             })
-            .eq('id', locationId)
+            .eq('id', location.id)
 
           if (!coordUpdateError) {
             console.log(`✅ Coordinates updated successfully!`)
@@ -234,7 +250,7 @@ export async function POST(request: NextRequest) {
       console.log(`🖼️ Refetching gallery images with hierarchical fallback...`)
       console.log(`   Using: name="${location.name}", region="${location.region || 'N/A'}", country="${location.country}"`)
       let galleryImages = await fetchLocationGalleryWithSmartFallback(
-        locationId,
+        location.id,
         location.name,
         20,
         location.region,
@@ -268,7 +284,7 @@ export async function POST(request: NextRequest) {
       const { data: existingRestaurants } = await supabase
         .from('restaurants')
         .select('id')
-        .eq('location_id', locationId)
+        .eq('location_id', location.id)
       restaurantsCount = existingRestaurants?.length || 0
     } else {
       console.log('ℹ️ Skipping restaurants refetch (includeRestaurants=false)')
@@ -281,7 +297,7 @@ export async function POST(request: NextRequest) {
       const { data: existingActivities } = await supabase
         .from('activities')
         .select('id')
-        .eq('location_id', locationId)
+        .eq('location_id', location.id)
       activitiesCount = existingActivities?.length || 0
     } else {
       console.log('ℹ️ Skipping activities refetch (includeActivities=false)')
@@ -327,7 +343,7 @@ export async function POST(request: NextRequest) {
     const { error: updateError } = await supabase
       .from('locations')
       .update(updatePayload)
-      .eq('id', locationId)
+      .eq('id', location.id)
 
     if (updateError) {
       console.error(`❌ Update error:`, updateError)

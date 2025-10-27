@@ -34,13 +34,21 @@ interface TripOverviewMapProps {
   tripId?: string
   showElevation?: boolean
   showProviderBadge?: boolean
+  showRouteOptions?: boolean // Hide route options for mini maps
+  onRouteChange?: (
+    geometry: { type: 'LineString'; coordinates: [number, number][] },
+    provider: string,
+    preference: 'fastest' | 'shortest' | 'scenic' | 'longest' | null
+  ) => void
 }
 
-function TripOverviewMapComponent({ locations, transportMode = 'car', className = '', previewLocations, tripId, showElevation = true, showProviderBadge = false }: TripOverviewMapProps) {
+function TripOverviewMapComponent({ locations, transportMode = 'car', className = '', previewLocations, tripId, showElevation = true, showProviderBadge = false, showRouteOptions = true, onRouteChange }: TripOverviewMapProps) {
 
-  const [routePreference, setRoutePreference] = useState<'fastest'|'scenic'|'longest' | null>(null)
-  const [previewPreference, setPreviewPreference] = useState<'fastest'|'scenic'|'longest' | null>(null)
+  const [routePreference, setRoutePreference] = useState<'fastest'|'shortest'|'scenic'|'longest' | null>(null)
+  const [previewPreference, setPreviewPreference] = useState<'fastest'|'shortest'|'scenic'|'longest' | null>(null)
   const [hoverKm, setHoverKm] = useState<number | null>(null)
+  const [routeReloadTick, setRouteReloadTick] = useState(0)
+
 
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
@@ -124,7 +132,7 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
   const locationKey = locations.map(l => `${l.name}-${l.latitude}-${l.longitude}`).join('|')
   const previousLocationKey = useRef<string>('')
 
-  const lastRoutePreferenceRef = useRef<'fastest'|'scenic'|'longest' | null>(null)
+  const lastRoutePreferenceRef = useRef<'fastest'|'shortest'|'scenic'|'longest' | null>(null)
 
   useEffect(() => {
     // Only initialize if map doesn't exist and container is ready
@@ -304,12 +312,28 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
                       'circle-stroke-width': 2,
                       'circle-stroke-color': '#ffffff'
                     }
+
                   })
                 }
 
                 // Register sticky drag interactions on route (no always-on hover)
                 if (!(map.current as any).__route_interactions__) {
                   const src = map.current.getSource('route-hover-point') as maplibregl.GeoJSONSource
+
+                  const snapToNearest = (pt: { x: number; y: number }): [number, number] | null => {
+                    if (!map.current || !routeCoordsRef.current.length) return null
+                    let bestI = 0
+                    let bestD = Number.POSITIVE_INFINITY
+                    for (let i = 0; i < routeCoordsRef.current.length; i++) {
+                      const c = routeCoordsRef.current[i]
+                      const sp = map.current.project(c as any) as any
+                      const dx = sp.x - pt.x
+                      const dy = sp.y - pt.y
+                      const d = dx*dx + dy*dy
+                      if (d < bestD) { bestD = d; bestI = i }
+                    }
+                    return routeCoordsRef.current[bestI] || null
+                  }
 
                   const updateAtLngLat = async (lng: number, lat: number, openPopup: boolean = false) => {
                     if (!routeCoordsRef.current.length) return
@@ -321,7 +345,6 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
                         properties: {}
                       } as any)
                     }
-
                     // Find nearest vertex index
                     const coords = routeCoordsRef.current
                     let nearestIdx = 0
@@ -393,20 +416,23 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
                     const p = e?.lngLat
                     if (!p) return
                     isScrubbingRef.current = true
-                    updateAtLngLat(p.lng, p.lat, false)
+                    let lng = p.lng, lat = p.lat
+                    if (e?.point) {
+                      const snapped = snapToNearest(e.point)
+                      if (snapped) { lng = snapped[0]; lat = snapped[1] }
+                    }
+                    updateAtLngLat(lng, lat, false)
                   }
 
                   const onMouseMove = (e: any) => {
                     const p = e?.lngLat
                     if (!p) return
-                    // Sticky hover: when near the route, snap the dot even if not dragging
-                    if (!isScrubbingRef.current && map.current && e?.point) {
-                      const pt = e.point
-                      const bbox: [maplibregl.PointLike, maplibregl.PointLike] = [[pt.x - 24, pt.y - 24] as any, [pt.x + 24, pt.y + 24] as any]
-                      const feats = map.current.queryRenderedFeatures(bbox as any, { layers: ['route'] })
-                      if (feats.length === 0) return
+                    let lng = p.lng, lat = p.lat
+                    if (map.current && e?.point) {
+                      const snapped = snapToNearest(e.point)
+                      if (snapped) { lng = snapped[0]; lat = snapped[1] }
                     }
-                    updateAtLngLat(p.lng, p.lat, false)
+                    updateAtLngLat(lng, lat, false)
                   }
 
                   const onMouseUp = () => {
@@ -419,13 +445,19 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
                   map.current.on('click', 'route', (e: any) => {
                     const p = e?.lngLat
                     if (!p) return
-                    updateAtLngLat(p.lng, p.lat, true)
+                    let lng = p.lng, lat = p.lat
+                    if (e?.point) {
+                      const snapped = snapToNearest(e.point)
+                      if (snapped) { lng = snapped[0]; lat = snapped[1] }
+                    }
+                    updateAtLngLat(lng, lat, true)
                   })
 
                   ;(map.current as any).__route_interactions__ = true
                 }
 
                 setRouteProvider(routeData.provider)
+                if (onRouteChange) onRouteChange(routeData.geometry as any, routeData.provider, routePreference)
                 setRouteLoading(false)
                 console.log(`✅ Real road route loaded from ${routeData.provider}`)
               })
@@ -438,6 +470,10 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
 
                 const coordinates = locations.map(loc => [loc.longitude, loc.latitude])
 
+                if (map.current.getSource('route')) {
+                  if (map.current.getLayer('route')) map.current.removeLayer('route')
+                  map.current.removeSource('route')
+                }
                 map.current.addSource('route', {
                   type: 'geojson',
                   data: {
@@ -576,6 +612,7 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
               paint: { 'line-color': '#14b8a6', 'line-width': 3, 'line-opacity': 0.85 }
             })
             setRouteProvider(routeData.provider)
+            if (onRouteChange) onRouteChange(routeData.geometry as any, routeData.provider, routePreference)
             setRouteLoading(false)
           })
           .catch(() => {
@@ -583,6 +620,10 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
             if (!map.current) return
             const mm = map.current
             const coordinates = locations.map(loc => [loc.longitude, loc.latitude])
+            if (mm.getSource('route')) {
+              if (mm.getLayer('route')) mm.removeLayer('route')
+              mm.removeSource('route')
+            }
             mm.addSource('route', {
               type: 'geojson',
               data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates } }
@@ -620,6 +661,7 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
               paint: { 'line-color': '#14b8a6', 'line-width': 3, 'line-opacity': 0.8, 'line-dasharray': [2, 2] }
             })
             setRouteProvider('osrm')
+            if (onRouteChange) onRouteChange({ type: 'LineString', coordinates } as any, 'osrm', routePreference)
             setRouteLoading(false)
 
 
@@ -635,7 +677,7 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
     } catch (err) {
       console.warn('Map update failed:', err)
     }
-  }, [locationKey, transportMode, routePreference])
+  }, [locationKey, transportMode, routePreference, routeReloadTick])
 
   // Preview alternative route overlay (hover in Change Route modal)
   const previewKey = (previewLocations || []).map(l => `${l.latitude},${l.longitude}`).join('|')
@@ -691,45 +733,50 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
   return (
     <div className="relative">
       {/* Map */}
-      {/* Step 1 micro copy */}
-      <div className="absolute top-2 left-4 z-20 text-[11px] text-gray-700 bg-white/80 rounded-full px-2 py-0.5 shadow-sm">
-        Step 1: Choose Route
-      </div>
 
       <div ref={mapContainer} className={`rounded-lg overflow-hidden ${className}`} />
       {/* Preview overlay label */}
       {previewPreference && (
         <div className="absolute top-12 left-4 z-20 text-[11px] text-gray-700 bg-white/90 rounded-full px-2 py-0.5 shadow-sm border border-gray-200">
-          Preview: {previewPreference === 'fastest' ? 'Fastest' : previewPreference === 'scenic' ? 'Scenic' : 'Longest'}
+          Preview: {previewPreference === 'fastest' ? 'Fastest' : previewPreference === 'shortest' ? 'Shortest' : previewPreference === 'scenic' ? 'Scenic' : 'Longest' }
         </div>
       )}
 
       {/* Route preference pills (wrapped) */}
-      <div className="absolute top-4 left-4 z-20">
+      <div className="absolute top-4 right-4 z-20">
         <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-2xl px-3 py-2 shadow-sm">
-          <div className="text-[11px] text-gray-600 font-medium mb-1">Route options</div>
-          <div className="flex gap-2">
-            {(['fastest','scenic','longest'] as const).map((p) => (
-              <button
-                key={p}
-                onMouseEnter={() => setPreviewPreference(p)}
-                onMouseLeave={() => setPreviewPreference(null)}
-                onClick={() => {
-                  setRoutePreference(p)
-                  previousLocationKey.current = ''
-                }}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium shadow-sm border transition-colors ${
-                  routePreference === p
-                    ? 'bg-gray-900 text-white border-gray-900'
-                    : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50'
-                }`}
-                aria-label={`Select ${p} route`}
-                title={`Preview ${p} route`}
-              >
-                {p === 'fastest' ? 'Fastest' : p === 'scenic' ? 'Scenic' : 'Longest'}
-              </button>
-            ))}
-          </div>
+          {showRouteOptions && (
+            <>
+              <div className="text-[11px] text-gray-600 font-medium mb-1 text-right">Route options</div>
+              <div className="flex gap-2 justify-end">
+                {(['fastest','shortest','scenic','longest'] as const).map((p) => (
+                  <button
+                    key={p}
+                    onMouseEnter={() => setPreviewPreference(p)}
+                    onMouseLeave={() => setPreviewPreference(null)}
+                    onClick={() => {
+                      if (routePreference === p) {
+                        setRouteReloadTick(t => t + 1)
+                        lastRoutePreferenceRef.current = null
+                      } else {
+                        setRoutePreference(p)
+                      }
+                      previousLocationKey.current = ''
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium shadow-sm border transition-colors ${
+                      routePreference === p
+                        ? 'bg-gray-900 text-white border-gray-900'
+                        : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50'
+                    }`}
+                    aria-label={`Select ${p} route`}
+                    title={`Preview ${p} route`}
+                  >
+                    {p === 'fastest' ? 'Fastest' : p === 'shortest' ? 'Shortest' : p === 'scenic' ? 'Scenic' : 'Longest'}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -881,7 +928,7 @@ export const TripOverviewMap = memo(TripOverviewMapComponent)
 async function fetchRealRoute(
   locations: Array<{ latitude: number; longitude: number }>,
   transportMode: string,
-  preference?: 'fastest' | 'scenic' | 'longest'
+  preference?: 'fastest' | 'shortest' | 'scenic' | 'longest'
 ) {
   const coordinates = locations.map(loc => ({
     longitude: loc.longitude,

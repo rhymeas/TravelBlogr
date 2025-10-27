@@ -9,9 +9,10 @@ import { useEffect, useState } from 'react'
 
 interface LoadingModalProps {
   isOpen: boolean
+  onCancel?: () => void
 }
 
-export function LoadingModal({ isOpen }: LoadingModalProps) {
+export function LoadingModal({ isOpen, onCancel }: LoadingModalProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const steps = [
     'Analyzing locations',
@@ -110,6 +111,18 @@ export function LoadingModal({ isOpen }: LoadingModalProps) {
             </div>
           ))}
         </div>
+
+        {/* Cancel Button */}
+        {onCancel && (
+          <div className="mt-8 flex justify-center">
+            <button
+              onClick={onCancel}
+              className="px-6 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200 hover:shadow-md"
+            >
+              Cancel Generation
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

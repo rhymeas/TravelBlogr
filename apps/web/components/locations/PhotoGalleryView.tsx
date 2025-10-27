@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { SmartImage as Image } from '@/components/ui/SmartImage'
 import { ImageAttribution, getImageAttribution } from '@/components/ui/ImageAttribution'
-import { X, ChevronLeft, Share2, Heart, Star } from 'lucide-react'
+import { X, ChevronLeft, Share2, Heart, Star, Trash2, CheckSquare, Square } from 'lucide-react'
 import { Location } from '@/lib/data/locationsData'
 import Lightbox from 'yet-another-react-lightbox'
 import 'yet-another-react-lightbox/styles.css'
@@ -16,6 +16,7 @@ import 'yet-another-react-lightbox/plugins/counter.css'
 import toast from 'react-hot-toast'
 import { useAuth } from '@/hooks/useAuth'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { Button } from '@/components/ui/Button'
 
 
 interface PhotoGalleryViewProps {
@@ -32,6 +33,9 @@ export function PhotoGalleryView({ location, locationId }: PhotoGalleryViewProps
   const [deletingImages, setDeletingImages] = useState<Set<string>>(new Set())
   const [updatingFeatured, setUpdatingFeatured] = useState(false)
   const [uploaderMap, setUploaderMap] = useState<Record<string, { name: string; url?: string }>>({})
+  const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set())
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false)
+  const [isDeletingMultiple, setIsDeletingMultiple] = useState(false)
 
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean
@@ -299,6 +303,70 @@ export function PhotoGalleryView({ location, locationId }: PhotoGalleryViewProps
     }
   }
 
+  // Multi-select handlers
+  const toggleSelectImage = (imageUrl: string, event: React.MouseEvent) => {
+    event.stopPropagation()
+    setIsMultiSelectMode(true)
+    setSelectedImages(prev => {
+      const next = new Set(prev)
+      if (next.has(imageUrl)) {
+        next.delete(imageUrl)
+      } else {
+        next.add(imageUrl)
+      }
+      return next
+    })
+  }
+
+  const selectAllImages = () => {
+    if (selectedImages.size === displayImages.length) {
+      setSelectedImages(new Set())
+    } else {
+      setSelectedImages(new Set(displayImages))
+    }
+  }
+
+  const deleteSelectedImages = async () => {
+    if (selectedImages.size === 0) return
+
+    const count = selectedImages.size
+    if (!confirm(`Delete ${count} image${count > 1 ? 's' : ''}?`)) return
+
+    setIsDeletingMultiple(true)
+
+    try {
+      const response = await fetch('/api/admin/delete-location-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          locationSlug: location.slug,
+          imageUrls: Array.from(selectedImages)
+        })
+      })
+
+      if (response.ok) {
+        // Optimistically remove from UI
+        setDeletingImages(prev => new Set([...prev, ...selectedImages]))
+        setDisplayImages(prev => prev.filter(img => !selectedImages.has(img)))
+        setSelectedImages(new Set())
+        setIsMultiSelectMode(false)
+        toast.success(`${count} image${count > 1 ? 's' : ''} deleted! 🗑️`, { duration: 2000 })
+
+        // Refresh data
+        setTimeout(() => {
+          router.refresh()
+        }, 250)
+      } else {
+        toast.error('Failed to delete images')
+      }
+    } catch (error) {
+      console.error('Error deleting images:', error)
+      toast.error('Error deleting images')
+    } finally {
+      setIsDeletingMultiple(false)
+    }
+  }
+
   // Prepare slides for lightbox
   const slides = displayImages.map((src) => ({
     src,
@@ -308,7 +376,7 @@ export function PhotoGalleryView({ location, locationId }: PhotoGalleryViewProps
   // Prevent hydration mismatch by not rendering until mounted
   if (!mounted) {
     return (
-      <main className="bg-gray-200 min-h-screen flex justify-center items-center">
+      <main className="bg-white min-h-screen flex justify-center items-center">
         <div className="text-gray-500">Loading gallery...</div>
       </main>
     )
@@ -317,9 +385,71 @@ export function PhotoGalleryView({ location, locationId }: PhotoGalleryViewProps
   return (
     <>
       {/* Gallery Grid - Max Width 1200px */}
-      <main className="bg-gray-200 min-h-screen flex justify-center">
+      <main className="bg-white min-h-screen flex justify-center">
 
         <div className="w-full max-w-[1200px] p-[3px]">
+          {/* Disclaimer + Edit button in one row */}
+          <div className="mb-3 px-3 py-2 flex items-center justify-between">
+            <p className="text-xs text-gray-400">
+              We don't own these images. Please share your photos to promote your favorite location.
+            </p>
+            {isAuthenticated && !isMultiSelectMode && displayImages.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 py-0 pt-0 leading-none text-gray-600 hover:text-gray-900 font-normal opacity-80"
+                onClick={() => setIsMultiSelectMode(true)}
+              >
+                Edit photos
+              </Button>
+            )}
+          </div>
+
+
+          {/* Multi-select toolbar */}
+          {isMultiSelectMode && (
+            <div className="mb-4 px-3 py-3 bg-white rounded-lg shadow-sm flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={selectAllImages}
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+                >
+                  {selectedImages.size === displayImages.length ? (
+                    <CheckSquare className="h-5 w-5 text-rausch-600" />
+                  ) : (
+                    <Square className="h-5 w-5 text-gray-400" />
+                  )}
+                  {selectedImages.size === displayImages.length ? 'Deselect All' : 'Select All'}
+                </button>
+                <span className="text-sm text-gray-600">
+                  {selectedImages.size} selected
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedImages(new Set())
+                    setIsMultiSelectMode(false)
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={deleteSelectedImages}
+                  disabled={selectedImages.size === 0 || isDeletingMultiple}
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete ({selectedImages.size})
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Masonry Layout - CSS Columns */}
           <div className="columns-1 sm:columns-2 lg:columns-3 gap-[3px]">
             {displayImages.map((image, index) => {
@@ -372,6 +502,21 @@ export function PhotoGalleryView({ location, locationId }: PhotoGalleryViewProps
                     {index + 1} / {displayImages.length}
                   </div>
 
+                  {/* Multi-select checkbox */}
+                  {isMultiSelectMode && (
+                    <button
+                      type="button"
+                      onClick={(e) => toggleSelectImage(image, e)}
+                      className="absolute top-2 left-2 z-50 bg-white/90 hover:bg-white rounded-md p-1.5 transition-all duration-200"
+                    >
+                      {selectedImages.has(image) ? (
+                        <CheckSquare className="h-5 w-5 text-rausch-600" />
+                      ) : (
+                        <Square className="h-5 w-5 text-gray-400" />
+                      )}
+                    </button>
+                  )}
+
                   {/* Delete button (top right, on hover) */}
                   {canDelete && (
                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-50">
@@ -386,15 +531,15 @@ export function PhotoGalleryView({ location, locationId }: PhotoGalleryViewProps
                     </div>
                   )}
 
-                  {/* Featured badge (always visible if featured) */}
+                  {/* Main Image badge (always visible if featured) */}
                   {isFeatured && (
                     <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm text-gray-700 px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1 shadow-sm">
                       <Star className="h-3 w-3 fill-gray-700" />
-                      Featured
+                      Main Image
                     </div>
                   )}
 
-                  {/* Set as Featured button (on hover) */}
+                  {/* Set as Main Image button (on hover) */}
                   <div className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 z-50">
                     <button
                       type="button"
@@ -411,7 +556,7 @@ export function PhotoGalleryView({ location, locationId }: PhotoGalleryViewProps
                       `}
                     >
                       <Star className={`h-3 w-3 ${isFeatured ? 'fill-gray-700' : ''}`} />
-                      {isFeatured ? 'Featured' : 'Set Featured'}
+                      {isFeatured ? 'Main Image' : 'Set as Main'}
                     </button>
                   </div>
                 </div>

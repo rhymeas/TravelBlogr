@@ -3,11 +3,12 @@ import { LocationsGrid } from '@/components/locations/LocationsGrid'
 import { LocationsMap } from '@/components/locations/LocationsMap'
 import { LocationsSearch } from '@/components/locations/LocationsSearch'
 import { getAllLocations } from '@/lib/supabase/locations'
+import { getOrSet, CacheKeys, CacheTTL } from '@/lib/upstash'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
 import { MapPin, Grid } from 'lucide-react'
 import { HorizontalBannerAd } from '@/components/ads/HorizontalBannerAd'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 3600
 
 export const metadata: Metadata = {
   title: 'Explore Locations | TravelBlogr',
@@ -15,8 +16,12 @@ export const metadata: Metadata = {
 }
 
 export default async function LocationsPage() {
-  // Get all published locations from Supabase
-  const locations = await getAllLocations()
+  // Get all published locations from Supabase (cached)
+  const locations = await getOrSet(
+    CacheKeys.locationsAll(),
+    async () => await getAllLocations(),
+    CacheTTL.MEDIUM // 1 hour
+  )
 
   // Calculate location stats
   const locationStats = {

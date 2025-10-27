@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Check, Clock, DollarSign, Mountain, Users, Utensils, Waves, Heart, Image as ImageIcon, Link as LinkIcon, Edit, Plus } from 'lucide-react'
+import { Check, Clock, DollarSign, Mountain, Users, Utensils, Waves, Heart, Image as ImageIcon, Link as LinkIcon, Edit, Plus, Loader2, ExternalLink, Globe, Phone, MapPin } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -64,6 +64,11 @@ export function EditableLocationActivities({
   const [editingImage, setEditingImage] = useState<string | null>(null)
   const [showAddActivityModal, setShowAddActivityModal] = useState(false)
 
+  // V2 parity: enrichment + description expansion
+  const [enrichments, setEnrichments] = useState<Record<string, any>>({})
+  const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set())
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set())
+
   const handleSelectImage = async (activityId: string, imageUrl: string, source: string) => {
     try {
       // Update activity image in database
@@ -94,6 +99,8 @@ export function EditableLocationActivities({
   // Auto-fetch images for ALL activities (Brave ➜ Reddit ➜ Pexels)
   // This runs for activities without image_url OR with potentially broken image_url
   useEffect(() => {
+    // Only auto-enrich when editing to avoid extra network on public views
+    if (!enabled) return
     if (!activities || activities.length === 0) return
 
     const timers: Array<ReturnType<typeof setTimeout>> = []
@@ -105,7 +112,6 @@ export function EditableLocationActivities({
       // Fetch image for activities without image_url
       if (!(a as any).image_url) {
         const t = setTimeout(() => {
-          console.log(`🎯 Auto-fetching image for "${a.name}" (no DB image)`)
           handleFindImage(a, locationName)
         }, idx * 150) // stagger to avoid bursts
         timers.push(t)
@@ -116,7 +122,7 @@ export function EditableLocationActivities({
       timers.forEach(clearTimeout)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activities, locationName])
+  }, [activities, locationName, enabled])
 
   const handleFindImage = async (a: LocationActivity, locationName: string) => {
     setLoadingImage(prev => ({ ...prev, [a.id]: true }))
@@ -155,6 +161,7 @@ export function EditableLocationActivities({
       const res = await fetch(`/api/activities/find-links?activityName=${encodeURIComponent(a.name)}&locationName=${encodeURIComponent(locationName)}`)
       const json = await res.json()
       if (json?.success && Array.isArray(json.links)) {
+
         setActivityLinks(prev => ({ ...prev, [a.id]: json.links }))
       }
     } catch {}
@@ -181,6 +188,50 @@ export function EditableLocationActivities({
     setShowAddActivityModal(false)
   }
 
+  // Enrich activities with Brave links (V2 parity)
+  useEffect(() => {
+    // Only fetch enrichment links in edit mode
+    if (!enabled) return
+    if (!activities || activities.length === 0) return
+    let cancelled = false
+    const toFetch = (showAll ? activities : activities.slice(0, INITIAL_DISPLAY_COUNT)).filter(a => !enrichments[a.id])
+    if (toFetch.length === 0) return
+
+    ;(async () => {
+      for (const a of toFetch) {
+        try {
+          setLoadingIds(prev => new Set(prev).add(a.id))
+          const params = new URLSearchParams({ name: a.name, location: locationName, type: 'activity', count: '1' })
+          const res = await fetch(`/api/brave/activity-image?${params.toString()}`)
+          const json = await res.json()
+          let link = json?.data?.links?.[0] || null
+
+          // GROQ fallback if Brave returns no link
+          if (!link) {
+            try {
+              const groqRes = await fetch('/api/groq/activity-description', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ activityName: a.name, location: locationName })
+              })
+              const groqJson = await groqRes.json()
+              if (groqJson?.success) {
+                link = { url: groqJson.url || null, description: groqJson.description || '' }
+              }
+            } catch {}
+          }
+
+          if (!cancelled) setEnrichments(prev => ({ ...prev, [a.id]: link || {} }))
+        } catch {}
+        finally {
+          setLoadingIds(prev => { const next = new Set(prev); next.delete(a.id); return next })
+        }
+      }
+    })()
+
+    return () => { cancelled = true }
+  }, [activities, locationName, showAll, enabled])
+
   if (!activities || activities.length === 0) {
     return null
   }
@@ -206,6 +257,7 @@ export function EditableLocationActivities({
             Check off activities as you complete them during your visit
           </p>
         </div>
+
         {enabled && (
           <button
             onClick={() => setShowAddActivityModal(true)}
@@ -221,10 +273,14 @@ export function EditableLocationActivities({
           const IconComponent = categoryIcons[activity.category] || Mountain
           const isChecked = checkedActivities.has(activity.id)
 
+
+	          const enrich = enrichments[activity.id] || {}
+	          const linkHref = (activity as any).link_url || (activity as any).website || enrich.url
+
           return (
             <div
               key={activity.id}
-              className={`flex items-start gap-4 p-4 rounded-sleek-medium border transition-all duration-200 cursor-pointer hover:shadow-sleek-small ${
+              className={`flex items-start gap-4 p-4 rounded-2xl border transition-all duration-200 cursor-pointer hover:shadow-sleek-small ${
                 isChecked
                   ? 'bg-green-50 border-green-200'
                   : 'bg-white border-sleek-border hover:border-sleek-dark-gray'
@@ -248,11 +304,51 @@ export function EditableLocationActivities({
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <h4 className="text-body-large font-semibold text-sleek-black mb-1">
-                  {activity.name}
+                  {linkHref ? (
+                    <a
+                      href={linkHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="hover:text-rausch-600 underline decoration-transparent hover:decoration-inherit"
+                    >
+                      {activity.name}
+                    </a>
+                  ) : (
+                    activity.name
+                  )}
                 </h4>
-                <p className="text-body-medium text-sleek-dark-gray mb-3">
-                  {activity.description || 'No description yet — add one to help fellow travelers.'}
-                </p>
+                {(() => {
+                  const enrich = enrichments[activity.id] || {}
+                  const baseDesc = activity.description || ''
+                  const enrichDesc = enrich?.description || ''
+                  const finalDesc = enrichDesc || baseDesc
+                  const isExpanded = expandedDescriptions.has(activity.id)
+                  const needsShowMore = finalDesc.length > 100
+                  const cleanDesc = finalDesc.replace(/<[^>]*>/g, '').trim()
+                  const displayDesc = needsShowMore && !isExpanded ? cleanDesc.slice(0, 100) + '...' : cleanDesc
+                  return (
+                    <div className="text-body-medium text-sleek-dark-gray mb-2">
+                      <p className="inline">{displayDesc}</p>
+                      {needsShowMore && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setExpandedDescriptions(prev => {
+                              const next = new Set(prev)
+                              if (next.has(activity.id)) next.delete(activity.id)
+                              else next.add(activity.id)
+                              return next
+                            })
+                          }}
+                          className="ml-2 text-sm text-rausch-500 hover:text-rausch-600 font-medium"
+                        >
+                          {isExpanded ? 'Show less' : 'Show more'}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })()}
 
                 {/* Metadata */}
                 <div className="flex flex-wrap items-center gap-2">
@@ -278,92 +374,96 @@ export function EditableLocationActivities({
                   )}
                 </div>
 
-                {/* Link preview */}
-                <div className="mt-2 flex items-center gap-2">
-                  {(activity as any).link_url ? (
-                    <>
+                {/* Link preview (enriched) */}
+                {(() => {
+                  const enrich = enrichments[activity.id] || {}
+                  const linkHref = (activity as any).link_url || enrich.url
+                  if (!linkHref) return null
+                  return (
+                    <div className="mt-2 flex items-center gap-3 flex-wrap">
                       <a
-                        href={(activity as any).link_url}
+                        href={linkHref}
                         target="_blank"
-                        rel="noopener nofollow"
-                        className="text-xs text-rausch-600 hover:underline"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-sm text-rausch-500 hover:text-rausch-600 font-medium"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        Learn more →
+                        Learn more
+                        <ExternalLink className="h-3.5 w-3.5" />
                       </a>
-                      {(activity as any).link_source && (
-                        <span className="px-2 py-0.5 text-[10px] rounded bg-gray-100 border border-gray-200 text-gray-700 capitalize">
-                          {(activity as any).link_source}
-                        </span>
-                      )}
-                    </>
-                  ) : null}
-                </div>
+                      <div className="inline-flex items-center gap-2 text-xs text-sleek-gray">
+                        {enrich?.phone && (
+                          <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3" />{enrich.phone}</span>
+                        )}
+                        {enrich?.website && (
+                          <span className="inline-flex items-center gap-1"><Globe className="h-3 w-3" />Website</span>
+                        )}
+                        {enrich?.directionsUrl && (
+                          <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />Directions</span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
 
-              {/* Right 16:9 thumbnail - Brave API or custom */}
+              {/* Smaller rounded thumbnail (bubbly) */}
               <div
-                className="w-44 sm:w-56 aspect-video relative rounded overflow-hidden bg-gray-100 flex-shrink-0 ml-2 ml-auto pl-2 group/image"
+                className="w-20 h-20 sm:w-24 sm:h-24 relative rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 ml-auto group/image"
                 onMouseEnter={() => setHoveringImage(activity.id)}
                 onMouseLeave={() => setHoveringImage(null)}
               >
-                {((activity as any).image_url || activityImages[activity.id]) ? (
-                  <>
-                    <Image
-                      src={(activity as any).image_url || activityImages[activity.id]}
-                      alt={activity.name}
-                      fill
-                      className="object-cover"
-                      onError={(e) => {
-                        console.log(`❌ Image failed to load for "${activity.name}", fetching new one...`)
-                        ;(e.currentTarget as any).style.display = 'none'
-                        handleFindImage(activity, locationName)
-                      }}
-                    />
-                    {hoveringImage === activity.id && (
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity">
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            setEditingImage(activity.id)
+                {(() => {
+                  const enrich = enrichments[activity.id] || {}
+                  const imgSrc = (activity as any).image_url || activityImages[activity.id] || enrich.thumbnail
+                  if (imgSrc) {
+                    return (
+                      <>
+                        <Image
+                          src={imgSrc}
+                          alt={activity.name}
+                          fill
+                          className="object-cover"
+                          onError={(e) => {
+                            ;(e.currentTarget as any).style.display = 'none'
+                            handleFindImage(activity, locationName)
                           }}
-                          className="px-2 py-1 bg-white/90 hover:bg-white text-gray-900 rounded text-xs font-medium flex items-center gap-1"
-                        >
-                          <Edit className="h-3 w-3" />
-                          Change
-                        </button>
+                        />
+                        {hoveringImage === activity.id && (
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center transition-opacity">
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                setEditingImage(activity.id)
+                              }}
+                              className="px-2 py-1 bg-white/90 hover:bg-white text-gray-900 rounded text-xs font-medium flex items-center gap-1"
+                            >
+                              <Edit className="h-3 w-3" />
+                              Change
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )
+                  }
+                  if (loadingImage[activity.id] || loadingIds.has(activity.id)) {
+                    return (
+                      <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 text-gray-400 animate-spin" />
                       </div>
-                    )}
-                  </>
-                ) : loadingImage[activity.id] ? (
-                  <div className="absolute inset-0 animate-pulse bg-gray-200" />
-                ) : (
-                  <>
+                    )
+                  }
+                  return (
                     <BraveImage
                       activityName={activity.name}
                       locationName={locationName}
                       type="activity"
-                      size="full"
+                      size="sm"
                       className="absolute inset-0"
                     />
-                    {hoveringImage === activity.id && (
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity">
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            setEditingImage(activity.id)
-                          }}
-                          className="px-2 py-1 bg-white/90 hover:bg-white text-gray-900 rounded text-xs font-medium flex items-center gap-1"
-                        >
-                          <ImageIcon className="h-3 w-3" />
-                          Change Photo
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
+                  )
+                })()}
               </div>
             </div>
           )

@@ -2,7 +2,7 @@
 
 /**
  * Elevation Profile Component
- * 
+ *
  * Displays an elevation profile chart for a route
  * Shows ascent, descent, max/min elevation, and distance
  */
@@ -46,13 +46,13 @@ export function ElevationProfile({
 
     // Normalize distances to width
     const maxDistance = distances[distances.length - 1]
-    const normalizedDistances = distances.map(d => 
+    const normalizedDistances = distances.map(d =>
       padding + (d / maxDistance) * (width - 2 * padding)
     )
 
     // Normalize elevations to height (inverted for SVG)
     const elevationRange = maxElevation - minElevation || 1
-    const normalizedElevations = elevations.map(e => 
+    const normalizedElevations = elevations.map(e =>
       height - padding - ((e - minElevation) / elevationRange) * (height - 2 * padding)
     )
 
@@ -63,7 +63,7 @@ export function ElevationProfile({
     }).join(' ')
 
     // Add area fill
-    const areaPath = pathData + 
+    const areaPath = pathData +
       ` L ${normalizedDistances[normalizedDistances.length - 1]} ${height - padding}` +
       ` L ${normalizedDistances[0]} ${height - padding} Z`
 
@@ -98,6 +98,19 @@ export function ElevationProfile({
   }
 
   const totalDistance = distances[distances.length - 1]
+  const currentElevationVal = useMemo(() => {
+    if (typeof hoverKm !== 'number' || distances.length === 0) return null
+    const maxDistance = distances[distances.length - 1]
+    const target = Math.max(0, Math.min(maxDistance, hoverKm))
+    let idx = 0
+    let best = Infinity
+    for (let i = 0; i < distances.length; i++) {
+      const d = Math.abs(distances[i] - target)
+      if (d < best) { best = d; idx = i }
+    }
+    return elevations[idx] ?? null
+  }, [hoverKm, distances, elevations])
+
 
   return (
     <Card className={`p-5 rounded-2xl ${className}`}>
@@ -107,8 +120,8 @@ export function ElevationProfile({
           <Mountain className="h-5 w-5 text-gray-900" />
           Elevation
         </h3>
-        <span className="text-sm text-gray-600">
-          {formatDistance(totalDistance)}
+        <span className="text-sm text-gray-900 font-semibold transition-colors">
+          {currentElevationVal != null ? formatElevation(currentElevationVal) : formatDistance(totalDistance)}
         </span>
       </div>
 
@@ -116,23 +129,21 @@ export function ElevationProfile({
       <div className="mb-4 bg-white rounded-2xl p-3 border border-gray-200">
         <svg
           viewBox={viewBox}
-          className="w-full h-auto"
+          className="w-full h-auto cursor-crosshair"
           style={{ maxHeight: '200px' }}
           onMouseMove={(e) => {
             if (!onHoverKm) return
             const svg = e.currentTarget as SVGSVGElement
-            const pt = svg.createSVGPoint()
-            pt.x = e.clientX
-            pt.y = e.clientY
-            const ctm = svg.getScreenCTM()
-            if (!ctm) return
-            const inv = ctm.inverse()
-            const p = pt.matrixTransform(inv)
+            const rect = svg.getBoundingClientRect()
+            const x = e.clientX - rect.left
             const vb = svg.viewBox.baseVal
+            const svgWidth = rect.width
             const padding = 20
             const maxDistance = distances[distances.length - 1]
-            const x = Math.max(padding, Math.min(vb.width - padding, p.x))
-            const km = ((x - padding) / (vb.width - 2 * padding)) * maxDistance
+            // Direct pixel-to-SVG coordinate mapping (faster than matrix transform)
+            const svgX = (x / svgWidth) * vb.width
+            const clampedX = Math.max(padding, Math.min(vb.width - padding, svgX))
+            const km = ((clampedX - padding) / (vb.width - 2 * padding)) * maxDistance
             onHoverKm(km)
           }}
           onMouseLeave={() => onHoverKm && onHoverKm(null)}

@@ -142,6 +142,8 @@ input:-webkit-autofill:active {
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Force light UA form control theme */
+    color-scheme: light;
   }
 
   /* Elegant rose/pink color palette */
@@ -306,7 +308,8 @@ input:-webkit-autofill:active {
     font-size: 1rem;
     line-height: 1.25rem;
     transition: all 0.2s ease;
-    background: white;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 
   .input-field:focus {
@@ -316,7 +319,7 @@ input:-webkit-autofill:active {
   }
 
   .input-field::placeholder {
-    color: var(--color-dark-gray);
+    color: hsl(var(--muted-foreground));
   }
 }
 
@@ -344,7 +347,8 @@ input:-webkit-autofill:active {
     --radius: 0.5rem;
   }
 
-  .dark {
+  /* Dark mode disabled - we don't use it in TravelBlogr */
+  /* .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
     --card: 222.2 84% 4.9%;
@@ -364,7 +368,7 @@ input:-webkit-autofill:active {
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 94.1%;
-  }
+  } */
 }
 
 @layer base {

@@ -12,6 +12,7 @@
 
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import { withRedditLimit, fetchWithTimeout } from '@/lib/utils/redditLimiter'
 
 const execAsync = promisify(exec)
 
@@ -56,11 +57,17 @@ export async function scrapeRedditImages(
 
       console.log(`🔍 Searching r/${subreddit} for "${searchQuery}"...`)
 
-      const response = await fetch(searchUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; TravelBlogr/1.0; +https://travelblogr.com)'
-        }
-      })
+      const response = await withRedditLimit(() =>
+        fetchWithTimeout(
+          searchUrl,
+          {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; TravelBlogr/1.0; +https://travelblogr.com)'
+            }
+          },
+          6000
+        )
+      )
 
       if (!response.ok) {
         console.log(`⚠️ r/${subreddit}: HTTP ${response.status}`)

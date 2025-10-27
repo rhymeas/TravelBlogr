@@ -15,7 +15,8 @@ import {
   TestTube2,
   FileText,
   Settings,
-  Trash2
+  Trash2,
+  MessageSquare
 } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -209,6 +210,13 @@ export default async function AdminPage() {
             icon={FileText}
             href="/blog-cms"
             color="bg-teal-600"
+          />
+          <QuickAction
+            title="User Feedback"
+            description="View and respond to user feedback messages"
+            icon={MessageSquare}
+            href="/admin/feedback"
+            color="bg-blue-600"
           />
         </div>
       </div>

@@ -12,7 +12,7 @@ export function FeedbackButton() {
       {/* Floating Feedback Button - Desktop Only */}
       <button
         onClick={() => setShowFeedback(true)}
-        className="hidden lg:flex fixed bottom-6 right-6 z-40 items-center gap-2 px-5 py-3 rounded-full shadow-lg hover:shadow-xl transition-all group"
+        className="hidden lg:flex fixed bottom-24 right-6 z-40 items-center gap-2 px-5 py-3 rounded-full shadow-lg hover:shadow-xl transition-all group"
         style={{
           backgroundColor: '#2B5F9E',
         }}

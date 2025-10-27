@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/Card'
-import { MessageSquare, User, Mail, Globe, Clock, CheckCircle, Archive, Loader2 } from 'lucide-react'
+import { MessageSquare, User, Mail, Globe, Clock, CheckCircle, Archive, Loader2, X } from 'lucide-react'
 import { getBrowserSupabase } from '@/lib/supabase'
 
 interface Feedback {
@@ -44,28 +44,46 @@ export default function AdminFeedbackPage() {
     setIsLoading(true)
     const supabase = getBrowserSupabase()
 
-    let query = supabase
-      .from('feedback')
-      .select(`
-        *,
-        profiles:user_id (
-          full_name,
-          username,
-          avatar_url
+    try {
+      // First, try to load feedback without the join
+      let query = supabase
+        .from('feedback')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (filter !== 'all') {
+        query = query.eq('status', filter)
+      }
+
+      const { data, error } = await query
+
+      if (error) {
+        console.error('Error loading feedback:', error)
+        setFeedbacks([])
+      } else {
+        // Fetch profiles separately for each feedback with a user_id
+        const feedbackWithProfiles = await Promise.all(
+          (data || []).map(async (feedback) => {
+            if (feedback.user_id) {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('full_name, username, avatar_url')
+                .eq('id', feedback.user_id)
+                .single()
+
+              return {
+                ...feedback,
+                profiles: profile
+              }
+            }
+            return feedback
+          })
         )
-      `)
-      .order('created_at', { ascending: false })
-
-    if (filter !== 'all') {
-      query = query.eq('status', filter)
-    }
-
-    const { data, error } = await query
-
-    if (error) {
-      console.error('Error loading feedback:', error)
-    } else {
-      setFeedbacks(data || [])
+        setFeedbacks(feedbackWithProfiles)
+      }
+    } catch (err) {
+      console.error('Exception loading feedback:', err)
+      setFeedbacks([])
     }
 
     setIsLoading(false)
@@ -118,10 +136,10 @@ export default function AdminFeedbackPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'new': return 'bg-blue-100 text-blue-800'
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800'
-      case 'resolved': return 'bg-green-100 text-green-800'
-      case 'archived': return 'bg-gray-100 text-gray-800'
+      case 'new': return 'bg-blue-100 text-blue-700'
+      case 'in_progress': return 'bg-amber-100 text-amber-700'
+      case 'resolved': return 'bg-green-100 text-green-700'
+      case 'archived': return 'bg-gray-100 text-gray-700'
       default: return 'bg-gray-100 text-gray-800'
     }
   }
@@ -134,44 +152,44 @@ export default function AdminFeedbackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-white">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">User Feedback</h1>
-          <p className="text-gray-600">Manage and respond to user feedback</p>
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 z-10">
+          <h1 className="text-2xl font-semibold text-gray-900">Feedback</h1>
+          <p className="text-sm text-gray-500 mt-1">Manage user feedback and messages</p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="p-4">
-            <div className="text-sm text-gray-600">Total</div>
-            <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-sm text-gray-600">New</div>
-            <div className="text-2xl font-bold text-blue-600">{stats.new}</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-sm text-gray-600">In Progress</div>
-            <div className="text-2xl font-bold text-yellow-600">{stats.in_progress}</div>
-          </Card>
-          <Card className="p-4">
-            <div className="text-sm text-gray-600">Resolved</div>
-            <div className="text-2xl font-bold text-green-600">{stats.resolved}</div>
-          </Card>
+        {/* Stats Bar */}
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Total:</span>
+            <span className="text-lg font-semibold text-gray-900">{stats.total}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">New:</span>
+            <span className="text-lg font-semibold text-gray-900">{stats.new}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">In Progress:</span>
+            <span className="text-lg font-semibold text-gray-900">{stats.in_progress}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Resolved:</span>
+            <span className="text-lg font-semibold text-gray-900">{stats.resolved}</span>
+          </div>
         </div>
 
         {/* Filters */}
-        <div className="flex gap-2 mb-6">
+        <div className="px-6 py-4 border-b border-gray-100 flex gap-2">
           {(['all', 'new', 'in_progress', 'resolved'] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 filter === f
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               {f.replace('_', ' ').charAt(0).toUpperCase() + f.slice(1).replace('_', ' ')}
@@ -182,132 +200,181 @@ export default function AdminFeedbackPage() {
         {/* Feedback List */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
           </div>
         ) : feedbacks.length === 0 ? (
-          <Card className="p-12 text-center">
-            <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">No feedback found</p>
-          </Card>
+          <div className="flex flex-col items-center justify-center py-12 px-6">
+            <MessageSquare className="h-10 w-10 text-gray-300 mb-3" />
+            <p className="text-gray-500 text-sm">No feedback found</p>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="px-6 py-4 space-y-2">
             {feedbacks.map((feedback) => (
-              <Card
+              <div
                 key={feedback.id}
-                className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
                 onClick={() => setSelectedFeedback(feedback)}
+                className="bg-white hover:bg-gray-50 transition-all cursor-pointer group rounded-xl p-3 border border-gray-200 hover:border-gray-300 hover:shadow-sm"
               >
-                {/* Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <MessageSquare className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-gray-900">
-                        {feedback.profiles?.full_name || feedback.email || 'Anonymous'}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {new Date(feedback.created_at).toLocaleDateString()}
-                      </div>
+                {/* Row Content */}
+                <div className="flex items-center gap-3">
+                  {/* Avatar/Icon */}
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center group-hover:bg-gray-400 transition-colors">
+                      <span className="text-xs font-semibold text-white">
+                        {(feedback.profiles?.full_name || feedback.email || 'A')[0].toUpperCase()}
+                      </span>
                     </div>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(feedback.status)}`}>
-                    {feedback.status.replace('_', ' ')}
-                  </span>
-                </div>
 
-                {/* Message */}
-                <p className="text-gray-700 mb-4 line-clamp-3">{feedback.message}</p>
-
-                {/* Meta */}
-                <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-                  {feedback.email && (
-                    <div className="flex items-center gap-1">
-                      <Mail className="h-3 w-3" />
-                      {feedback.email}
+                  {/* Main Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-medium text-gray-900 text-sm truncate">
+                          {feedback.profiles?.full_name || feedback.email || 'Anonymous'}
+                        </span>
+                        <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${getStatusColor(feedback.status)}`}>
+                          {feedback.status.replace('_', ' ')}
+                        </span>
+                        {feedback.page_url && (
+                          <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-medium flex-shrink-0">
+                            {new URL(feedback.page_url).pathname.split('/')[1] || 'home'}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-500 flex-shrink-0">
+                        {new Date(feedback.created_at).toLocaleDateString(undefined, {
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </span>
                     </div>
-                  )}
-                  {feedback.page_url && (
-                    <div className="flex items-center gap-1">
-                      <Globe className="h-3 w-3" />
-                      {new URL(feedback.page_url).pathname}
-                    </div>
-                  )}
-                </div>
 
-                {/* Actions */}
-                <div className="flex gap-2 mt-4">
-                  {feedback.status === 'new' && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        updateStatus(feedback.id, 'in_progress')
-                      }}
-                      className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-lg text-xs font-medium hover:bg-yellow-200"
-                    >
-                      Start
-                    </button>
-                  )}
-                  {feedback.status !== 'resolved' && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        updateStatus(feedback.id, 'resolved')
-                      }}
-                      className="px-3 py-1 bg-green-100 text-green-800 rounded-lg text-xs font-medium hover:bg-green-200"
-                    >
-                      Resolve
-                    </button>
-                  )}
+                    {/* Message Preview */}
+                    <p className="text-xs text-white line-clamp-1">
+                      {feedback.message}
+                    </p>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="flex gap-1 flex-shrink-0">
+                    {feedback.status === 'new' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          updateStatus(feedback.id, 'in_progress')
+                        }}
+                        className="px-2 py-1 text-xs font-medium text-gray-700 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
+                      >
+                        Start
+                      </button>
+                    )}
+                    {feedback.status !== 'resolved' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          updateStatus(feedback.id, 'resolved')
+                        }}
+                        className="px-2 py-1 text-xs font-medium text-gray-700 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
+                      >
+                        Resolve
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         )}
 
         {/* Detail Modal */}
         {selectedFeedback && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-xl font-bold text-gray-900">Feedback Details</h2>
-              </div>
-              
-              <div className="p-6 space-y-4">
+          <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-lg w-full max-w-2xl max-h-[85vh] overflow-y-auto">
+              {/* Header */}
+              <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-3 flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-medium text-gray-700 mb-1">From</div>
-                  <div className="text-gray-900">
-                    {selectedFeedback.profiles?.full_name || selectedFeedback.email || 'Anonymous'}
+                  <h2 className="text-base font-semibold text-gray-900">Feedback</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {new Date(selectedFeedback.created_at).toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedFeedback(null)}
+                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="h-4 w-4 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-4">
+                {/* Header Info - Compact */}
+                <div className="flex items-center justify-between gap-3 pb-3 border-b border-gray-100">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-semibold text-blue-700">
+                        {(selectedFeedback.profiles?.full_name || selectedFeedback.email || 'A')[0].toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-medium text-gray-900 text-sm truncate">
+                        {selectedFeedback.profiles?.full_name || selectedFeedback.email || 'Anonymous'}
+                      </div>
+                      {selectedFeedback.email && (
+                        <div className="text-xs text-gray-500 truncate">{selectedFeedback.email}</div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {selectedFeedback.page_url && (
+                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
+                        {new URL(selectedFeedback.page_url).pathname.split('/')[1] || 'home'}
+                      </span>
+                    )}
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedFeedback.status)}`}>
+                      {selectedFeedback.status.replace('_', ' ')}
+                    </span>
                   </div>
                 </div>
 
+                {/* Message */}
                 <div>
-                  <div className="text-sm font-medium text-gray-700 mb-1">Message</div>
-                  <div className="text-gray-900 whitespace-pre-wrap">{selectedFeedback.message}</div>
+                  <div className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-2">Message</div>
+                  <div className="text-gray-900 whitespace-pre-wrap text-sm leading-relaxed">
+                    {selectedFeedback.message}
+                  </div>
                 </div>
 
+                {/* Admin Response */}
                 {selectedFeedback.admin_response && (
                   <div>
-                    <div className="text-sm font-medium text-gray-700 mb-1">Admin Response</div>
-                    <div className="text-gray-900 bg-green-50 p-4 rounded-lg">{selectedFeedback.admin_response}</div>
+                    <div className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-2">Admin Response</div>
+                    <div className="text-gray-900 whitespace-pre-wrap text-sm leading-relaxed pl-3 border-l-2 border-gray-300">
+                      {selectedFeedback.admin_response}
+                    </div>
                   </div>
                 )}
 
+                {/* Response Form */}
                 {selectedFeedback.status !== 'resolved' && (
-                  <div>
-                    <div className="text-sm font-medium text-gray-700 mb-2">Add Response</div>
+                  <div className="border-t border-gray-100 pt-4">
+                    <div className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-2">Add Response</div>
                     <textarea
                       value={response}
                       onChange={(e) => setResponse(e.target.value)}
                       placeholder="Type your response..."
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent resize-none text-sm"
+                      rows={3}
                     />
                     <button
                       onClick={submitResponse}
                       disabled={isSubmitting || !response.trim()}
-                      className="mt-2 px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      className="mt-2 w-full px-3 py-2 bg-gray-900 text-white rounded-lg font-medium text-sm hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                     >
                       {isSubmitting ? 'Sending...' : 'Send Response & Resolve'}
                     </button>
@@ -315,10 +382,11 @@ export default function AdminFeedbackPage() {
                 )}
               </div>
 
-              <div className="p-6 border-t border-gray-200 flex justify-end">
+              {/* Footer Actions */}
+              <div className="border-t border-gray-100 px-5 py-3 flex justify-end gap-2">
                 <button
                   onClick={() => setSelectedFeedback(null)}
-                  className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300"
+                  className="px-3 py-1.5 text-gray-700 bg-gray-100 rounded-lg font-medium text-sm hover:bg-gray-200 transition-colors"
                 >
                   Close
                 </button>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { SmartImage as Image } from '@/components/ui/SmartImage'
+import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface BraveImageProps {
@@ -100,8 +101,8 @@ export function BraveImage({
   return (
     <div className={cn('relative overflow-hidden rounded-lg', sizeClasses[size], className)}>
       {loading ? (
-        <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
-          <span className="text-xs text-gray-400">Loading...</span>
+        <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+          <Loader2 className="h-6 w-6 text-gray-400 animate-spin" />
         </div>
       ) : (
         <Image
@@ -209,13 +210,8 @@ export function BraveImageGallery({
 
   if (loading) {
     return (
-      <div className={cn('grid gap-4', gridCols[columns], className)}>
-        {Array.from({ length: count }).map((_, idx) => (
-          <div
-            key={idx}
-            className={cn('bg-gray-200 animate-pulse rounded-lg', sizeClasses[imageSize])}
-          />
-        ))}
+      <div className={cn('flex items-center justify-center', sizeClasses[imageSize], className)}>
+        <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
       </div>
     )
   }

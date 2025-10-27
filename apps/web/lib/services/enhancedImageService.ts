@@ -13,6 +13,7 @@
 
 import { getLocationFallbackImage, isPlaceholderImage } from './fallbackImageService'
 import { searchImages as braveSearchImages } from './braveSearchService'
+import { withRedditLimit, fetchWithTimeout } from '@/lib/utils/redditLimiter'
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 hours
 const imageCache = new Map<string, { url: string; timestamp: number }>()
@@ -465,11 +466,17 @@ export async function fetchRedditImages(
       // Search subreddit for location name with country context
       const searchUrl = `https://www.reddit.com/r/${subreddit}/search.json?q=${encodeURIComponent(searchQuery)}&restrict_sr=1&sort=top&t=all&limit=50`
 
-      const response = await fetch(searchUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; TravelBlogr/1.0; +https://travelblogr.com)'
-        }
-      })
+      const response = await withRedditLimit(() =>
+        fetchWithTimeout(
+          searchUrl,
+          {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; TravelBlogr/1.0; +https://travelblogr.com)'
+            }
+          },
+          6000
+        )
+      )
 
       if (!response.ok) {
         console.warn(`⚠️ [REDDIT] r/${subreddit} returned ${response.status}`)

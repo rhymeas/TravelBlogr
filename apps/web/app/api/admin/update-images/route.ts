@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
           console.log(`  🖼️ Fetching HIGH QUALITY featured image...`)
           featuredImage = await fetchLocationImageHighQuality(
             location.name,
+            undefined, // manualUrl
             location.region,
             location.country
           )

@@ -365,6 +365,17 @@ function POIItem({ poi, location }: { poi: any; location: string }) {
 }
 
 export function ResultsView({ plan, tripData, locationImages = {}, structuredContext, groqHeadline, groqSubtitle, generationMode, onEdit }: ResultsViewProps) {
+  // Persist minimal context so other pages (e.g., Location details) can reuse cached Brave results
+  // Stores for a short time; harmless if unavailable
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        if (tripData?.tripType) localStorage.setItem('tb:plan-v2:tripType', String(tripData.tripType))
+        if ((tripData as any)?.tripVision) localStorage.setItem('tb:plan-v2:tripVision', String((tripData as any).tripVision))
+        localStorage.setItem('tb:plan-v2:ctx:ts', String(Date.now()))
+      }
+    } catch {}
+  }, [tripData?.tripType, (tripData as any)?.tripVision])
   // Local state for days (allows adding/deleting)
   const [days, setDays] = useState(plan.days)
 
@@ -456,6 +467,10 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
   const [editingActivity, setEditingActivity] = useState<string | null>(null) // Format: "dayNumber-activityIndex-field"
   const [savingActivityData, setSavingActivityData] = useState(false)
   const saveActivityDataTimeoutRef = useRef<NodeJS.Timeout>()
+
+  // Complete Route summary (computed from on-screen route)
+  const [completeRouteKm, setCompleteRouteKm] = useState<number | null>(null)
+  const [completeRouteDurationH, setCompleteRouteDurationH] = useState<number | null>(null)
 
   // Accommodation editing
   const [editingAccommodation, setEditingAccommodation] = useState<string | null>(null) // Format: "dayNumber-field"
@@ -1808,9 +1823,9 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
         </div>
 
         {/* Main Content - Adjusted for wider map */}
-        <div className="grid grid-cols-12 gap-5">
+        <div className="flex gap-5">
           {/* Left Sidebar - Day Navigation - Compact with connection lines */}
-          <div className="col-span-12 xl:col-span-2">
+          <div className="flex-shrink-0 w-[180px]">
             <div className="sticky top-20">
               {/* ITINERARY Title - Match Complete Route style - SLIGHTLY BIGGER */}
               <div className="mb-3 px-1">
@@ -1870,7 +1885,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                               }}
                               title="Click to change location"
                             >
-                              {(() => { const f = formatLocationDisplay(day.location); const region = f.secondary?.split(',')[0]; const display = region ? `${f.main}, ${region}` : f.main; return display; })()}
+                              {formatLocationDisplay(day.location).main}
                             </div>
                             <div className="text-[10px] text-gray-500 leading-tight">{day.date}</div>
                           </div>
@@ -1926,8 +1941,8 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
             </div>
           </div>
 
-          {/* Main Content - Day Details - Narrower to make room for wider map */}
-          <div className="col-span-12 xl:col-span-5" ref={dayContentRef}>
+          {/* Main Content - Day Details - Flexible width */}
+          <div className="flex-1 min-w-0" ref={dayContentRef}>
             <div className="space-y-4">
               {itinerary.filter((day: any) => day.day === selectedDay).map((day: any) => (
                 <div key={day.day}>
@@ -1965,7 +1980,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                     <div className="absolute inset-0 flex items-center justify-center text-white">
                       <div className="text-center">
                         <div className="text-5xl mb-3 drop-shadow-lg">{day.emoji}</div>
-                        <div className="text-2xl font-semibold mb-1.5 drop-shadow-lg">{(() => { const f = formatLocationDisplay(day.location); const region = f.secondary?.split(',')[0]; const display = region ? `${f.main}, ${region}` : f.main; return display; })()}</div>
+                        <div className="text-2xl font-semibold mb-1.5 drop-shadow-lg">{formatLocationDisplay(day.location).main}</div>
                       </div>
                     </div>
                   </div>
@@ -2152,6 +2167,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                           }]}
                           transportMode={tripData.transportMode || 'car'}
                           className="w-full h-48"
+                          showRouteOptions={false}
                         />
                         {Array.isArray(days) && days.length < 2 && (
                           <div className="absolute bottom-3 inset-x-0 flex justify-center z-10">
@@ -2781,9 +2797,9 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
             </div>
           </div>
 
-          {/* Right Sidebar - Map & Trip Stats - WIDER AND TALLER */}
-          <div className="col-span-12 xl:col-span-5">
-            <div className="xl:block hidden">
+          {/* Right Sidebar - Map & Trip Stats - Dynamic width up to 800px */}
+          <div className="hidden xl:flex flex-shrink-0 w-[450px]">
+            <div className="w-full">
               <div className="sticky top-20 space-y-4">
                 {/* Overall Trip Map - Shows entire route with numbered markers - DOUBLE HEIGHT */}
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
@@ -2845,7 +2861,30 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                           locations={routeLocations.map(({ dayNumber, ...rest }: any) => rest)}
                           transportMode={tripData.transportMode || 'car'}
                           previewLocations={previewLocations || undefined}
-                          className="w-[calc(100%+150px)] -mr-[150px] h-[640px]"
+                          onRouteChange={(geometry) => {
+                            try {
+                              const coords = (geometry?.coordinates || []) as Array<[number, number]>
+                              let km = 0
+                              for (let i = 1; i < coords.length; i++) {
+                                const [lon1, lat1] = coords[i-1]
+                                const [lon2, lat2] = coords[i]
+                                const R = 6371
+                                const dLat = (lat2 - lat1) * Math.PI / 180
+                                const dLon = (lon2 - lon1) * Math.PI / 180
+                                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                                          Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+                                          Math.sin(dLon/2) * Math.sin(dLon/2)
+                                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+                                km += R * c
+                              }
+                              const rounded = Math.round(km)
+                              setCompleteRouteKm(rounded)
+                              const mode = (tripData.transportMode || 'car') as string
+                              const speed = mode === 'bike' ? 18 : (mode === 'foot' ? 5 : 70)
+                              setCompleteRouteDurationH(Math.round((km / speed) * 10) / 10)
+                            } catch {}
+                          }}
+                          className="w-full h-[640px] ml-[200px]"
                         />
                         {routeLocations.length < 2 && (
                           <div className="absolute bottom-4 inset-x-0 flex justify-center z-10">
@@ -2862,8 +2901,18 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                   })()}
                   <div className="p-3 bg-white border-t border-gray-100">
                     <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-600">
+                        {completeRouteKm != null ? (
+                          <>Route summary: <span className="font-semibold text-gray-900">{completeRouteKm} km</span>{completeRouteDurationH != null ? <> • ~{completeRouteDurationH} h</> : null}</>
+                        ) : (
+                          'Route summary'
+                        )}
+                      </span>
+                      <span className="text-gray-500">Stops: {days?.length || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] mt-1">
                       <span className="text-gray-600">Viewing Day {selectedDay}</span>
-                      <span className="font-semibold text-gray-900">{itinerary.find((d: any) => d.day === selectedDay)?.location}</span>
+                      <span className="font-semibold text-gray-900">{(() => { const loc = itinerary.find((d: any) => d.day === selectedDay)?.location; return loc ? formatLocationDisplay(loc).main : '' })()}</span>
                     </div>
                   </div>
                 </div>

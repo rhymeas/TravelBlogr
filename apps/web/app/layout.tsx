@@ -24,9 +24,9 @@ export const viewport: Viewport = {
   viewportFit: 'cover', // For notched devices (iPhone X+)
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#000000' }
+    { media: '(prefers-color-scheme: dark)', color: '#ffffff' }
   ],
-  colorScheme: 'light dark'
+  colorScheme: 'light'
 }
 
 export const metadata: Metadata = {

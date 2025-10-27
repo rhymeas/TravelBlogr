@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { searchImages as braveSearchImages } from '@/lib/services/braveSearchService'
 import { getCached, setCached, CacheKeys, CacheTTL } from '@/lib/upstash'
+import { withRedditLimit, fetchWithTimeout } from '@/lib/utils/redditLimiter'
 
 /**
  * Unified Image Discovery API
@@ -172,9 +173,12 @@ async function fetchRedditUltraImages(query: string, limit: number): Promise<str
     if (images.length >= limit) break
 
     try {
-      const response = await fetch(
-        `https://www.reddit.com/r/${subreddit}/search.json?q=${encodeURIComponent(query)}&restrict_sr=1&sort=top&t=year&limit=10`,
-        { headers: { 'User-Agent': 'TravelBlogr/1.0' } }
+      const response = await withRedditLimit(() =>
+        fetchWithTimeout(
+          `https://www.reddit.com/r/${subreddit}/search.json?q=${encodeURIComponent(query)}&restrict_sr=1&sort=top&t=year&limit=10`,
+          { headers: { 'User-Agent': 'TravelBlogr/1.0' } },
+          6000
+        )
       )
 
       if (!response.ok) continue

@@ -79,17 +79,35 @@ export function ImageSelectionModal({
         fetch(`/api/images/search?query=${encodeURIComponent(query)}&source=database&limit=10`),
       ])
 
-      const [braveData, redditData, dbData] = await Promise.all([
-        braveRes.json(),
-        redditRes.json(),
-        dbRes.json(),
-      ])
+      // Check response status before parsing
+      if (!braveRes.ok) {
+        console.error('Brave search failed:', braveRes.status, braveRes.statusText)
+        setBraveImages([])
+      } else {
+        const braveData = await braveRes.json()
+        setBraveImages(braveData.images || [])
+      }
 
-      setBraveImages(braveData.images || [])
-      setRedditImages(redditData.images || [])
-      setDatabaseImages(dbData.images || [])
+      if (!redditRes.ok) {
+        console.error('Reddit search failed:', redditRes.status, redditRes.statusText)
+        setRedditImages([])
+      } else {
+        const redditData = await redditRes.json()
+        setRedditImages(redditData.images || [])
+      }
+
+      if (!dbRes.ok) {
+        console.error('Database search failed:', dbRes.status, dbRes.statusText)
+        setDatabaseImages([])
+      } else {
+        const dbData = await dbRes.json()
+        setDatabaseImages(dbData.images || [])
+      }
     } catch (error) {
       console.error('Image search error:', error)
+      setBraveImages([])
+      setRedditImages([])
+      setDatabaseImages([])
     } finally {
       setLoading(false)
     }

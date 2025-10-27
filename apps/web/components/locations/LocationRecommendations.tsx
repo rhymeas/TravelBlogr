@@ -44,19 +44,20 @@ export function LocationRecommendations({
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {relatedLocations.slice(0, 4).map((location) => (
-          <Link 
-            key={location.id} 
-            href={`/locations/${location.slug}`} 
+          <div
+            key={location.id}
             className="group cursor-pointer"
           >
             <Card className="card-elevated overflow-hidden hover:shadow-sleek-xl transition-all duration-300 group-hover:scale-[1.02]">
               {/* Location Image */}
               <div className="relative h-48 overflow-hidden">
-                <img
-                  src={location.featured_image}
-                  alt={location.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
+                <Link href={`/locations/${location.slug}`} className="block" aria-label={`${location.name} details`}>
+                  <img
+                    src={location.featured_image}
+                    alt={location.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                </Link>
                 
                 {/* Featured Badge */}
                 {location.is_featured && (
@@ -79,7 +80,9 @@ export function LocationRecommendations({
               {/* Location Details */}
               <div className="p-4">
                 <h3 className="text-body-large font-semibold text-sleek-black mb-1 group-hover:text-rausch-500 transition-colors">
-                  {location.name}
+                  <Link href={`/locations/${location.slug}`} className="hover:underline decoration-transparent hover:decoration-inherit">
+                    {location.name}
+                  </Link>
                 </h3>
                 
                 <div className="flex items-center gap-1 text-sleek-gray text-body-medium mb-3">
@@ -115,7 +118,7 @@ export function LocationRecommendations({
                 </div>
               </div>
             </Card>
-          </Link>
+          </div>
         ))}
       </div>
 
@@ -136,8 +139,7 @@ export function LocationRecommendations({
       {/* CMS Integration Note */}
       <div className="mt-8 p-4 bg-gray-50 rounded-sleek-medium">
         <p className="text-body-small text-sleek-gray text-center">
-          <strong>CMS Integration:</strong> Recommendations are automatically generated based on location similarity, 
-          user preferences, and content relationships. The algorithm can be fine-tuned through the admin panel.
+          <strong>Info:</strong> Recommendations are automatically generated based on location similarity, user preferences, and content relationships.
         </p>
       </div>
     </div>

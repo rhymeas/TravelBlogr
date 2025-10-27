@@ -31,16 +31,42 @@ export function LocationThingsToDo({ locationId, locationName, onAddPhoto }: Pro
 
   useEffect(() => {
     let cancelled = false
+    const cacheKey = `tb:things:${locationId}`
+
     const load = async () => {
       try {
-        const res = await fetch(`/api/locations/activities?locationId=${locationId}&limit=12`)
+        // Try local cache first (7 days TTL)
+        const cachedRaw = typeof window !== 'undefined' ? localStorage.getItem(cacheKey) : null
+        if (cachedRaw) {
+          try {
+            const cached = JSON.parse(cachedRaw)
+            const ageMs = Date.now() - (cached.ts || 0)
+            const sevenDaysMs = 7 * 24 * 60 * 60 * 1000
+            if (ageMs < sevenDaysMs && Array.isArray(cached.activities)) {
+              if (!cancelled) {
+                setActivities(cached.activities)
+                setLoading(false)
+                return
+              }
+            }
+          } catch {}
+        }
+
+        const res = await fetch(`/api/locations/activities?locationId=${locationId}&limit=12`, { cache: 'force-cache' })
         const json = await res.json()
         if (!cancelled && json?.success) {
-          setActivities(json.activities || [])
+          const acts = json.activities || []
+          setActivities(acts)
+          try {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), activities: acts }))
+            }
+          } catch {}
         }
       } catch {}
       setLoading(false)
     }
+
     load()
     return () => { cancelled = true }
   }, [locationId])
@@ -113,7 +139,7 @@ export function LocationThingsToDo({ locationId, locationName, onAddPhoto }: Pro
         </ul>
       )}
 
-      <p className="mt-4 text-[11px] text-gray-500">Disclosure: We may earn a commission from bookings. This helps keep TravelBlogr free.</p>
+      <p className="mt-4 text-[11px] text-gray-500">Disclosure: We may earn a commission from bookings. This helps keep TravelBlogr running.</p>
     </div>
   )
 }

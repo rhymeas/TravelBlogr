@@ -294,6 +294,7 @@ export const CacheKeys = {
 
   // Phase 3: Additional cache keys
   location: (slug: string) => `location:${slug}`,
+  locationsAll: () => `locations:all`,
   locationSearch: (query: string, limit: number) => `search:${query}:${limit}`,
   geocoding: (locationName: string) => `geocoding:${locationName}`,
   blogPosts: (status: string, category: string, offset: number, limit: number) =>
@@ -310,6 +311,12 @@ export const CacheKeys = {
   restaurantData: (composite: string) => `restaurant:${composite}`,
   braveWebSearch: (query: string, limit: number) => `brave:web:${query}:${limit}`,
   braveImageSearch: (query: string, limit: number) => `brave:image:${query}:${limit}`,
+
+  // Transport and routing
+  transportRoute: (from: string, to: string, profile: string = 'driving', includeElevation: boolean = false) =>
+    `transport:route:${profile}:${includeElevation ? 'elev' : 'noelev'}:${from}:${to}`,
+  transportSources: (from: string, to: string, profile: string = 'driving') =>
+    `transport:sources:${profile}:${from}:${to}`,
 } as const
 
 /**

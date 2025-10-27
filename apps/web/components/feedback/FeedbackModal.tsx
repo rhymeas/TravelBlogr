@@ -30,34 +30,43 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
     setError('')
 
     try {
+      const payload = {
+        message: message.trim(),
+        email: email.trim() || null,
+        user_id: user?.id || null,
+        page_url: window.location.href,
+        user_agent: navigator.userAgent,
+      }
+
+      console.log('Submitting feedback:', payload)
+
       const response = await fetch('/api/feedback', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          message: message.trim(),
-          email: email.trim() || null,
-          user_id: user?.id || null,
-          page_url: window.location.href,
-          user_agent: navigator.userAgent,
-        }),
+        body: JSON.stringify(payload),
       })
 
+      const responseData = await response.json()
+      console.log('Feedback response:', responseData)
+
       if (!response.ok) {
-        throw new Error('Failed to submit feedback')
+        throw new Error(responseData.error || 'Failed to submit feedback')
       }
 
       setIsSuccess(true)
       setMessage('')
-      
+      setEmail('')
+
       // Close modal after 2 seconds
       setTimeout(() => {
         onClose()
         setIsSuccess(false)
       }, 2000)
     } catch (err) {
-      setError('Failed to send feedback. Please try again.')
+      console.error('Feedback error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to send feedback. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -127,25 +136,24 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                 />
               </div>
 
-              {/* Email (optional for guests) */}
-              {!user && (
-                <div>
-                  <label htmlFor="feedback-email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Email (optional)
-                  </label>
-                  <input
-                    id="feedback-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    We'll use this to follow up with you
-                  </p>
-                </div>
-              )}
+              {/* Email */}
+              <div>
+                <label htmlFor="feedback-email" className="block text-sm font-medium text-gray-700 mb-2">
+                  Email {user ? '(auto-filled)' : '(optional)'}
+                </label>
+                <input
+                  id="feedback-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={!!user}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  We'll use this to follow up with you
+                </p>
+              </div>
 
               {/* Error Message */}
               {error && (

@@ -138,6 +138,10 @@ function mapActivities(supabaseActivities: SupabaseActivity[]): LocationActivity
       ? getActivityFallbackImage(activity.name, activity.category)
       : activity.image_url
 
+    // Map DB link fields (support both legacy website and new link_url)
+    const linkUrl = (activity as any).link_url || activity.website || undefined
+    const linkSource = (activity as any).link_source || undefined
+
     return {
       id: activity.id,
       name: activity.name,
@@ -154,6 +158,9 @@ function mapActivities(supabaseActivities: SupabaseActivity[]): LocationActivity
       image: activityImage,
       address: activity.address || 'Address not available',
       website: activity.website || undefined,
+      // New enriched link fields
+      link_url: linkUrl,
+      link_source: linkSource,
       opening_hours: formatOpeningHours(activity.opening_hours),
       verified: activity.is_verified,
       latitude: activity.latitude,

@@ -9,13 +9,10 @@
  * Convert location name to URL slug
  * Example: "Tokyo, Japan" → "tokyo-japan"
  */
+import { nameToCanonicalSlug } from '@/lib/utils/locationSlug'
+
 export function locationToSlug(locationName: string): string {
-  return locationName
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-')          // Replace spaces with hyphens
-    .replace(/-+/g, '-')           // Remove duplicate hyphens
-    .trim()
+  return nameToCanonicalSlug(locationName)
 }
 
 /**

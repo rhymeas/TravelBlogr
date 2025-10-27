@@ -906,6 +906,7 @@ Keep it informative, engaging, and specific. Write in English only.`
     try {
       featuredImage = await fetchLocationImageHighQuality(
         geoData.name,
+        undefined, // manualUrl
         geoData.adminName1, // Region/state
         geoData.countryName // Country
       )

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Check, Clock, DollarSign, Mountain, Users, Utensils, Waves, Heart, ExternalLink, Globe, Phone, MapPin } from 'lucide-react'
+import { Check, Clock, DollarSign, Mountain, Users, Utensils, Waves, Heart, ExternalLink, Globe, Phone, MapPin, Loader2 } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { LocationActivity } from '@/lib/data/locationsData'
@@ -47,6 +47,24 @@ export function LocationActivities({ activities, locationName }: LocationActivit
   // V2 planner parity: enrichment for images/links via Brave endpoint
   const [enrichments, setEnrichments] = useState<Record<string, any>>({})
   const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set())
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set())
+
+  // Read contextual trip info from Plan V2 (if user just planned a trip in this session)
+  // We mirror ResultsView ActivityEnrichment by passing tripType + a lightweight context string
+  const [tripTypeCtx, setTripTypeCtx] = useState<string | undefined>(undefined)
+  const [visionCtx, setVisionCtx] = useState<string | undefined>(undefined)
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        // Try a few known keys used by planner UIs (best-effort; harmless if absent)
+        const v2Ctx = localStorage.getItem('tb:plan-v2:tripVision') || localStorage.getItem('tb:tripVision')
+        const v2Type = localStorage.getItem('tb:plan-v2:tripType') || localStorage.getItem('tb:tripType')
+        setVisionCtx(v2Ctx ? v2Ctx.trim() : undefined)
+        setTripTypeCtx(v2Type ? v2Type.trim() : undefined)
+      }
+    } catch {}
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -63,11 +81,38 @@ export function LocationActivities({ activities, locationName }: LocationActivit
             type: 'activity',
             count: '1'
           })
+          if (tripTypeCtx) params.append('tripType', tripTypeCtx)
+          if (visionCtx) params.append('context', visionCtx)
+
           const res = await fetch(`/api/brave/activity-image?${params.toString()}`)
           const json = await res.json()
-          const link = json?.data?.links?.[0] || null
+
+          const images = Array.isArray(json?.data?.images) ? json.data.images : []
+          const links = Array.isArray(json?.data?.links) ? json.data.links : []
+          let bestLink = links.find((l: any) => !!l?.url) || links[0] || null
+
+          // GROQ fallback if Brave returns no link
+          if (!bestLink) {
+            try {
+              const groqRes = await fetch('/api/groq/activity-description', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ activityName: a.name, location: locationName, tripType: tripTypeCtx, context: visionCtx })
+              })
+              const groqJson = await groqRes.json()
+              if (groqJson?.success) {
+                bestLink = { url: groqJson.url || null, description: groqJson.description || '' }
+              }
+            } catch {}
+          }
+
+          const enrichment = {
+            ...(bestLink || {}),
+            thumbnail: images?.[0]?.thumbnail || images?.[0]?.url || null
+          }
+
           if (!cancelled) {
-            setEnrichments(prev => ({ ...prev, [a.id]: link || {} }))
+            setEnrichments(prev => ({ ...prev, [a.id]: enrichment }))
           }
         } catch (e) {
           // non-fatal
@@ -78,7 +123,7 @@ export function LocationActivities({ activities, locationName }: LocationActivit
     })()
 
     return () => { cancelled = true }
-  }, [locationName, displayedActivities.map(a => a.id).join(',')])
+  }, [locationName, displayedActivities.map(a => a.id).join(','), tripTypeCtx, visionCtx])
 
   const toggleActivity = (activityId: string) => {
     const newChecked = new Set(checkedActivities)
@@ -109,13 +154,19 @@ export function LocationActivities({ activities, locationName }: LocationActivit
           const isChecked = checkedActivities.has(activity.id)
           
           const imgUrl = activity.image_url || (activity as any).image || enrichments[activity.id]?.thumbnail
-          const linkHref = activity.link_url || activity.website || enrichments[activity.id]?.url
           const enrich = enrichments[activity.id] || {}
+          // Be robust: use any available link from enrichment or activity
+          const linkHref = activity.link_url
+            || activity.website
+            || enrich.url
+            || enrich.website
+            || enrich.directionsUrl
+            || null
 
           return (
             <div
               key={activity.id}
-              className={`flex items-start gap-4 p-4 rounded-sleek-medium border transition-all duration-200 ${
+              className={`flex items-start gap-4 p-4 rounded-2xl border transition-all duration-200 ${
                 isAuthenticated ? 'cursor-pointer' : 'cursor-default'
               } hover:shadow-sleek-small ${
                 isChecked
@@ -135,9 +186,9 @@ export function LocationActivities({ activities, locationName }: LocationActivit
                 </div>
               )}
 
-              {/* Activity Image or Icon (with V2 enrichment) */}
+              {/* Activity Image or Icon (with V2 enrichment) - 20% smaller */}
               {imgUrl ? (
-                <div className="flex-shrink-0 w-16 h-16 rounded-sleek-small overflow-hidden bg-gray-100">
+                <div className="flex-shrink-0 w-13 h-13 rounded-xl overflow-hidden bg-gray-100">
                   <img
                     src={imgUrl}
                     alt={activity.name}
@@ -146,8 +197,8 @@ export function LocationActivities({ activities, locationName }: LocationActivit
                       // Fallback to icon if image fails to load
                       e.currentTarget.style.display = 'none'
                       e.currentTarget.parentElement!.innerHTML = `
-                        <div class="w-full h-full bg-rausch-50 flex items-center justify-center">
-                          <svg class="h-6 w-6 text-rausch-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div class="w-full h-full bg-gray-100 flex items-center justify-center">
+                          <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                           </svg>
                         </div>
@@ -155,9 +206,14 @@ export function LocationActivities({ activities, locationName }: LocationActivit
                     }}
                   />
                 </div>
+              ) : loadingIds.has(activity.id) ? (
+                <div className="flex-shrink-0 w-13 h-13 bg-gray-100 rounded-sleek-small flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
+                </div>
               ) : (
-                <div className="flex-shrink-0 w-16 h-16 bg-rausch-50 rounded-sleek-small flex items-center justify-center">
-                  <IconComponent className="h-6 w-6 text-rausch-500" />
+                <div className="flex-shrink-0 w-13 h-13 bg-gray-100 rounded-sleek-small flex items-center justify-center">
+                  {/* Icon intentionally neutralized to remove red accent */}
+                  <IconComponent className="h-5 w-5 text-gray-400" />
                 </div>
               )}
 
@@ -167,7 +223,19 @@ export function LocationActivities({ activities, locationName }: LocationActivit
                   <h4 className={`text-body-large font-semibold transition-colors truncate ${
                     isChecked ? 'text-green-800 line-through' : 'text-sleek-black'
                   }`}>
-                    {activity.name}
+                    {linkHref ? (
+                      <a
+                        href={linkHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="hover:text-rausch-600 underline decoration-transparent hover:decoration-inherit"
+                      >
+                        {activity.name}
+                      </a>
+                    ) : (
+                      activity.name
+                    )}
                   </h4>
                   <div className="flex flex-wrap items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
                     {activity.duration && (
@@ -189,32 +257,77 @@ export function LocationActivities({ activities, locationName }: LocationActivit
                     )}
                   </div>
                 </div>
-                <p className="text-body-medium text-sleek-dark-gray mb-2">
-                  {activity.description}
-                </p>
 
-                {/* Activity Link (V2 parity: use enrichment + provider pills) */}
-                {linkHref && (
+                {/* Description with V2 enrichment and expand/collapse */}
+                {(() => {
+                  const baseDesc = activity.description || ''
+                  const enrichDesc = enrich?.description || ''
+                  const finalDesc = enrichDesc || baseDesc
+                  const isExpanded = expandedDescriptions.has(activity.id)
+                  const needsShowMore = finalDesc.length > 100
+
+                  // Clean HTML tags from description
+                  const cleanDesc = finalDesc.replace(/<[^>]*>/g, '').trim()
+                  const displayDesc = needsShowMore && !isExpanded
+                    ? cleanDesc.slice(0, 100) + '...'
+                    : cleanDesc
+
+                  return (
+                    <div className="text-body-medium text-sleek-dark-gray mb-2">
+                      <p className="inline">{displayDesc}</p>
+                      {needsShowMore && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setExpandedDescriptions(prev => {
+                              const next = new Set(prev)
+                              if (next.has(activity.id)) {
+                                next.delete(activity.id)
+                              } else {
+                                next.add(activity.id)
+                              }
+                              return next
+                            })
+                          }}
+                          className="ml-2 text-sm text-rausch-500 hover:text-rausch-600 font-medium"
+                        >
+                          {isExpanded ? 'Show less' : 'Show more'}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })()}
+
+                {/* Activity Link (V2 parity): show any available link/pills; Learn more only if we have a primary URL */}
+                {(linkHref || enrich?.website || enrich?.directionsUrl || enrich?.phone) && (
                   <div className="flex items-center gap-3 flex-wrap">
-                    <a
-                      href={linkHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-sm text-rausch-500 hover:text-rausch-600 font-medium transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      Learn more
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
+                    {linkHref && (
+                      <a
+                        href={linkHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-sm text-rausch-500 hover:text-rausch-600 font-medium transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Learn more
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    )}
                     <div className="inline-flex items-center gap-2 text-xs text-sleek-gray">
                       {enrich?.phone && (
-                        <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3" />{enrich.phone}</span>
+                        <a href={`tel:${enrich.phone}`} className="inline-flex items-center gap-1 hover:text-rausch-600" onClick={(e)=>e.stopPropagation()}>
+                          <Phone className="h-3 w-3" />{enrich.phone}
+                        </a>
                       )}
                       {enrich?.website && (
-                        <span className="inline-flex items-center gap-1"><Globe className="h-3 w-3" />Website</span>
+                        <a href={enrich.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-rausch-600" onClick={(e)=>e.stopPropagation()}>
+                          <Globe className="h-3 w-3" />Website
+                        </a>
                       )}
                       {enrich?.directionsUrl && (
-                        <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />Directions</span>
+                        <a href={enrich.directionsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-rausch-600" onClick={(e)=>e.stopPropagation()}>
+                          <MapPin className="h-3 w-3" />Directions
+                        </a>
                       )}
                     </div>
                   </div>

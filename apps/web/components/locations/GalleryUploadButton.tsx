@@ -30,9 +30,9 @@ export function GalleryUploadButton({ locationId, locationSlug, locationName }: 
   return (
     <>
       <Button
-        variant="outline"
+        variant="ghost"
         size="sm"
-        className="bg-gray-100 hover:bg-gray-200 text-sleek-black"
+        className="text-gray-700 hover:text-gray-900"
         onClick={onClick}
       >
         Upload Photos

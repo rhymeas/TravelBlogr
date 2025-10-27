@@ -6,7 +6,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { message, email, user_id, page_url, user_agent } = body
 
+    console.log('[Feedback API] Received:', { message: message?.substring(0, 50), email, user_id, page_url })
+
     if (!message || !message.trim()) {
+      console.error('[Feedback API] Message is empty')
       return NextResponse.json(
         { error: 'Message is required' },
         { status: 400 }
@@ -30,18 +33,19 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Error inserting feedback:', error)
+      console.error('[Feedback API] Database error:', error)
       return NextResponse.json(
-        { error: 'Failed to save feedback' },
+        { error: `Failed to save feedback: ${error.message}` },
         { status: 500 }
       )
     }
 
+    console.log('[Feedback API] Success:', data?.id)
     return NextResponse.json({ success: true, data })
   } catch (error) {
-    console.error('Error processing feedback:', error)
+    console.error('[Feedback API] Exception:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: `Internal server error: ${error instanceof Error ? error.message : 'Unknown'}` },
       { status: 500 }
     )
   }

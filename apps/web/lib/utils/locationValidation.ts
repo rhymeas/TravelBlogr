@@ -14,6 +14,9 @@ export function isAmbiguousLocationName(rawName: string | null | undefined): boo
     /^(unknown|tbd|unspecified)$/i,
     /^intermediate\s*$/i,
     /^destination\s*$/i,
+    // CRITICAL: Block "travel to", "way to", "go to" type names
+    /^(travel|way|go|route|trip|journey|path)\s+(to|from|via)\s+/i,
+    /\b(travel|way|go|route|trip|journey|path)\s+(to|from|via)\s+/i,
   ]
 
   if (patterns.some((re) => re.test(name))) return true
@@ -23,6 +26,7 @@ export function isAmbiguousLocationName(rawName: string | null | undefined): boo
     'border', 'the border', 'checkpoint', 'crossing',
     'intermediate city', 'intermediate', 'waypoint', 'stop',
     'unknown', 'tbd', 'unspecified',
+    'travel to', 'way to', 'go to', 'route to', 'trip to',
   ]
   if (genericOnly.includes(lower)) return true
 

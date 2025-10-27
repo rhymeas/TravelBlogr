@@ -51,6 +51,7 @@ export function TripPlannerV2({ showVersionToggle, onVersionToggle, currentVersi
   const [error, setError] = useState<string | null>(null)
   const [providerHealth, setProviderHealth] = useState<any>(null)
   const [generationMode, setGenerationMode] = useState<'standard' | 'pro' | 'two-stage' | undefined>(undefined)
+  const [abortController, setAbortController] = useState<AbortController | null>(null)
 
   const [tripData, setTripData] = useState<TripPlanData>({
     // Phase 1: Journey Foundation
@@ -138,6 +139,10 @@ export function TripPlannerV2({ showVersionToggle, onVersionToggle, currentVersi
     setIsGenerating(true)
     setError(null)
 
+    // Create AbortController for cancellation
+    const controller = new AbortController()
+    setAbortController(controller)
+
     // Timeout detection (30 seconds)
     const timeoutId = setTimeout(() => {
       if (isGenerating) {
@@ -168,7 +173,8 @@ export function TripPlannerV2({ showVersionToggle, onVersionToggle, currentVersi
           proMode: false,
           tripType: tripData.tripType,
           tripVision: (tripData as any).tripVision || ''
-        })
+        }),
+        signal: controller.signal // Add abort signal
       })
       const endTime = Date.now()
       const duration = endTime - startTime
@@ -252,8 +258,16 @@ export function TripPlannerV2({ showVersionToggle, onVersionToggle, currentVersi
 
         setError(data.error || 'Failed to generate plan. Please try again.')
       }
-    } catch (error) {
+    } catch (error: any) {
       clearTimeout(timeoutId)
+
+      // Check if request was cancelled
+      if (error.name === 'AbortError') {
+        console.log('🛑 V2 - Generation cancelled by user')
+        setError(null) // Clear error on cancel
+        return
+      }
+
       console.error('❌ V2 - Network error:', error)
 
       // Retry logic for network errors - max 2 retries
@@ -267,6 +281,17 @@ export function TripPlannerV2({ showVersionToggle, onVersionToggle, currentVersi
       setError('Network error. Please check your connection and try again.')
     } finally {
       setIsGenerating(false)
+      setAbortController(null)
+    }
+  }
+
+  const handleCancelGeneration = () => {
+    if (abortController) {
+      console.log('🛑 V2 - Cancelling generation...')
+      abortController.abort()
+      setIsGenerating(false)
+      setAbortController(null)
+      setError(null)
     }
   }
 
@@ -325,7 +350,7 @@ export function TripPlannerV2({ showVersionToggle, onVersionToggle, currentVersi
   return (
     <div className="min-h-screen bg-gray-50">
       {/* V1 Loading Modal - Reused directly */}
-      <LoadingModal isOpen={isGenerating} />
+      <LoadingModal isOpen={isGenerating} onCancel={handleCancelGeneration} />
 
       {/* Progress indicator - V1 style */}
       <div className="bg-white border-b border-gray-200">

@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
+
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { SmartImage as Image } from '@/components/ui/SmartImage'
-import { Star, Heart, Eye, MapPin, Calendar, Users, Share2, Bookmark, Edit2, RefreshCw, Trash2 } from 'lucide-react'
+import { Star, Heart, Eye, MapPin, Calendar, Users, Share2, Bookmark, Edit2, RefreshCw, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
 import { Location } from '@/lib/data/locationsData'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -19,12 +21,15 @@ import { EditableLocationRestaurants } from './EditableLocationRestaurants'
 import { EditableLocationTitle } from './EditableLocationTitle'
 import { EditLocationMetadata } from './EditLocationMetadata'
 import { LocationWeather } from './LocationWeather'
+import { LocationResearchWidget } from './LocationResearchWidget'
 import { AuthenticatedLocationActions } from './AuthenticatedLocationActions'
 import { SignUpPrompt } from '../auth/SignUpPrompt'
 import { useAuth } from '@/hooks/useAuth'
 import { isAdmin } from '@/lib/utils/adminCheck'
 import { SimpleLocationMap } from '@/components/maps/SimpleLocationMap'
 import { LocationImageGallery } from './LocationImageGallery'
+import { LocationTransport } from './LocationTransport'
+
 import { LocationRating } from './LocationRating'
 import { LocationViewTracker } from './LocationViewTracker'
 import { NotesWidget } from '@/components/notes/NotesWidget'
@@ -75,7 +80,13 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
   const [includeActivitiesRefetch, setIncludeActivitiesRefetch] = useState(true)
   const [includeDescriptionRefetch, setIncludeDescriptionRefetch] = useState(true)
   const [includeMetadataRefetch, setIncludeMetadataRefetch] = useState(false)
+  // Portal mount guard to avoid transform/stacking issues
+  const [mountedPortal, setMountedPortal] = useState(false)
+  useEffect(() => setMountedPortal(true), [])
+
   const [includeWeatherRefetch, setIncludeWeatherRefetch] = useState(false)
+  // Collapse Location Map when Transport map is visible to save vertical space
+  const [isLocationMapCollapsed, setIsLocationMapCollapsed] = useState(false)
 
 
   // Admin: Refetch location data
@@ -89,6 +100,7 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           locationId: location.id,
+          locationSlug: location.slug,
           locationName: location.name,
           includeImages: includeImageRefetch,
           includeRestaurants: includeRestaurantsRefetch,
@@ -259,11 +271,6 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
               showLabels={true}
             />
           </div>
-          <div className="max-w-[460px]">
-            <p className="text-[11px] text-gray-600 border border-gray-200 rounded-full px-3 py-1 bg-gray-50">
-              We don’t own images. Please share your photos to promote your favorite location.
-            </p>
-          </div>
         </div>
         </div>
       </div>
@@ -326,14 +333,21 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
 
             {/* CMS-Driven Content Sections - Editable */}
             <div className={isEditMode ? 'ring-2 ring-blue-300 ring-offset-4 rounded-lg transition-all' : ''}>
-              <EditableLocationActivities
-                locationId={location.id}
-                locationSlug={location.slug}
-                activities={location.activities || []}
-                locationName={location.name}
-                country={location.country}
-                enabled={isEditMode}
-              />
+              {isEditMode ? (
+                <EditableLocationActivities
+                  locationId={location.id}
+                  locationSlug={location.slug}
+                  activities={location.activities || []}
+                  locationName={location.name}
+                  country={location.country}
+                  enabled={isEditMode}
+                />
+              ) : (
+                <LocationActivities
+                  activities={location.activities || []}
+                  locationName={location.name}
+                />
+              )}
             </div>
 
             <div className={isEditMode ? 'ring-2 ring-blue-300 ring-offset-4 rounded-lg transition-all' : ''}>
@@ -366,20 +380,48 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
                 size="standard"
               />
             </div>
+              {/* Transport & Directions (main section) */}
+              {location.latitude && location.longitude && (
+                <div className="mb-8">
+                  <LocationTransport
+                    locationName={location.name}
+                    latitude={location.latitude}
+                    longitude={location.longitude}
+                    onRouteVisibleChange={(visible) => visible && setIsLocationMapCollapsed(true)}
+                  />
+                </div>
+              )}
+
 
             {/* Map Section */}
             {location.latitude && location.longitude && (
               <div className="mb-8">
-                <h2 className="text-title-medium font-semibold text-sleek-black mb-6">
-                  📍 Location Map
-                </h2>
-                <SimpleLocationMap
-                  latitude={location.latitude}
-                  longitude={location.longitude}
-                  name={location.name}
-                  restaurants={location.restaurants?.slice(0, 10)}
-                  activities={location.activities?.slice(0, 10)}
-                />
+                <div className="flex items-center justify-between mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsLocationMapCollapsed(v => !v)}
+                    className="flex items-center gap-2 text-title-medium font-semibold text-sleek-black"
+                    aria-expanded={!isLocationMapCollapsed}
+                  >
+                    {isLocationMapCollapsed ? <ChevronRight className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>}
+                    <span>📍 Location Map</span>
+                  </button>
+                </div>
+                {isLocationMapCollapsed && (
+                  <span className="ml-6 mt-1 inline-block text-[11px] text-gray-600 bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5">
+                    Expand to see full map
+                  </span>
+                )}
+
+                {!isLocationMapCollapsed && (
+                  <SimpleLocationMap
+                    latitude={location.latitude}
+                    longitude={location.longitude}
+                    name={location.name}
+                    restaurants={location.restaurants?.slice(0, 10)}
+                    activities={location.activities?.slice(0, 10)}
+                  />
+                )}
               </div>
             )}
 
@@ -464,6 +506,13 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
             ) : (
               <SignUpPrompt context="location" />
             )}
+
+            {/* Research Widget (sleek, monochrome, bubbly) */}
+            <LocationResearchWidget
+              locationSlug={location.slug}
+              locationName={location.name}
+              limit={5}
+            />
 
             {/* Weather Widget */}
             <LocationWeather locationSlug={location.slug} locationName={location.name} />
@@ -806,152 +855,156 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
         </div>
       )}
 
-      {/* Refetch Data Modal */}
-      {showRefetchModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
-            {/* Loading State */}
-            {isRefetching ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <div className="mb-4">
-                  <RefreshCw className="h-8 w-8 text-amber-600 animate-spin" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Refetching Data
-                </h3>
-                <p className="text-sm text-gray-600 text-center">
-                  Fetching images, restaurants, and activities for "{location.name}"...
-                </p>
-                <div className="mt-4 w-full bg-gray-200 rounded-full h-1">
-                  <div className="bg-amber-600 h-1 rounded-full animate-pulse" style={{ width: '60%' }} />
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-start gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                    <RefreshCw className="h-6 w-6 text-amber-600" />
+      {/* Refetch Data Modal (rendered via portal to avoid transform/stacking issues) */}
+      {showRefetchModal && mountedPortal && createPortal(
+        <div className="fixed inset-0 z-[70] p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowRefetchModal(false)} />
+          <div className="relative z-[71] mx-auto max-w-md w-full">
+            <div className="bg-white rounded-xl shadow-2xl w-full p-6 animate-in fade-in zoom-in duration-200">
+              {/* Loading State */}
+              {isRefetching ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="mb-4">
+                    <RefreshCw className="h-8 w-8 text-amber-600 animate-spin" />
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                      Refetch Location Data
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Update restaurants, activities, and optionally images for "{location.name}"
-                    </p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Refetching Data
+                  </h3>
+                  <p className="text-sm text-gray-600 text-center">
+                    Fetching images, restaurants, and activities for "{location.name}"...
+                  </p>
+                  <div className="mt-4 w-full bg-gray-200 rounded-full h-1">
+                    <div className="bg-amber-600 h-1 rounded-full animate-pulse" style={{ width: '60%' }} />
                   </div>
                 </div>
+              ) : (
+                <>
+                  <div className="flex items-start gap-4 mb-6">
+                    <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                      <RefreshCw className="h-6 w-6 text-amber-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        Refetch Location Data
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Update restaurants, activities, and optionally images for "{location.name}"
+                      </p>
+                    </div>
+                  </div>
 
-                {/* What to Refetch */}
-                <div className="mb-6 space-y-3 max-h-[400px] overflow-y-auto">
-                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={includeImageRefetch}
-                        onChange={(e) => setIncludeImageRefetch(e.target.checked)}
-                        className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900 text-sm mb-1">
-                          Images (featured + gallery)
+                  {/* What to Refetch */}
+                  <div className="mb-6 space-y-3 max-h-[400px] overflow-y-auto">
+                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={includeImageRefetch}
+                          onChange={(e) => setIncludeImageRefetch(e.target.checked)}
+                          className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900 text-sm mb-1">
+                            Images (featured + gallery)
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            Brave + Reddit Ultra + Wikimedia with hierarchical fallback and validation.
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-600">
-                          Brave + Reddit Ultra + Wikimedia with hierarchical fallback and validation.
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={includeRestaurantsRefetch}
+                          onChange={(e) => setIncludeRestaurantsRefetch(e.target.checked)}
+                          className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900 text-sm mb-1">Restaurants</div>
+                          <div className="text-xs text-gray-600">Refresh places to eat with latest links</div>
                         </div>
-                      </div>
-                    </label>
+                      </label>
+
+                      <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={includeActivitiesRefetch}
+                          onChange={(e) => setIncludeActivitiesRefetch(e.target.checked)}
+                          className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900 text-sm mb-1">Activities</div>
+                          <div className="text-xs text-gray-600">Update attractions + experiences</div>
+                        </div>
+                      </label>
+
+                      <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={includeDescriptionRefetch}
+                          onChange={(e) => setIncludeDescriptionRefetch(e.target.checked)}
+                          className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900 text-sm mb-1">Description</div>
+                          <div className="text-xs text-gray-600">Refresh short guide from WikiVoyage/Wikipedia</div>
+                        </div>
+                      </label>
+
+                      <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={includeMetadataRefetch}
+                          onChange={(e) => setIncludeMetadataRefetch(e.target.checked)}
+                          className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900 text-sm mb-1">Metadata</div>
+                          <div className="text-xs text-gray-600">Re-verify coordinates/region/country</div>
+                        </div>
+                      </label>
+
+                      <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={includeWeatherRefetch}
+                          onChange={(e) => setIncludeWeatherRefetch(e.target.checked)}
+                          className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900 text-sm mb-1">Weather</div>
+                          <div className="text-xs text-gray-600">Refresh average temps & rainfall (if enabled)</div>
+                        </div>
+                      </label>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={includeRestaurantsRefetch}
-                        onChange={(e) => setIncludeRestaurantsRefetch(e.target.checked)}
-                        className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900 text-sm mb-1">Restaurants</div>
-                        <div className="text-xs text-gray-600">Refresh places to eat with latest links</div>
-                      </div>
-                    </label>
-
-                    <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={includeActivitiesRefetch}
-                        onChange={(e) => setIncludeActivitiesRefetch(e.target.checked)}
-                        className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900 text-sm mb-1">Activities</div>
-                        <div className="text-xs text-gray-600">Update attractions + experiences</div>
-                      </div>
-                    </label>
-
-                    <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={includeDescriptionRefetch}
-                        onChange={(e) => setIncludeDescriptionRefetch(e.target.checked)}
-                        className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900 text-sm mb-1">Description</div>
-                        <div className="text-xs text-gray-600">Refresh short guide from WikiVoyage/Wikipedia</div>
-                      </div>
-                    </label>
-
-                    <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={includeMetadataRefetch}
-                        onChange={(e) => setIncludeMetadataRefetch(e.target.checked)}
-                        className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900 text-sm mb-1">Metadata</div>
-                        <div className="text-xs text-gray-600">Re-verify coordinates/region/country</div>
-                      </div>
-                    </label>
-
-                    <label className="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={includeWeatherRefetch}
-                        onChange={(e) => setIncludeWeatherRefetch(e.target.checked)}
-                        className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900 text-sm mb-1">Weather</div>
-                        <div className="text-xs text-gray-600">Refresh average temps & rainfall (if enabled)</div>
-                      </div>
-                    </label>
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowRefetchModal(false)}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleRefetch}
+                      className="flex-1 bg-amber-600 hover:bg-amber-700"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Refetch Now
+                    </Button>
                   </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowRefetchModal(false)}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleRefetch}
-                    className="flex-1 bg-amber-600 hover:bg-amber-700"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Refetch Now
-                  </Button>
-                </div>
-              </>
-            )}
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </main>
     </div>

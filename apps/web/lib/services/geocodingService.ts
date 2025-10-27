@@ -12,6 +12,7 @@ import { createServerSupabase } from '@/lib/supabase-server'
 import { getOrSet, CacheKeys, CacheTTL } from '@/lib/upstash'
 
 import { isAmbiguousLocationName, DUPLICATE_COORD_THRESHOLD } from '@/lib/utils/locationValidation'
+import { generateLocationSlug } from '@/lib/utils/locationSlug'
 
 const ORS_API_KEY = process.env.OPENROUTESERVICE_API_KEY || process.env.NEXT_PUBLIC_OPENROUTESERVICE_API_KEY
 const ORS_GEOCODE_URL = 'https://api.openrouteservice.org/geocode'
@@ -214,12 +215,8 @@ async function cacheGeocode(locationName: string, result: GeocodedLocation): Pro
       return
     }
 
-    // CRITICAL FIX: Use original user input for slug generation (matches LocationDiscoveryService)
-    // This ensures consistency: "Lofthus Norway" → slug "lofthus-norway" (not "lofthus")
-    const slug = locationName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '')
+    // Canonical slug generation (city[-region]-country), robust de-noising
+    const slug = generateLocationSlug(locationName, result.region, result.country)
 
     console.log(`🔗 Caching geocode with slug: "${locationName}" → "${slug}"`)
 

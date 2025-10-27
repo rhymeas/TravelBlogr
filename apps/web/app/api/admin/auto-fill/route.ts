@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { generateLocationSlug } from '@/lib/utils/locationSlug'
 import {
   fetchLocationImageHighQuality,
   fetchLocationGalleryHighQuality,
@@ -241,11 +242,8 @@ export async function POST(request: NextRequest) {
       slugParts.push(countryName)
     }
 
-    const slug = slugParts
-      .join(' ')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')
+    // Use canonical generator to enforce holistic rules
+    const slug = generateLocationSlug(cityName, geoData.region, countryName)
 
     console.log(`🔗 Generated clean slug: "${cityName}" + "${countryName}" → "${slug}"`)
 
