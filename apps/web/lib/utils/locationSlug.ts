@@ -12,12 +12,7 @@
  */
 
 const NOISY_PREFIXES = [
-  'start', 'stop', 'checkpoint', 'pintu', 'gate', 'post',
-  'travel', 'way', 'go', 'route', 'trip', 'journey', 'path'
-]
-
-const NOISY_CONNECTORS = [
-  'to', 'from', 'via'
+  'start', 'stop', 'checkpoint', 'pintu', 'gate', 'post'
 ]
 
 const ADMIN_WORDS = [
@@ -40,7 +35,6 @@ function toTokens(text?: string | null): string[] {
   const filtered: string[] = []
 
   let skipNextOf = false
-  let skipNextConnector = false
   for (let i = 0; i < words.length; i++) {
     let w = words[i]
     if (!w) continue
@@ -48,18 +42,8 @@ function toTokens(text?: string | null): string[] {
     // Drop numeric tokens (zip codes, house numbers)
     if (/^\d+$/.test(w)) continue
 
-    // Drop leading noisy prefixes (start-, stop-, travel-, way-, etc.)
-    if (i === 0 && NOISY_PREFIXES.includes(w)) {
-      skipNextConnector = true
-      continue
-    }
-
-    // Drop connectors after noisy prefixes (to, from, via)
-    if (skipNextConnector && NOISY_CONNECTORS.includes(w)) {
-      skipNextConnector = false
-      continue
-    }
-    skipNextConnector = false
+    // Drop leading noisy prefixes (start-, stop-, etc.)
+    if (i === 0 && NOISY_PREFIXES.includes(w)) continue
 
     // Drop admin words and their trailing "of"
     if (ADMIN_WORDS.includes(w)) { skipNextOf = true; continue }
