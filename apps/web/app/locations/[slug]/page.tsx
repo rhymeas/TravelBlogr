@@ -16,9 +16,15 @@ interface LocationPageProps {
 }
 
 export default async function LocationPage({ params }: LocationPageProps) {
-  // Fetch directly from database (no cache) to ensure fresh data
-  console.log(`🔍 Fetching location from database: ${params.slug}`)
-  const supabaseLocation = await getLocationBySlug(params.slug)
+  // Use Upstash cache for fast loading (our speed backbone!)
+  const supabaseLocation = await getOrSet(
+    CacheKeys.location(params.slug),
+    async () => {
+      console.log(`🔍 Fetching location from database: ${params.slug}`)
+      return await getLocationBySlug(params.slug)
+    },
+    CacheTTL.LONG // 24 hours
+  )
 
   if (!supabaseLocation) {
     notFound()
