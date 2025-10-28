@@ -9,6 +9,8 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
+import { findScenicWaypoints, findPOIRichWaypoints } from './scenicRouteService'
+import { getValhallaRoute, isValhallaAvailable } from './valhallaService'
 
 // Initialize Supabase client
 function getSupabaseClient() {
@@ -38,67 +40,188 @@ export interface RouteResult {
 
 /**
  * Get route between multiple coordinates
- * Tries OpenRouteService first, falls back to OSRM if unavailable
+ *
+ * 🎯 ROUTE DIFFERENTIATION STRATEGY (2025-01-27)
+ * Different route types use different approaches to ensure variety:
+ *
+ * - FASTEST: ORS with 'fastest' preference (highways, toll roads)
+ * - SHORTEST: ORS with 'shortest' preference (direct path)
+ * - SCENIC: ORS with avoid_features=['highways'] + OSRM alternatives (scenic roads)
+ * - LONGEST: OSRM alternatives, pick longest route
+ *
+ * 📚 Documentation: docs/ROUTE_CALCULATION_EXPERIMENT.md
  */
 export async function getRoute(
   coordinates: RouteCoordinate[],
   profile: TransportProfile = 'driving-car',
-  preference?: 'fastest' | 'shortest' | 'recommended' | 'scenic' | 'longest'
+  preference?: 'fastest' | 'shortest' | 'recommended' | 'scenic' | 'longest',
+  bustCache: boolean = false
 ): Promise<RouteResult> {
   if (coordinates.length < 2) {
     throw new Error('At least 2 coordinates required for routing')
   }
 
-  // Check cache first
+  // Check cache first (unless cache busting)
   const cacheKey = generateCacheKey(coordinates, profile, preference)
-  const cached = await getCachedRoute(cacheKey)
-  if (cached) {
-    console.log('✅ Route from cache:', cacheKey)
-    return { ...cached, provider: 'cache' }
+  if (!bustCache) {
+    const cached = await getCachedRoute(cacheKey)
+    if (cached) {
+      console.log('✅ Route from cache:', cacheKey)
+      return { ...cached, provider: 'cache' }
+    }
+  } else {
+    console.log('🔄 Cache busting enabled - forcing fresh calculation')
   }
 
-  // Special handling for 'longest': Use OSRM alternatives and pick the longest
+  console.log(`🛣️ Calculating ${preference || 'default'} route...`)
+
+  // STRATEGY 1: VALHALLA - Use self-hosted Valhalla for scenic and longest routes
+  if (preference === 'scenic' || preference === 'longest') {
+    console.log(`🏞️ Trying Valhalla for ${preference} route...`)
+    try {
+      // Check if Valhalla is available
+      const valhallaAvailable = await isValhallaAvailable()
+
+      if (valhallaAvailable) {
+        const route = await getValhallaRoute(
+          coordinates[0],
+          coordinates[coordinates.length - 1],
+          preference
+        )
+        await cacheRoute(cacheKey, route)
+        console.log(`✅ Valhalla ${preference} route: ${(route.distance / 1000).toFixed(1)}km, ${(route.duration / 60).toFixed(0)}min`)
+        return route
+      } else {
+        console.log('   ⚠️ Valhalla not available, falling back to OSRM + custom waypoints')
+      }
+    } catch (error) {
+      console.warn('⚠️ Valhalla failed, falling back to OSRM + custom waypoints:', error)
+    }
+  }
+
+  // STRATEGY 2: OSRM + CUSTOM WAYPOINTS - Fallback for scenic/longest routes
   if (preference === 'longest') {
+    console.log('🎯 Creating longest route through POI-rich areas (OSRM fallback)...')
     try {
       const osrmProfile = mapToOSRMProfile(profile)
-      const route = await getOSRMLongestRoute(coordinates, osrmProfile)
+
+      // Try to find POI-rich waypoints
+      const poiWaypoints = await findPOIRichWaypoints(
+        coordinates[0],
+        coordinates[coordinates.length - 1],
+        50 // Max 50% detour
+      )
+
+      let detourCoords: RouteCoordinate[]
+      if (poiWaypoints.length > 0) {
+        // Use intelligent POI-rich waypoints
+        detourCoords = [coordinates[0], ...poiWaypoints, coordinates[coordinates.length - 1]]
+        console.log(`   ✅ Using ${poiWaypoints.length} POI-rich waypoints`)
+      } else {
+        // Fallback to geometric waypoint
+        console.log('   ⚠️ No POI-rich areas found, using geometric waypoint')
+        detourCoords = addScenicDetourWaypoint(coordinates, 0.50)
+      }
+
+      const route = await getOSRMRoute(detourCoords, osrmProfile)
       await cacheRoute(cacheKey, route)
-      console.log('✅ Longest route from OSRM alternatives')
-      return { ...route, provider: 'osrm' }
+      console.log(`✅ Longest route: ${(route.distance / 1000).toFixed(1)}km, ${(route.duration / 60).toFixed(0)}min`)
+      return { ...route, provider: 'osrm-longest-poi-rich' }
     } catch (error) {
-      console.warn('⚠️ OSRM longest failed, trying OpenRouteService recommended as fallback:', error)
-      // Fallback to ORS recommended
+      console.warn('⚠️ Longest route failed:', error)
+    }
+  }
+
+  if (preference === 'scenic') {
+    console.log('🏞️ Creating scenic route with natural feature waypoints (OSRM fallback)...')
+    try {
+      const osrmProfile = mapToOSRMProfile(profile)
+
+      // Try to find scenic waypoints using Overpass API
+      const scenicWaypoints = await findScenicWaypoints(
+        coordinates[0],
+        coordinates[coordinates.length - 1],
+        30 // Max 30% detour
+      )
+
+      let detourCoords: RouteCoordinate[]
+      if (scenicWaypoints.length > 0) {
+        // Use intelligent scenic waypoints
+        detourCoords = [coordinates[0], ...scenicWaypoints, coordinates[coordinates.length - 1]]
+        console.log(`   ✅ Using ${scenicWaypoints.length} scenic waypoints`)
+      } else {
+        // Fallback to geometric waypoint
+        console.log('   ⚠️ No scenic features found, using geometric waypoint')
+        detourCoords = addScenicDetourWaypoint(coordinates, 0.25)
+      }
+
+      const route = await getOSRMRoute(detourCoords, osrmProfile)
+      await cacheRoute(cacheKey, route)
+      console.log(`✅ Scenic route: ${(route.distance / 1000).toFixed(1)}km, ${(route.duration / 60).toFixed(0)}min`)
+      return { ...route, provider: 'osrm-scenic-intelligent' }
+    } catch (error) {
+      console.warn('⚠️ Scenic route failed:', error)
+    }
+  }
+
+  // STRATEGY 3: SHORTEST - Direct route (baseline)
+  if (preference === 'shortest') {
+    console.log('📏 Calculating shortest/direct route...')
+    try {
+      const osrmProfile = mapToOSRMProfile(profile)
+      const route = await getOSRMRoute(coordinates, osrmProfile)
+      await cacheRoute(cacheKey, route)
+      console.log(`✅ Shortest route (direct): ${(route.distance / 1000).toFixed(1)}km, ${(route.duration / 60).toFixed(0)}min`)
+      return { ...route, provider: 'osrm-direct' }
+    } catch (error) {
+      console.warn('⚠️ OSRM shortest failed, trying ORS:', error)
+
+      // Fallback to ORS
       if (process.env.OPENROUTESERVICE_API_KEY) {
         try {
-          const route = await getOpenRouteServiceRoute(coordinates, profile, 'recommended')
+          const route = await getOpenRouteServiceRoute(coordinates, profile, 'shortest')
           await cacheRoute(cacheKey, route)
-          console.log('✅ Route from OpenRouteService (recommended fallback)')
+          console.log(`✅ Shortest route (ORS fallback): ${(route.distance / 1000).toFixed(1)}km, ${(route.duration / 60).toFixed(0)}min`)
           return { ...route, provider: 'openrouteservice' }
         } catch (err) {
-          console.warn('⚠️ OpenRouteService fallback failed:', err)
+          console.warn('⚠️ ORS shortest also failed:', err)
         }
       }
     }
   }
 
-  // Try OpenRouteService first (if API key available)
-  if (process.env.OPENROUTESERVICE_API_KEY) {
+  // STRATEGY 4: FASTEST - Same as shortest (direct route)
+  if (preference === 'fastest') {
+    console.log('⚡ Calculating fastest/direct route...')
     try {
-      const route = await getOpenRouteServiceRoute(coordinates, profile, mapPreference(preference))
+      const osrmProfile = mapToOSRMProfile(profile)
+      const route = await getOSRMRoute(coordinates, osrmProfile)
       await cacheRoute(cacheKey, route)
-      console.log('✅ Route from OpenRouteService')
-      return { ...route, provider: 'openrouteservice' }
+      console.log(`✅ Fastest route (direct): ${(route.distance / 1000).toFixed(1)}km, ${(route.duration / 60).toFixed(0)}min`)
+      return { ...route, provider: 'osrm-direct' }
     } catch (error) {
-      console.warn('⚠️ OpenRouteService failed, falling back to OSRM:', error)
+      console.warn('⚠️ OSRM fastest failed, trying ORS:', error)
+
+      // Fallback to ORS
+      if (process.env.OPENROUTESERVICE_API_KEY) {
+        try {
+          const route = await getOpenRouteServiceRoute(coordinates, profile, 'fastest')
+          await cacheRoute(cacheKey, route)
+          console.log(`✅ Fastest route (ORS fallback): ${(route.distance / 1000).toFixed(1)}km, ${(route.duration / 60).toFixed(0)}min`)
+          return { ...route, provider: 'openrouteservice' }
+        } catch (err) {
+          console.warn('⚠️ ORS fastest also failed:', err)
+        }
+      }
     }
   }
 
-  // Fallback to OSRM demo server
+  // STRATEGY 4: Fallback to OSRM demo server (basic route)
   try {
     const osrmProfile = mapToOSRMProfile(profile)
     const route = await getOSRMRoute(coordinates, osrmProfile)
     await cacheRoute(cacheKey, route)
-    console.log('✅ Route from OSRM demo server')
+    console.log(`✅ Route from OSRM: ${(route.distance / 1000).toFixed(1)}km, ${(route.duration / 60).toFixed(0)}min`)
     return { ...route, provider: 'osrm' }
   } catch (error) {
     console.error('❌ All routing providers failed:', error)
@@ -107,15 +230,25 @@ export async function getRoute(
 }
 
 /**
- * OpenRouteService API
+ * OpenRouteService API - Standard Routes
  * Free tier: 2,000 requests/day
+ *
+ * Used for: FASTEST and SHORTEST routes
  */
 async function getOpenRouteServiceRoute(
   coordinates: RouteCoordinate[],
   profile: TransportProfile,
-  preference?: 'fastest' | 'shortest' | 'recommended' | 'scenic'
+  preference: 'fastest' | 'shortest' | 'recommended'
 ): Promise<Omit<RouteResult, 'provider'>> {
   const coords = coordinates.map(c => [c.longitude, c.latitude])
+
+  const body = {
+    coordinates: coords,
+    format: 'geojson',
+    preference: preference
+  }
+
+  console.log(`📡 ORS API call: ${preference} route`)
 
   const response = await fetch(
     `https://api.openrouteservice.org/v2/directions/${profile}`,
@@ -126,12 +259,7 @@ async function getOpenRouteServiceRoute(
         'Content-Type': 'application/json',
         'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8'
       },
-      body: JSON.stringify({
-        coordinates: coords,
-        format: 'geojson',
-        preference: mapPreference(preference),
-        ...(preference === 'scenic' ? { options: { avoid_features: ['highways'], profile_params: { weightings: { scenic: 1 } } } } : {})
-      })
+      body: JSON.stringify(body)
     }
   )
 
@@ -151,8 +279,67 @@ async function getOpenRouteServiceRoute(
 }
 
 /**
- * OSRM Demo Server API
+ * OpenRouteService API - Scenic Routes
+ *
+ * 🏞️ SCENIC ROUTE STRATEGY:
+ * - Avoid highways and toll roads
+ * - Prefer scenic roads (coastal, mountain, rural)
+ * - Use 'recommended' preference with avoid_features
+ *
+ * This should return a noticeably different route from fastest/shortest
+ */
+async function getOpenRouteServiceScenicRoute(
+  coordinates: RouteCoordinate[],
+  profile: TransportProfile
+): Promise<Omit<RouteResult, 'provider'>> {
+  const coords = coordinates.map(c => [c.longitude, c.latitude])
+
+  const body = {
+    coordinates: coords,
+    format: 'geojson',
+    preference: 'recommended',
+    options: {
+      avoid_features: ['highways', 'tollways'],
+      // Note: ORS doesn't have explicit "scenic" weighting, but avoiding highways
+      // and using recommended preference should give us more scenic routes
+    }
+  }
+
+  console.log(`📡 ORS API call: SCENIC route (avoid highways/tollways)`)
+
+  const response = await fetch(
+    `https://api.openrouteservice.org/v2/directions/${profile}`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': process.env.OPENROUTESERVICE_API_KEY!,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8'
+      },
+      body: JSON.stringify(body)
+    }
+  )
+
+  if (!response.ok) {
+    const error = await response.text()
+    throw new Error(`OpenRouteService scenic error: ${response.status} - ${error}`)
+  }
+
+  const data = await response.json()
+  const route = data.features[0]
+
+  return {
+    geometry: route.geometry,
+    distance: route.properties.segments[0].distance,
+    duration: route.properties.segments[0].duration
+  }
+}
+
+/**
+ * OSRM Demo Server API - Basic Routes
  * Free, no API key required
+ *
+ * Used as fallback when ORS is unavailable
  */
 async function getOSRMRoute(
   coordinates: RouteCoordinate[],
@@ -176,24 +363,164 @@ async function getOSRMRoute(
   }
 }
 
+/**
+ * OSRM Demo Server API - Fastest Routes
+ *
+ * ⚡ FASTEST ROUTE STRATEGY (OSRM):
+ * - Request alternative routes
+ * - Pick the route with minimum DURATION (fastest time)
+ * - This should use highways and major roads
+ */
+async function getOSRMFastestRoute(
+  coordinates: RouteCoordinate[],
+  profile: OSRMProfile
+): Promise<Omit<RouteResult, 'provider'>> {
+  const coords = coordinates.map(c => `${c.longitude},${c.latitude}`).join(';')
+  const url = `https://router.project-osrm.org/route/v1/${profile}/${coords}?overview=full&geometries=geojson&alternatives=true&steps=false`
 
+  console.log(`📡 OSRM API call: FASTEST route (alternatives)`)
+
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`OSRM error: ${response.status}`)
+
+  const data = await response.json()
+  if (data.code !== 'Ok' || !Array.isArray(data.routes) || data.routes.length === 0) {
+    throw new Error(`OSRM routing failed: ${data.code}`)
+  }
+
+  // Pick the route with minimum duration (fastest)
+  let fastest = data.routes[0]
+  for (let i = 1; i < data.routes.length; i++) {
+    if (data.routes[i].duration < fastest.duration) {
+      fastest = data.routes[i]
+    }
+  }
+
+  console.log(`📊 OSRM fastest: ${data.routes.length} alternatives, fastest is ${(fastest.duration / 60).toFixed(0)}min`)
+
+  return {
+    geometry: fastest.geometry,
+    distance: fastest.distance,
+    duration: fastest.duration
+  }
+}
+
+/**
+ * OSRM Demo Server API - Shortest Routes
+ *
+ * 📏 SHORTEST ROUTE STRATEGY (OSRM):
+ * - Request alternative routes
+ * - Pick the route with minimum DISTANCE
+ * - This should be the most direct path
+ */
+async function getOSRMShortestRoute(
+  coordinates: RouteCoordinate[],
+  profile: OSRMProfile
+): Promise<Omit<RouteResult, 'provider'>> {
+  const coords = coordinates.map(c => `${c.longitude},${c.latitude}`).join(';')
+  const url = `https://router.project-osrm.org/route/v1/${profile}/${coords}?overview=full&geometries=geojson&alternatives=true&steps=false`
+
+  console.log(`📡 OSRM API call: SHORTEST route (alternatives)`)
+
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`OSRM error: ${response.status}`)
+
+  const data = await response.json()
+  if (data.code !== 'Ok' || !Array.isArray(data.routes) || data.routes.length === 0) {
+    throw new Error(`OSRM routing failed: ${data.code}`)
+  }
+
+  // Pick the route with minimum distance (shortest)
+  let shortest = data.routes[0]
+  for (let i = 1; i < data.routes.length; i++) {
+    if (data.routes[i].distance < shortest.distance) {
+      shortest = data.routes[i]
+    }
+  }
+
+  console.log(`📊 OSRM shortest: ${data.routes.length} alternatives, shortest is ${(shortest.distance / 1000).toFixed(1)}km`)
+
+  return {
+    geometry: shortest.geometry,
+    distance: shortest.distance,
+    duration: shortest.duration
+  }
+}
+
+/**
+ * OSRM Demo Server API - Scenic Routes
+ *
+ * 🏞️ SCENIC ROUTE STRATEGY (OSRM):
+ * - Request alternative routes
+ * - Pick a route that's longer but not the longest
+ * - Rationale: Longer routes often avoid highways and use scenic roads
+ */
+async function getOSRMScenicRoute(
+  coordinates: RouteCoordinate[],
+  profile: OSRMProfile
+): Promise<Omit<RouteResult, 'provider'>> {
+  const coords = coordinates.map(c => `${c.longitude},${c.latitude}`).join(';')
+  const url = `https://router.project-osrm.org/route/v1/${profile}/${coords}?overview=full&geometries=geojson&alternatives=true&steps=false`
+
+  console.log(`📡 OSRM API call: SCENIC route (alternatives)`)
+
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`OSRM error: ${response.status}`)
+
+  const data = await response.json()
+  if (data.code !== 'Ok' || !Array.isArray(data.routes) || data.routes.length === 0) {
+    throw new Error(`OSRM routing failed: ${data.code}`)
+  }
+
+  // Sort routes by distance (descending)
+  const sorted = data.routes.sort((a: any, b: any) => b.distance - a.distance)
+
+  // Pick the second longest route (if available) as it's likely more scenic than fastest
+  // but not as extreme as the longest
+  const scenicRoute = sorted.length > 1 ? sorted[1] : sorted[0]
+
+  console.log(`📊 OSRM scenic: ${sorted.length} alternatives, picked #${sorted.indexOf(scenicRoute) + 1} (${(scenicRoute.distance / 1000).toFixed(1)}km)`)
+
+  return {
+    geometry: scenicRoute.geometry,
+    distance: scenicRoute.distance,
+    duration: scenicRoute.duration
+  }
+}
+
+/**
+ * OSRM Demo Server API - Longest Routes
+ *
+ * 🛣️ LONGEST ROUTE STRATEGY:
+ * - Request alternative routes
+ * - Pick the route with maximum distance
+ * - Used for "longest" preference
+ */
 async function getOSRMLongestRoute(
   coordinates: RouteCoordinate[],
   profile: OSRMProfile
 ): Promise<Omit<RouteResult, 'provider'>> {
   const coords = coordinates.map(c => `${c.longitude},${c.latitude}`).join(';')
   const url = `https://router.project-osrm.org/route/v1/${profile}/${coords}?overview=full&geometries=geojson&alternatives=true&steps=false`
+
+  console.log(`📡 OSRM API call: LONGEST route (alternatives)`)
+
   const response = await fetch(url)
   if (!response.ok) throw new Error(`OSRM error: ${response.status}`)
+
   const data = await response.json()
   if (data.code !== 'Ok' || !Array.isArray(data.routes) || data.routes.length === 0) {
     throw new Error(`OSRM routing failed: ${data.code}`)
   }
+
   // Pick the route with maximum distance
   let best = data.routes[0]
   for (let i = 1; i < data.routes.length; i++) {
     if (data.routes[i].distance > best.distance) best = data.routes[i]
   }
+
+  console.log(`📊 OSRM longest: ${data.routes.length} alternatives, longest is ${(best.distance / 1000).toFixed(1)}km`)
+
   return {
     geometry: best.geometry,
     distance: best.distance,
@@ -220,15 +547,75 @@ function mapToOSRMProfile(profile: TransportProfile): OSRMProfile {
   }
 }
 
-function mapPreference(p?: 'fastest' | 'shortest' | 'recommended' | 'scenic' | 'longest') {
-  if (p === 'scenic') return 'recommended'
-  if (p === 'shortest') return 'shortest'
-  if (p === 'fastest') return 'fastest'
-  if (p === 'recommended') return 'recommended'
-  // 'longest' not supported by ORS directly
-  return undefined
-}
+/**
+ * Add scenic detour waypoint perpendicular to route
+ * Creates a longer, more scenic route by adding waypoints off the direct path
+ */
+function addScenicDetourWaypoint(
+  coordinates: RouteCoordinate[],
+  detourFactor: number = 0.15
+): RouteCoordinate[] {
+  if (coordinates.length < 2) return coordinates
 
+  // For 2-point routes, add waypoint perpendicular to midpoint
+  if (coordinates.length === 2) {
+    const start = coordinates[0]
+    const end = coordinates[1]
+
+    // Calculate midpoint
+    const midLat = (start.latitude + end.latitude) / 2
+    const midLon = (start.longitude + end.longitude) / 2
+
+    // Calculate perpendicular offset (rotate 90 degrees)
+    const deltaLat = end.latitude - start.latitude
+    const deltaLon = end.longitude - start.longitude
+
+    // Perpendicular vector (rotated 90 degrees)
+    const perpLat = -deltaLon * detourFactor
+    const perpLon = deltaLat * detourFactor
+
+    // Add detour waypoint
+    const detourPoint: RouteCoordinate = {
+      latitude: midLat + perpLat,
+      longitude: midLon + perpLon
+    }
+
+    console.log(`📍 Added scenic detour waypoint: ${detourPoint.latitude.toFixed(4)}, ${detourPoint.longitude.toFixed(4)}`)
+
+    return [start, detourPoint, end]
+  }
+
+  // For multi-point routes, add detour between each segment
+  const result: RouteCoordinate[] = [coordinates[0]]
+
+  for (let i = 0; i < coordinates.length - 1; i++) {
+    const start = coordinates[i]
+    const end = coordinates[i + 1]
+
+    // Calculate midpoint
+    const midLat = (start.latitude + end.latitude) / 2
+    const midLon = (start.longitude + end.longitude) / 2
+
+    // Calculate perpendicular offset
+    const deltaLat = end.latitude - start.latitude
+    const deltaLon = end.longitude - start.longitude
+
+    const perpLat = -deltaLon * detourFactor
+    const perpLon = deltaLat * detourFactor
+
+    // Add detour waypoint
+    result.push({
+      latitude: midLat + perpLat,
+      longitude: midLon + perpLon
+    })
+
+    result.push(end)
+  }
+
+  console.log(`📍 Added ${result.length - coordinates.length} scenic detour waypoints`)
+
+  return result
+}
 
 /**
  * Generate cache key for route
