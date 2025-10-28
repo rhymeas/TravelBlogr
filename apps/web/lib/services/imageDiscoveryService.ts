@@ -12,6 +12,16 @@
  * - Restaurants (food + interior images)
  * - Blog posts (contextual images)
  *
+ * 🎯 BRAVE API QUERY STRATEGY:
+ * - This service uses simple query (not optimized strategy)
+ * - For POI/activity images, consider using fetchActivityData() from braveActivityService
+ * - See docs/BRAVE_QUERY_FINAL_STRATEGY.md for optimized approach
+ *
+ * ⚠️ IMPORTANT: Always use `thumbnail` property from Brave results!
+ * - thumbnail: Brave CDN URL (imgs.search.brave.com) - 16:9 optimized
+ * - url: Source page URL - NOT an image
+ * - See docs/BRAVE_API_IMAGE_AUDIT.md
+ *
  * IMPORTANT: Reddit rate limiting is handled by existing implementation
  * DO NOT call Reddit APIs directly - use existing service
  */
@@ -67,9 +77,10 @@ export async function discoverLocationImages(
   // Convert to unified format
   const discovered: DiscoveredImage[] = [
     // Brave images (highest priority - best quality)
+    // ✅ Use thumbnail (Brave CDN URL) not url (source page URL)
     ...braveImages.map(img => ({
       url: img.url,
-      thumbnail: img.thumbnail,
+      thumbnail: img.thumbnail, // ✅ Brave CDN URL - 16:9 optimized
       title: img.title,
       source: 'brave' as const,
       width: img.properties.width,

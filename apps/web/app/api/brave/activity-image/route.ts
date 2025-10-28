@@ -15,8 +15,8 @@ export async function GET(request: NextRequest) {
     const location = searchParams.get('location')
     const type = searchParams.get('type') || 'activity'
     const count = parseInt(searchParams.get('count') || '5')
-    const tripType = searchParams.get('tripType') || undefined
-    const context = searchParams.get('context') || undefined
+    const tripType = searchParams.get('tripType')
+    const context = searchParams.get('context')
 
     if (!name || !location) {
       return NextResponse.json(
@@ -25,7 +25,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const options = { tripType: tripType || undefined, context: context || undefined }
+    // Only pass options if tripType or context are actually provided
+    const options = (tripType || context) ? { tripType, context } : undefined
 
     let data
     if (type === 'restaurant') {

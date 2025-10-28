@@ -177,7 +177,9 @@ async function fetchRedditImage(
 
     if (images.length === 0) return null
 
-    return images[0].url
+    // CRITICAL: Use thumbnail (Brave CDN URL) first, NOT url (source page URL)
+    // See docs/MILESTONES.md - Milestone 1 (2025-01-27)
+    return images[0].thumbnail || images[0].url
   } catch (error) {
     console.error(`❌ Reddit image fetch error for "${activityName}":`, error)
     return null
