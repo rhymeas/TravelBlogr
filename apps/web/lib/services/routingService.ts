@@ -35,7 +35,7 @@ export interface RouteResult {
   }
   distance: number // meters
   duration: number // seconds
-  provider: 'openrouteservice' | 'osrm' | 'cache'
+  provider: 'openrouteservice' | 'osrm' | 'cache' | 'valhalla' | 'stadia' | 'osrm-scenic-intelligent' | 'osrm-longest-poi-rich' | 'osrm-direct'
 }
 
 /**
@@ -118,9 +118,9 @@ export async function getRoute(
         detourCoords = [coordinates[0], ...poiWaypoints, coordinates[coordinates.length - 1]]
         console.log(`   ✅ Using ${poiWaypoints.length} POI-rich waypoints`)
       } else {
-        // Fallback to geometric waypoint
-        console.log('   ⚠️ No POI-rich areas found, using geometric waypoint')
-        detourCoords = addScenicDetourWaypoint(coordinates, 0.50)
+        // No POI waypoints found - use direct route to avoid border crossing
+        console.log('   ⚠️ No POI-rich areas found within same country, using direct route')
+        detourCoords = coordinates
       }
 
       const route = await getOSRMRoute(detourCoords, osrmProfile)
@@ -150,9 +150,9 @@ export async function getRoute(
         detourCoords = [coordinates[0], ...scenicWaypoints, coordinates[coordinates.length - 1]]
         console.log(`   ✅ Using ${scenicWaypoints.length} scenic waypoints`)
       } else {
-        // Fallback to geometric waypoint
-        console.log('   ⚠️ No scenic features found, using geometric waypoint')
-        detourCoords = addScenicDetourWaypoint(coordinates, 0.25)
+        // No scenic waypoints found - use direct route to avoid border crossing
+        console.log('   ⚠️ No scenic features found within same country, using direct route')
+        detourCoords = coordinates
       }
 
       const route = await getOSRMRoute(detourCoords, osrmProfile)

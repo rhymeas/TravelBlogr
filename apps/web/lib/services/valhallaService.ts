@@ -17,8 +17,8 @@
 import type { RouteCoordinate, RouteResult } from './routingService'
 import { trackRoutingRequest, shouldUseStadiaMaps } from './routingMonitor'
 
-const STADIA_MAPS_URL = 'https://api.stadiamaps.com/route/v1'
-const LOCAL_VALHALLA_URL = process.env.VALHALLA_URL || 'http://localhost:8002'
+const STADIA_MAPS_URL = 'https://api.stadiamaps.com/route/v1/route'
+const LOCAL_VALHALLA_URL = process.env.VALHALLA_URL || 'http://localhost:8002/route'
 const STADIA_API_KEY = process.env.STADIA_MAPS_API_KEY
 
 /**
@@ -344,6 +344,14 @@ export async function isValhallaAvailable(): Promise<boolean> {
 }
 
 /**
+ * Get Valhalla status endpoint URL
+ */
+export function getValhallaStatusUrl(): string {
+  const baseUrl = process.env.VALHALLA_URL || 'http://localhost:8002'
+  return `${baseUrl}/status`
+}
+
+/**
  * Get Valhalla service status
  */
 export async function getValhallaStatus(): Promise<{
@@ -352,7 +360,8 @@ export async function getValhallaStatus(): Promise<{
   tileset?: string
 }> {
   try {
-    const response = await fetch(`${VALHALLA_URL}/status`)
+    const baseUrl = process.env.VALHALLA_URL || 'http://localhost:8002'
+    const response = await fetch(`${baseUrl}/status`)
     
     if (!response.ok) {
       return { available: false }
