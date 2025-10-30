@@ -79,7 +79,7 @@
     "react-intersection-observer": "^9.5.3",
     "react-photo-album": "^2.3.0",
     "resend": "^6.2.2",
-    "stripe": "^19.1.0",
+    "stripe": "^19.2.0",
     "swiper": "^11.0.5",
     "swr": "^2.2.4",
     "tailwind-merge": "^2.0.0",
