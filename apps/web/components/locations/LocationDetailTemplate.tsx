@@ -35,6 +35,7 @@ import { LocationViewTracker } from './LocationViewTracker'
 import { NotesWidget } from '@/components/notes/NotesWidget'
 import { QuickBookingLinks } from './QuickBookingLinks'
 import { SidebarAd } from '@/components/ads/SidebarAd'
+import { TripBookingWidgetsCompact } from '@/components/trips/TripBookingWidgets'
 import { HorizontalBannerAd } from '@/components/ads/HorizontalBannerAd'
 import { LocationShareActions } from './LocationShareActions'
 import { CommunityContributorBadge } from './CommunityContributorBadge'
@@ -517,13 +518,10 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
             {/* Weather Widget */}
             <LocationWeather locationSlug={location.slug} locationName={location.name} />
 
-            {/* Quick Booking Links - Affiliate Revenue */}
+            {/* Booking Widgets - Minimalistic Bubbly Style - Travelpayouts Affiliate */}
             <Card className="card-elevated p-6">
-              <QuickBookingLinks
-                locationName={location.name}
-                latitude={location.latitude}
-                longitude={location.longitude}
-                context="location_sidebar"
+              <TripBookingWidgetsCompact
+                location={location.name}
               />
             </Card>
 

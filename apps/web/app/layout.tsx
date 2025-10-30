@@ -42,6 +42,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
+    alternateLocale: ['de_DE', 'fr_FR', 'es_ES', 'it_IT', 'ja_JP', 'zh_CN', 'pt_BR', 'ru_RU', 'ar_SA'],
     url: process.env.NEXT_PUBLIC_APP_URL,
     title: 'TravelBlogr - Share Your Journey, Plan Your Next Adventure',
     description: 'Transform your travel experiences into inspiring stories that help fellow travelers plan unforgettable trips',
@@ -93,13 +94,20 @@ export default function RootLayout({
       <head>
         <ImagePreconnect />
 
-        {/* Browser Translation Support */}
+        {/* Browser Translation Support - Enable automatic translation */}
         <meta httpEquiv="content-language" content="en" />
-        <meta name="google" content="notranslate" />
+        {/* REMOVED: notranslate meta tag to ENABLE browser translation */}
+        {/* Browsers (Chrome, Edge, Safari) will now offer to translate based on user location */}
 
         {/* ImageKit CDN - Preconnect for faster image loading */}
         <link rel="preconnect" href="https://ik.imagekit.io" />
         <link rel="dns-prefetch" href="https://ik.imagekit.io" />
+
+        {/* 🚀 PERFORMANCE: Map Tile Servers - Preconnect for faster map loading */}
+        <link rel="preconnect" href="https://a.basemaps.cartocdn.com" />
+        <link rel="preconnect" href="https://b.basemaps.cartocdn.com" />
+        <link rel="preconnect" href="https://c.basemaps.cartocdn.com" />
+        <link rel="dns-prefetch" href="https://api.stadiamaps.com" />
 
         {/* Google AdSense - Site Verification */}
         <meta name="google-adsense-account" content="ca-pub-5985120367077865" />
@@ -108,6 +116,23 @@ export default function RootLayout({
           async
           src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT_ID || 'ca-pub-5985120367077865'}`}
           crossOrigin="anonymous"
+        />
+
+        {/* Travelpayouts Affiliate Tracking Script */}
+        <script
+          data-noptimize="1"
+          data-cfasync="false"
+          data-wpfc-render="false"
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function () {
+                  var script = document.createElement("script");
+                  script.async = 1;
+                  script.src = 'https://emrldtp.com/NDcwMjEw.js?t=470210';
+                  document.head.appendChild(script);
+              })();
+            `
+          }}
         />
       </head>
       <body className={cn('min-h-screen bg-background antialiased')} suppressHydrationWarning>

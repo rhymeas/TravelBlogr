@@ -7,7 +7,7 @@
  */
 
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { Calendar, Car, MapPin, Clock, Hotel, Camera, Coffee, Edit, Utensils, Navigation, DollarSign, TrendingUp, Info, ExternalLink, Save, ChevronDown, ChevronUp, X, ArrowUp, StickyNote, CheckSquare, Plus, Phone, Globe } from 'lucide-react'
+import { Calendar, Car, MapPin, Clock, Hotel, Camera, Coffee, Edit, Utensils, Navigation, DollarSign, TrendingUp, Info, ExternalLink, Save, ChevronDown, ChevronUp, X, ArrowUp, StickyNote, CheckSquare, Plus, Phone, Globe, GripVertical, RefreshCw, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { InlineEdit } from '@/components/ui/InlineEdit'
@@ -18,6 +18,8 @@ import { TripOverviewMap } from '@/components/itinerary/TripOverviewMap'
 import { useAuth } from '@/hooks/useAuth'
 import { useAuthModal } from '@/contexts/AuthModalContext'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+
 import toast from 'react-hot-toast'
 import { getBrowserSupabase } from '@/lib/supabase'
 import { NotesModal } from './NotesModal'
@@ -26,15 +28,30 @@ import { ChecklistModal } from './ChecklistModal'
 import { formatLocationDisplay } from '@/lib/utils/locationFormatter'
 import { LocationAutocomplete } from '@/components/itinerary/LocationAutocomplete'
 
+import { ImageSelectionModal } from '@/components/shared/ImageSelectionModal'
+
+// Drag and drop
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
+
+// Image quality scoring
+import { scoreAndRankImages, ScoredImage } from '@/lib/utils/imageQualityScorer'
+import { ImageSelectionModal as ActivityImageModal } from './ImageSelectionModal'
+
+// Booking widgets
+import { TripBookingWidgetsCompact } from '@/components/trips/TripBookingWidgets'
+
 interface ResultsViewProps {
-  plan: any // V1 API response
+  plan: any // V1/V2 plan object
   tripData: TripPlanData
   locationImages?: Record<string, { featured: string; gallery: string[] }>
   structuredContext?: any
   groqHeadline?: string // Cached GROQ headline
   groqSubtitle?: string // Cached GROQ subtitle
   generationMode?: 'two-stage' | 'pro' | 'standard'
-  onEdit: () => void
+  mode?: 'planner' | 'editor'
+  initialTripId?: string
+  onEdit?: () => void
+  hideCTAs?: boolean // When true, hide primary CTAs like "Save Trip" (used for public shared pages)
 }
 
 // Gradient colors for each day
@@ -314,12 +331,16 @@ function POIItem({ poi, location }: { poi: any; location: string }) {
           name: poi.name,
           location,
           type: 'poi',
-          count: '1',
+          count: '5', // Fetch more images for better selection
         })
         const response = await fetch(`/api/brave/activity-image?${params.toString()}`)
         const json = await response.json()
-        if (json?.success && json?.data?.links?.[0]?.thumbnail) {
-          setImageUrl(json.data.links[0].thumbnail)
+
+        // CRITICAL FIX: Use images array, not links array
+        if (json?.success && json?.data?.images && json.data.images.length > 0) {
+          // Use thumbnail (Brave CDN URL) first
+          const imageUrl = json.data.images[0]?.thumbnail || json.data.images[0]?.url
+          setImageUrl(imageUrl)
         }
       } catch (error) {
         console.error('Error fetching POI image:', error)
@@ -364,7 +385,7 @@ function POIItem({ poi, location }: { poi: any; location: string }) {
   )
 }
 
-export function ResultsView({ plan, tripData, locationImages = {}, structuredContext, groqHeadline, groqSubtitle, generationMode, onEdit }: ResultsViewProps) {
+export function ResultsView({ plan, tripData, locationImages = {}, structuredContext, groqHeadline, groqSubtitle, generationMode, mode = 'planner', initialTripId, onEdit, hideCTAs = false }: ResultsViewProps) {
   // Persist minimal context so other pages (e.g., Location details) can reuse cached Brave results
   // Stores for a short time; harmless if unavailable
   useEffect(() => {
@@ -378,6 +399,14 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
   }, [tripData?.tripType, (tripData as any)?.tripVision])
   // Local state for days (allows adding/deleting)
   const [days, setDays] = useState(plan.days)
+
+  // Update days when plan.days changes (e.g., when loading from database in editor mode)
+  useEffect(() => {
+    if (plan.days && plan.days.length > 0) {
+      console.log('📅 Updating days from plan.days:', { count: plan.days.length, mode })
+      setDays(plan.days)
+    }
+  }, [plan.days, mode])
 
   const [selectedDay, setSelectedDay] = useState(1)
   const [hoveredDayForDelete, setHoveredDayForDelete] = useState<number | null>(null)
@@ -430,7 +459,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showSavedModal, setShowSavedModal] = useState(false)
-  const [lastSavedTripId, setLastSavedTripId] = useState<string | null>(null)
+  const [lastSavedTripId, setLastSavedTripId] = useState<string | null>(initialTripId ?? null)
   const saveBtnRef = useRef<HTMLButtonElement | null>(null)
 
   // Notes & checklists state keyed by day-stop-title
@@ -462,6 +491,51 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
   const [editingDayLocation, setEditingDayLocation] = useState<number | null>(null)
   const [savingDayData, setSavingDayData] = useState(false)
   const saveDayDataTimeoutRef = useRef<NodeJS.Timeout>()
+
+  // Image picker state (editor mode)
+  const [showImagePickerForDay, setShowImagePickerForDay] = useState<number | null>(null)
+
+  // Image picker state for individual activity
+  const [showImagePickerForActivity, setShowImagePickerForActivity] = useState<{ day: number; index: number } | null>(null)
+
+  // Image picker state for gallery image replacement
+  const [showImagePickerForGallery, setShowImagePickerForGallery] = useState<{ day: number; index: number } | null>(null)
+
+  // State for inline image picker popup (animated bubble)
+  const [imagePickerPopup, setImagePickerPopup] = useState<{
+    day: number
+    index: number
+    images: string[]
+    loading: boolean
+  } | null>(null)
+
+  // Refresh schedule state (track which day is refreshing)
+  const [refreshingSchedule, setRefreshingSchedule] = useState<number | null>(null)
+
+  // Track if initial enrichment has been done
+  const [initialEnrichmentDone, setInitialEnrichmentDone] = useState(false)
+
+  // Add new schedule item state
+  const [addingActivityForDay, setAddingActivityForDay] = useState<number | null>(null)
+  // Reset enrichment per trip to ensure consistent image/link fetching across trips
+  useEffect(() => {
+    setInitialEnrichmentDone(false)
+  }, [initialTripId])
+
+  const [newActivityTitle, setNewActivityTitle] = useState('')
+
+  // Subtle "updated" pulse tracking (editor-only visual)
+  const [recentlyUpdatedKeys, setRecentlyUpdatedKeys] = useState<Record<string, number>>({})
+  const triggerUpdatedPulse = (key: string, ttlMs = 1200) => {
+    setRecentlyUpdatedKeys((prev) => ({ ...prev, [key]: Date.now() }))
+    setTimeout(() => {
+      setRecentlyUpdatedKeys((prev) => {
+        const copy = { ...prev }
+        delete copy[key]
+        return copy
+      })
+    }, ttlMs)
+  }
 
   // Activity editing
   const [editingActivity, setEditingActivity] = useState<string | null>(null) // Format: "dayNumber-activityIndex-field"
@@ -633,6 +707,88 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
     }, 1000)
   }
 
+  // Add new activity to a day
+  const handleAddActivity = async (dayNumber: number) => {
+    if (!newActivityTitle.trim()) {
+      toast.error('Please enter an activity title')
+      return
+    }
+
+    const newActivity = {
+      type: 'activity',
+      title: newActivityTitle.trim(),
+      description: '',
+      duration: 1,
+      costEstimate: 0,
+      image: ''
+    }
+
+    setDays((prev: any[]) => prev.map(d =>
+      d.day === dayNumber
+        ? { ...d, items: [...(d.items || []), newActivity] }
+        : d
+    ))
+
+    // Save to database
+    if (lastSavedTripId) {
+      const updatedDays = days.map((d: any) =>
+        d.day === dayNumber
+          ? { ...d, items: [...(d.items || []), newActivity] }
+          : d
+      )
+
+      try {
+        const response = await fetch(`/api/trips/${lastSavedTripId}/update-plan`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            updateType: 'days', // FIXED: Use 'days' instead of 'full'
+            data: { days: updatedDays }
+          })
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          console.error('API error:', errorData)
+          throw new Error(errorData.error || 'Failed to save')
+        }
+        toast.success('Activity added')
+      } catch (err) {
+        console.error('Failed to save new activity:', err)
+        toast.error('Failed to save activity')
+      }
+    }
+
+    // Reset form
+    setNewActivityTitle('')
+    setAddingActivityForDay(null)
+  }
+
+  // Handle drag and drop reordering
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return
+
+    const sourceIndex = result.source.index
+    const destIndex = result.destination.index
+
+    if (sourceIndex === destIndex) return
+
+    // Reorder days array
+    const reorderedDays = Array.from(days)
+    const [removed] = reorderedDays.splice(sourceIndex, 1)
+    reorderedDays.splice(destIndex, 0, removed)
+
+    // Update day numbers to match new order
+    const updatedDays = reorderedDays.map((day: any, index: number) => ({
+      ...day,
+      day: index + 1
+    }))
+
+    setDays(updatedDays)
+    persistDays(updatedDays)
+    toast.success('Day order updated')
+  }
+
   // Auto-save accommodation data with debouncing
   const handleSaveAccommodationData = async (dayNumber: number, field: string, value: any) => {
     // Clear existing timeout
@@ -708,6 +864,24 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
     }, 1000)
   }
 
+  // Persist entire days array to server (used for add/delete/reorder/change-location)
+  const persistDays = async (updatedDays: any[]) => {
+    if (!lastSavedTripId) return
+    try {
+      const res = await fetch(`/api/trips/${lastSavedTripId}/update-plan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updateType: 'days', data: { days: updatedDays } })
+      })
+      if (!res.ok) {
+        console.error('Failed to persist days array')
+      }
+    } catch (e) {
+      console.error('Persist days error:', e)
+    }
+  }
+
+
   // Generate descriptions for highlights using GROQ
   const generateHighlightDescription = async (highlight: string, location: string): Promise<string> => {
     const cacheKey = `${highlight}|${location}`
@@ -766,6 +940,10 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
 
       // Update state with new days
       setDays(updatedDays)
+
+      // Persist to server when editing a saved trip
+      persistDays(updatedDays)
+
 
       // If deleted day was selected, select the first day
       if (selectedDay === dayNumber) {
@@ -944,6 +1122,10 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
         })
       })
 
+
+      // Persist to server when editing a saved trip
+      await persistDays(updatedDays)
+
       // Close modal
       setShowAddDayModal(false)
       setNewDayLocation('')
@@ -1016,6 +1198,421 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
     return () => window.removeEventListener('plan-v2:insert-poi', handler as any)
   }, [])
 
+  /**
+   * Enrich activities with images and links using smart Brave API strategies
+   * This is the core enrichment function used by both:
+   * - Initial load (auto-enrich all activities)
+   * - Manual refresh (user clicks "Refresh infos")
+   */
+  const enrichActivitiesForDay = async (dayNumber: number, activities: Array<{ name: string; location: string; originalTitle: string }>) => {
+    console.log(`🔄 Enriching ${activities.length} activities for Day ${dayNumber}`)
+
+    // Fetch fresh images and links for each activity using smart Brave query strategy
+    // 📚 Uses same proven strategy as /test/brave-strategies (buildBraveQuery)
+    // 🎯 Fetches just 1 image per activity (optimized for speed)
+    for (const activity of activities) {
+      try {
+        console.log(`  🔍 Fetching data for: "${activity.name}" in "${activity.location}"`)
+
+        // Use the SAME smart query strategy as /test/brave-strategies
+        // This calls /api/brave/activity-image which uses searchActivity() with buildBraveQuery()
+        // 📚 See docs/BRAVE_QUERY_FINAL_STRATEGY.md for query strategy details
+        const params = new URLSearchParams({
+          name: activity.name,
+          location: activity.location,
+          type: 'activity',
+          count: '1' // ✅ Fetch just 1 image (optimized for speed & cost)
+        })
+
+        const apiUrl = `/api/brave/activity-image?${params.toString()}`
+        console.log(`  📡 API call: ${apiUrl}`)
+
+        const response = await fetch(apiUrl)
+        const json = await response.json()
+
+        console.log(`  📦 API response:`, {
+          success: json?.success,
+          imageCount: json?.data?.images?.length || 0,
+          linkCount: json?.data?.links?.length || 0
+        })
+
+        if (json?.success && json?.data) {
+          const images = json.data.images || []
+          const links = json.data.links || []
+
+          console.log(`  📊 Found ${images.length} images, ${links.length} links`)
+
+          // CRITICAL: Use thumbnail (Brave CDN URL) first, then fallback to url
+          const imageUrl = images[0]?.thumbnail || images[0]?.url
+          const linkUrl = links[0]?.url
+          const linkSource = links[0]?.website || 'brave'
+          const description = links[0]?.description || ''
+
+          if (imageUrl || linkUrl) {
+            // REMOVED: fallbackImages state - we now only use DB-cached locationImages
+            // Update the actual day data with links and descriptions (update items, not stops)
+            setDays((prevDays: any) => {
+              return prevDays.map((d: any) => {
+                if (d.day !== dayNumber) return d
+
+                return {
+                  ...d,
+                  items: (d.items || []).map((it: any) => {
+                    const itTitle = it.title || ''
+                    // Match by original title from the rendered stop
+                    if (itTitle === activity.originalTitle) {
+                      return {
+                        ...it,
+                        link: linkUrl || it.link,
+                        linkSource: linkSource || it.linkSource,
+                        description: description || it.description,
+                        image: imageUrl || it.image
+                      }
+                    }
+                    return it
+                  })
+                }
+              })
+            })
+
+            console.log(`  ✅ Enriched: ${imageUrl ? '🖼️' : ''}${linkUrl ? '🔗' : ''}${description ? '📝' : ''}`)
+          } else {
+            console.warn(`  ⚠️ No image or link found for "${activity.name}"`)
+          }
+        } else {
+          console.warn(`  ⚠️ API returned no data for "${activity.name}"`)
+        }
+
+        // Rate limiting: 100ms delay between requests (10 RPS, well under 20 RPS limit)
+        await new Promise(resolve => setTimeout(resolve, 100))
+
+      } catch (error) {
+        console.error(`  ❌ Failed to enrich "${activity.name}":`, error)
+      }
+    }
+  }
+
+  /**
+   * Open image picker popup for a single activity
+   * Fetches multiple images from Brave API and shows them in an animated popup
+   */
+  const openImagePickerPopup = async (dayNumber: number, activityIndex: number) => {
+    const day = days?.find((d: any) => d.day === dayNumber)
+    if (!day || !day.items?.[activityIndex]) {
+      console.warn('⏭️ openImagePickerPopup: activity not found', { dayNumber, activityIndex })
+      return
+    }
+
+    const item = day.items[activityIndex]
+    const fullTitle = item.title || ''
+
+    // Extract specific POI/restaurant name
+    const poiMatch = /(?:Visit|Explore|See|Tour|Eat at|Dine at|Lunch at|Dinner at)\s+(.+)/i.exec(fullTitle)
+    const destMatch = /(?:to|in|at)\s+(.+)/i.exec(fullTitle)
+    const specificName = poiMatch?.[1]?.trim() || destMatch?.[1]?.split(',')[0]?.trim() || fullTitle
+
+    console.log(`🖼️ Opening image picker for: "${specificName}" in "${day.location}"`)
+
+    // Show popup with loading state
+    setImagePickerPopup({
+      day: dayNumber,
+      index: activityIndex,
+      images: [],
+      loading: true
+    })
+
+    try {
+      // Fetch 10 images for variety
+      const params = new URLSearchParams({
+        name: specificName,
+        location: day.location,
+        type: 'activity',
+        count: '10'
+      })
+
+      const response = await fetch(`/api/brave/activity-image?${params.toString()}`)
+      const json = await response.json()
+
+      if (json?.success && json?.data?.images?.length > 0) {
+        const images = json.data.images
+
+        // Extract image URLs (use thumbnail first, fallback to url)
+        const imageUrls = images
+          .map((img: any) => img.thumbnail || img.url)
+          .filter((url: string) => url)
+          .slice(0, 10) // Max 10 images
+
+        // Update popup with images
+        setImagePickerPopup({
+          day: dayNumber,
+          index: activityIndex,
+          images: imageUrls,
+          loading: false
+        })
+
+        console.log(`✅ Loaded ${imageUrls.length} images for "${specificName}"`)
+      } else {
+        console.warn(`⚠️ No images found for "${specificName}"`)
+        setImagePickerPopup(null)
+        toast.error('No images found', { duration: 2000 })
+      }
+    } catch (error) {
+      console.error(`❌ Failed to fetch images for "${specificName}":`, error)
+      setImagePickerPopup(null)
+      toast.error('Failed to load images', { duration: 2000 })
+    }
+  }
+
+  /**
+   * Select an image from the picker popup
+   */
+  const selectImageFromPopup = (imageUrl: string) => {
+    if (!imagePickerPopup) return
+
+    const { day: dayNumber, index: activityIndex } = imagePickerPopup
+
+    // Update the item with selected image
+    setDays((prevDays: any) => {
+      return prevDays.map((d: any) => {
+        if (d.day !== dayNumber) return d
+
+        return {
+          ...d,
+          items: (d.items || []).map((it: any, i: number) => {
+            if (i === activityIndex) {
+              return { ...it, image: imageUrl }
+            }
+            return it
+          })
+        }
+      })
+    })
+
+    // Close popup
+    setImagePickerPopup(null)
+    toast.success('Image updated!', { duration: 1500 })
+  }
+
+  /**
+   * Refresh Today's Schedule images and links for a specific day
+   * Re-fetches images and links from Brave API for all activities in the schedule
+   */
+  const refreshScheduleForDay = async (dayNumber: number) => {
+    if (!days || refreshingSchedule !== null) {
+      console.warn('⏭️ refreshScheduleForDay early-exit', { hasDays: !!days, refreshingSchedule })
+      return
+    }
+
+    setRefreshingSchedule(dayNumber)
+    console.log('🚀 refreshScheduleForDay invoked', { dayNumber, daysCount: days?.length || 0 })
+    toast('Refreshing Today\'s Schedule…', { id: `refresh-day-${dayNumber}` })
+
+    try {
+      const day = days.find((d: any) => d.day === dayNumber)
+      let activities: Array<{ name: string; location: string; originalTitle: string }> = []
+
+      if (Array.isArray(day.items) && day.items.length > 0) {
+        // Build activities from items (skip travel)
+        activities = (day.items || [])
+          .filter((it: any) => {
+            const t = (it.type || '').toLowerCase()
+            const title = it.title || ''
+            return t !== 'travel' && !!title
+          })
+          .map((it: any) => {
+            const fullTitle = it.title || ''
+            // Extract specific POI/restaurant name
+            const poiMatch = /(?:Visit|Explore|See|Tour|Eat at|Dine at|Lunch at|Dinner at)\s+(.+)/i.exec(fullTitle)
+            const destMatch = /(?:to|in|at)\s+(.+)/i.exec(fullTitle)
+            const specificName = poiMatch?.[1]?.trim() || destMatch?.[1]?.split(',')[0]?.trim() || fullTitle
+
+            return {
+              name: specificName,
+              location: day.location,
+              originalTitle: fullTitle
+            }
+          })
+      } else {
+        // Fallback: use rendered itinerary stops for this day
+        const renderedDay = (itinerary || []).find((d: any) => d.day === dayNumber)
+        const stops = renderedDay?.stops || []
+        activities = stops
+          .filter((stop: any) => {
+            const title = stop.title || ''
+            return !!title && stop.type !== 'travel'
+          })
+          .map((stop: any) => {
+            const fullTitle = stop.title || ''
+            const poiMatch = /(?:Visit|Explore|See|Tour|Eat at|Dine at|Lunch at|Dinner at)\s+(.+)/i.exec(fullTitle)
+            const destMatch = /(?:to|in|at)\s+(.+)/i.exec(fullTitle)
+            const specificName = poiMatch?.[1]?.trim() || destMatch?.[1]?.split(',')[0]?.trim() || fullTitle
+
+            return {
+              name: specificName,
+              location: day.location,
+              originalTitle: fullTitle
+            }
+          })
+      }
+
+      if (!activities.length) {
+        console.warn(`No activities found for day ${dayNumber} (items and rendered stops empty)`)
+        setRefreshingSchedule(null)
+        return
+      }
+
+      console.log(`🔄 Refreshing schedule for Day ${dayNumber}: ${day.location}`, { count: activities.length })
+
+      console.log(`📍 Found ${activities.length} activities to refresh`)
+
+      // Use the shared enrichment function
+      await enrichActivitiesForDay(dayNumber, activities)
+
+      console.log(`✅ Schedule refresh complete for Day ${dayNumber}`)
+      toast.success(`Refreshed Day ${dayNumber}`, { id: `refresh-day-${dayNumber}` })
+
+    } catch (error) {
+      console.error(`❌ Error refreshing schedule for Day ${dayNumber}:`, error)
+      toast.error(`Failed to refresh Day ${dayNumber}`, { id: `refresh-day-${dayNumber}` })
+    } finally {
+      setRefreshingSchedule(null)
+    }
+  }
+
+  /**
+   * Auto-enrich all activities when plan first loads
+   * This ensures images and links are fetched immediately using smart Brave strategies
+   */
+  useEffect(() => {
+    if (!days || days.length === 0 || initialEnrichmentDone) {
+      console.log('⏭️ Skipping auto-enrichment:', {
+        hasDays: !!days && days.length > 0,
+        daysCount: days?.length || 0,
+        initialEnrichmentDone
+      })
+      return
+    }
+
+    const enrichAllActivities = async () => {
+      console.log('🚀 Auto-enriching all activities on initial load...', {
+        daysCount: days.length,
+        mode
+      })
+
+      // Process each day sequentially to avoid overwhelming the API
+      for (const day of days) {
+        // Extract activities from items if present; otherwise fallback to rendered stops
+        let activities = [] as Array<{ name: string; location: string; originalTitle: string }>
+
+        if (Array.isArray(day.items) && day.items.length > 0) {
+          activities = (day.items || [])
+            .filter((it: any) => {
+              const t = (it.type || '').toLowerCase()
+              const title = it.title || ''
+              return t !== 'travel' && !!title
+            })
+            .map((it: any) => {
+              const fullTitle = it.title || ''
+              const poiMatch = /(?:Visit|Explore|See|Tour|Eat at|Dine at|Lunch at|Dinner at)\s+(.+)/i.exec(fullTitle)
+              const destMatch = /(?:to|in|at)\s+(.+)/i.exec(fullTitle)
+              const specificName = poiMatch?.[1]?.trim() || destMatch?.[1]?.split(',')[0]?.trim() || fullTitle
+
+              return {
+                name: specificName,
+                location: day.location,
+                originalTitle: fullTitle
+              }
+            })
+        } else {
+          const renderedDay = (itinerary || []).find((d: any) => d.day === day.day)
+          const stops = renderedDay?.stops || []
+          activities = stops
+            .filter((stop: any) => {
+              const title = stop.title || ''
+              return !!title && stop.type !== 'travel'
+            })
+            .map((stop: any) => {
+              const fullTitle = stop.title || ''
+              const poiMatch = /(?:Visit|Explore|See|Tour|Eat at|Dine at|Lunch at|Dinner at)\s+(.+)/i.exec(fullTitle)
+              const destMatch = /(?:to|in|at)\s+(.+)/i.exec(fullTitle)
+              const specificName = poiMatch?.[1]?.trim() || destMatch?.[1]?.split(',')[0]?.trim() || fullTitle
+
+              return {
+                name: specificName,
+                location: day.location,
+                originalTitle: fullTitle
+              }
+            })
+        }
+
+        if (activities.length > 0) {
+          console.log(`📍 Enriching Day ${day.day}: ${activities.length} activities`)
+          await enrichActivitiesForDay(day.day, activities)
+        }
+      }
+
+      setInitialEnrichmentDone(true)
+      console.log('✅ Initial enrichment complete!')
+    }
+
+    // Start enrichment after a short delay to let the UI render first
+    const timer = setTimeout(() => {
+      enrichAllActivities()
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [days, initialEnrichmentDone])
+
+  // Listen for POI additions to Today's Schedule from route popup
+  useEffect(() => {
+    const handler = (e: CustomEvent) => {
+      try {
+        const { poi, nearestStop } = e.detail
+
+        // Find the nearest day to add the POI to
+        const dayIndex = nearestStop?.index ?? selectedDay - 1
+        const targetDay = days[dayIndex]
+
+        if (!targetDay) {
+          toast.error('Could not find day to add POI')
+          return
+        }
+
+        // Create new activity from POI
+        const newActivity = {
+          type: 'activity',
+          title: poi.name,
+          description: poi.description || '',
+          duration: 1,
+          costEstimate: 0,
+          image: poi.image || '',
+          link: poi.link || '',
+          coordinates: poi.coordinates
+        }
+
+        // Add to day's items
+        const updatedDays = days.map((d: any) =>
+          d.day === targetDay.day
+            ? { ...d, items: [...(d.items || []), newActivity] }
+            : d
+        )
+
+        setDays(updatedDays)
+        persistDays(updatedDays)
+
+        toast.success(`Added "${poi.name}" to Day ${targetDay.day}`)
+
+        // Select the day to show the new activity
+        setSelectedDay(targetDay.day)
+      } catch (err) {
+        console.warn('Failed to add POI to schedule:', err)
+        toast.error('Failed to add to schedule')
+      }
+    }
+    window.addEventListener('plan-v2:add-poi-to-schedule', handler as any)
+    return () => window.removeEventListener('plan-v2:add-poi-to-schedule', handler as any)
+  }, [days, selectedDay])
+
   // Scroll to top function
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -1046,11 +1643,26 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
 
       // Generate slug from title
       const title = tripTitle || `${tripData.destinations[0]?.name} to ${tripData.destinations[tripData.destinations.length - 1]?.name}`
-      const slug = title
+      let slug = title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '')
         .substring(0, 50)
+
+      // Check for duplicate slug and append timestamp if needed
+      const { data: existingTrip } = await supabase
+        .from('trips')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('slug', slug)
+        .single()
+
+      if (existingTrip) {
+        // Slug already exists for this user, append timestamp to make it unique
+        const timestamp = Date.now().toString().slice(-6) // Last 6 digits of timestamp
+        slug = `${slug}-${timestamp}`
+        console.log(`⚠️ Slug collision detected. Using unique slug: ${slug}`)
+      }
 
       // CRITICAL FIX: Get cover image from first day's location
       const coverImage = days?.[0] ? (() => {
@@ -1059,12 +1671,18 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
         const imgs = (
           locationImages[day.location] ||
           (locationImages as any)[locationKey] ||
-          fallbackImages[day.location] ||
-          (fallbackImages as any)[locationKey] ||
           day.locationMetadata?.images
         ) as { featured?: string; gallery?: string[] } | undefined
         return imgs?.featured || imgs?.gallery?.[0] || null
       })() : null
+
+      // Helper to convert date to ISO string (handles both Date objects and strings)
+      const toDateString = (date: any): string | null => {
+        if (!date) return null
+        if (typeof date === 'string') return date.split('T')[0]
+        if (date instanceof Date) return date.toISOString().split('T')[0]
+        return null
+      }
 
       // Create trip in database
       const { data: trip, error } = await supabase
@@ -1076,8 +1694,8 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
           slug,
           status: 'draft',
           cover_image: coverImage,
-          start_date: tripData.dateRange?.startDate.toISOString().split('T')[0],
-          end_date: tripData.dateRange?.endDate.toISOString().split('T')[0],
+          start_date: toDateString(tripData.dateRange?.startDate),
+          end_date: toDateString(tripData.dateRange?.endDate),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
@@ -1233,106 +1851,84 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
     })
   }
 
-  // Client-side fallback image discovery if API didn't return images
-  const [fallbackImages, setFallbackImages] = useState<Record<string, { featured: string; gallery: string[] }>>({});
+  // Fetch gallery images for locations that don't have them in locationImages
+  const [fetchedGalleryImages, setFetchedGalleryImages] = useState<Record<string, { featured: string; gallery: string[] }>>({})
+  const [isFetchingGallery, setIsFetchingGallery] = useState(false)
 
   useEffect(() => {
-    const run = async () => {
-      if (!plan?.days) return;
+    const fetchMissingGalleryImages = async () => {
+      if (!plan?.days || isFetchingGallery) return
 
-      // Collect all location names (day locations + activity destinations + POI names)
-      const allLocationNames = new Set<string>();
+      // Find locations without images
+      const locationsNeedingImages: string[] = []
 
-      // Add day locations
-      (days as any[]).forEach((d: any) => {
-        if (d.location) allLocationNames.add(d.location);
-      });
+      for (const day of plan.days) {
+        if (!day.location) continue
 
-      // CRITICAL FIX: Add activity destination names AND specific POI names
-      // Track which names are POIs vs destinations for context-specific image fetching
-      const poiNames = new Set<string>();
+        const locationKey = day.location.toLowerCase().replace(/\s+/g, '-')
+        const hasDBImages = !!(locationImages[day.location] || locationImages[locationKey])
+        const hasFetchedImages = !!(fetchedGalleryImages[day.location] || fetchedGalleryImages[locationKey])
 
-      (days as any[]).forEach((d: any) => {
-        d.items?.forEach((item: any) => {
-          if (item.title) {
-            // Extract POI names (e.g., "Braaker Mühle" from "Visit Braaker Mühle")
-            const poiMatch = /(?:Visit|Explore|See|Tour)\s+(.+)/i.exec(item.title)
-            if (poiMatch) {
-              const poiName = poiMatch[1]?.trim()
-              if (poiName && d.location) {
-                // Add POI with location context for better images
-                const fullPOIName = `${poiName} ${d.location}`
-                allLocationNames.add(fullPOIName)
-                poiNames.add(fullPOIName) // Mark as POI for activity context
-                console.log(`🔍 Will fetch POI images for: "${fullPOIName}"`)
-              }
-            }
+        if (!hasDBImages && !hasFetchedImages) {
+          locationsNeedingImages.push(day.location)
+        }
+      }
 
-            // Also extract destination names (e.g., "Grand Junction" from "Drive to Grand Junction")
-            const destMatch = /(?:to|in|at)\s+(.+)/i.exec(item.title)
-            if (destMatch) {
-              const destName = destMatch[1]?.split(',')[0]?.trim()
-              if (destName) allLocationNames.add(destName)
-            }
+      if (locationsNeedingImages.length === 0) {
+        console.log('✅ All locations have images')
+        return
+      }
+
+      console.log(`🖼️ Fetching gallery images for ${locationsNeedingImages.length} locations:`, locationsNeedingImages)
+      setIsFetchingGallery(true)
+
+      // Fetch images for each location
+      for (const locationName of locationsNeedingImages) {
+        try {
+          console.log(`  📡 Fetching images for "${locationName}"...`)
+
+          // Use /api/images/discover endpoint (Brave + Reddit ULTRA + fallbacks)
+          const res = await fetch(`/api/images/discover?query=${encodeURIComponent(locationName)}&limit=10&context=trip`)
+
+          if (!res.ok) {
+            console.warn(`  ⚠️ Failed to fetch images for "${locationName}": ${res.status}`)
+            continue
           }
-        })
-      });
 
-      const uniqueNames = Array.from(allLocationNames).filter(Boolean) as string[];
-      const missing = uniqueNames.filter((name) => {
-        const key = name.toLowerCase().replace(/\s+/g, '-')
-        return !(locationImages as any)[name] && !(locationImages as any)[key] && !fallbackImages[name] && !fallbackImages[key]
-      });
+          const data = await res.json()
 
-      if (missing.length === 0) return
+          if (data.images && data.images.length > 0) {
+            // CRITICAL: Use thumbnail (Brave CDN URL) first, fallback to url
+            const imageUrls = data.images.map((img: any) => img.thumbnail || img.url).filter(Boolean)
 
-      console.log(`🖼️ Fetching images for ${missing.length} locations:`, missing)
-
-      await Promise.all(
-        missing.map(async (name) => {
-          try {
-            // CRITICAL FIX: Use 'activity' context for POIs, 'trip' for destinations
-            const isPOI = poiNames.has(name)
-            const context = isPOI ? 'activity' : 'trip'
-
-            console.log(`🔍 Fetching ${isPOI ? 'POI' : 'destination'} images for "${name}" using Brave API + Reddit ULTRA (context: ${context})...`)
-            const res = await fetch(`/api/images/discover?query=${encodeURIComponent(name)}&limit=10&context=${context}`)
-
-            if (!res.ok) {
-              console.error(`❌ Image API failed for "${name}": ${res.status} ${res.statusText}`)
-              return
+            if (imageUrls.length > 0) {
+              setFetchedGalleryImages(prev => ({
+                ...prev,
+                [locationName]: {
+                  featured: imageUrls[0],
+                  gallery: imageUrls.slice(0, 10) // Limit to 10 images
+                }
+              }))
+              console.log(`  ✅ Fetched ${imageUrls.length} images for "${locationName}" (sources: ${data.images.map((i: any) => i.source).join(', ')})`)
             }
-
-            const json = await res.json()
-
-            if (!json.success) {
-              console.error(`❌ Image API returned error for "${name}":`, json.error)
-              return
-            }
-
-            const urls: string[] = json?.images?.map((i: any) => i.url).filter(Boolean) || []
-
-            if (urls.length > 0) {
-              setFallbackImages((prev) => {
-                const updated = { ...prev, [name]: { featured: urls[0], gallery: urls } }
-                console.log(`✅ Stored ${urls.length} images for key "${name}"`, {
-                  featured: urls[0],
-                  sources: json.images.map((i: any) => i.source).join(', ')
-                })
-                return updated
-              })
-            } else {
-              console.warn(`⚠️ No images found for "${name}" - API returned empty array`)
-            }
-          } catch (e) {
-            console.error(`❌ Fallback image fetch failed for "${name}":`, e)
+          } else {
+            console.warn(`  ⚠️ No images found for "${locationName}"`)
           }
-        })
-      )
+
+          // Rate limiting: 50ms delay (20 RPS limit)
+          await new Promise(resolve => setTimeout(resolve, 50))
+        } catch (error) {
+          console.error(`  ❌ Error fetching images for "${locationName}":`, error)
+        }
+      }
+
+      setIsFetchingGallery(false)
+      console.log('🎉 Gallery image fetching complete')
     }
-    run()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days, locationImages])
+
+    fetchMissingGalleryImages()
+  }, [plan?.days]) // Only run when plan changes (not locationImages to avoid loops)
+
 
 
   // Generate headline with GROQ
@@ -1459,6 +2055,10 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
     // Keep plan.days in sync if other parts rely on it
     plan.days = newDays
 
+    // Persist to server when editing a saved trip
+    persistDays(newDays)
+
+
     // Clear preview and close
     setPreviewLocations(null)
     setShowRouteModal(false)
@@ -1479,6 +2079,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
   const handleConfirmChangeLocation = async () => {
     if (!changeLocationDay || !changeLocationValue) return
     setIsChangingLocation(true)
+
     try {
       const idx = changeLocationDay - 1
       const prev = days[idx - 1]
@@ -1514,11 +2115,17 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
       // Keep plan.days in sync
       plan.days = plan.days.map((d: any) => (d.day === changeLocationDay ? newDay : d))
 
+
+      // Persist to server when editing a saved trip
+      await persistDays(plan.days as any[])
+
       setShowChangeLocationModal(false)
       toast.success('Location updated')
     } catch (e) {
       console.error('Change location failed', e)
       toast.error('Could not update location')
+
+
     } finally {
       setIsChangingLocation(false)
     }
@@ -1535,12 +2142,14 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
       const isTravelDay = day.type === 'travel' || day.travelInfo
 
       // Build stops from items with deduplication and validation + fallbacks
+      // CRITICAL: Include image field from enriched items (set by refreshScheduleForDay)
       let rawStops = (day.items?.map((item: any) => ({
         time: item.time || '09:00',
         title: item.title,
         type: item.type === 'travel' ? 'travel' : item.type === 'meal' ? 'meal' : 'activity',
         icon: item.type === 'travel' ? Navigation : item.type === 'meal' ? Utensils : Camera,
-        duration: item.duration ? `${item.duration}h` : undefined
+        duration: item.duration ? `${item.duration}h` : undefined,
+        image: item.image || item.image_url || item.imageUrl // ✅ Standardize across trips
       })) || []) as any[]
 
       // Fallbacks when schedule is empty
@@ -1620,70 +2229,15 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
         ?.slice(0, 3)
         ?.map((item: any) => item.title) || []
 
-      // Get location images (featured + gallery) with fallback and per-location rotation to avoid duplicates
+      // Get location images with smart precedence:
+      // 1) DB-cached locationImages (from plan_data) - FIRST PRIORITY
+      // 2) Client-fetched gallery images (from Brave API) - FALLBACK
       const locationKey = day.location.toLowerCase().replace(/\s+/g, '-')
-      const imgs = (locationImages[day.location] || locationImages[locationKey] || fallbackImages[day.location] || fallbackImages[locationKey]) as { featured?: string; gallery?: string[] } | undefined
-
-      // CRITICAL FIX: Also try locationMetadata.images from the plan data
-      const metadataImages = day.locationMetadata?.images as { featured?: string; gallery?: string[] } | undefined
-
-      // Merge images from all sources
-      const allImages = {
-        featured: imgs?.featured || metadataImages?.featured,
-        gallery: [
-          ...(imgs?.gallery || []),
-          ...(metadataImages?.gallery || [])
-        ].filter((url, idx, arr) => url && arr.indexOf(url) === idx) // Deduplicate
-      }
-
-      // Debug logging for missing images
-      if (!allImages.featured && !allImages.gallery.length && index === 0) {
-        console.log(`⚠️ No images found for "${day.location}"`, {
-          locationImages: Object.keys(locationImages),
-          fallbackImages: Object.keys(fallbackImages),
-          hasMetadata: !!metadataImages,
-          locationKey
-        })
-      }
-
-      // IMPROVED: Build gallery with featured + gallery images
-      const gal = allImages.gallery.length > 0 ? allImages.gallery : (allImages.featured ? [allImages.featured] : [])
-
-      // IMPROVED: Hero image selection with fallback logic
-      // 1. Try to use gallery images (rotate through them)
-      // 2. If no gallery, use featured
-      // 3. If hero fails to load, fallback to next gallery image
-      const rotationKey = day.location.toLowerCase()
-      const prevIdx = (usedImageIndexMap.get(rotationKey) ?? 0) % Math.max(gal.length, 1)
-      let hero = gal.length > 0 ? (gal[prevIdx] || gal[0]) : (allImages.featured || '')
-
-      // IMPROVED: If hero is broken, try next gallery image
-      if (hero && brokenImages.has(hero) && gal.length > 1) {
-        const nextIdx = (prevIdx + 1) % gal.length
-        hero = gal[nextIdx] || gal[0]
-        console.log(`🔄 Hero image broken, using next gallery image for ${day.location}`)
-      }
-
-      usedImageIndexMap.set(rotationKey, (prevIdx + 1) % Math.max(gal.length, 1))
-
-      // Debug logging for hero image selection
-      if (index === 0 || !hero) {
-        console.log(`📸 Hero image for "${day.location}" (Day ${day.day}):`, {
-          hero: hero ? `${hero.substring(0, 80)}...` : 'NONE',
-          galleryCount: gal.length,
-          featuredAvailable: !!allImages.featured,
-          totalGalleryImages: allImages.gallery.length,
-          brokenImagesCount: brokenImages.size
-        })
-      }
-
-      // Ensure we have at least 5 images in gallery (excluding hero and broken images)
-      let gallery = gal.filter((u) => u !== hero && !brokenImages.has(u))
-      // If we have less than 5 gallery images, pad with remaining images from gal
-      if (gallery.length < 5 && gal.length > 1) {
-        const remaining = gal.filter((u) => !gallery.includes(u) && u !== hero && !brokenImages.has(u))
-        gallery = [...gallery, ...remaining].slice(0, 5)
-      }
+      const dbImages = locationImages[day.location] || locationImages[locationKey]
+      const fetchedImages = fetchedGalleryImages[day.location] || fetchedGalleryImages[locationKey]
+      const images = dbImages || fetchedImages
+      const featuredImage = images?.featured
+      const gallery = images?.gallery || []
 
       return {
         day: day.day,
@@ -1692,8 +2246,8 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
         emoji: LOCATION_EMOJIS[index % LOCATION_EMOJIS.length],
         distance: day.travelInfo?.distance ? `${Math.round(day.travelInfo.distance)} km` : undefined,
         duration: day.travelInfo?.duration ? `${Math.round(day.travelInfo.duration)}h` : undefined,
-        image: hero || DAY_GRADIENTS[index % DAY_GRADIENTS.length],
-        gallery,
+        image: featuredImage || DAY_GRADIENTS[index % DAY_GRADIENTS.length], // Use real image or fallback to gradient
+        gallery, // Image gallery
         stops,
         accommodation,
         highlights,
@@ -1701,66 +2255,120 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
         locationMetadata: day.locationMetadata // Pass through coordinates for day maps
       }
     })
-  }, [days, locationImages, fallbackImages, brokenImages]) // CRITICAL FIX: Use days state, not plan.days
+  }, [days, locationImages, fetchedGalleryImages]); // Dependencies: days, DB images, and fetched images
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header - 20% more compact */}
       <header className="border-b border-gray-200 sticky top-0 bg-white z-40 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="max-w-[1610px] mx-auto px-4">
           <div className="flex items-center justify-between h-14">
             <nav className="flex items-center gap-6">
-              <button onClick={onEdit} className="text-sm text-gray-700 hover:text-black font-medium">
-                Change trip parameters
-              </button>
-              <button
-                onClick={() => router.push('/locations')}
-                className="text-sm text-gray-600 hover:text-black"
-              >
-                Explore
-              </button>
-              <button
-                onClick={() => {
-                  if (!isAuthenticated) {
-                    showSignIn('/plan-v2')
-                  } else {
-                    router.push('/dashboard/trips')
-                  }
-                }}
-                className="text-sm text-gray-600 hover:text-black"
-              >
-                Saved
-              </button>
+              {mode !== 'editor' ? (
+                <>
+                  <button onClick={() => (onEdit ? onEdit() : null)} className="text-sm text-gray-700 hover:text-black font-medium">
+                    Change trip parameters
+                  </button>
+                  <button
+                    onClick={() => router.push('/locations')}
+
+
+                    className="text-sm text-gray-600 hover:text-black"
+                  >
+                    Explore
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        showSignIn('/plan-v2')
+                      } else {
+                        router.push('/dashboard/trips')
+                      }
+                    }}
+                    className="text-sm text-gray-600 hover:text-black"
+                  >
+                    Saved
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => router.push('/dashboard/trips')}
+                    className="text-sm text-gray-600 hover:text-black"
+                  >
+                    Back to My Trips
+                  </button>
+                </>
+              )}
             </nav>
             <div className="flex items-center gap-2">
-              <span className="hidden sm:inline text-xs text-gray-500 mr-2">
-                To start editing the trip, save it to your trip library.
-              </span>
-              <button
-                ref={saveBtnRef}
-                onClick={handleSaveTrip}
-                disabled={isSaving}
-                className="px-4 py-1.5 text-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-full hover:shadow-lg transition-all font-medium flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSaving ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-3.5 h-3.5" />
-                    Save Trip
-                  </>
-                )}
-              </button>
+              {mode === 'editor' && (
+                <button
+                  onClick={async () => {
+                    console.log('🔄 Refresh All Images clicked', { daysCount: days?.length || 0 })
+
+                    if (!days || days.length === 0) {
+                      console.warn('⚠️ No days to refresh')
+                      return
+                    }
+
+                    // Refresh all days sequentially
+                    for (const day of days) {
+                      console.log(`🔄 Refreshing Day ${day.day}...`)
+                      await refreshScheduleForDay(day.day)
+                    }
+
+                    console.log('✅ All days refreshed!')
+                  }}
+                  disabled={refreshingSchedule !== null}
+                  className="px-3 py-1.5 text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                  title="Refresh all activity images and links"
+                >
+                  {refreshingSchedule !== null ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Refreshing Day {refreshingSchedule}...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Refresh All Images
+                    </>
+                  )}
+                </button>
+              )}
+              {mode !== 'editor' && !hideCTAs ? (
+                <>
+                  <span className="hidden sm:inline text-xs text-gray-500 mr-2">
+                    To start editing the trip, save it to your trip library.
+                  </span>
+                  <button
+                    ref={saveBtnRef}
+                    onClick={handleSaveTrip}
+                    disabled={isSaving}
+                    className="px-4 py-1.5 text-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-full hover:shadow-lg transition-all font-medium flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-3.5 h-3.5" />
+                        Save Trip
+                      </>
+                    )}
+                  </button>
+                </>
+              ) : null}
             </div>
           </div>
         </div>
       </header>
 
       {/* Trip Title - Editable with GROQ */}
-      <div className="max-w-6xl mx-auto px-4 py-5">
+      <div className="max-w-[1610px] mx-auto px-4 py-5">
         <div className="mb-5">
           {/* Editable Title */}
           <InlineEdit
@@ -1771,7 +2379,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
             }}
             placeholder="Enter trip title..."
             variant="title"
-            className="mb-2"
+            className="mb-1"
           />
 
           {/* Editable Subtitle */}
@@ -1806,11 +2414,20 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
           {/* Trip Metadata - Smart Tags */}
           <div className="flex items-center gap-2 flex-wrap">
             {/* Date Range */}
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200">
-              <Calendar className="w-3.5 h-3.5" />
-              {tripData.dateRange?.startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} -{' '}
-              {tripData.dateRange?.endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-            </span>
+            {tripData.dateRange?.startDate && tripData.dateRange?.endDate && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200">
+                <Calendar className="w-3.5 h-3.5" />
+                {(() => {
+                  const startDate = tripData.dateRange.startDate instanceof Date
+                    ? tripData.dateRange.startDate
+                    : new Date(tripData.dateRange.startDate)
+                  const endDate = tripData.dateRange.endDate instanceof Date
+                    ? tripData.dateRange.endDate
+                    : new Date(tripData.dateRange.endDate)
+                  return `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                })()}
+              </span>
+            )}
 
             {/* Smart Tags */}
             {generateSmartTags(tripData, plan).map((tag, idx) => (
@@ -1823,7 +2440,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
         </div>
 
         {/* Main Content - Adjusted for wider map */}
-        <div className="flex gap-5">
+        <div className="flex gap-8">
           {/* Left Sidebar - Day Navigation - Compact with connection lines */}
           <div className="flex-shrink-0 w-[180px]">
             <div className="sticky top-20">
@@ -1834,40 +2451,66 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                   Itinerary
                 </h3>
               </div>
-              <div className="relative space-y-1">
-                {itinerary.map((day: any, index: number) => (
-                  <div
-                    key={day.day}
-                    className={`transition-all duration-300 ease-out ${
-                      animatingDayNumber === day.day
-                        ? 'animate-in slide-in-from-top-4 fade-in duration-500'
-                        : deletingDayNumber === day.day
-                        ? 'animate-out slide-out-to-right-4 fade-out duration-300'
-                        : ''
-                    }`}
-                    style={{
-                      transitionProperty: 'transform, opacity',
-                    }}
-                  >
-                    {/* Day Box */}
+              <DragDropContext onDragEnd={handleDragEnd}>
+                <Droppable droppableId="itinerary">
+                  {(provided) => (
                     <div
-                      className="relative group"
-                      onMouseEnter={() => setHoveredDayForDelete(day.day)}
-                      onMouseLeave={() => setHoveredDayForDelete(null)}
+                      className="relative space-y-1"
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
                     >
-                      {/* Connection line to selected day - BLACK */}
-                      {selectedDay === day.day && (
-                        <div className="absolute left-full top-1/2 -translate-y-1/2 w-5 h-0.5 bg-black z-10"></div>
-                      )}
+                      {itinerary.map((day: any, index: number) => (
+                        <Draggable
+                          key={day.day}
+                          draggableId={`day-${day.day}`}
+                          index={index}
+                          isDragDisabled={mode !== 'editor'}
+                        >
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className={`${
+                                animatingDayNumber === day.day
+                                  ? 'animate-in slide-in-from-top-4 fade-in duration-500'
+                                  : deletingDayNumber === day.day
+                                  ? 'animate-out slide-out-to-right-4 fade-out duration-300'
+                                  : ''
+                              } ${snapshot.isDragging ? 'opacity-50' : ''}`}
+                              style={{
+                                ...provided.draggableProps.style
+                              }}
+                            >
+                              {/* Day Box */}
+                              <div
+                                className="relative group"
+                                onMouseEnter={() => setHoveredDayForDelete(day.day)}
+                                onMouseLeave={() => setHoveredDayForDelete(null)}
+                              >
+                                {/* Connection line to selected day - BLACK */}
+                                {selectedDay === day.day && (
+                                  <div className="absolute left-full top-1/2 -translate-y-1/2 w-5 h-0.5 bg-black z-10"></div>
+                                )}
 
-                      <button
-                        onClick={() => handleDayClick(day.day)}
-                        className={`w-full text-left px-3 py-2.5 rounded-xl transition-all border-2 ${
-                          selectedDay === day.day
-                            ? 'bg-white border-black shadow-md scale-105' // BOLDER black border (border-2) for selected
-                            : 'bg-white/50 border-gray-300 hover:bg-white hover:border-gray-400 hover:shadow-sm' // LIGHTER background, DARKER border (gray-300)
-                        }`}
-                      >
+                                <div className="flex items-center gap-1">
+                                  {/* Drag Handle - Only visible in editor mode */}
+                                  {mode === 'editor' && (
+                                    <div
+                                      {...provided.dragHandleProps}
+                                      className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 transition-colors"
+                                    >
+                                      <GripVertical className="w-4 h-4" />
+                                    </div>
+                                  )}
+
+                                  <button
+                                    onClick={() => handleDayClick(day.day)}
+                                    className={`flex-1 text-left px-3 py-2.5 rounded-xl transition-all border-2 ${
+                                      selectedDay === day.day
+                                        ? 'bg-white border-black shadow-md scale-105' // BOLDER black border (border-2) for selected
+                                        : 'bg-white/50 border-gray-300 hover:bg-white hover:border-gray-400 hover:shadow-sm' // LIGHTER background, DARKER border (gray-300)
+                                    }`}
+                                  >
                         <div className="flex items-center gap-2">
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 ${
                             selectedDay === day.day
@@ -1878,12 +2521,13 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                           </div>
                           <div className="flex-1 min-w-0">
                             <div
-                              className="inline-block text-xs font-semibold text-gray-900 truncate leading-tight cursor-pointer hover:text-emerald-600 hover:underline hover:bg-emerald-50/60 rounded px-1 transition-colors"
+                              className={`inline-block text-xs font-semibold text-gray-900 truncate leading-tight rounded px-1 transition-colors ${mode === 'editor' ? 'cursor-pointer hover:text-emerald-600 hover:underline hover:bg-emerald-50/60' : ''}`}
                               onClick={(e) => {
+                                if (mode !== 'editor') return
                                 e.stopPropagation()
                                 openChangeLocation(day.day)
                               }}
-                              title="Click to change location"
+                              title={mode === 'editor' ? 'Click to change location' : undefined}
                             >
                               {formatLocationDisplay(day.location).main}
                             </div>
@@ -1905,49 +2549,56 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                           <X className="w-2.5 h-2.5" />
                         </button>
                       )}
-                    </div>
+                                  </div>
 
-                    {/* Add Day Button - INVISIBLE by default, VISIBLE on hover */}
-                    <div
-                      className="relative h-4 flex items-center justify-center group/add"
-                      onMouseEnter={() => setHoveredAddDayIndex(index)}
-                      onMouseLeave={() => setHoveredAddDayIndex(null)}
-                    >
-                      {/* Animated line - INVISIBLE by default, VISIBLE on hover */}
-                      <div className={`absolute inset-x-0 h-px transition-all duration-300 ${
-                        hoveredAddDayIndex === index
-                          ? 'bg-gray-300 opacity-100'
-                          : 'bg-transparent opacity-0'
-                      }`} />
+                                  {/* Add Day Button - INVISIBLE by default, VISIBLE on hover */}
+                                  <div
+                                  className="relative h-4 flex items-center justify-center group/add"
+                                  onMouseEnter={() => setHoveredAddDayIndex(index)}
+                                  onMouseLeave={() => setHoveredAddDayIndex(null)}
+                                >
+                                  {/* Animated line - INVISIBLE by default, VISIBLE on hover */}
+                                  <div className={`absolute inset-x-0 h-px transition-all duration-300 ${
+                                    hoveredAddDayIndex === index
+                                      ? 'bg-emerald-300 opacity-100'
+                                      : 'bg-transparent opacity-0'
+                                  }`} />
 
-                      {/* Plus bubble - INVISIBLE by default, VISIBLE on hover with animation */}
-                      <button
-                        onClick={() => handleAddDayClick(day.day)}
-                        className={`relative w-4 h-4 rounded-full bg-gray-300 hover:bg-gray-400 text-gray-600 flex items-center justify-center shadow-sm transition-all duration-300 ${
-                          hoveredAddDayIndex === index
-                            ? 'opacity-100 scale-100'
-                            : 'opacity-0 scale-75 pointer-events-none'
-                        }`}
-                        title="Add day after this"
-                      >
-                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
-                        </svg>
-                      </button>
+                                  {/* Plus bubble - INVISIBLE by default, VISIBLE on hover with animation - GREEN */}
+                                  <button
+                                    onClick={() => handleAddDayClick(day.day)}
+                                    className={`relative w-4 h-4 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center shadow-sm transition-all duration-300 ${
+                                      hoveredAddDayIndex === index
+                                        ? 'opacity-100 scale-100'
+                                        : 'opacity-0 scale-75 pointer-events-none'
+                                    }`}
+                                    title="Add day after this"
+                                  >
+                                    <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
                     </div>
-                  </div>
-                ))}
-              </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
             </div>
           </div>
 
-          {/* Main Content - Day Details - Flexible width */}
-          <div className="flex-1 min-w-0" ref={dayContentRef}>
+          {/* Main Content - Day Details - Reduced width for more map space */}
+          <div className="flex-1 min-w-0 max-w-[608px] ml-2 md:ml-3" ref={dayContentRef}>
             <div className="space-y-4">
               {itinerary.filter((day: any) => day.day === selectedDay).map((day: any) => (
                 <div key={day.day}>
                   {/* Hero Image - Real image or gradient fallback */}
-                  <div className="relative h-64 rounded-xl mb-4 overflow-hidden shadow-lg">
+                  <div className={`relative h-64 rounded-xl mb-4 overflow-hidden shadow-lg ${mode === 'editor' && recentlyUpdatedKeys[`day-hero-${day.day}`] ? 'ring-2 ring-emerald-300' : ''}`}>
                     {day.image && day.image.startsWith('http') && !brokenImages.has(day.image) ? (
                       // Real image from database
                       <>
@@ -1975,6 +2626,22 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                         title={day.image && day.image.startsWith('http') ? `Image failed to load: ${day.image}` : 'No image available'}
                       />
                     )}
+
+
+                      {/* Editor: Edit Photo overlay */}
+                      {mode === 'editor' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log('🖼️ Hero Edit photo clicked for day:', day.day)
+                            setShowImagePickerForDay(day.day)
+                          }}
+                          className="absolute top-3 right-3 z-20 px-2.5 py-1.5 rounded-md text-xs font-medium bg-white/85 text-gray-700 hover:bg-white shadow-sm border border-gray-200"
+                          title="Change hero photo"
+                        >
+                          Edit photo
+                        </button>
+                      )}
 
                     {/* Overlay content - removed duplicate distance/duration display */}
                     <div className="absolute inset-0 flex items-center justify-center text-white">
@@ -2168,6 +2835,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                           transportMode={tripData.transportMode || 'car'}
                           className="w-full h-48"
                           showRouteOptions={false}
+                          showElevation={false}
                         />
                         {Array.isArray(days) && days.length < 2 && (
                           <div className="absolute bottom-3 inset-x-0 flex justify-center z-10">
@@ -2185,10 +2853,32 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
 
                   {/* Schedule - 20% more compact */}
                   <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm mb-4">
-                    <h3 className="text-base font-semibold mb-4 flex items-center gap-1.5">
-                      <Clock className="w-4 h-4 text-gray-400" />
-                      Today's Schedule
-                    </h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-base font-semibold flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-gray-400" />
+                        Today's Schedule
+                      </h3>
+                      {mode === 'editor' && (
+                        <button
+                          onClick={() => { console.log('🟢 Refresh infos clicked', { day: selectedDay, refreshingSchedule }); refreshScheduleForDay(selectedDay) }}
+                          disabled={refreshingSchedule === selectedDay}
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Refresh images and links for all activities"
+                        >
+                          {refreshingSchedule === day.day ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              Refreshing...
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5" />
+                              Refresh infos
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                     <div className="space-y-3">
                       {day.stops.map((stop: any, idx: number) => {
                         const Icon = stop.icon
@@ -2196,69 +2886,51 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                         const searchUrl = generateActivitySearchUrl(stop.title, day.location)
                         const stopKey = `${day.day}-${idx}-${stop.title}`
 
-                        // CRITICAL FIX: Extract FULL activity name for specific POI images
-                        // For "Visit Braaker Mühle" → use "Braaker Mühle Braak" (full POI name)
-                        // For "Drive to Grand Junction" → use "Grand Junction"
+                        // Extract activity name for image alt text and fallback lookup
                         const fullTitle = stop.title || ''
-
-                        // Try to extract specific POI name (everything after "Visit", "Explore", etc.)
                         const poiMatch = /(?:Visit|Explore|See|Tour)\s+(.+)/i.exec(fullTitle)
                         const destMatch = /(?:to|in|at)\s+(.+)/i.exec(fullTitle)
-
-                        // Use POI name if available, otherwise destination name
                         const specificName = poiMatch?.[1]?.trim() || destMatch?.[1]?.split(',')[0]?.trim() || null
 
-                        // For POIs, include location context for better image search
-                        const searchQuery = poiMatch && day.location
-                          ? `${specificName} ${day.location}` // "Braaker Mühle Braak"
-                          : specificName // "Grand Junction"
+                        // CRITICAL: Use enriched image from stop (set by refreshScheduleForDay via itinerary useMemo)
+                        // This is the Brave API image fetched by the smart query strategy
+                        let destImageUrl: string | undefined = stop.image // ✅ Use enriched image FIRST
 
-                        // Find image for this destination (try specific query first, then day location)
-                        let destImageUrl: string | undefined
+                        // If no enriched image, fall back to complex lookup
+                        if (!destImageUrl) {
+                          // For POIs, include location context for better image search
+                          const searchQuery = poiMatch && day.location
+                            ? `${specificName} ${day.location}` // "Braaker Mühle Braak"
+                            : specificName // "Grand Junction"
 
-                        // Try specific POI/destination name first
-                        if (searchQuery) {
-                          const key = searchQuery.toLowerCase().replace(/\s+/g, '-')
-                          const imgs = (
-                            locationImages[searchQuery] ||
-                            (locationImages as any)[key] ||
-                            fallbackImages[searchQuery] ||
-                            (fallbackImages as any)[key]
-                          ) as { featured?: string; gallery?: string[] } | undefined
+                          // Try specific POI/destination name first
+                          // Prefer locationImages (DB cached) FIRST, then fallback to discovered images for gaps
+                          if (searchQuery) {
+                            const key = searchQuery.toLowerCase().replace(/\s+/g, '-')
 
-                          destImageUrl = imgs?.featured || imgs?.gallery?.[0]
+                            // Try multiple lookup strategies
+                            const imgs = (
+                              locationImages[searchQuery] ||
+                              (locationImages as any)[key]
+                            ) as { featured?: string; gallery?: string[] } | undefined
 
-                          // CRITICAL DEBUG: Log what we're looking for and what we found
-                          console.log(`🔍 Looking for image:`, {
-                            searchQuery,
-                            key,
-                            foundInLocationImages: !!(locationImages[searchQuery] || (locationImages as any)[key]),
-                            foundInFallbackImages: !!(fallbackImages[searchQuery] || (fallbackImages as any)[key]),
-                            destImageUrl,
-                            availableFallbackKeys: Object.keys(fallbackImages).slice(0, 5)
-                          })
+                            destImageUrl = imgs?.featured || imgs?.gallery?.[0]
+                          }
 
-                          // Debug log for POI images
-                          if (!destImageUrl && poiMatch) {
-                            console.log(`⚠️ No image found for POI "${searchQuery}"`)
+                          // Fallback to day location if no destination-specific image
+                          if (!destImageUrl && day.location) {
+                            const dayKey = day.location.toLowerCase().replace(/\s+/g, '-')
+                            const dayImgs = (
+                              locationImages[day.location] ||
+                              (locationImages as any)[dayKey]
+                            ) as { featured?: string; gallery?: string[] } | undefined
+
+                            destImageUrl = dayImgs?.featured || dayImgs?.gallery?.[0]
                           }
                         }
 
-                        // Fallback to day location if no destination-specific image
-                        if (!destImageUrl && day.location) {
-                          const dayKey = day.location.toLowerCase().replace(/\s+/g, '-')
-                          const dayImgs = (
-                            locationImages[day.location] ||
-                            (locationImages as any)[dayKey] ||
-                            fallbackImages[day.location] ||
-                            (fallbackImages as any)[dayKey]
-                          ) as { featured?: string; gallery?: string[] } | undefined
-
-                          destImageUrl = dayImgs?.featured || dayImgs?.gallery?.[0]
-                        }
-
                         return (
-                          <div key={idx} className="flex gap-3 group">
+                          <div key={idx} className="flex gap-3 group p-2 rounded-xl border border-gray-200 bg-white/80 hover:shadow-sm transition">
                             <div className="flex flex-col items-center">
                               <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                                 stop.type === 'departure' ? 'bg-gray-100 border-2 border-gray-300' :
@@ -2511,26 +3183,107 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                                     </div>
                                   </div>
                                   </div>
-                                  {destImageUrl && (
-                                    <img
-                                      src={destImageUrl}
-                                      alt={specificName || day.location}
-                                      loading="lazy"
-                                      className="w-20 h-20 rounded-lg object-cover border border-gray-200"
-                                      onError={(e) => {
-                                        // Hide broken images
-                                        const target = e.target as HTMLImageElement
-                                        target.style.display = 'none'
-                                        console.warn(`❌ Failed to load image for "${specificName}":`, destImageUrl)
-                                      }}
-                                    />
-                                  )}
+                                  {/* Activity image with edit button */}
+                                  <div
+                                    className={`relative group/activity-img ${mode === 'editor' && recentlyUpdatedKeys[`activity-${day.day}-${idx}`] ? 'ring-2 ring-emerald-300 rounded-lg' : ''}`}
+                                    id={`activity-img-${day.day}-${idx}`}
+                                  >
+                                    {destImageUrl ? (
+                                      <>
+                                        <img
+                                          src={destImageUrl}
+                                          alt={specificName || day.location}
+                                          loading="lazy"
+                                          className="w-20 h-20 rounded-lg object-cover border border-gray-200"
+                                          onError={(e) => {
+                                            // Hide broken images
+                                            const target = e.target as HTMLImageElement
+                                            target.style.display = 'none'
+                                            console.warn(`❌ Failed to load image for "${specificName}":`, destImageUrl)
+                                          }}
+                                        />
+                                        {mode === 'editor' && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              openImagePickerPopup(day.day, idx)
+                                            }}
+                                            className="absolute top-1 right-1 z-10 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-white/85 text-gray-700 hover:bg-white shadow-sm border border-gray-200"
+                                            title="Change photo"
+                                          >
+                                            Edit
+                                          </button>
+                                        )}
+                                      </>
+                                    ) : (
+                                      mode === 'editor' ? (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            openImagePickerPopup(day.day, idx)
+                                          }}
+                                          className="px-1.5 py-0.5 rounded-full text-[11px] text-gray-600 hover:text-emerald-600 hover:underline bg-transparent"
+                                          title="Add photo"
+                                        >
+                                          Add photo
+                                        </button>
+                                      ) : null
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           </div>
                         )
                       })}
+
+                      {/* Add Activity Button - Editor Mode Only */}
+                      {mode === 'editor' && (
+                        <div className="mt-3">
+                          {addingActivityForDay === day.day ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={newActivityTitle}
+                                onChange={(e) => setNewActivityTitle(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleAddActivity(day.day)
+                                  if (e.key === 'Escape') {
+                                    setAddingActivityForDay(null)
+                                    setNewActivityTitle('')
+                                  }
+                                }}
+                                placeholder="Activity title..."
+                                className="flex-1 px-3 py-2 text-sm border-2 border-emerald-400 rounded-lg focus:outline-none focus:border-emerald-500"
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => handleAddActivity(day.day)}
+                                className="px-3 py-2 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition-colors"
+                              >
+                                Add
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setAddingActivityForDay(null)
+                                  setNewActivityTitle('')
+                                }}
+                                className="px-3 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setAddingActivityForDay(day.day)}
+                              className="w-full px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50/30 transition-all flex items-center justify-center gap-2"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Add Activity
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -2797,8 +3550,8 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
             </div>
           </div>
 
-          {/* Right Sidebar - Map & Trip Stats - Dynamic width up to 800px */}
-          <div className="hidden xl:flex flex-shrink-0 w-[450px]">
+          {/* Right Sidebar - Map & Trip Stats - Increased width for better map visibility */}
+          <div className="hidden xl:flex flex-shrink-0 w-[660px] ml-2 md:ml-3">
             <div className="w-full">
               <div className="sticky top-20 space-y-4">
                 {/* Overall Trip Map - Shows entire route with numbered markers - DOUBLE HEIGHT */}
@@ -2861,6 +3614,8 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                           locations={routeLocations.map(({ dayNumber, ...rest }: any) => rest)}
                           transportMode={tripData.transportMode || 'car'}
                           previewLocations={previewLocations || undefined}
+                          showRouteOptions={false}
+                          showElevation={true}
                           onRouteChange={(geometry) => {
                             try {
                               const coords = (geometry?.coordinates || []) as Array<[number, number]>
@@ -2884,7 +3639,7 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                               setCompleteRouteDurationH(Math.round((km / speed) * 10) / 10)
                             } catch {}
                           }}
-                          className="w-full h-[640px] ml-[200px]"
+                          className="w-full h-[640px]"
                         />
                         {routeLocations.length < 2 && (
                           <div className="absolute bottom-4 inset-x-0 flex justify-center z-10">
@@ -3064,13 +3819,24 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                     </div>
                   </div>
                 )}
+
+                {/* Booking Widgets - Minimalistic Bubbly Style */}
+                {days && days.length > 0 && days[0]?.location && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <TripBookingWidgetsCompact
+                      location={days[0].location}
+                      checkIn={tripData.dateRange?.startDate}
+                      checkOut={tripData.dateRange?.endDate}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Image Modal - Full screen image viewer */}
+      {/* Image Modal - Full screen image viewer with edit button */}
       <Modal
         isOpen={isImageModalOpen}
         onClose={() => setIsImageModalOpen(false)}
@@ -3078,12 +3844,63 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
         size="xl"
       >
         {selectedImageUrl && (
-          <div className="relative">
-            <img
-              src={selectedImageUrl}
-              alt="Location"
-              className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
-            />
+          <div className="space-y-4">
+            <div className="relative">
+              <img
+                src={selectedImageUrl}
+                alt="Location"
+                className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+              />
+            </div>
+
+            {/* Edit button to change the image */}
+            {mode === 'editor' && (
+              <div className="flex justify-center pt-2">
+                <button
+                  onClick={() => {
+                    // Find which day this image belongs to (check both gallery and items)
+                    let foundDay = null
+                    let foundIndex = -1
+
+                    for (const d of days) {
+                      // Check gallery images
+                      const galleryIndex = d.gallery?.indexOf(selectedImageUrl) ?? -1
+                      if (galleryIndex >= 0) {
+                        foundDay = d
+                        foundIndex = galleryIndex
+                        break
+                      }
+
+                      // Check activity images
+                      const itemIndex = d.items?.findIndex((item: any) => (item.image === selectedImageUrl || item.image_url === selectedImageUrl || item.imageUrl === selectedImageUrl)) ?? -1
+                      if (itemIndex >= 0) {
+                        foundDay = d
+                        foundIndex = itemIndex
+                        break
+                      }
+                    }
+
+                    if (foundDay && foundIndex >= 0) {
+                      // If the image belongs to gallery, open gallery picker; otherwise, activity picker
+                      const isInGallery = (foundDay.gallery || []).indexOf(selectedImageUrl) >= 0
+                      if (isInGallery) {
+                        console.debug('Opening gallery image picker', { day: foundDay.day, index: foundIndex })
+                        setShowImagePickerForGallery({ day: foundDay.day, index: foundIndex })
+                      } else {
+                        console.debug('Opening activity image picker', { day: foundDay.day, index: foundIndex })
+                        setShowImagePickerForActivity({ day: foundDay.day, index: foundIndex })
+                      }
+                      setIsImageModalOpen(false)
+                    } else {
+                      toast.error('Could not locate this image in the day/gallery. Please try again.')
+                    }
+                  }}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-colors"
+                >
+                  Edit photo
+                </button>
+              </div>
+            )}
           </div>
         )}
       </Modal>
@@ -3099,13 +3916,18 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
           {/* Success Icon & Title */}
           <div className="text-center">
             <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+
+
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
+
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Trip Saved Successfully! 🎉</h2>
             <p className="text-sm text-gray-600">
               Your {days?.length || 0}-day adventure is ready to explore
+
+
             </p>
           </div>
 
@@ -3154,26 +3976,13 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                 // Try multiple sources for images
                 const imgs = (
                   locationImages[d.location] ||
-                  (locationImages as any)[key] ||
-                  fallbackImages[d.location] ||
-                  (fallbackImages as any)[key]
+                  (locationImages as any)[key]
                 ) as { featured?: string; gallery?: string[] } | undefined
 
                 // Also try locationMetadata images from the plan
                 const metadataImage = d.locationMetadata?.images?.featured || d.locationMetadata?.images?.gallery?.[0]
 
                 const url = imgs?.featured || imgs?.gallery?.[0] || metadataImage
-
-                // Debug log for missing images
-                if (!url && idx === 0) {
-                  console.log(`⚠️ No image for saved trip modal: "${d.location}"`, {
-                    hasLocationImages: !!locationImages[d.location],
-                    hasFallbackImages: !!fallbackImages[d.location],
-                    hasMetadata: !!metadataImage,
-                    locationImagesKeys: Object.keys(locationImages).slice(0, 5),
-                    fallbackImagesKeys: Object.keys(fallbackImages).slice(0, 5)
-                  })
-                }
 
                 return url ? (
                   <div key={idx} className="relative group">
@@ -3202,6 +4011,13 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
             </div>
           </div>
 
+          {/* Prefetch editor route for instant navigation */}
+          {lastSavedTripId ? (
+            <Link href={`/dashboard/trips/${lastSavedTripId}/edit`} prefetch aria-hidden className="sr-only">
+              Start Editing
+            </Link>
+          ) : null}
+
           {/* Action Buttons */}
           <div className="flex items-center justify-between gap-3 pt-2">
             <button
@@ -3214,11 +4030,12 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
               onClick={async () => {
                 setShowSavedModal(false)
                 await animateFlyToAvatar()
-                setTimeout(() => router.push('/dashboard/trips'), 600)
+                const target = lastSavedTripId ? `/dashboard/trips/${lastSavedTripId}/edit` : '/dashboard/trips'
+                setTimeout(() => router.push(target), 600)
               }}
               className="flex-1 px-4 py-2.5 text-sm font-medium bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all"
             >
-              View My Trips →
+              Start Editing →
             </button>
           </div>
         </div>
@@ -3303,6 +4120,8 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                         duration: '1-2h',
                         image: smartInsert.poi.imageUrl || null
                       })
+
+
                     }).catch(() => {})
                   }
                   toast.success('Added to itinerary')
@@ -3384,6 +4203,77 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Suggested Locations
                 </label>
+
+      {/* Editor: Image Selection Modal for activity photo */}
+      <ImageSelectionModal
+        open={!!showImagePickerForActivity}
+        onClose={() => setShowImagePickerForActivity(null)}
+        onSelect={(imageUrl) => {
+          if (!showImagePickerForActivity) return
+          const { day, index } = showImagePickerForActivity
+          setDays((prev: any[]) => prev.map(d => d.day === day ? {
+            ...d,
+            items: (d.items || []).map((it: any, i: number) => i === index ? { ...it, image: imageUrl } : it)
+          } : d))
+          handleSaveActivityData(day, index, 'image', imageUrl)
+          triggerUpdatedPulse(`activity-${day}-${index}`)
+          toast.success('Photo updated', { duration: 1200 })
+          setShowImagePickerForActivity(null)
+        }}
+        defaultQuery={(() => {
+          if (!showImagePickerForActivity) return ''
+          const d = (days as any[]).find((x: any) => x.day === showImagePickerForActivity.day)
+          const stop = d?.items?.[showImagePickerForActivity.index]
+          const title = stop?.title || ''
+          return `${title} ${d?.location || ''}`.trim()
+        })()}
+        context="trip"
+      />
+
+      {/* Editor: Image Selection Modal for gallery photo */}
+      <ImageSelectionModal
+        open={!!showImagePickerForGallery}
+        onClose={() => setShowImagePickerForGallery(null)}
+        onSelect={(imageUrl) => {
+          if (!showImagePickerForGallery) return
+          const { day, index } = showImagePickerForGallery
+          const currentGallery = (days.find((d: any) => d.day === day)?.gallery || []) as string[]
+          const nextGallery = currentGallery.map((u: string, i: number) => i === index ? imageUrl : u)
+          setDays((prev: any[]) => prev.map(d => d.day === day ? { ...d, gallery: nextGallery } : d))
+          handleSaveDayData(day, 'gallery', nextGallery)
+          triggerUpdatedPulse(`gallery-${day}-${index}`)
+          toast.success('Photo updated', { duration: 1200 })
+          setShowImagePickerForGallery(null)
+        }}
+        defaultQuery={(() => {
+          if (!showImagePickerForGallery) return ''
+          const d = (days as any[]).find((x: any) => x.day === showImagePickerForGallery.day)
+          return d?.location || ''
+        })()}
+        context="trip"
+      />
+
+      {/* Editor: Image Selection Modal for hero photo */}
+      <ImageSelectionModal
+        open={showImagePickerForDay !== null}
+        onClose={() => setShowImagePickerForDay(null)}
+        onSelect={(imageUrl) => {
+          if (showImagePickerForDay == null) return
+          const dayNum = showImagePickerForDay
+          setDays((prev: any[]) => prev.map(d => d.day === dayNum ? {
+            ...d,
+            image: imageUrl,
+            gallery: Array.isArray(d.gallery) ? [imageUrl, ...d.gallery.filter((u: string) => u !== imageUrl)] : [imageUrl]
+          } : d))
+          handleSaveDayData(dayNum, 'image', imageUrl)
+          triggerUpdatedPulse(`day-hero-${dayNum}`)
+          toast.success('Photo updated', { duration: 1200 })
+          setShowImagePickerForDay(null)
+        }}
+        defaultQuery={(showImagePickerForDay ? (days.find((d: any) => d.day === showImagePickerForDay)?.location || '') : '')}
+        context="trip"
+      />
+
                 <div className="grid grid-cols-2 gap-2">
                   {suggestedLocations.map((location, idx) => (
                     <button
@@ -3525,6 +4415,79 @@ export function ResultsView({ plan, tripData, locationImages = {}, structuredCon
         >
           <ArrowUp className="w-5 h-5" />
         </button>
+      )}
+
+      {/* Animated Image Picker Popup */}
+      {imagePickerPopup && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/20 z-[60] animate-in fade-in duration-200"
+            onClick={() => setImagePickerPopup(null)}
+          />
+
+          {/* Popup Bubble */}
+          <div
+            className="fixed z-[70] animate-in zoom-in-95 slide-in-from-bottom-2 duration-300"
+            style={{
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-4 max-w-md">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-900">Choose an image</h3>
+                <button
+                  onClick={() => setImagePickerPopup(null)}
+                  className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
+
+              {/* Loading State */}
+              {imagePickerPopup.loading && (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+                </div>
+              )}
+
+              {/* Image Grid */}
+              {!imagePickerPopup.loading && imagePickerPopup.images.length > 0 && (
+                <div className="grid grid-cols-5 gap-2">
+                  {imagePickerPopup.images.map((imageUrl, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => selectImageFromPopup(imageUrl)}
+                      className="group relative aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-emerald-500 transition-all duration-200 hover:scale-110 hover:z-10 hover:shadow-lg"
+                    >
+                      <img
+                        src={imageUrl}
+                        alt={`Option ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      {/* Hover overlay */}
+                      <div className="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/20 transition-colors duration-200" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* No Images State */}
+              {!imagePickerPopup.loading && imagePickerPopup.images.length === 0 && (
+                <div className="text-center py-8 text-gray-500 text-sm">
+                  No images found
+                </div>
+              )}
+            </div>
+
+            {/* Arrow pointing down (contextual pin) */}
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-gray-200 rotate-45" />
+          </div>
+        </>
       )}
     </div>
   )

@@ -30,6 +30,7 @@ import { SidebarCTA } from '@/components/trips-library/SidebarCTA'
 import { AccommodationRecommendations } from '@/components/trips-library/AccommodationRecommendations'
 import { TransportOptions } from '@/components/trips-library/TransportOptions'
 import { ActivitiesAndTours } from '@/components/trips-library/ActivitiesAndTours'
+import { TripBookingWidgetsCompact } from '@/components/trips/TripBookingWidgets'
 
 import { LiveTripUpdates } from '@/components/realtime/LiveTripUpdates'
 import { getBrowserSupabase } from '@/lib/supabase'
@@ -154,16 +155,36 @@ export function TripTimelineWithToggle({
     })
   }, [])
 
-  // Emotional images for each day (using Unsplash)
-  const dayImages: Record<number, string> = {
-    1: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=800&h=400&fit=crop', // Shibuya crossing
-    2: 'https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?w=800&h=400&fit=crop', // TeamLab
-    3: 'https://images.unsplash.com/photo-1513407030348-c983a97b98d8?w=800&h=400&fit=crop', // Harajuku
-    4: 'https://images.unsplash.com/photo-1624923686627-514dd5e57bae?w=800&h=400&fit=crop', // Disney
-    5: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=800&h=400&fit=crop', // Temple
-    6: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&h=400&fit=crop', // Food
-    7: 'https://images.unsplash.com/photo-1480796927426-f609979314bd?w=800&h=400&fit=crop', // Tokyo station
-  }
+  // Day images resolved via Brave strategy (thumbnail first)
+  const [dayImages, setDayImages] = useState<Record<number, string>>({})
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const next: Record<number, string> = {}
+      for (const day of guideDays) {
+        const name = (day.activities && day.activities[0]) ? day.activities[0] : day.title
+        const params = new URLSearchParams({
+          name,
+          location: destination,
+          type: 'activity',
+          count: '1'
+        })
+        try {
+          const res = await fetch(`/api/brave/activity-image?${params.toString()}`)
+          if (!res.ok) continue
+          const json = await res.json()
+          const images = json?.data?.images || []
+          const url = images[0]?.thumbnail || images[0]?.url // Use thumbnail (Brave CDN) first
+          if (url) next[day.day_number] = url
+        } catch (err) {
+          // no-op
+        }
+      }
+      if (!cancelled) setDayImages(next)
+    })()
+    return () => { cancelled = true }
+  }, [guideDays, destination])
 
   // Convert guideDays to TripOverviewMap format (same as itinerary planner)
   // For demo, using Tokyo coordinates - in production, fetch real coordinates from location database
@@ -245,6 +266,13 @@ export function TripTimelineWithToggle({
 
             {/* CTA */}
             <SidebarCTA guideId={guideId} guideTitle={guideTitle} />
+
+            {/* Booking Widgets - Minimalistic Bubbly Style */}
+            <Card className="p-5">
+              <TripBookingWidgetsCompact
+                location={destination}
+              />
+            </Card>
 
             {/* Affiliate Links */}
             <AccommodationRecommendations destination={destination} />
