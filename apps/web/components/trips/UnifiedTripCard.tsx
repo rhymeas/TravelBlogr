@@ -56,9 +56,9 @@ export function UnifiedTripCard({ trip, context, onEdit, onDelete, onCopy }: Uni
   const shareLinksCount = trip.share_links?.length || 0
 
   // Determine link URL based on context
-  const linkUrl = isPublicTemplate 
-    ? `/trips/${trip.slug}` 
-    : `/dashboard/trips/${trip.id}`
+  const linkUrl = isPublicTemplate
+    ? `/trips/${trip.slug}`
+    : `/dashboard/trips/${trip.slug}`
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this trip? This action cannot be undone.')) {

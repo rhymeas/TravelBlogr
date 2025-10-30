@@ -8,7 +8,15 @@
  * - Local Valhalla: Unlimited
  */
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
+
+// Create server-side Supabase client with service role key
+function getSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
 
 export interface RoutingUsageStats {
   month: string // YYYY-MM format
@@ -29,7 +37,7 @@ export async function trackRoutingRequest(
   userId?: string
 ): Promise<void> {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseClient()
     const month = getCurrentMonth()
 
     // Increment usage counter
@@ -52,7 +60,7 @@ export async function trackRoutingRequest(
  */
 export async function getRoutingUsage(): Promise<RoutingUsageStats | null> {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseClient()
     const month = getCurrentMonth()
 
     const { data, error } = await supabase
@@ -115,7 +123,7 @@ export async function getStadiaUsagePercentage(): Promise<number> {
  */
 export async function getAllRoutingUsage(): Promise<RoutingUsageStats[]> {
   try {
-    const supabase = createClient()
+    const supabase = getSupabaseClient()
 
     const { data, error } = await supabase
       .from('routing_usage')
@@ -154,13 +162,14 @@ export async function shouldUseStadiaMaps(): Promise<boolean> {
     return false
   }
 
-  // Check if we're within free tier limit
-  const withinLimit = await isWithinStadiaLimit()
-  
-  if (!withinLimit) {
-    console.warn('⚠️ Stadia Maps monthly limit reached, falling back to local Valhalla')
-  }
+  // TODO: Check if we're within free tier limit once database migration is applied
+  // For now, always use Stadia Maps if API key is set
+  // const withinLimit = await isWithinStadiaLimit()
+  // if (!withinLimit) {
+  //   console.warn('⚠️ Stadia Maps monthly limit reached, falling back to local Valhalla')
+  // }
+  // return withinLimit
 
-  return withinLimit
+  return true // Always use Stadia Maps if API key is set
 }
 

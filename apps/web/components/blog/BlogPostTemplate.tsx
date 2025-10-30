@@ -47,6 +47,8 @@ import {
   Image as ImageIcon
 } from 'lucide-react'
 import Link from 'next/link'
+import { AddToTripModal } from '@/components/blog/AddToTripModal'
+
 
 // Dynamically import TripOverviewMap to avoid SSR issues
 const TripOverviewMap = dynamic(
@@ -109,7 +111,7 @@ interface BlogPostTemplateProps {
   coverImage: string
   publishedAt: string
   readTime?: number
-  
+
   // Author info
   author: {
     id: string
@@ -121,7 +123,7 @@ interface BlogPostTemplateProps {
     writing_style?: any
     travel_preferences?: any
   }
-  
+
   // Trip data
   trip: {
     destination: string
@@ -131,7 +133,7 @@ interface BlogPostTemplateProps {
     highlights: string[]
     days: TripDay[]
   }
-  
+
   // Content sections (user-editable)
   introduction?: string
   practicalInfo?: {
@@ -140,7 +142,7 @@ interface BlogPostTemplateProps {
     packing?: string[]
     customs?: string[]
   }
-  
+
   // Engagement
   tags?: string[]
   category?: string
@@ -174,6 +176,10 @@ export function BlogPostTemplate({
   const [expandedDays, setExpandedDays] = useState<number[]>([1]) // First day expanded by default
   const [showMapModal, setShowMapModal] = useState(false)
   const [showAuthorModal, setShowAuthorModal] = useState(false)
+
+  // Add-to-Trip modal state
+  const [addOpen, setAddOpen] = useState(false)
+  const [addItems, setAddItems] = useState<Array<{ title: string; type?: 'activity'|'meal'|'travel'|'note'; image?: string }>>([])
 
   // Fetch related blog posts (same category or tags)
   const { posts: relatedPosts, isLoading: loadingRelated } = useBlogPosts({
@@ -224,7 +230,7 @@ export function BlogPostTemplate({
           priority
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-        
+
         {/* Hero Content */}
         <div className="absolute inset-0 flex items-end">
           <div className="max-w-5xl mx-auto px-6 lg:px-8 pb-12 w-full">
@@ -234,17 +240,17 @@ export function BlogPostTemplate({
                 {category}
               </Badge>
             )}
-            
+
             {/* Title */}
             <h1 className="text-4xl lg:text-6xl font-bold text-white mb-4 leading-tight">
               {title}
             </h1>
-            
+
             {/* Excerpt */}
             <p className="text-xl text-white/90 mb-6 max-w-3xl">
               {excerpt}
             </p>
-            
+
             {/* Meta Info */}
             <div className="flex flex-wrap items-center gap-6 text-white/90">
               <div className="flex items-center gap-2">
@@ -385,7 +391,7 @@ export function BlogPostTemplate({
             <div className="space-y-4">
             {trip.days.map((day) => {
               const isExpanded = expandedDays.includes(day.day_number)
-              
+
               return (
                 <Card key={day.day_number} className="overflow-hidden">
                   {/* Day Header - Always Visible */}
@@ -475,28 +481,36 @@ export function BlogPostTemplate({
                           </h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {day.location.pois.map((poi, index) => (
-                              <Link
-                                key={index}
-                                href={`/locations/${encodeURIComponent(poi.name.toLowerCase().replace(/\s+/g, '-'))}`}
-                                className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-rausch-300 hover:bg-rausch-50 transition-all group"
-                              >
-                                <div className="flex-shrink-0 w-10 h-10 bg-rausch-100 rounded-lg flex items-center justify-center group-hover:bg-rausch-200 transition-colors">
-                                  <MapPin className="h-5 w-5 text-rausch-600" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-gray-900 group-hover:text-rausch-600 transition-colors flex items-center gap-1">
-                                    {poi.translatedName || poi.name}
-                                    <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                  </p>
-                                  {poi.originalName && poi.originalName !== poi.name && (
-                                    <p className="text-xs text-gray-500 mt-0.5">{poi.originalName}</p>
-                                  )}
-                                  {poi.description && (
-                                    <p className="text-sm text-gray-600 line-clamp-2 mt-1">{poi.description}</p>
-                                  )}
-                                  <p className="text-xs text-gray-500 mt-1 capitalize">{poi.category}</p>
-                                </div>
-                              </Link>
+                              <div key={index} className="flex items-stretch gap-2">
+                                <Link
+                                  href={`/locations/${encodeURIComponent(poi.name.toLowerCase().replace(/\s+/g, '-'))}`}
+                                  className="flex-1 flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-rausch-300 hover:bg-rausch-50 transition-all group"
+                                >
+                                  <div className="flex-shrink-0 w-10 h-10 bg-rausch-100 rounded-lg flex items-center justify-center group-hover:bg-rausch-200 transition-colors">
+                                    <MapPin className="h-5 w-5 text-rausch-600" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-gray-900 group-hover:text-rausch-600 transition-colors flex items-center gap-1">
+                                      {poi.translatedName || poi.name}
+                                      <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </p>
+                                    {poi.originalName && poi.originalName !== poi.name && (
+                                      <p className="text-xs text-gray-500 mt-0.5">{poi.originalName}</p>
+                                    )}
+                                    {poi.description && (
+                                      <p className="text-sm text-gray-600 line-clamp-2 mt-1">{poi.description}</p>
+                                    )}
+                                    <p className="text-xs text-gray-500 mt-1 capitalize">{poi.category}</p>
+                                  </div>
+                                </Link>
+                                <button
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAddItems([{ title: (poi.translatedName || poi.name), type: 'activity' }]); setAddOpen(true) }}
+                                  className="self-start px-2.5 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
+                                  aria-label="Add to Trip"
+                                >
+                                  Add
+                                </button>
+                              </div>
                             ))}
                           </div>
                         </div>
@@ -858,6 +872,9 @@ export function BlogPostTemplate({
           </div>
         </div>
       )}
+      {/* Add-to-Trip Modal */}
+      <AddToTripModal open={addOpen} onClose={() => setAddOpen(false)} items={addItems} />
+
     </article>
   )
 }

@@ -17,11 +17,13 @@ const BRAVE_WEB_SEARCH_URL = 'https://api.search.brave.com/res/v1/web/search'
 const BRAVE_IMAGE_SEARCH_URL = 'https://api.search.brave.com/res/v1/images/search'
 const BRAVE_NEWS_SEARCH_URL = 'https://api.search.brave.com/res/v1/news/search'
 
-// Debug: Log API key (FULL KEY for debugging - REMOVE IN PRODUCTION!)
-if (BRAVE_API_KEY) {
-  console.log(`🔑 Brave API Key loaded: ${BRAVE_API_KEY} (length: ${BRAVE_API_KEY.length})`)
-} else {
-  console.warn('⚠️ BRAVE_SEARCH_API_KEY not found in environment variables!')
+// Debug: Only log presence/length in non-production (never log the key)
+if (process.env.NODE_ENV !== 'production') {
+  if (BRAVE_API_KEY) {
+    console.log(`🔑 Brave API key configured: true (len=${BRAVE_API_KEY.length})`)
+  } else {
+    console.warn('⚠️ BRAVE_SEARCH_API_KEY not found in environment variables!')
+  }
 }
 
 // Defensive micro-throttle to keep < 20 RPS for PAID plan (rate_limit: 20)
@@ -252,12 +254,17 @@ export async function searchRestaurant(
     images = await searchImages(fallbackQuery, 10)
   }
 
-  // Fetch booking links (use successful query or fallback)
-  const linkQuery = successfulQuery || `${restaurantName} ${locationName}`
-  const webResults = await searchWeb(`${linkQuery} ${modifiers} restaurant booking reservation`.trim(), 5)
+  // Fetch booking links using smart multi-query strategy
+  // 📚 See docs/BRAVE_QUERY_FINAL_STRATEGY.md for query optimization details
+  const allLinks = await fetchRestaurantLinksWithStrategy(
+    restaurantName,
+    locationName,
+    successfulQuery,
+    modifiers
+  )
 
   // Filter booking links
-  const bookingLinks = webResults.filter(r =>
+  const bookingLinks = allLinks.filter(r =>
     r.type === 'booking' || r.type === 'restaurant'
   )
 
@@ -431,11 +438,299 @@ export async function searchActivity(
     images = await searchImages(fallbackQuery, 15)
   }
 
-  // Fetch links in parallel (use successful query or fallback)
-  const linkQuery = successfulQuery || `${activityName} ${locationName}`
-  const links = await searchWeb(`${linkQuery} ${modifiers} tickets tours booking`.trim(), 5)
+  // Fetch links using smart multi-query strategy
+  // 📚 See docs/BRAVE_QUERY_FINAL_STRATEGY.md for query optimization details
+  const links = await fetchActivityLinksWithStrategy(
+    activityName,
+    locationName,
+    successfulQuery,
+    isWellKnown,
+    modifiers
+  )
 
   return { images, links }
+}
+
+/**
+ * Fetch restaurant links using smart multi-query strategy
+ *
+ * 🎯 OPTIMIZED RESTAURANT LINK STRATEGY (2025-01-30)
+ * Focused on finding:
+ * - Official restaurant websites
+ * - Reservation platforms (OpenTable, Resy, etc.)
+ * - Menu pages
+ * - Review sites (TripAdvisor, Yelp)
+ *
+ * @param restaurantName - Restaurant name
+ * @param locationName - Location string
+ * @param successfulImageQuery - Query that worked for images (if any)
+ * @param modifiers - Additional query modifiers
+ * @returns Array of web results (links)
+ */
+async function fetchRestaurantLinksWithStrategy(
+  restaurantName: string,
+  locationName: string,
+  successfulImageQuery: string,
+  modifiers: string
+): Promise<BraveWebResult[]> {
+  // Build prioritized restaurant link query list
+  const linkQueries = buildRestaurantLinkQueries(
+    restaurantName,
+    locationName,
+    successfulImageQuery
+  )
+
+  // Try queries in order until we get good results
+  let links: BraveWebResult[] = []
+  let bestResults: BraveWebResult[] = []
+  let bestScore = 0
+
+  for (let i = 0; i < linkQueries.length; i++) {
+    const query = linkQueries[i]
+    const queryWithModifiers = `${query.query} ${modifiers}`.trim()
+
+    try {
+      const results = await searchWeb(queryWithModifiers, 5)
+
+      // Score results based on link quality
+      const score = scoreLinkResults(results)
+
+      console.log(`🍽️ Restaurant Link Query (attempt ${i + 1}/${linkQueries.length}): "${query.query}" → ${results.length} links (score: ${score})`)
+
+      // Keep best results
+      if (score > bestScore) {
+        bestScore = score
+        bestResults = results
+      }
+
+      // If we found restaurant or booking links, we're done
+      if (results.some(r => r.type === 'restaurant' || r.type === 'booking')) {
+        console.log(`✅ Found restaurant/booking links on attempt ${i + 1}`)
+        links = results
+        break
+      }
+
+    } catch (error) {
+      console.error(`❌ Restaurant Link Query Error (attempt ${i + 1}/${linkQueries.length}): "${query.query}"`, error)
+      continue
+    }
+  }
+
+  // Return best results found
+  return links.length > 0 ? links : bestResults
+}
+
+/**
+ * Build prioritized restaurant link query list
+ *
+ * Strategy:
+ * 1. Use successful image query if available
+ * 2. Try "reservation" / "booking" queries
+ * 3. Try "menu" queries
+ * 4. Try "official website" queries
+ * 5. Fallback to simple queries
+ */
+function buildRestaurantLinkQueries(
+  restaurantName: string,
+  locationName: string,
+  successfulImageQuery: string
+): Array<{ query: string; type: string }> {
+  const queries: Array<{ query: string; type: string }> = []
+
+  // Parse location
+  const parts = locationName.split(',').map(s => s.trim())
+  const city = parts[0] || ''
+
+  // Tier 1: Reservation/booking queries (highest priority for restaurants)
+  if (successfulImageQuery) {
+    queries.push({ query: `${successfulImageQuery} reservation`, type: 'booking' })
+  }
+  queries.push({ query: `${restaurantName} ${city} reservation`, type: 'booking' })
+  queries.push({ query: `${restaurantName} ${city} book table`, type: 'booking' })
+  queries.push({ query: `${restaurantName} OpenTable`, type: 'booking' })
+  queries.push({ query: `${restaurantName} Resy`, type: 'booking' })
+
+  // Tier 2: Menu queries
+  queries.push({ query: `${restaurantName} ${city} menu`, type: 'menu' })
+  queries.push({ query: `${restaurantName} menu prices`, type: 'menu' })
+
+  // Tier 3: Official website queries
+  if (successfulImageQuery) {
+    queries.push({ query: `${successfulImageQuery} official website`, type: 'official' })
+  }
+  queries.push({ query: `${restaurantName} ${city} official website`, type: 'official' })
+
+  // Tier 4: Review/info queries
+  queries.push({ query: `${restaurantName} ${city} TripAdvisor`, type: 'review' })
+  queries.push({ query: `${restaurantName} ${city} Yelp`, type: 'review' })
+
+  // Tier 5: Fallback
+  if (successfulImageQuery) {
+    queries.push({ query: successfulImageQuery, type: 'fallback' })
+  }
+  queries.push({ query: `${restaurantName} ${locationName}`, type: 'fallback' })
+
+  return queries
+}
+
+/**
+ * Fetch activity links using smart multi-query strategy
+ *
+ * 🎯 OPTIMIZED LINK STRATEGY (2025-01-30)
+ * Similar to image query optimization, but focused on finding:
+ * - Official websites
+ * - Booking/ticket pages
+ * - Tour operator pages
+ * - Information pages
+ *
+ * 📚 Documentation: docs/BRAVE_QUERY_FINAL_STRATEGY.md
+ *
+ * @param activityName - Activity/POI name
+ * @param locationName - Location string
+ * @param successfulImageQuery - Query that worked for images (if any)
+ * @param isWellKnown - Whether POI is globally famous
+ * @param modifiers - Additional query modifiers
+ * @returns Array of web results (links)
+ */
+async function fetchActivityLinksWithStrategy(
+  activityName: string,
+  locationName: string,
+  successfulImageQuery: string,
+  isWellKnown: boolean,
+  modifiers: string
+): Promise<BraveWebResult[]> {
+  // Build prioritized link query list
+  const linkQueries = buildLinkQueries(
+    activityName,
+    locationName,
+    successfulImageQuery,
+    isWellKnown
+  )
+
+  // Try queries in order until we get good results
+  let links: BraveWebResult[] = []
+  let bestResults: BraveWebResult[] = []
+  let bestScore = 0
+
+  for (let i = 0; i < linkQueries.length; i++) {
+    const query = linkQueries[i]
+    const queryWithModifiers = `${query.query} ${modifiers}`.trim()
+
+    try {
+      const results = await searchWeb(queryWithModifiers, 5)
+
+      // Score results based on link quality
+      const score = scoreLinkResults(results)
+
+      console.log(`🔗 Link Query (attempt ${i + 1}/${linkQueries.length}): "${query.query}" → ${results.length} links (score: ${score})`)
+
+      // Keep best results
+      if (score > bestScore) {
+        bestScore = score
+        bestResults = results
+      }
+
+      // If we found official or booking links, we're done
+      if (results.some(r => r.type === 'official' || r.type === 'booking')) {
+        console.log(`✅ Found high-quality links on attempt ${i + 1}`)
+        links = results
+        break
+      }
+
+    } catch (error) {
+      console.error(`❌ Link Query Error (attempt ${i + 1}/${linkQueries.length}): "${query.query}"`, error)
+      continue
+    }
+  }
+
+  // Return best results found
+  return links.length > 0 ? links : bestResults
+}
+
+/**
+ * Build prioritized link query list
+ *
+ * Strategy:
+ * 1. Use successful image query if available (proven to work)
+ * 2. Try "official website" queries
+ * 3. Try "tickets" / "booking" queries
+ * 4. Try "visit" / "information" queries
+ * 5. Fallback to simple queries
+ */
+function buildLinkQueries(
+  activityName: string,
+  locationName: string,
+  successfulImageQuery: string,
+  isWellKnown: boolean
+): Array<{ query: string; type: string }> {
+  const queries: Array<{ query: string; type: string }> = []
+
+  // Parse location
+  const parts = locationName.split(',').map(s => s.trim())
+  const city = parts[0] || ''
+
+  // Tier 1: Official website queries (highest priority)
+  if (successfulImageQuery) {
+    queries.push({ query: `${successfulImageQuery} official website`, type: 'official' })
+  }
+  queries.push({ query: `${activityName} official website`, type: 'official' })
+  if (!isWellKnown && city) {
+    queries.push({ query: `${activityName} ${city} official website`, type: 'official' })
+  }
+
+  // Tier 2: Booking/tickets queries
+  if (successfulImageQuery) {
+    queries.push({ query: `${successfulImageQuery} tickets booking`, type: 'booking' })
+  }
+  queries.push({ query: `${activityName} tickets`, type: 'booking' })
+  queries.push({ query: `${activityName} book tickets`, type: 'booking' })
+  if (!isWellKnown && city) {
+    queries.push({ query: `${activityName} ${city} tickets`, type: 'booking' })
+  }
+
+  // Tier 3: Visit/information queries
+  queries.push({ query: `visit ${activityName}`, type: 'info' })
+  queries.push({ query: `${activityName} visitor information`, type: 'info' })
+
+  // Tier 4: Tours/experiences queries
+  queries.push({ query: `${activityName} tours`, type: 'tours' })
+  if (!isWellKnown && city) {
+    queries.push({ query: `${activityName} ${city} tours`, type: 'tours' })
+  }
+
+  // Tier 5: Fallback (simple queries)
+  if (successfulImageQuery) {
+    queries.push({ query: successfulImageQuery, type: 'fallback' })
+  }
+  queries.push({ query: `${activityName} ${locationName}`, type: 'fallback' })
+
+  return queries
+}
+
+/**
+ * Score link results based on quality
+ *
+ * Scoring:
+ * - Official site: +10 points
+ * - Booking site: +8 points
+ * - Guide site: +5 points
+ * - Restaurant site: +6 points
+ * - Affiliate site: +3 points
+ * - Unknown: +1 point
+ */
+function scoreLinkResults(results: BraveWebResult[]): number {
+  const typeScores = {
+    official: 10,
+    booking: 8,
+    restaurant: 6,
+    guide: 5,
+    affiliate: 3,
+    unknown: 1
+  }
+
+  return results.reduce((score, result) => {
+    return score + (typeScores[result.type] || 0)
+  }, 0)
 }
 
 /**

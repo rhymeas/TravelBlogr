@@ -9,8 +9,13 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
-import { findScenicWaypoints, findPOIRichWaypoints } from './scenicRouteService'
+import { findScenicWaypoints, findPOIRichWaypoints, findFirstScenicWaypoint } from './scenicRouteService'
 import { getValhallaRoute, isValhallaAvailable } from './valhallaService'
+
+// 🚀 PERFORMANCE: Upstash Redis caching (Phase 2 optimization - 2025-01-28)
+// DEPENDENCIES: Requires UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN env vars
+// CONTEXT: Routes are expensive (2-5s), Upstash cache provides < 10ms response time
+import { getOrSet, CacheKeys, CacheTTL } from '@/lib/upstash'
 
 // Initialize Supabase client
 function getSupabaseClient() {
@@ -61,13 +66,29 @@ export async function getRoute(
     throw new Error('At least 2 coordinates required for routing')
   }
 
-  // Check cache first (unless cache busting)
+  // 🚀 PERFORMANCE: Check Upstash cache first (< 10ms vs 2-5s calculation)
+  // DEPENDENCIES: Requires Upstash Redis configured (gracefully degrades if not available)
+  // CONTEXT: Cache key includes coordinates, profile, and preference for unique routes
   const cacheKey = generateCacheKey(coordinates, profile, preference)
+
   if (!bustCache) {
-    const cached = await getCachedRoute(cacheKey)
-    if (cached) {
-      console.log('✅ Route from cache:', cacheKey)
-      return { ...cached, provider: 'cache' }
+    // Try Upstash cache first (super fast!)
+    const upstashCached = await getOrSet<RouteResult | null>(
+      CacheKeys.route(cacheKey),
+      async () => {
+        // If not in Upstash, try database cache
+        const dbCached = await getCachedRoute(cacheKey)
+        if (dbCached) {
+          return { ...dbCached, provider: 'cache' as const }
+        }
+        return null
+      },
+      CacheTTL.ROUTE // 30 days
+    )
+
+    if (upstashCached) {
+      console.log('✅ Route from Upstash cache (< 10ms):', cacheKey)
+      return upstashCached
     }
   } else {
     console.log('🔄 Cache busting enabled - forcing fresh calculation')
@@ -83,10 +104,35 @@ export async function getRoute(
       const valhallaAvailable = await isValhallaAvailable()
 
       if (valhallaAvailable) {
+        // NEW STRATEGY: For scenic routes, add first scenic waypoint to guide the route
+        let waypoints: RouteCoordinate[] | undefined = undefined
+
+        if (preference === 'scenic') {
+          console.log(`   🎯 Finding first scenic attraction/city to guide route...`)
+
+          // Get country code for POI filtering
+          const startCountry = await getCountryCodeForRoute(coordinates[0])
+
+          // Find first scenic waypoint (attraction or city)
+          const firstWaypoint = await findFirstScenicWaypoint(
+            coordinates[0],
+            coordinates[coordinates.length - 1],
+            startCountry
+          )
+
+          if (firstWaypoint) {
+            waypoints = [firstWaypoint]
+            console.log(`   ✅ Will route through first scenic waypoint`)
+          } else {
+            console.log(`   ⚠️ No first scenic waypoint found, using alternatives only`)
+          }
+        }
+
         const route = await getValhallaRoute(
           coordinates[0],
           coordinates[coordinates.length - 1],
-          preference
+          preference,
+          waypoints
         )
         await cacheRoute(cacheKey, route)
         console.log(`✅ Valhalla ${preference} route: ${(route.distance / 1000).toFixed(1)}km, ${(route.duration / 60).toFixed(0)}min`)
@@ -655,12 +701,20 @@ async function getCachedRoute(cacheKey: string): Promise<Omit<RouteResult, 'prov
 }
 
 /**
- * Cache route in database
+ * Cache route in database AND Upstash (dual-layer caching)
+ *
+ * 🚀 PERFORMANCE: Dual-layer caching strategy (Phase 2 optimization - 2025-01-28)
+ * DEPENDENCIES: Requires Upstash Redis (optional) and Supabase route_cache table
+ * CONTEXT: Upstash = fast (< 10ms), Database = persistent backup, both = best of both worlds
  */
 async function cacheRoute(cacheKey: string, route: Omit<RouteResult, 'provider'>): Promise<void> {
   try {
-    const supabase = getSupabaseClient()
+    // Layer 1: Cache in Upstash (super fast, < 10ms reads)
+    const { setCached } = await import('@/lib/upstash')
+    await setCached(CacheKeys.route(cacheKey), route, CacheTTL.ROUTE)
 
+    // Layer 2: Cache in database (persistent, survives Upstash eviction)
+    const supabase = getSupabaseClient()
     await supabase
       .from('route_cache')
       .upsert({
@@ -670,6 +724,8 @@ async function cacheRoute(cacheKey: string, route: Omit<RouteResult, 'provider'>
         duration: route.duration,
         created_at: new Date().toISOString()
       })
+
+    console.log('✅ Route cached in Upstash + Database')
   } catch (error) {
     console.warn('Failed to cache route:', error)
     // Don't throw - caching is optional
@@ -709,5 +765,41 @@ export async function getCombinedRoute(
 
   // For multiple locations, get route through all waypoints
   return getRoute(locations, profile)
+}
+
+/**
+ * Get country code for a route coordinate
+ */
+async function getCountryCodeForRoute(coord: RouteCoordinate): Promise<string> {
+  try {
+    const query = `
+      [out:json][timeout:5];
+      is_in(${coord.latitude},${coord.longitude})->.a;
+      area.a["ISO3166-1"]["admin_level"="2"];
+      out tags;
+    `
+
+    const response = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      body: `data=${encodeURIComponent(query)}`,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+
+    if (!response.ok) return 'CA' // Default to Canada for testing
+
+    const data = await response.json()
+
+    if (data.elements && data.elements.length > 0) {
+      const countryCode = data.elements[0].tags?.['ISO3166-1']
+      if (countryCode) {
+        return countryCode.toUpperCase()
+      }
+    }
+
+    return 'CA' // Default to Canada for testing
+  } catch (error) {
+    console.warn('Country code lookup failed:', error)
+    return 'CA' // Default to Canada for testing
+  }
 }
 

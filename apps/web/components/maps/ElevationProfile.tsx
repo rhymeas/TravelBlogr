@@ -40,9 +40,9 @@ export function ElevationProfile({
       return { path: '', viewBox: '0 0 100 100' }
     }
 
-    const width = 800
-    const height = 200
-    const padding = 20
+    const width = 600 // Compact width for overlay
+    const height = 100 // Compact height for overlay
+    const padding = 15
 
     // Normalize distances to width
     const maxDistance = distances[distances.length - 1]
@@ -113,24 +113,24 @@ export function ElevationProfile({
 
 
   return (
-    <Card className={`p-5 rounded-2xl ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-bold text-gray-900 flex items-center gap-2">
-          <Mountain className="h-5 w-5 text-gray-900" />
+    <Card className={`p-3 rounded-2xl shadow-lg bg-white/95 backdrop-blur-sm ${className}`}>
+      {/* Compact Header */}
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+          <Mountain className="h-3.5 w-3.5 text-gray-900" />
           Elevation
         </h3>
-        <span className="text-sm text-gray-900 font-semibold transition-colors">
+        <span className="text-xs text-gray-900 font-semibold transition-colors">
           {currentElevationVal != null ? formatElevation(currentElevationVal) : formatDistance(totalDistance)}
         </span>
       </div>
 
-      {/* Elevation Chart */}
-      <div className="mb-4 bg-white rounded-2xl p-3 border border-gray-200">
+      {/* Compact Elevation Chart */}
+      <div className="mb-2 bg-white rounded-xl p-1.5 border border-gray-200">
         <svg
           viewBox={viewBox}
           className="w-full h-auto cursor-crosshair"
-          style={{ maxHeight: '200px' }}
+          style={{ maxHeight: '100px' }}
           onMouseMove={(e) => {
             if (!onHoverKm) return
             const svg = e.currentTarget as SVGSVGElement
@@ -161,21 +161,21 @@ export function ElevationProfile({
           </defs>
           <rect width="100%" height="100%" fill="url(#grid)" />
 
-          {/* Elevation stroke (sleek) */}
+          {/* Elevation stroke - matches route line color (#14b8a6) and slightly thicker */}
           <path
             d={path}
             fill="none"
-            stroke="#065f46"
-            strokeWidth="2"
+            stroke="#14b8a6"
+            strokeWidth="3"
             strokeLinejoin="round"
           />
 
           {/* Hover marker line */}
           {typeof hoverKm === 'number' && hoverKm >= 0 && (
             (() => {
-              const width = 800 // Must match viewBox width used above
-              const height = 200 // Must match viewBox height used above
-              const padding = 20
+              const width = 600 // Must match viewBox width used above
+              const height = 100 // Compact overlay size
+              const padding = 15
               const maxDistance = distances[distances.length - 1]
               const clampedKm = Math.min(Math.max(hoverKm, 0), maxDistance)
               const x = padding + (clampedKm / maxDistance) * (width - 2 * padding)
@@ -187,27 +187,20 @@ export function ElevationProfile({
         </svg>
       </div>
 
-      {/* Statistics - Sleek pills */}
-      <div className="flex flex-wrap gap-2">
-        <div className="px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200 text-xs text-gray-700">
-          Highest: <span className="font-semibold text-gray-900">{formatElevation(maxElevation)}</span>
+      {/* Compact Statistics - Bubbly pills */}
+      <div className="flex flex-wrap gap-1">
+        <div className="px-2 py-0.5 rounded-full bg-gray-50 border border-gray-200 text-[10px] text-gray-700">
+          ↑ <span className="font-semibold text-gray-900">{formatElevation(maxElevation)}</span>
         </div>
-        <div className="px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200 text-xs text-gray-700">
-          Lowest: <span className="font-semibold text-gray-900">{formatElevation(minElevation)}</span>
+        <div className="px-2 py-0.5 rounded-full bg-gray-50 border border-gray-200 text-[10px] text-gray-700">
+          ↓ <span className="font-semibold text-gray-900">{formatElevation(minElevation)}</span>
         </div>
-        <div className="px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200 text-xs text-gray-700">
-          Ascent: <span className="font-semibold text-gray-900">{formatElevation(ascent)}</span>
+        <div className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] text-emerald-700">
+          ⬆ <span className="font-semibold text-emerald-900">{formatElevation(ascent)}</span>
         </div>
-        <div className="px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200 text-xs text-gray-700">
-          Descent: <span className="font-semibold text-gray-900">{formatElevation(descent)}</span>
+        <div className="px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-[10px] text-blue-700">
+          ⬇ <span className="font-semibold text-blue-900">{formatElevation(descent)}</span>
         </div>
-      </div>
-
-      {/* Additional Info */}
-      <div className="mt-3">
-        <p className="text-[11px] text-gray-500">
-          Range: <span className="font-semibold text-gray-800">{formatElevation(maxElevation - minElevation)}</span>
-        </p>
       </div>
     </Card>
   )

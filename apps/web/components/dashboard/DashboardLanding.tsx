@@ -329,7 +329,7 @@ export function DashboardLanding() {
                   {recentTrips.slice(0, 3).map((trip, index) => (
                     <Link
                       key={trip.id}
-                      href={`/dashboard/trips/${trip.id}`}
+                      href={`/dashboard/trips/${trip.slug || trip.id}/edit`}
                       className="block group"
                     >
                       <div className="relative overflow-hidden rounded-lg p-2.5 hover:bg-gray-50 transition-all border border-gray-100 hover:border-blue-200">

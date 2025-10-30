@@ -26,7 +26,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Only pass options if tripType or context are actually provided
-    const options = (tripType || context) ? { tripType, context } : undefined
+    const options = (tripType || context) ? {
+      tripType: tripType ?? undefined,
+      context: context ?? undefined
+    } : undefined
 
     let data
     if (type === 'restaurant') {

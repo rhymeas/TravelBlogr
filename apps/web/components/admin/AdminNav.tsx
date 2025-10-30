@@ -99,6 +99,27 @@ const navItems: NavItem[] = [
     category: 'Monitoring'
   },
   {
+    name: 'Brave Query Strategies',
+    href: '/test/brave-strategies',
+    icon: TestTube2,
+    description: 'Test Brave API query optimization (11 POI test cases)',
+    category: 'Testing'
+  },
+  {
+    name: 'Activity Images',
+    href: '/test/activities',
+    icon: TestTube2,
+    description: 'Test activity/POI image fetching',
+    category: 'Testing'
+  },
+  {
+    name: 'Route Strategies',
+    href: '/test/route-strategies',
+    icon: TestTube2,
+    description: 'Test route calculation optimization (5 global routes × 3 types)',
+    category: 'Testing'
+  },
+  {
     name: 'Reddit Images',
     href: '/test/reddit-images',
     icon: TestTube2,

@@ -13,18 +13,41 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'lat and lng are required' }, { status: 400 })
     }
 
-    const res = await fetch('https://api.open-elevation.com/api/v1/lookup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ locations: [{ latitude: lat, longitude: lng }] })
-    })
+    // Try Open-Elevation first, fallback to Open-Meteo if it fails
+    let elevation: number | null = null
 
-    if (!res.ok) {
-      return NextResponse.json({ elevation: null }, { status: 200 })
+    try {
+      const res = await fetch('https://api.open-elevation.com/api/v1/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locations: [{ latitude: lat, longitude: lng }] }),
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        elevation = data?.results?.[0]?.elevation ?? null
+      }
+    } catch (error) {
+      console.warn('Open-Elevation failed, trying Open-Meteo:', error)
     }
 
-    const data = await res.json()
-    const elevation = data?.results?.[0]?.elevation ?? null
+    // Fallback to Open-Meteo if Open-Elevation failed
+    if (elevation === null) {
+      try {
+        const res = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`, {
+          signal: AbortSignal.timeout(5000)
+        })
+
+        if (res.ok) {
+          const data = await res.json()
+          elevation = data?.elevation?.[0] ?? null
+        }
+      } catch (error) {
+        console.warn('Open-Meteo also failed:', error)
+      }
+    }
+
     return NextResponse.json({ elevation })
   } catch (error) {
     console.error('Elevation point API error:', error)

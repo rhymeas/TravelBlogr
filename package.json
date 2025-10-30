@@ -26,6 +26,13 @@
     "enrich-activities": "tsx scripts/enrich-location-activities.ts",
     "enrich-activities:limit": "tsx scripts/enrich-location-activities.ts --limit",
     "enrich-activities:location": "tsx scripts/enrich-location-activities.ts --location-id",
+    "enhance-trips": "tsx scripts/enhance-existing-trips.ts",
+    "enhance-trips:dry-run": "tsx scripts/enhance-existing-trips.ts --dry-run",
+    "cache:list": "tsx scripts/upstash-cache-inspector.ts list",
+    "cache:get": "tsx scripts/upstash-cache-inspector.ts get",
+    "cache:delete": "tsx scripts/upstash-cache-inspector.ts delete",
+    "cache:clear": "tsx scripts/upstash-cache-inspector.ts clear",
+    "cache:stats": "tsx scripts/upstash-cache-inspector.ts stats",
     "prepare": "husky || true"
   },
   "dependencies": {
@@ -92,6 +99,7 @@
     "@types/node": "^20.19.20",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
+    "@upstash/cli": "^0.3.0",
     "autoprefixer": "^10.4.16",
     "dotenv": "^17.2.3",
     "eslint": "^8.54.0",

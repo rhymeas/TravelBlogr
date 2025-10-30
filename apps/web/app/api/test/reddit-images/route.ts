@@ -384,12 +384,15 @@ export async function GET(request: NextRequest) {
   console.log(`Testing images for "${location}" using ${method} method`)
 
   // Handle Brave API method (replaces current method)
+  // 🎯 NOTE: Uses simple query (not optimized strategy)
+  // For POI/activity images, use searchActivity() from braveSearchService
+  // See docs/BRAVE_QUERY_FINAL_STRATEGY.md for optimized approach
   if (method === 'brave') {
     try {
       const braveResults = await braveSearchImages(location, 20)
       const braveImages: BraveImage[] = braveResults.map((img: any) => ({
         url: img.url,
-        thumbnail: img.thumbnail || img.url,
+        thumbnail: img.thumbnail || img.url, // ✅ Use thumbnail first (Brave CDN URL)
         title: img.title || location,
         source: 'Brave Search API'
       }))

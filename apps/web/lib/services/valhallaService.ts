@@ -17,9 +17,92 @@
 import type { RouteCoordinate, RouteResult } from './routingService'
 import { trackRoutingRequest, shouldUseStadiaMaps } from './routingMonitor'
 
-const STADIA_MAPS_URL = 'https://api.stadiamaps.com/route/v1/route'
+// Stadia Maps uses standard Valhalla endpoints
+// See: https://docs.stadiamaps.com/routing/
+const STADIA_MAPS_URL = 'https://api.stadiamaps.com/route'
 const LOCAL_VALHALLA_URL = process.env.VALHALLA_URL || 'http://localhost:8002/route'
 const STADIA_API_KEY = process.env.STADIA_MAPS_API_KEY
+
+/**
+ * Get multiple route alternatives from Valhalla
+ * Returns up to 3 different routes (most scenic, balanced, fastest)
+ */
+export async function getValhallaRouteWithAlternatives(
+  start: RouteCoordinate,
+  end: RouteCoordinate
+): Promise<RouteResult[]> {
+  console.log(`🏞️ Valhalla: Getting route alternatives...`)
+
+  // Determine which Valhalla instance to use
+  console.log(`   🔑 Stadia API Key: ${STADIA_API_KEY ? 'SET ✅' : 'NOT SET ❌'}`)
+  const shouldUse = await shouldUseStadiaMaps()
+  console.log(`   📊 shouldUseStadiaMaps(): ${shouldUse}`)
+  const useStadia = STADIA_API_KEY && shouldUse
+  const apiUrl = useStadia ? STADIA_MAPS_URL : LOCAL_VALHALLA_URL
+  const provider = useStadia ? 'stadia' : 'valhalla'
+
+  console.log(`   🌐 Using ${useStadia ? 'Stadia Maps (hosted)' : 'Local Valhalla'}`)
+  console.log(`   🔗 API URL: ${apiUrl}`)
+
+  // Request with high scenic preference to get alternatives
+  const costingOptions = {
+    use_highways: 0.3,
+    use_tolls: 0.5,
+    use_ferry: 0.8,
+    shortest: false
+  }
+
+  const requestBody = {
+    locations: [
+      { lat: start.latitude, lon: start.longitude },
+      { lat: end.latitude, lon: end.longitude }
+    ],
+    costing: 'auto',
+    costing_options: {
+      auto: costingOptions
+    },
+    alternates: 3, // Request 3 alternatives
+    units: 'kilometers'
+  }
+
+  let requestUrl = apiUrl
+  if (useStadia && STADIA_API_KEY) {
+    requestUrl = `${apiUrl}?api_key=${STADIA_API_KEY}`
+  }
+
+  const response = await fetch(requestUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestBody)
+  })
+
+  if (!response.ok) {
+    const error = await response.text()
+    throw new Error(`Valhalla API error (${response.status}): ${error}`)
+  }
+
+  const data = await response.json()
+  await trackRoutingRequest(provider as 'valhalla' | 'stadia')
+
+  // Parse all alternatives
+  const routes: RouteResult[] = []
+
+  // Add main route
+  routes.push({ ...parseValhallaResponse(data), provider })
+
+  // Add alternatives
+  if (data.alternates && data.alternates.length > 0) {
+    console.log(`   🔀 Got ${data.alternates.length} alternative routes`)
+
+    for (const alt of data.alternates) {
+      const altData = { trip: alt.trip }
+      routes.push({ ...parseValhallaResponse(altData), provider })
+    }
+  }
+
+  console.log(`   ✅ Returning ${routes.length} route alternatives`)
+  return routes
+}
 
 /**
  * Get route from Valhalla routing engine
@@ -36,11 +119,15 @@ export async function getValhallaRoute(
   console.log(`🏞️ Valhalla: Calculating ${preference} route...`)
 
   // Determine which Valhalla instance to use
-  const useStadia = STADIA_API_KEY && await shouldUseStadiaMaps()
+  console.log(`   🔑 Stadia API Key: ${STADIA_API_KEY ? 'SET ✅' : 'NOT SET ❌'}`)
+  const shouldUse = await shouldUseStadiaMaps()
+  console.log(`   📊 shouldUseStadiaMaps(): ${shouldUse}`)
+  const useStadia = STADIA_API_KEY && shouldUse
   const apiUrl = useStadia ? STADIA_MAPS_URL : LOCAL_VALHALLA_URL
   const provider = useStadia ? 'stadia' : 'valhalla'
 
   console.log(`   🌐 Using ${useStadia ? 'Stadia Maps (hosted)' : 'Local Valhalla'}`)
+  console.log(`   🔗 API URL: ${apiUrl}`)
 
   // Configure costing options based on preference and route distance
   const costingOptions = getCostingOptions(preference, start, end)
@@ -71,16 +158,19 @@ export async function getValhallaRoute(
 
   console.log(`   📍 Request: ${locations.length} locations, ${preference} preference`)
 
-  // Build headers (add auth for Stadia Maps)
+  // Build URL with API key for Stadia Maps
+  // Stadia Maps uses query parameter authentication: ?api_key=YOUR_KEY
+  // See: https://docs.stadiamaps.com/authentication/
+  let requestUrl = apiUrl
+  if (useStadia && STADIA_API_KEY) {
+    requestUrl = `${apiUrl}?api_key=${STADIA_API_KEY}`
+  }
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json'
   }
 
-  if (useStadia && STADIA_API_KEY) {
-    headers['Authorization'] = `Stadia-Auth ${STADIA_API_KEY}`
-  }
-
-  const response = await fetch(apiUrl, {
+  const response = await fetch(requestUrl, {
     method: 'POST',
     headers,
     body: JSON.stringify(requestBody)
@@ -96,23 +186,76 @@ export async function getValhallaRoute(
   // Track usage for monitoring
   await trackRoutingRequest(provider as 'valhalla' | 'stadia')
 
-  // For scenic routes with alternatives, pick the best one
+  // 🚀 PERFORMANCE: Disabled POI scoring for scenic routes (2025-01-28)
+  // DEPENDENCIES: Was calling /api/routing/score-route-pois which makes 100+ Overpass API calls
+  // CONTEXT: POI scoring was taking 30-60 seconds and timing out - just use first alternative route
   let route: RouteResult
   if (preference === 'scenic' && data.alternates && data.alternates.length > 0) {
     console.log(`   🔀 Got ${data.alternates.length + 1} alternative routes`)
-    // Pick the route that's longer but not the longest (sweet spot for scenic)
-    const allRoutes = [data.trip, ...data.alternates.map((alt: any) => alt.trip)]
-    const sorted = allRoutes.sort((a: any, b: any) => b.summary.length - a.summary.length)
-    const bestRoute = sorted.length > 1 ? sorted[1] : sorted[0]
-    route = parseValhallaResponse({ trip: bestRoute })
-    console.log(`   ✅ Selected route #${sorted.indexOf(bestRoute) + 1} of ${sorted.length}`)
+
+    // Just use the first alternative (Valhalla already ranks them by scenic preference)
+    route = parseValhallaResponse(data)
+    console.log(`   ✅ Using first alternative route (Valhalla pre-ranked by scenic preference)`)
   } else {
     route = parseValhallaResponse(data)
   }
 
+  // OLD CODE - DISABLED FOR PERFORMANCE
+  // This was making 100+ Overpass API calls and taking 30-60 seconds
+  /*
+  if (preference === 'scenic' && data.alternates && data.alternates.length > 0) {
+    console.log(`   🔀 Got ${data.alternates.length + 1} alternative routes`)
+
+    // NEW STRATEGY: Score each route by POI density
+    // The more scenic POIs along the route, the more scenic it is!
+    const allRoutes = [data.trip, ...data.alternates.map((alt: any) => alt.trip)]
+
+    // Get country code from start point for POI filtering
+    const startCountry = await getCountryCode(start.latitude, start.longitude)
+
+    // Score each route via API endpoint (server-side only)
+    // DISABLED - See above
+    */
+
   console.log(`   ✅ ${useStadia ? 'Stadia Maps' : 'Valhalla'} route: ${(route.distance / 1000).toFixed(1)}km, ${(route.duration / 60).toFixed(0)}min`)
 
   return { ...route, provider }
+}
+
+/**
+ * Get country code for a coordinate
+ */
+async function getCountryCode(lat: number, lng: number): Promise<string> {
+  try {
+    const query = `
+      [out:json][timeout:5];
+      is_in(${lat},${lng})->.a;
+      area.a["ISO3166-1"]["admin_level"="2"];
+      out tags;
+    `
+
+    const response = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      body: `data=${encodeURIComponent(query)}`,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+
+    if (!response.ok) return 'unknown'
+
+    const data = await response.json()
+
+    if (data.elements && data.elements.length > 0) {
+      const countryCode = data.elements[0].tags?.['ISO3166-1']
+      if (countryCode) {
+        return countryCode.toUpperCase()
+      }
+    }
+
+    return 'unknown'
+  } catch (error) {
+    console.warn('Country code lookup failed:', error)
+    return 'unknown'
+  }
 }
 
 /**
@@ -134,17 +277,10 @@ function calculateRouteDistance(start: RouteCoordinate, end: RouteCoordinate): n
 /**
  * Get costing options based on route preference and distance
  *
- * INTELLIGENT ROUTING LOGIC:
- *
- * SCENIC ROUTES:
- * - Short routes (<100km): Maximize scenic value, avoid all highways
- * - Medium routes (100-500km): Balance scenic + practicality, some highways OK
- * - Long routes (>500km): Scenic corridors, but allow highways between scenic areas
- *
- * LONGEST ROUTES:
- * - Short routes (<100km): Maximize detours through towns/POIs
- * - Medium routes (100-500km): Route through multiple towns/regions
- * - Long routes (>500km): Create grand tour through major POIs
+ * GOOGLE MAPS-STYLE ROUTING LOGIC:
+ * - Scenic: Avoid highways, prefer scenic roads (Google's "Avoid Highways" + scenic preference)
+ * - Longest: Longer route through towns with good roads
+ * - Distance-based progressive adjustments for practicality
  */
 function getCostingOptions(
   preference: 'scenic' | 'longest',
@@ -156,93 +292,96 @@ function getCostingOptions(
   console.log(`   📏 Direct distance: ${directDistance.toFixed(1)}km`)
 
   if (preference === 'scenic') {
-    // SCENIC ROUTE LOGIC
-    if (directDistance < 100) {
-      // Short scenic route: Maximize scenic value
-      console.log('   🏞️ Short scenic route: Avoiding all highways, maximizing scenic roads')
+    // SCENIC ROUTE LOGIC - Google Maps "Avoid Highways" + scenic preference
+    if (directDistance < 50) {
+      // Short scenic route: Complete highway avoidance
+      console.log('   🏞️ Short scenic route: Complete highway avoidance, maximum scenic')
       return {
         use_highways: 0.0,        // NO highways
         use_tolls: 0.0,           // NO tolls
-        use_ferry: 1.0,           // Prefer ferries (scenic!)
+        use_ferry: 0.5,           // Ferries can be scenic
         shortest: false,
         use_tracks: 0.0,          // Avoid unpaved
-        use_living_streets: 0.9,  // Strongly prefer residential/scenic
-        maneuver_penalty: 3,      // Very low penalty (allow many turns)
-        country_crossing_cost: 600,
-        country_crossing_penalty: 0
+        use_living_streets: 1.0,  // Maximum scenic roads
+        maneuver_penalty: 2,      // Allow frequent turns for scenery
+        gate_penalty: 50,         // More willing to use gated scenic roads
+        country_crossing_cost: 10000,     // High cost to cross borders
+        country_crossing_penalty: 10000   // High penalty to avoid border crossings
       }
-    } else if (directDistance < 500) {
-      // Medium scenic route: Balance scenic + practicality
-      console.log('   🏞️ Medium scenic route: Mostly scenic roads, some highways OK')
+    } else if (directDistance < 200) {
+      // Medium scenic route: Minimal highway use
+      console.log('   🏞️ Medium scenic route: Minimal highway use, strong scenic preference')
       return {
-        use_highways: 0.2,        // Minimal highways
+        use_highways: 0.1,        // Minimal highway use
         use_tolls: 0.0,           // Avoid tolls
-        use_ferry: 1.0,           // Prefer ferries
+        use_ferry: 0.6,           // Ferries preferred
         shortest: false,
         use_tracks: 0.0,
-        use_living_streets: 0.7,  // Prefer scenic roads
-        maneuver_penalty: 5,      // Low penalty
-        country_crossing_cost: 600,
-        country_crossing_penalty: 0
+        use_living_streets: 0.9,  // Strong scenic preference
+        maneuver_penalty: 3,      // Low penalty for scenic detours
+        gate_penalty: 75,
+        country_crossing_cost: 10000,
+        country_crossing_penalty: 10000
       }
     } else {
-      // Long scenic route: Scenic corridors with highway connections
-      console.log('   🏞️ Long scenic route: Scenic corridors, highways between scenic areas')
+      // Long scenic route: Some highways for practicality
+      console.log('   🏞️ Long scenic route: Some highways for practicality, scenic corridors')
       return {
-        use_highways: 0.4,        // Some highways OK for long distances
+        use_highways: 0.2,        // Some highways for long distances
         use_tolls: 0.1,           // Minimal tolls
-        use_ferry: 1.0,           // Prefer ferries
+        use_ferry: 0.7,           // Ferries preferred
         shortest: false,
         use_tracks: 0.0,
-        use_living_streets: 0.6,  // Moderate scenic preference
-        maneuver_penalty: 7,      // Moderate penalty
-        country_crossing_cost: 600,
-        country_crossing_penalty: 0
+        use_living_streets: 0.8,  // Moderate scenic preference
+        maneuver_penalty: 5,      // Moderate penalty
+        gate_penalty: 100,
+        country_crossing_cost: 10000,
+        country_crossing_penalty: 10000
       }
     }
   } else {
-    // LONGEST ROUTE LOGIC
-    if (directDistance < 100) {
-      // Short longest route: Maximize detours
-      console.log('   🛣️ Short longest route: Maximizing detours through towns')
+    // LONGEST ROUTE LOGIC - Longer routes with good roads (highways OK)
+    if (directDistance < 50) {
+      // Short longest route: Longer route through towns
+      console.log('   🛣️ Short longest route: Longer route through towns')
       return {
-        use_highways: 0.0,        // NO highways (forces detours)
-        use_tolls: 0.0,           // NO tolls
-        use_ferry: 1.0,           // Prefer ferries
+        use_highways: 0.4,        // Highways OK
+        use_tolls: 0.6,           // Tolls OK
+        use_ferry: 1.0,           // Prefer ferries (adds distance)
         shortest: false,
-        use_tracks: 0.3,          // Some unpaved OK (adds distance)
-        use_living_streets: 1.0,  // Maximize residential (more POIs)
-        maneuver_penalty: 1,      // Minimal penalty (encourage turns)
-        country_crossing_cost: 600,
-        country_crossing_penalty: 0
+        use_tracks: 0.0,          // Avoid unpaved
+        use_living_streets: 0.8,  // Prefer going through towns
+        maneuver_penalty: 8,      // Moderate penalty
+        country_crossing_cost: 10000,
+        country_crossing_penalty: 10000
       }
-    } else if (directDistance < 500) {
-      // Medium longest route: Route through multiple towns
-      console.log('   🛣️ Medium longest route: Routing through multiple towns/regions')
+    } else if (directDistance < 200) {
+      // Medium longest route: Balanced longer route
+      console.log('   🛣️ Medium longest route: Balanced longer route with good roads')
       return {
-        use_highways: 0.3,        // Some highways OK
-        use_tolls: 0.2,           // Some tolls OK
+        use_highways: 0.5,        // Highways OK
+        use_tolls: 0.7,           // Tolls OK
         use_ferry: 1.0,           // Prefer ferries
         shortest: false,
-        use_tracks: 0.2,          // Some unpaved OK
-        use_living_streets: 0.8,  // Prefer residential
-        maneuver_penalty: 3,      // Low penalty
-        country_crossing_cost: 600,
-        country_crossing_penalty: 0
+        use_tracks: 0.0,
+        use_living_streets: 0.7,  // Moderate town preference
+        maneuver_penalty: 10,     // Moderate penalty
+        country_crossing_cost: 10000,
+        country_crossing_penalty: 10000
       }
     } else {
-      // Long longest route: Grand tour through major POIs
-      console.log('   🛣️ Long longest route: Grand tour through major POIs')
+      // Long longest route: Practical longer route
+      console.log('   🛣️ Long longest route: Practical longer route with highways')
       return {
-        use_highways: 0.5,        // Highways OK between POIs
-        use_tolls: 0.3,           // Tolls OK
+        use_highways: 0.6,        // Highways OK for long distances
+        use_tolls: 0.8,           // Tolls OK
         use_ferry: 1.0,           // Prefer ferries
         shortest: false,
-        use_tracks: 0.1,          // Minimal unpaved
-        use_living_streets: 0.7,  // Moderate residential preference
-        maneuver_penalty: 5,      // Moderate penalty
-        country_crossing_cost: 600,
-        country_crossing_penalty: 0
+        use_tracks: 0.0,
+        use_living_streets: 0.6,  // Moderate preference
+        maneuver_penalty: 12,     // Higher penalty (practical route)
+        country_crossing_cost: 10000,
+        country_crossing_penalty: 10000
       }
     }
   }

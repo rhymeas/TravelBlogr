@@ -93,7 +93,14 @@ export function LocationInput({ locations, onChange }: LocationInputProps) {
     )
   }
 
-  const handleDragStart = (index: number) => {
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    // Only allow drag if it started from the drag handle
+    // The drag handle will set a data attribute to indicate it's allowed
+    const isDragHandle = e.dataTransfer.getData('dragHandle') === 'true'
+    if (!isDragHandle) {
+      e.preventDefault()
+      return
+    }
     setDraggedIndex(index)
   }
 
@@ -123,6 +130,19 @@ export function LocationInput({ locations, onChange }: LocationInputProps) {
   const handleDragEnd = () => {
     setDraggedIndex(null)
     setDragOverIndex(null)
+  }
+
+  const handleDragHandleMouseDown = (e: React.MouseEvent, index: number) => {
+    // Set a flag that this drag started from the handle
+    const target = e.currentTarget.closest('[draggable]') as HTMLElement
+    if (target) {
+      target.setAttribute('data-drag-allowed', 'true')
+    }
+  }
+
+  const handleDragHandleStart = (e: React.DragEvent) => {
+    // Mark that this drag started from the handle
+    e.dataTransfer.setData('dragHandle', 'true')
   }
 
   const fetchSuggestedStops = async (fromLocation: string, toLocation: string, lineIndex: number) => {
@@ -185,7 +205,7 @@ export function LocationInput({ locations, onChange }: LocationInputProps) {
           key={location.id}
           className="relative"
           draggable
-          onDragStart={() => handleDragStart(index)}
+          onDragStart={(e) => handleDragStart(e, index)}
           onDragOver={(e) => handleDragOver(e, index)}
           onDrop={(e) => handleDrop(e, index)}
           onDragEnd={handleDragEnd}
@@ -198,8 +218,13 @@ export function LocationInput({ locations, onChange }: LocationInputProps) {
               ? 'border-2 border-dashed border-blue-400 rounded-lg p-2 -m-2'
               : ''
           }`}>
-            {/* Drag Handle */}
-            <div className="flex-shrink-0 cursor-grab active:cursor-grabbing">
+            {/* Drag Handle - Only this icon triggers drag */}
+            <div
+              className="flex-shrink-0 cursor-grab active:cursor-grabbing"
+              draggable
+              onDragStart={handleDragHandleStart}
+              onMouseDown={(e) => handleDragHandleMouseDown(e, index)}
+            >
               <svg className="w-5 h-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
               </svg>

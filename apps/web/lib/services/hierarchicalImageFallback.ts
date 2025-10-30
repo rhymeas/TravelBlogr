@@ -22,9 +22,15 @@ async function fetchBraveImages(
   region?: string
 ): Promise<string[]> {
   try {
+    // 🎯 BRAVE API QUERY STRATEGY
+    // This uses simple query concatenation (not optimized strategy)
+    // For POI/activity images, use searchActivity() from braveSearchService
+    //
+    // 📚 See docs/BRAVE_QUERY_FINAL_STRATEGY.md for optimized approach
     const { searchImages } = await import('./braveSearchService')
 
     // Build context-aware search query
+    // TODO: Consider using buildBraveQuery() for better results
     let searchQuery = locationName
     if (region && region !== locationName && !locationName.includes(region)) {
       searchQuery += ` ${region}`

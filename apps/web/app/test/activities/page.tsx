@@ -4,19 +4,20 @@ import { useState } from 'react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-import { ExternalLink, Clock, DollarSign, Users } from 'lucide-react'
+import { ExternalLink, Clock, DollarSign, Users, X, Link as LinkIcon } from 'lucide-react'
 
 interface Activity {
   id: string
   name: string
   description?: string
-  category?: 'cultural' | 'outdoor' | 'food' | 'adventure' | 'relaxation'
+  category?: 'cultural' | 'outdoor' | 'food' | 'adventure' | 'relaxation' | 'attraction' | 'restaurant' | 'activity' | 'nature'
   difficulty?: 'easy' | 'moderate' | 'hard'
   duration?: string
   cost?: 'free' | 'low' | 'medium' | 'high'
   image_url?: string
   link_url?: string
   link_source?: 'brave' | 'groq' | 'manual'
+  tags?: string[]
 }
 
 interface EnrichmentResult {
@@ -27,32 +28,10 @@ interface EnrichmentResult {
 }
 
 export default function ActivitiesTestPage() {
-  const [activities, setActivities] = useState<Activity[]>([
-    {
-      id: 'test-1',
-      name: 'Lake Louise Gondola',
-      description: 'Scenic gondola ride with mountain views',
-      category: 'outdoor',
-      difficulty: 'easy',
-      duration: '2-3 hours',
-      cost: 'medium',
-      image_url: '',
-      link_url: '',
-    },
-    {
-      id: 'test-2',
-      name: 'Banff Gondola',
-      description: 'Ride to the summit of Sulphur Mountain',
-      category: 'outdoor',
-      difficulty: 'easy',
-      duration: '2-3 hours',
-      cost: 'medium',
-      image_url: '',
-      link_url: '',
-    }
-  ])
+  const [activities, setActivities] = useState<Activity[]>([])
 
-  const [locationName, setLocationName] = useState('Banff, Canada')
+  const [locationName, setLocationName] = useState('')
+  const [newActivityName, setNewActivityName] = useState('')
   const [loading, setLoading] = useState(false)
   const [enrichmentLogs, setEnrichmentLogs] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -156,27 +135,141 @@ export default function ActivitiesTestPage() {
     }
   }
 
-  const resetActivities = () => {
-    setActivities([
-      {
-        id: 'test-1',
-        name: 'Lake Louise Gondola',
-        description: 'Scenic gondola ride with mountain views',
-        category: 'outdoor',
-        difficulty: 'easy',
-        duration: '2-3 hours',
-        cost: 'medium'
-      },
-      {
-        id: 'test-2',
-        name: 'Banff Gondola',
-        description: 'Ride to the summit of Sulphur Mountain',
-        category: 'outdoor',
-        difficulty: 'easy',
-        duration: '2-3 hours',
-        cost: 'medium'
+  const addActivity = () => {
+    if (!newActivityName.trim()) return
+
+    const newActivity: Activity = {
+      id: `test-${Date.now()}`,
+      name: newActivityName.trim(),
+      description: '',
+      category: 'outdoor',
+      difficulty: 'easy',
+      duration: '',
+      cost: 'medium',
+      image_url: '',
+      link_url: ''
+    }
+
+    setActivities(prev => [...prev, newActivity])
+    setNewActivityName('')
+  }
+
+  const fetchRandomPOIs = async () => {
+    if (!locationName.trim()) {
+      setError('Please enter a location first')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    setEnrichmentLogs([])
+
+    try {
+      addLog('🎲 Fetching 3 random POIs for: ' + locationName)
+
+      // Step 1: Get POI suggestions from GROQ
+      const response = await fetch(
+        `/api/locations/random-pois?location=${encodeURIComponent(locationName)}&count=3`
+      )
+
+      if (!response.ok) {
+        throw new Error(`API failed: ${response.status}`)
       }
-    ])
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch POIs')
+      }
+
+      addLog(`✅ Received ${data.pois.length} POIs from GROQ`)
+
+      // Step 2: Convert POIs to activities (without images/links yet)
+      const newActivities: Activity[] = data.pois.map((poi: any, index: number) => ({
+        id: `poi-${Date.now()}-${index}`,
+        name: poi.title,
+        description: poi.description,
+        category: poi.category || 'outdoor',
+        difficulty: 'easy',
+        duration: '',
+        cost: 'medium',
+        image_url: '',
+        link_url: '',
+        tags: poi.tags || []
+      }))
+
+      setActivities(newActivities)
+
+      // Step 3: Enrich each POI with images and links from Brave API
+      addLog('\n🔍 Enriching POIs with Brave API (images + links)...')
+
+      for (const activity of newActivities) {
+        addLog(`\n📍 Enriching: ${activity.name}`)
+
+        // Call existing Brave API that already works
+        const braveUrl = `/api/brave/activity-image?name=${encodeURIComponent(activity.name)}&location=${encodeURIComponent(locationName)}&type=activity&count=3`
+        addLog(`  🔍 Calling Brave API: ${braveUrl}`)
+
+        const braveResponse = await fetch(braveUrl)
+
+        if (!braveResponse.ok) {
+          addLog(`  ❌ Brave API failed: ${braveResponse.status}`)
+          continue
+        }
+
+        const braveData = await braveResponse.json()
+
+        if (braveData.success) {
+          const images = braveData.data?.images || []
+          const links = braveData.data?.links || []
+
+          addLog(`  📊 Found ${images.length} images, ${links.length} links`)
+
+          // Update activity with enriched data
+          setActivities(prev => prev.map(a => {
+            if (a.id === activity.id) {
+              const updated = {
+                ...a,
+                // CRITICAL: Use thumbnail (Brave CDN URL) first
+                image_url: images[0]?.thumbnail || images[0]?.url || a.image_url,
+                link_url: links[0]?.url || links[0]?.website || a.link_url,
+                link_source: 'brave' as const
+              }
+
+              if (updated.image_url) addLog(`  ✅ Image: ${updated.image_url.substring(0, 60)}...`)
+              if (updated.link_url) addLog(`  ✅ Link: ${updated.link_url}`)
+
+              return updated
+            }
+            return a
+          }))
+        } else {
+          addLog(`  ⚠️ Brave API returned no results`)
+        }
+
+        // Rate limiting: 200ms delay
+        await new Promise(resolve => setTimeout(resolve, 200))
+      }
+
+      addLog('\n✅ Random POIs loaded and enriched successfully!')
+
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      addLog(`❌ Error: ${errorMsg}`)
+      setError(errorMsg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const removeActivity = (id: string) => {
+    setActivities(prev => prev.filter(a => a.id !== id))
+  }
+
+  const resetActivities = () => {
+    setActivities([])
+    setLocationName('')
+    setNewActivityName('')
     setEnrichmentLogs([])
     setError(null)
   }
@@ -186,21 +279,68 @@ export default function ActivitiesTestPage() {
       <div className="max-w-3xl mx-auto">
         {/* Compact Header */}
         <div className="mb-5">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Things to Do in {locationName}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Things to Do Test Page</h1>
           <p className="text-sm text-gray-600">
-            Testing Brave enrichment • {activities.length} activities
+            Testing Brave enrichment with free-form entry • {activities.length} activities
           </p>
         </div>
 
+        {/* Location Input */}
+        <div className="mb-4 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Location Name
+          </label>
+          <input
+            type="text"
+            value={locationName}
+            onChange={(e) => setLocationName(e.target.value)}
+            placeholder="e.g., Banff, Canada or Tokyo, Japan"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+          />
+        </div>
+
+        {/* Add Activity Form */}
+        <div className="mb-4 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Add Activity
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newActivityName}
+              onChange={(e) => setNewActivityName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && addActivity()}
+              placeholder="e.g., Tokyo Tower or Eiffel Tower"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            />
+            <Button
+              onClick={addActivity}
+              disabled={!newActivityName.trim()}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              size="sm"
+            >
+              Add
+            </Button>
+          </div>
+        </div>
+
         {/* Compact Test Controls */}
-        <div className="mb-4 flex gap-2">
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Button
+            onClick={fetchRandomPOIs}
+            disabled={loading || !locationName.trim()}
+            className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm hover:shadow-md transition-all"
+            size="sm"
+          >
+            {loading ? '⏳ Loading...' : '🎲 Get 3 Random POIs'}
+          </Button>
           <Button
             onClick={enrichAllActivities}
-            disabled={loading}
+            disabled={loading || activities.length === 0}
             className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-sm hover:shadow-md transition-all"
             size="sm"
           >
-            {loading ? '⏳ Enriching...' : '🔍 Test Brave Enrichment'}
+            {loading ? '⏳ Enriching...' : '🔍 Enrich Existing Activities'}
           </Button>
           <Button
             onClick={resetActivities}
@@ -208,11 +348,34 @@ export default function ActivitiesTestPage() {
             size="sm"
             className="border-gray-300"
           >
-            Reset
+            Clear All
           </Button>
         </div>
 
-        <div className="space-y-3">
+        {/* Empty State */}
+        {activities.length === 0 ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+            <div className="max-w-sm mx-auto">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="w-8 h-8 text-gray-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Activities Yet</h3>
+              <p className="text-sm text-gray-600 mb-6">
+                Add a location and some activities to test Brave API enrichment with images and links.
+              </p>
+              <div className="space-y-3 text-left bg-gray-50 rounded-lg p-4">
+                <p className="text-xs font-medium text-gray-700">Quick Start:</p>
+                <ol className="text-xs text-gray-600 space-y-2 list-decimal list-inside">
+                  <li>Enter a location (e.g., "Tokyo, Japan")</li>
+                  <li>Add activities (e.g., "Tokyo Tower", "Senso-ji Temple")</li>
+                  <li>Click "Test Brave Enrichment"</li>
+                  <li>Check if images and links appear correctly</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
         {/* Activity Cards - Modern Bubbly Design */}
         {activities.map((activity) => (
           <div
@@ -259,6 +422,20 @@ export default function ActivitiesTestPage() {
                   {activity.description}
                 </p>
 
+                {/* Tags (from random POIs) */}
+                {activity.tags && activity.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-1.5">
+                    {activity.tags.slice(0, 5).map((tag, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
                 {/* Compact Badges */}
                 <div className="flex flex-wrap gap-1.5">
                   {activity.category && (
@@ -286,30 +463,56 @@ export default function ActivitiesTestPage() {
                 </div>
               </div>
 
-              {/* Link Button */}
-              {activity.link_url && (
-                <a
-                  href={activity.link_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-xs font-medium whitespace-nowrap"
+              {/* Action Buttons */}
+              <div className="flex-shrink-0 flex items-center gap-2">
+                {/* Link Button */}
+                {activity.link_url ? (
+                  <a
+                    href={activity.link_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-xs font-medium whitespace-nowrap"
+                    title={activity.link_url}
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Learn more
+                  </a>
+                ) : (
+                  <div className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-50 text-gray-400 text-xs font-medium">
+                    <LinkIcon className="w-3.5 h-3.5" />
+                    No link
+                  </div>
+                )}
+
+                {/* Remove Button */}
+                <button
+                  onClick={() => removeActivity(activity.id)}
+                  className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
+                  title="Remove activity"
                 >
-                  Learn more
-                </a>
-              )}
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
-            {/* Source Badge (if enriched) */}
-            {activity.link_source && (
-              <div className="absolute top-2 right-2">
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-medium bg-gray-900/80 text-white backdrop-blur-sm">
-                  {activity.link_source}
-                </span>
+            {/* Link URL Display (if exists) */}
+            {activity.link_url && (
+              <div className="px-3 pb-3 pt-0">
+                <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 rounded-lg px-2 py-1.5">
+                  <LinkIcon className="w-3 h-3 flex-shrink-0" />
+                  <span className="truncate font-mono">{activity.link_url}</span>
+                  {activity.link_source && (
+                    <span className="flex-shrink-0 px-1.5 py-0.5 rounded bg-gray-900 text-white text-xs font-medium">
+                      {activity.link_source}
+                    </span>
+                  )}
+                </div>
               </div>
             )}
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* Compact Debug Logs */}
       {enrichmentLogs.length > 0 && (

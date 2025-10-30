@@ -129,14 +129,16 @@ export function InlineEdit({
   // Variant-specific styles
   const variantStyles = {
     title: {
-      text: 'text-3xl font-semibold',
+      // Bigger, bolder trip title
+      text: 'text-4xl md:text-5xl font-bold',
       padding: 'px-4 py-3',
       rounded: 'rounded-2xl',
       shadow: 'shadow-lg'
     },
     subtitle: {
+      // Keep compact spacing between H1 and H2 (slightly tighter)
       text: 'text-base',
-      padding: 'px-4 py-2.5',
+      padding: 'px-2.5 py-1',
       rounded: 'rounded-xl',
       shadow: 'shadow-md'
     },

@@ -122,6 +122,125 @@ const { data } = await supabase
 
 ---
 
+## 🎯 TravelBlogr Brave API Query Strategy (CRITICAL - UPDATED 2025-01-27)
+
+### **Optimized Query Building Pattern**
+
+**ALWAYS use the smart query builder for Brave API searches:**
+
+```typescript
+// ✅ CORRECT: Use buildBraveQuery() with prioritized strategies
+const queries = buildBraveQuery(activityName, locationName, type, isWellKnown)
+
+for (const query of queries) {
+  const images = await searchImages(query, 15)
+  if (images.length >= 5) break // Success!
+}
+
+// ❌ WRONG: Don't use simple concatenation
+const query = `${activityName} ${locationName}` // Too simple, low accuracy
+```
+
+### **Query Strategy Rules (Based on 11 POI Test Cases):**
+
+1. **ALWAYS try multiple queries in priority order** - Don't stop at first query
+2. **Use Tier 1 strategies first** - Name only, "in" city, simple + city
+3. **Add commas for proper parsing** - `"Activity City, Province Type"` works, `"Activity City Type"` fails
+4. **Detect well-known POIs** - Famous landmarks work best with name only
+5. **NEVER use province alone** - Too ambiguous, fails for lesser-known POIs
+6. **NEVER use generic fallbacks** - `"ski resort Golden, BC"` returns wrong locations
+7. **Log query performance** - Track which queries work for continuous improvement
+
+### **Query Priority Order:**
+
+**For Well-Known POIs (Eiffel Tower, Taj Mahal, etc.):**
+1. Activity name only - `"Eiffel Tower"`
+2. Activity "in" location - `"Eiffel Tower in Paris, France"`
+3. Activity + city - `"Eiffel Tower Paris"`
+
+**For Lesser-Known POIs (Local attractions, restaurants, etc.):**
+1. Activity "in" location - `"Sun Peaks Resort in Kamloops, BC"`
+2. Activity + city - `"Sun Peaks Resort Kamloops"`
+3. Activity name only - `"Sun Peaks Resort"`
+
+### **Critical Patterns:**
+
+- ✅ **Comma placement matters:** `"Activity City, Province Type"` → Success
+- ❌ **No comma fails:** `"Activity City Type"` → 0 images
+- ✅ **Natural language works:** `"Activity near City"` → Excellent results
+- ❌ **Province alone fails:** `"Activity Province"` → 0 images for lesser-known POIs
+- ✅ **Simplicity wins:** Simpler queries often return better results than complex ones
+
+### **Documentation:**
+- **Full Strategy:** `docs/BRAVE_QUERY_FINAL_STRATEGY.md`
+- **Test Results:** 11 diverse POI types across 8 countries
+- **Success Rate:** 85-90% (8-9 out of 10 strategies)
+
+---
+
+## 🎯 TravelBlogr Brave API Image Pattern (CRITICAL - MILESTONE 2025-01-27)
+
+### **ALWAYS Use `thumbnail` Property First**
+
+**CRITICAL RULE:** When consuming Brave Search API image data, ALWAYS use the `thumbnail` property first, then fallback to `url`.
+
+**Why:**
+- `thumbnail`: Actual Brave CDN image URL (`imgs.search.brave.com`) - 16:9 optimized, fast, reliable ✅
+- `url`: Source page URL (e.g., `destinationlesstravel.com`) - NOT an image, will fail to load ❌
+
+### **Correct Pattern:**
+```typescript
+// ✅ CORRECT: Use thumbnail first
+const imageUrl = img.thumbnail || img.url
+
+// ✅ CORRECT: When mapping arrays
+const urls = images.map(i => i.thumbnail || i.url)
+```
+
+### **Wrong Pattern:**
+```typescript
+// ❌ WRONG: Don't use url first
+const imageUrl = img.url || img.thumbnail
+
+// ❌ WRONG: Don't use only url
+const urls = images.map(i => i.url)
+```
+
+### **Brave API Response Structure:**
+```typescript
+interface BraveImageResult {
+  title: string
+  url: string           // ❌ Source page URL - NOT the image!
+  thumbnail: string     // ✅ Actual image URL from Brave CDN
+  source: string
+  properties: {
+    url: string
+    width: number
+    height: number
+  }
+}
+```
+
+### **Files That Must Follow This Pattern:**
+- Any component consuming `/api/brave/activity-image`
+- Any component consuming `/api/images/discover`
+- Any script using Brave API image data
+- Any service transforming Brave image responses
+
+### **Historical Context:**
+- **Date Fixed:** 2025-01-27
+- **Bugs Found:** 4 critical bugs across codebase
+- **Impact:** V2 Trip Planner, test pages, enrichment scripts all had broken images
+- **Root Cause:** Using `url` (source page) instead of `thumbnail` (actual image)
+- **Documentation:** See `docs/BRAVE_API_IMAGE_AUDIT.md` for full audit
+
+### **Prevention:**
+- Code review checklist: Verify `thumbnail` is used first
+- Never merge code that uses `i.url` alone for Brave images
+- Add comments when using Brave image data: `// Use thumbnail (Brave CDN URL) first`
+
+---
+
 ## 📸 TravelBlogr Image Upload & Storage (CRITICAL)
 
 ### **Image Storage Pattern - Supabase Storage**

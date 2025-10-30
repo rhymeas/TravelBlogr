@@ -282,6 +282,7 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
 
                   // Prefetch elevation profile for the route (sampled)
                   try {
+                    console.log('🏔️ Fetching elevation profile (OpenRouteService) with', coords.length, 'coordinates')
                     fetch('/api/elevation/profile', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
@@ -291,8 +292,13 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
                         const j = await res.json()
                         elevProfileRef.current = { distances: j.distances || [], elevations: j.elevations || [] }
                         setElevationProfile(elevProfileRef.current)
+                        console.log('✅ Elevation profile loaded (OpenRouteService):', j.elevations?.length, 'points')
+                      } else {
+                        console.warn('⚠️ Elevation API (OpenRouteService) returned non-OK status:', res.status)
                       }
-                    }).catch(() => {})
+                    }).catch((err) => {
+                      console.error('❌ Elevation API (OpenRouteService) error:', err)
+                    })
                   } catch {}
                 } catch {}
 
@@ -510,7 +516,12 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
             locations.forEach(loc => {
               bounds.extend([loc.longitude, loc.latitude])
             })
-            map.current!.fitBounds(bounds, { padding: 50, maxZoom: 10 })
+            // Add extra bottom padding when elevation is shown to center route in upper visible area
+            const bottomPadding = showElevation ? 200 : 50
+            map.current!.fitBounds(bounds, {
+              padding: { top: 50, bottom: bottomPadding, left: 50, right: 50 },
+              maxZoom: 10
+            })
           }
         })
 
@@ -592,6 +603,7 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
               }
               routeCumKmRef.current = cum
               // Prefetch elevation profile for the route (sampled)
+              console.log('🏔️ Fetching elevation profile for route with', coords.length, 'coordinates')
               fetch('/api/elevation/profile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -601,8 +613,13 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
                   const j = await res.json()
                   elevProfileRef.current = { distances: j.distances || [], elevations: j.elevations || [] }
                   setElevationProfile(elevProfileRef.current)
+                  console.log('✅ Elevation profile loaded:', j.elevations?.length, 'points')
+                } else {
+                  console.warn('⚠️ Elevation API returned non-OK status:', res.status)
                 }
-              }).catch(() => {})
+              }).catch((err) => {
+                console.error('❌ Elevation API error:', err)
+              })
             } catch {}
             mm.addLayer({
               id: 'route',
@@ -642,6 +659,7 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
             }
             routeCumKmRef.current = cum
             // Prefetch elevation profile for the route (sampled)
+            console.log('🏔️ Fetching elevation profile (preview route) with', coords.length, 'coordinates')
             fetch('/api/elevation/profile', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -651,8 +669,13 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
                 const j = await res.json()
                 elevProfileRef.current = { distances: j.distances || [], elevations: j.elevations || [] }
                 setElevationProfile(elevProfileRef.current)
+                console.log('✅ Elevation profile loaded (preview):', j.elevations?.length, 'points')
+              } else {
+                console.warn('⚠️ Elevation API (preview) returned non-OK status:', res.status)
               }
-            }).catch(() => {})
+            }).catch((err) => {
+              console.error('❌ Elevation API (preview) error:', err)
+            })
             mm.addLayer({
               id: 'route',
               type: 'line',
@@ -672,12 +695,38 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
       if (locations.length > 0) {
         const bounds = new maplibregl.LngLatBounds()
         locations.forEach(loc => bounds.extend([loc.longitude, loc.latitude]))
-        m.fitBounds(bounds, { padding: 50, maxZoom: 10, duration: 300 })
+        // Add extra bottom padding when elevation is shown to center route in upper visible area
+        const bottomPadding = showElevation ? 200 : 50
+        m.fitBounds(bounds, {
+          padding: { top: 50, bottom: bottomPadding, left: 50, right: 50 },
+          maxZoom: 10,
+          duration: 300
+        })
       }
     } catch (err) {
       console.warn('Map update failed:', err)
     }
   }, [locationKey, transportMode, routePreference, routeReloadTick])
+
+  // Re-center map when elevation profile appears/disappears
+  useEffect(() => {
+    if (!map.current || locations.length === 0) return
+
+    // Wait a bit for elevation component to render
+    const timer = setTimeout(() => {
+      if (!map.current) return
+      const bounds = new maplibregl.LngLatBounds()
+      locations.forEach(loc => bounds.extend([loc.longitude, loc.latitude]))
+      const bottomPadding = showElevation && elevationProfile && elevationProfile.elevations.length > 0 ? 200 : 50
+      map.current.fitBounds(bounds, {
+        padding: { top: 50, bottom: bottomPadding, left: 50, right: 50 },
+        maxZoom: 10,
+        duration: 500 // Smooth animation
+      })
+    }, 100)
+
+    return () => clearTimeout(timer)
+  }, [elevationProfile, showElevation])
 
   // Preview alternative route overlay (hover in Change Route modal)
   const previewKey = (previewLocations || []).map(l => `${l.latitude},${l.longitude}`).join('|')
@@ -743,9 +792,9 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
       )}
 
       {/* Route preference pills (wrapped) */}
+      {showRouteOptions && (
       <div className="absolute top-4 right-4 z-20">
         <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-2xl px-3 py-2 shadow-sm">
-          {showRouteOptions && (
             <>
               <div className="text-[11px] text-gray-600 font-medium mb-1 text-right">Route options</div>
               <div className="flex gap-2 justify-end">
@@ -776,9 +825,9 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
                 ))}
               </div>
             </>
-          )}
         </div>
       </div>
+      )}
 
 
       {/* Route provider badge (hidden by default) */}
@@ -790,131 +839,98 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
         </div>
       )}
 
-      {/* Loading */}
-      {routeLoading && (
-        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-md text-xs font-medium text-gray-700 z-10">
-          Loading route...
-        </div>
 
-
+      {/* Route popup (portal-rendered, no overflow) */}
+      {popupData && popupPos && (
+        <RoutePopup
+          distanceKm={popupData.distanceKm}
+          durationH={popupData.distanceKm / 80}
+          elevationM={popupData.elevationM}
+          onClose={() => { setPopupData(null); setPopupPos(null) }}
+          onAddNote={(text: string) => addNoteAtCurrent(text)}
+          onAddChecklist={(text: string) => addChecklistAtCurrent(text)}
+          onAddWaypoint={() => {
+            const detail = { lat: popupData.lat, lng: popupData.lng, nearestStop }
+            if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('plan-v2:add-waypoint', { detail }))
+          }}
+          coordinates={{ lat: popupData.lat, lng: popupData.lng }}
+          routeLength={routeCumKmRef.current[routeCumKmRef.current.length - 1] || 100}
+          tripType="leisure"
+          transportMode={transportMode}
+          position={popupPos}
+          onAddToSchedule={(poi) => {
+            // Dispatch event to add POI to Today's Schedule
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('plan-v2:add-poi-to-schedule', {
+                detail: {
+                  poi,
+                  nearestStop
+                }
+              }))
+            }
+          }}
+        />
       )}
 
-      {/* Route popup (anchored near the dot, bounds-safe) */}
-      {popupData && popupPos && (
-        <div
-          className="absolute z-20 pointer-events-auto max-w-xs"
-          style={{ left: popupPos.x, top: popupPos.y }}
-        >
-          <div className="relative">
-            {/* Curved arrow tail */}
-            <svg className="absolute -left-2 top-3" width="12" height="10" viewBox="0 0 12 10" aria-hidden="true">
-              <path d="M12 0 C 6 3, 6 7, 0 10 L 10 5 Z" fill="white" stroke="#e5e7eb" />
-            </svg>
-            <RoutePopup
-              distanceKm={popupData.distanceKm}
-              durationH={popupData.distanceKm / 80}
-              elevationM={popupData.elevationM}
-              onClose={() => { setPopupData(null); setPopupPos(null) }}
-              onAddNote={(text: string) => addNoteAtCurrent(text)}
-              onAddChecklist={(text: string) => addChecklistAtCurrent(text)}
-              onAddWaypoint={() => {
-                const detail = { lat: popupData.lat, lng: popupData.lng, nearestStop }
-                if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('plan-v2:add-waypoint', { detail }))
+      {/* POI suggestions - REMOVED: Now integrated into RoutePopup portal */}
+      {/* Old RoutePOISuggestions component removed to prevent overlap and duplication */}
+
+      {/* Elevation Profile - Bubbly Map Overlay */}
+      {showElevation && (
+        <div className="absolute bottom-4 left-4 z-10 pointer-events-auto w-[80%]">
+          {elevationProfile && elevationProfile.elevations.length > 0 ? (
+            <ElevationProfile
+              elevations={elevationProfile.elevations}
+              distances={elevationProfile.distances}
+              ascent={elevationProfile.elevations.reduce((acc, e, i, arr) => acc + (i>0 && e>arr[i-1] ? (e-arr[i-1]) : 0), 0)}
+              descent={elevationProfile.elevations.reduce((acc, e, i, arr) => acc + (i>0 && e<arr[i-1] ? (arr[i-1]-e) : 0), 0)}
+              maxElevation={Math.max(...elevationProfile.elevations)}
+              minElevation={Math.min(...elevationProfile.elevations)}
+              hoverKm={hoverKm}
+              onHoverKm={(km) => {
+                setHoverKm(km)
+                if (!map.current || km == null) return
+
+                // Find nearest route coordinate by cumulative distance (not by elevation profile index)
+                // The elevation profile is sampled and may have fewer points than the route
+                const cumDistances = routeCumKmRef.current
+                const maxDistance = cumDistances[cumDistances.length - 1]
+                const clamped = Math.min(Math.max(km, 0), maxDistance)
+                let nearestIdx = 0
+                let minDiff = Infinity
+                for (let i = 0; i < cumDistances.length; i++) {
+                  const d = Math.abs(cumDistances[i] - clamped)
+                  if (d < minDiff) { minDiff = d; nearestIdx = i }
+                }
+                const [lng, lat] = routeCoordsRef.current[nearestIdx] || []
+                if (lng != null && lat != null && map.current) {
+                  // Update the route-hover-point source to move the black tracer dot
+                  const src = map.current.getSource('route-hover-point') as maplibregl.GeoJSONSource | undefined
+                  if (src && typeof (src as any).setData === 'function') {
+                    src.setData({
+                      type: 'FeatureCollection',
+                      features: [{
+                        type: 'Feature',
+                        geometry: { type: 'Point', coordinates: [lng, lat] },
+                        properties: {}
+                      }]
+                    })
+                  }
+                }
               }}
             />
-          </div>
+          ) : (
+            <div className="p-3 rounded-2xl shadow-lg bg-white/95 backdrop-blur-sm border border-gray-200 inline-flex items-center gap-2 text-xs text-gray-700">
+              <svg className="h-4 w-4 animate-spin text-gray-500" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+              Loading elevation...
+            </div>
+          )}
         </div>
       )}
 
-      {/* POI suggestions (contextual, right side) */}
-      {popupData && (
-        <div className="absolute top-4 right-4 z-20">
-          <RoutePOISuggestions
-            center={{ latitude: popupData.lat, longitude: popupData.lng }}
-            radiusKm={25}
-            nearestLocationIndex={nearestStop?.index}
-            nearestLocationName={nearestStop?.name}
-            onInsertPOI={async (poi, position, index) => {
-              try {
-                let enriched: any = { ...poi }
-                // If distance missing, try to enrich with coordinates and compute true distance to route
-                if ((enriched.estimatedDistance == null || Number.isNaN(enriched.estimatedDistance)) && routeCoordsRef.current.length) {
-                  let lat: number | undefined
-                  let lng: number | undefined
-                  if (enriched.coordinates && typeof enriched.coordinates.latitude === 'number' && typeof enriched.coordinates.longitude === 'number') {
-                    lat = enriched.coordinates.latitude
-                    lng = enriched.coordinates.longitude
-                  } else if (enriched.address && typeof enriched.address === 'string' && enriched.address.length > 3) {
-                    try {
-                      const geo = await geocodeAddress(enriched.address)
-                      if (geo) { lat = geo.lat; lng = geo.lon }
-                    } catch {}
-                  }
-                  if (typeof lat === 'number' && typeof lng === 'number') {
-                    const dKm = nearestDistanceKmToRoute(lat, lng, routeCoordsRef.current)
-                    if (Number.isFinite(dKm)) enriched.estimatedDistance = dKm
-                  }
-                }
-                if (typeof window !== 'undefined') {
-                  window.dispatchEvent(new CustomEvent('plan-v2:insert-poi', { detail: { poi: enriched, position, index } }))
-                }
-              } catch {
-                if (typeof window !== 'undefined') {
-                  window.dispatchEvent(new CustomEvent('plan-v2:insert-poi', { detail: { poi, position, index } }))
-                }
-              }
-            }}
-          />
-        </div>
-      )}
-
-      {/* Elevation Profile */}
-      {showElevation && elevationProfile && elevationProfile.elevations.length > 0 && (
-        <div className="mt-3">
-          <ElevationProfile
-            elevations={elevationProfile.elevations}
-            distances={elevationProfile.distances}
-            ascent={elevationProfile.elevations.reduce((acc, e, i, arr) => acc + (i>0 && e>arr[i-1] ? (e-arr[i-1]) : 0), 0)}
-            descent={elevationProfile.elevations.reduce((acc, e, i, arr) => acc + (i>0 && e<arr[i-1] ? (arr[i-1]-e) : 0), 0)}
-            maxElevation={Math.max(...elevationProfile.elevations)}
-            minElevation={Math.min(...elevationProfile.elevations)}
-            hoverKm={hoverKm}
-            onHoverKm={(km) => {
-              setHoverKm(km)
-              if (!map.current || km == null) return
-              // Find nearest index on profile by distance
-              const distances = elevProfileRef.current.distances
-              let idx = 0
-              let best = Number.POSITIVE_INFINITY
-              for (let i = 0; i < distances.length; i++) {
-                const d = Math.abs(distances[i] - km)
-                if (d < best) { best = d; idx = i }
-              }
-              const coord = routeCoordsRef.current[idx]
-              if (!coord) return
-              const src = map.current.getSource('route-hover-point') as maplibregl.GeoJSONSource
-              if (src) {
-                src.setData({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: coord } })
-              }
-              // Do not live-reposition popup while hovering elevation; click-only behavior
-              // Intentionally disabled to avoid confusing UI
-              // if (popupData && map.current && mapContainer.current) {
-              //   const lng = coord[0]
-              //   const lat = coord[1]
-              //   const elevationM = elevProfileRef.current.elevations[idx]
-              //   setPopupData({ lng, lat, distanceKm: distances[idx], elevationM })
-              //   const pt = map.current.project([lng, lat]) as any
-              //   const cw = mapContainer.current.clientWidth
-              //   const ch = mapContainer.current.clientHeight
-              //   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
-              //   const x = clamp(pt.x + 12, 8, cw - 320)
-              //   const y = clamp(pt.y - 12, 8, ch - 160)
-              //   setPopupPos({ x, y })
-              // }
-            }}
-          />
-        </div>
-      )}
     </div>
   )
 }

@@ -16,14 +16,17 @@
  * - Blog posts (insert images)
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
-import { Search, Upload, Database, Globe, MessageSquare, Loader2 } from 'lucide-react'
+import { Search, Upload, Database, Globe, MessageSquare, Loader2, X } from 'lucide-react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
+import { uploadImage, optimizeImage } from '@/lib/services/imageUploadService'
+import { useAuth } from '@/hooks/useAuth'
+import toast from 'react-hot-toast'
 
 interface ImageSelectionModalProps {
   open: boolean
@@ -52,11 +55,17 @@ export function ImageSelectionModal({
   defaultQuery = '',
   context = 'location'
 }: ImageSelectionModalProps) {
+  const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState(defaultQuery)
   const [loading, setLoading] = useState(false)
   const [braveImages, setBraveImages] = useState<DiscoveredImage[]>([])
   const [redditImages, setRedditImages] = useState<DiscoveredImage[]>([])
   const [databaseImages, setDatabaseImages] = useState<DiscoveredImage[]>([])
+
+  // Upload state
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Auto-search when modal opens with default query
   useEffect(() => {
@@ -114,8 +123,68 @@ export function ImageSelectionModal({
   }
 
   const handleSelectImage = (image: DiscoveredImage) => {
-    onSelect(image.url, image.source)
+    // CRITICAL: Use thumbnail (Brave CDN URL) first, fallback to url
+    // See docs/BRAVE_API_IMAGE_AUDIT.md
+    onSelect(image.thumbnail || image.url, image.source)
     onClose()
+  }
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file')
+      return
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB')
+      return
+    }
+
+    try {
+      setIsUploading(true)
+
+      // Show preview immediately
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setUploadPreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+
+      // Optimize image
+      toast.loading('Optimizing image...')
+      const optimized = await optimizeImage(file)
+      toast.dismiss()
+
+      // Upload to Supabase
+      toast.loading('Uploading image...')
+      const result = await uploadImage(optimized, {
+        bucket: 'trip-images',
+        userId: user.id,
+        folder: 'user-uploads',
+        maxSizeMB: 5
+      })
+
+      toast.dismiss()
+
+      if (result.success && result.url) {
+        toast.success('Image uploaded successfully!')
+        onSelect(result.url, 'user-upload')
+        onClose()
+      } else {
+        throw new Error(result.error || 'Upload failed')
+      }
+    } catch (error) {
+      console.error('Upload error:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to upload image')
+      setUploadPreview(null)
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   return (
@@ -287,13 +356,69 @@ export function ImageSelectionModal({
             )}
           </TabsContent>
 
-          {/* Upload Tab */}
+          {/* Upload Tab - USER UPLOAD */}
           <TabsContent value="upload" className="flex-1 overflow-y-auto mt-4">
-            <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-              <Upload className="h-12 w-12 mb-3 text-gray-300" />
-              <p>Upload your own photo</p>
-              <p className="text-sm text-gray-400 mt-1">Coming soon</p>
-            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+              disabled={isUploading || !user}
+            />
+
+            {uploadPreview ? (
+              <div className="flex flex-col items-center justify-center space-y-4">
+                <div className="relative w-full max-w-md aspect-video rounded-lg overflow-hidden border-2 border-gray-200">
+                  <Image
+                    src={uploadPreview}
+                    alt="Upload preview"
+                    fill
+                    className="object-cover"
+                  />
+                  <button
+                    onClick={() => setUploadPreview(null)}
+                    className="absolute top-2 right-2 p-1 bg-white/90 rounded-full hover:bg-white transition-colors"
+                  >
+                    <X className="h-4 w-4 text-gray-700" />
+                  </button>
+                </div>
+                {isUploading && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Uploading...
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+                <Upload className="h-12 w-12 mb-3 text-gray-300" />
+                <p className="font-medium text-gray-700 mb-1">Upload your own photo</p>
+                <p className="text-sm text-gray-400 mb-4">JPG, PNG, WebP up to 5MB</p>
+
+                {user ? (
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Choose File
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <p className="text-sm text-gray-500 italic">Sign in to upload images</p>
+                )}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>

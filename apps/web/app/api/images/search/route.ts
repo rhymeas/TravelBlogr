@@ -51,13 +51,23 @@ export async function GET(req: NextRequest) {
 
 /**
  * Search Brave for images
+ *
+ * ⚠️ IMPORTANT: Always use `thumbnail` property first!
+ * - thumbnail: Brave CDN URL (imgs.search.brave.com) - 16:9 optimized, fast, reliable
+ * - url: Source page URL - NOT an image, will fail to load
+ *
+ * 📚 See docs/BRAVE_API_IMAGE_AUDIT.md for details
+ *
+ * 🎯 NOTE: This uses simple query (not optimized strategy)
+ * For POI/activity images, use /api/brave/activity-image instead
+ * See docs/BRAVE_QUERY_FINAL_STRATEGY.md for optimized approach
  */
 async function searchBraveImages(query: string, limit: number) {
   const results = await braveSearchImages(query, limit)
 
   return results.map((img: any) => ({
     url: img.url,
-    thumbnail: img.thumbnail,
+    thumbnail: img.thumbnail, // ✅ Use thumbnail first! (Brave CDN URL)
     title: img.title,
     source: 'brave',
     width: img.properties.width,

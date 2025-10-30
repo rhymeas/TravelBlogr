@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { SharedTripView } from '@/components/share/SharedTripView'
 import { ShareLinkAnalytics } from '@/components/share/ShareLinkAnalytics'
+import { ResultsView } from '@/components/trip-planner-v2/ResultsView'
 
 // Force dynamic rendering - pages generated on-demand, not at build time
 export const dynamic = 'force-dynamic'
@@ -20,7 +21,7 @@ interface SubdomainPageProps {
 // Generate metadata for SEO
 export async function generateMetadata({ params }: SubdomainPageProps): Promise<Metadata> {
   const supabase = await createServerSupabase()
-  
+
   const { data: shareLink } = await supabase
     .from('share_links')
     .select(`
@@ -80,7 +81,7 @@ export async function generateMetadata({ params }: SubdomainPageProps): Promise<
 
 export default async function SubdomainPage({ params, searchParams }: SubdomainPageProps) {
   const supabase = await createServerSupabase()
-  
+
   // Get share link with trip data
   const { data: shareLink, error } = await supabase
     .from('share_links')
@@ -123,7 +124,7 @@ export default async function SubdomainPage({ params, searchParams }: SubdomainP
   // Check password protection
   const requiresPassword = shareLink.settings?.requirePassword && shareLink.settings?.passwordHash
   const providedPassword = searchParams.password
-  
+
   if (requiresPassword && !providedPassword) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -185,6 +186,29 @@ export default async function SubdomainPage({ params, searchParams }: SubdomainP
     })
     .eq('id', shareLink.id)
     .then(() => {})
+  // Try to load V2 plan data for read-only shared rendering
+  const { data: planRow } = await supabase
+    .from('trip_plan')
+    .select('plan_data')
+    .eq('trip_id', shareLink.trips.id)
+    .eq('type', 'ai_plan_v2')
+    .single()
+
+  const v2Plan = planRow?.plan_data as any | undefined
+  const v2TripData = v2Plan ? (
+    v2Plan.tripData || {
+      destinations: [],
+      dateRange: shareLink.trips.start_date && shareLink.trips.end_date
+        ? { startDate: new Date(shareLink.trips.start_date), endDate: new Date(shareLink.trips.end_date) }
+        : null,
+      tripType: 'road-trip',
+      travelStyle: 'balanced',
+      budget: 'moderate',
+      pace: 'moderate',
+      interests: []
+    }
+  ) : null
+
 
   // Track analytics if enabled
   const shouldTrackAnalytics = shareLink.settings?.enableAnalytics !== false
@@ -192,17 +216,31 @@ export default async function SubdomainPage({ params, searchParams }: SubdomainP
   return (
     <>
       {shouldTrackAnalytics && (
-        <ShareLinkAnalytics 
+        <ShareLinkAnalytics
           shareLinkId={shareLink.id}
           subdomain={params.subdomain}
         />
       )}
-      
-      <SharedTripView 
-        shareLink={shareLink}
-        trip={shareLink.trips}
-        subdomain={params.subdomain}
-      />
+
+      {v2Plan ? (
+        <ResultsView
+          plan={v2Plan}
+          tripData={v2TripData as any}
+          locationImages={v2Plan.locationImages || {}}
+          structuredContext={null}
+          groqHeadline={v2Plan.tripTitle || v2Plan.title || shareLink.trips.title || ''}
+          groqSubtitle={v2Plan.tripSubtitle || shareLink.trips.description || ''}
+          generationMode="standard"
+          mode="planner"  /* shared = read‑only */
+          hideCTAs={true}  /* minimal public UI: hide Save CTA */
+        />
+      ) : (
+        <SharedTripView
+          shareLink={shareLink}
+          trip={shareLink.trips}
+          subdomain={params.subdomain}
+        />
+      )}
     </>
   )
 }

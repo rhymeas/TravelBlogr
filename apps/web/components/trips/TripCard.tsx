@@ -176,7 +176,7 @@ export function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
               <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-md shadow-lg border z-10">
                 <div className="py-1">
                   <Link
-                    href={`/dashboard/trips/${trip.id}`}
+                    href={`/dashboard/trips/${trip.slug}`}
                     className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     onClick={() => setShowMenu(false)}
                   >
@@ -184,7 +184,7 @@ export function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
                     View Details
                   </Link>
                   <Link
-                    href={`/dashboard/trips/${trip.id}/edit`}
+                    href={`/dashboard/trips/${trip.slug}/edit`}
                     className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     onClick={() => setShowMenu(false)}
                   >

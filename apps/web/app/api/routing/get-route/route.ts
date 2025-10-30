@@ -17,7 +17,13 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { coordinates, profile = 'driving-car', preference } = body
+    const { coordinates, profile = 'driving-car', preference, bustCache = false } = body
+
+    console.log(`\n🛣️ API Route: ${preference || 'default'} route request`)
+    console.log(`📍 Points: ${coordinates?.length || 0}`)
+    console.log(`🚗 Profile: ${profile}`)
+    console.log(`💨 Preference: ${preference}`)
+    console.log(`🔄 Bust cache: ${bustCache}`)
 
     // Validate input
     if (!coordinates || !Array.isArray(coordinates) || coordinates.length < 2) {
@@ -37,12 +43,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get route from service
-    const route = await getRoute(coordinates as RouteCoordinate[], profile as TransportProfile, preference as any)
+    // Get route from service (with cache busting if requested)
+    const route = await getRoute(
+      coordinates as RouteCoordinate[],
+      profile as TransportProfile,
+      preference as any,
+      bustCache
+    )
+
+    console.log(`✅ Route calculated: ${(route.distance / 1000).toFixed(1)}km, ${(route.duration / 60).toFixed(0)}min, provider: ${route.provider}`)
 
     return NextResponse.json(route)
   } catch (error) {
-    console.error('Routing API error:', error)
+    console.error('❌ Routing API error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to get route' },
       { status: 500 }

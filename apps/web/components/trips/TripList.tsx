@@ -105,7 +105,7 @@ export function TripList({ trips, onUpdate, onDelete }: TripListProps) {
                   size="sm"
                   asChild
                 >
-                  <Link href={`/dashboard/trips/${trip.id}`}>
+                  <Link href={`/dashboard/trips/${trip.slug}`}>
                     <Eye className="h-4 w-4" />
                   </Link>
                 </Button>
@@ -115,7 +115,7 @@ export function TripList({ trips, onUpdate, onDelete }: TripListProps) {
                   size="sm"
                   asChild
                 >
-                  <Link href={`/dashboard/trips/${trip.id}/edit`}>
+                  <Link href={`/dashboard/trips/${trip.slug}/edit`}>
                     <Edit className="h-4 w-4" />
                   </Link>
                 </Button>

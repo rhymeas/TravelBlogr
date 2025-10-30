@@ -125,16 +125,26 @@ function extractDestination(post: any): string | null {
 
 /**
  * Fetch featured image from Brave + Reddit ULTRA
+ *
+ * 🎯 NOTE: Uses simple query (not optimized strategy)
+ * For better results with POI/activity images, consider using:
+ * - fetchActivityData() from braveActivityService
+ * - Optimized query strategy from docs/BRAVE_QUERY_FINAL_STRATEGY.md
+ *
+ * ⚠️ IMPORTANT: Always use `thumbnail` property from Brave results!
+ * See docs/BRAVE_API_IMAGE_AUDIT.md
  */
 async function fetchFeaturedImage(query: string): Promise<string | null> {
   try {
     console.log(`  🔍 Searching images for: "${query}"`)
 
-    // Priority #1: Brave API
+    // Priority #1: Brave API (simple query)
+    // TODO: Consider using optimized query strategy for better results
     const braveImages = await braveSearchImages(query, 5)
     if (braveImages.length > 0) {
       console.log(`  ✅ Found ${braveImages.length} Brave images`)
-      return braveImages[0].url
+      // ✅ Use thumbnail (Brave CDN URL) not url (source page URL)
+      return braveImages[0].thumbnail || braveImages[0].url
     }
 
     // Priority #2: Reddit ULTRA
@@ -154,6 +164,11 @@ async function fetchFeaturedImage(query: string): Promise<string | null> {
 
 /**
  * Fetch gallery images from Brave + Reddit ULTRA
+ *
+ * 🎯 NOTE: Uses simple query (not optimized strategy)
+ * See fetchFeaturedImage() comments for optimization suggestions
+ *
+ * ⚠️ IMPORTANT: Always use `thumbnail` property from Brave results!
  */
 async function fetchGalleryImages(query: string, count: number = 10): Promise<string[]> {
   try {
@@ -161,7 +176,8 @@ async function fetchGalleryImages(query: string, count: number = 10): Promise<st
 
     // Brave API (50% of images)
     const braveImages = await braveSearchImages(query, Math.ceil(count * 0.5))
-    allImages.push(...braveImages.map(img => img.url))
+    // ✅ Use thumbnail (Brave CDN URL) not url (source page URL)
+    allImages.push(...braveImages.map(img => img.thumbnail || img.url))
 
     // Reddit ULTRA (30% of images)
     const redditImages = await fetchRedditUltraImages(query, Math.ceil(count * 0.3))

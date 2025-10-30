@@ -54,8 +54,8 @@ export function UnifiedTripCardV2({ trip, context, onEdit, onDelete, onShare }: 
   const isUserTrip = context === 'dashboard' || context === 'my-trips'
   
   // User trips go to CMS editor, public templates go to public view
-  const linkUrl = isUserTrip 
-    ? `/dashboard/trips/${trip.id}` 
+  const linkUrl = isUserTrip
+    ? `/dashboard/trips/${trip.slug}/edit`
     : `/trips/${trip.slug}`
 
   const viewCount = trip.trip_stats?.total_views || 0

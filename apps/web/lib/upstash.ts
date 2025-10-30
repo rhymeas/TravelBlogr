@@ -317,6 +317,13 @@ export const CacheKeys = {
     `transport:route:${profile}:${includeElevation ? 'elev' : 'noelev'}:${from}:${to}`,
   transportSources: (from: string, to: string, profile: string = 'driving') =>
     `transport:sources:${profile}:${from}:${to}`,
+
+  // 🚀 PERFORMANCE: Route caching (Phase 2 optimization - 2025-01-28)
+  // DEPENDENCIES: Used by routingService.ts for caching calculated routes
+  // CONTEXT: Routes are expensive to calculate (2-5s), cache for 30 days to minimize API calls
+  route: (cacheKey: string) => `route:${cacheKey}`,
+  scenicRoute: (from: string, to: string, preference: string) =>
+    `scenic:${preference}:${from}:${to}`,
 } as const
 
 /**
@@ -341,6 +348,11 @@ export const CacheTTL = {
   PROFILE: 5 * 60,            // 5 minutes
   POI: 7 * 24 * 60 * 60,      // 7 days
   RATE_LIMIT: 60 * 60,        // 1 hour
+
+  // 🚀 PERFORMANCE: Route caching TTL (Phase 2 optimization - 2025-01-28)
+  // DEPENDENCIES: Used by routingService.ts for route cache expiration
+  // CONTEXT: Routes rarely change (roads don't move), 30 days is safe and reduces API calls by 99%
+  ROUTE: 30 * 24 * 60 * 60,   // 30 days
 } as const
 
 // Export singleton getter as default

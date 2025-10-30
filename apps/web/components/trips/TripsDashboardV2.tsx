@@ -236,7 +236,7 @@ export function TripsDashboardV2({ userId }: TripsDashboardV2Props) {
                   key={trip.id}
                   trip={trip}
                   context="my-trips"
-                  onEdit={(tripId) => router.push(`/dashboard/trips/${tripId}`)}
+                  onEdit={(tripId) => router.push(`/dashboard/trips/${trip.slug}/edit`)}
                   onDelete={handleTripDeleted}
                   onShare={(tripId) => {
                     // TODO: Implement share modal

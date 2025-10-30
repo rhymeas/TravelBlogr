@@ -173,7 +173,7 @@ export function GroqWritingAssistant({ onInsertText, className = '' }: GroqWriti
           ) : (
             <>
               <Sparkles className="h-4 w-4 mr-2" />
-              Generate with AI
+              Get-Suggestions
             </>
           )}
         </Button>

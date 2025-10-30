@@ -15,7 +15,7 @@
 - ✅ **Better placeholder text** with emoji and context
 
 **AI Integration:**
-- ✅ **"Generate with AI" button** - Create notes from scratch
+- ✅ **"Get-Suggestions" button** - Create notes from scratch
 - ✅ **"Improve with AI" button** - Enhance existing notes
 - ✅ **Preview modal** - Review AI suggestions before applying
 - ✅ **One-click apply** - Instant note enhancement
@@ -98,7 +98,7 @@
 2. See **empty state** with compelling CTA
 3. Click "Add My Note"
 4. See **AI help buttons** - "Generate" or "Improve"
-5. Click "Generate with AI" → Get instant note suggestion
+5. Click "Get-Suggestions" → Get instant note suggestion
 6. Review in preview modal
 7. Click "Apply Suggestion"
 8. Click "Save Note"
@@ -167,7 +167,7 @@
 - [ ] Visit location page (signed in)
 - [ ] See empty state with "Add My Note" button
 - [ ] Click "Add My Note" → Edit mode opens
-- [ ] Click "Generate with AI" → AI suggestion appears
+- [ ] Click "Get-Suggestions" → AI suggestion appears
 - [ ] Apply suggestion → Note text populated
 - [ ] Add star rating
 - [ ] Click "Save Note" → Success toast

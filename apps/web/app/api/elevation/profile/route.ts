@@ -47,19 +47,66 @@ export async function POST(req: Request) {
 
     const sampled = downsampleCoords(arr)
 
-    // Call Open-Elevation once with all sampled points
-    const res = await fetch('https://api.open-elevation.com/api/v1/lookup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ locations: sampled.map(s => ({ latitude: s.lat, longitude: s.lng })) })
-    })
+    // Try Open-Elevation first, fallback to Open-Meteo if it fails
+    let elevations: number[] = []
 
-    if (!res.ok) {
-      return NextResponse.json({ elevations: [], distances: [] }, { status: 200 })
+    try {
+      const res = await fetch('https://api.open-elevation.com/api/v1/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locations: sampled.map(s => ({ latitude: s.lat, longitude: s.lng })) }),
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        elevations = (data?.results || []).map((r: any) => Number(r.elevation) || 0)
+      }
+    } catch (error) {
+      console.warn('Open-Elevation failed, trying Open-Meteo:', error)
     }
 
-    const data = await res.json()
-    const elevations: number[] = (data?.results || []).map((r: any) => Number(r.elevation) || 0)
+    // Fallback to Open-Meteo if Open-Elevation failed
+    if (elevations.length === 0) {
+      try {
+        // Open-Meteo supports batch elevation queries, but we need to chunk for long routes
+        // to avoid URL length limits (max ~2000 chars)
+        const CHUNK_SIZE = 100 // Process 100 points at a time
+        const chunks: Array<{ lat: number; lng: number }[]> = []
+
+        for (let i = 0; i < sampled.length; i += CHUNK_SIZE) {
+          chunks.push(sampled.slice(i, i + CHUNK_SIZE))
+        }
+
+        console.log(`🏔️ Fetching elevation from Open-Meteo in ${chunks.length} chunks (${sampled.length} total points)`)
+
+        for (const chunk of chunks) {
+          const lats = chunk.map(s => s.lat).join(',')
+          const lngs = chunk.map(s => s.lng).join(',')
+          const res = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lngs}`, {
+            signal: AbortSignal.timeout(10000) // 10 second timeout for batch
+          })
+
+          if (res.ok) {
+            const data = await res.json()
+            const chunkElevations = (data?.elevation || []).map((e: any) => Number(e) || 0)
+            elevations.push(...chunkElevations)
+          } else {
+            console.warn('Open-Meteo chunk failed with status:', res.status)
+          }
+        }
+
+        console.log(`✅ Open-Meteo returned ${elevations.length} elevation points`)
+      } catch (error) {
+        console.warn('Open-Meteo also failed:', error)
+        return NextResponse.json({ elevations: [], distances: [] }, { status: 200 })
+      }
+    }
+
+    if (elevations.length === 0) {
+      console.warn('⚠️ No elevation data available from any provider')
+      return NextResponse.json({ elevations: [], distances: [] }, { status: 200 })
+    }
 
     // Build cumulative distances (km) for sampled points
     const distances: number[] = []
@@ -73,6 +120,7 @@ export async function POST(req: Request) {
       }
     }
 
+    console.log(`✅ Returning ${elevations.length} elevations and ${distances.length} distances`)
     return NextResponse.json({ elevations, distances })
   } catch (error) {
     console.error('elevation/profile error', error)

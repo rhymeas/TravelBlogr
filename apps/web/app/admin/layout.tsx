@@ -31,9 +31,9 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen apple-bg-primary">
       <AdminNav />
-      <main className="ml-64 min-h-screen">{children}</main>
+      <main className="ml-72 min-h-screen">{children}</main>
     </div>
   )
 }

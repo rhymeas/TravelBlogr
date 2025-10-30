@@ -1,10 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Progress } from '@/components/ui/Progress'
+import { Badge } from '@/components/ui/Badge'
 import { AlertTriangle, CheckCircle, TrendingUp } from 'lucide-react'
 
 interface RoutingUsageStats {
@@ -81,7 +80,7 @@ export function RoutingUsageMonitor() {
                 Current month: {usage.month}
               </CardDescription>
             </div>
-            <Badge variant={isOverLimit ? 'destructive' : isNearLimit ? 'warning' : 'default'}>
+            <Badge variant={isOverLimit ? 'destructive' : isNearLimit ? 'secondary' : 'default'}>
               {isOverLimit ? 'Over Limit' : isNearLimit ? 'Near Limit' : 'Within Limit'}
             </Badge>
           </div>
@@ -104,32 +103,43 @@ export function RoutingUsageMonitor() {
 
           {/* Alert if near or over limit */}
           {isNearLimit && (
-            <Alert variant={isOverLimit ? 'destructive' : 'default'}>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                {isOverLimit ? (
-                  <>
-                    <strong>Stadia Maps limit exceeded!</strong> Falling back to local Valhalla (Canada only).
-                    Consider upgrading to Starter plan ($20/month for 50,000 routes).
-                  </>
-                ) : (
-                  <>
-                    <strong>Approaching Stadia Maps limit.</strong> You've used {stadiaPercentage.toFixed(0)}% of your free tier.
-                    {stadiaRemaining < 1000 && ' Consider upgrading soon.'}
-                  </>
-                )}
-              </AlertDescription>
-            </Alert>
+            <div className={`p-4 rounded-lg border ${isOverLimit ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'}`}>
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 mt-0.5 text-yellow-600" />
+                <div className="flex-1">
+                  {isOverLimit ? (
+                    <>
+                      <strong className="text-red-900">Stadia Maps limit exceeded!</strong>
+                      <p className="text-sm text-red-700 mt-1">
+                        Falling back to local Valhalla (Canada only). Consider upgrading to Starter plan ($20/month for 50,000 routes).
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <strong className="text-yellow-900">Approaching Stadia Maps limit.</strong>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        You've used {stadiaPercentage.toFixed(0)}% of your free tier.
+                        {stadiaRemaining < 1000 && ' Consider upgrading soon.'}
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Success message if well within limit */}
           {!isNearLimit && usage.stadia_requests > 0 && (
-            <Alert>
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>
-                You're well within the free tier limit. {stadiaRemaining.toLocaleString()} routes remaining this month.
-              </AlertDescription>
-            </Alert>
+            <div className="p-4 rounded-lg border bg-green-50 border-green-200">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 mt-0.5 text-green-600" />
+                <div className="flex-1">
+                  <p className="text-sm text-green-700">
+                    You're well within the free tier limit. {stadiaRemaining.toLocaleString()} routes remaining this month.
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Provider Breakdown */}

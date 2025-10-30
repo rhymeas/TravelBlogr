@@ -3,9 +3,9 @@ import { createServerSupabase } from '@/lib/supabase-server'
 
 /**
  * POST /api/trips/[tripId]/update-plan
- * 
+ *
  * Update V2 trip plan data stored in trip_plan.plan_data JSONB field
- * 
+ *
  * Supports updating:
  * - Trip metadata (title, subtitle)
  * - Day data (location, description, didYouKnow, highlights)
@@ -84,16 +84,19 @@ export async function POST(
         break
 
       case 'day':
-        // Update day-level data
+        // Update day-level data (support both shapes: plan.days or days)
         const { dayNumber, location, description, didYouKnow, highlights } = data
-        if (!dayNumber || !updatedPlan.plan?.days) {
+        const root: any = (updatedPlan as any)?.plan && Array.isArray((updatedPlan as any).plan?.days)
+          ? (updatedPlan as any).plan
+          : updatedPlan
+        if (typeof dayNumber !== 'number' || !Array.isArray(root?.days)) {
           return NextResponse.json(
             { error: 'Invalid day data' },
             { status: 400 }
           )
         }
 
-        const dayIndex = updatedPlan.plan.days.findIndex((d: any) => d.day === dayNumber)
+        const dayIndex = root.days.findIndex((d: any) => d.day === dayNumber)
         if (dayIndex === -1) {
           return NextResponse.json(
             { error: 'Day not found' },
@@ -102,38 +105,46 @@ export async function POST(
         }
 
         if (location !== undefined) {
-          updatedPlan.plan.days[dayIndex].location = location
+          root.days[dayIndex].location = location
         }
         if (description !== undefined) {
-          updatedPlan.plan.days[dayIndex].description = description
+          root.days[dayIndex].description = description
         }
         if (didYouKnow !== undefined) {
-          updatedPlan.plan.days[dayIndex].didYouKnow = didYouKnow
+          root.days[dayIndex].didYouKnow = didYouKnow
         }
         if (highlights !== undefined) {
-          updatedPlan.plan.days[dayIndex].highlights = highlights
+          root.days[dayIndex].highlights = highlights
         }
+        // Allow updating day hero image as well (used in editor image picker)
+        if (data?.image !== undefined) {
+          root.days[dayIndex].image = data.image
+        }
+
         break
 
       case 'activity':
-        // Update activity data
+        // Update activity data (support both shapes: plan.days or days)
         const { dayNumber: actDayNum, activityIndex, title, time, duration } = data
-        if (!actDayNum || activityIndex === undefined || !updatedPlan.plan?.days) {
+        const rootAct: any = (updatedPlan as any)?.plan && Array.isArray((updatedPlan as any).plan?.days)
+          ? (updatedPlan as any).plan
+          : updatedPlan
+        if (typeof actDayNum !== 'number' || activityIndex === undefined || !Array.isArray(rootAct?.days)) {
           return NextResponse.json(
             { error: 'Invalid activity data' },
             { status: 400 }
           )
         }
 
-        const actDayIndex = updatedPlan.plan.days.findIndex((d: any) => d.day === actDayNum)
-        if (actDayIndex === -1 || !updatedPlan.plan.days[actDayIndex].items) {
+        const actDayIndex = rootAct.days.findIndex((d: any) => d.day === actDayNum)
+        if (actDayIndex === -1 || !rootAct.days[actDayIndex].items) {
           return NextResponse.json(
             { error: 'Day or activity not found' },
             { status: 404 }
           )
         }
 
-        if (activityIndex >= updatedPlan.plan.days[actDayIndex].items.length) {
+        if (activityIndex >= rootAct.days[actDayIndex].items.length) {
           return NextResponse.json(
             { error: 'Activity not found' },
             { status: 404 }
@@ -141,28 +152,35 @@ export async function POST(
         }
 
         if (title !== undefined) {
-          updatedPlan.plan.days[actDayIndex].items[activityIndex].title = title
+          rootAct.days[actDayIndex].items[activityIndex].title = title
         }
         if (time !== undefined) {
-          updatedPlan.plan.days[actDayIndex].items[activityIndex].time = time
+          rootAct.days[actDayIndex].items[activityIndex].time = time
         }
         if (duration !== undefined) {
-          updatedPlan.plan.days[actDayIndex].items[activityIndex].duration = duration
+          rootAct.days[actDayIndex].items[activityIndex].duration = duration
+        }
+        // Allow updating activity image as well (used in editor image picker)
+        if (data?.image !== undefined) {
+          rootAct.days[actDayIndex].items[activityIndex].image = data.image
         }
         break
 
       case 'accommodation':
-        // Update accommodation data
+        // Update accommodation data (support both shapes: plan.days or days)
         const { dayNumber: accDayNum, name, price } = data
-        if (!accDayNum || !updatedPlan.plan?.days) {
+        const rootAcc: any = (updatedPlan as any)?.plan && Array.isArray((updatedPlan as any).plan?.days)
+          ? (updatedPlan as any).plan
+          : updatedPlan
+        if (typeof accDayNum !== 'number' || !Array.isArray(rootAcc?.days)) {
           return NextResponse.json(
             { error: 'Invalid accommodation data' },
             { status: 400 }
           )
         }
 
-        const accDayIndex = updatedPlan.plan.days.findIndex((d: any) => d.day === accDayNum)
-        if (accDayIndex === -1 || !updatedPlan.plan.days[accDayIndex].items) {
+        const accDayIndex = rootAcc.days.findIndex((d: any) => d.day === accDayNum)
+        if (accDayIndex === -1 || !rootAcc.days[accDayIndex].items) {
           return NextResponse.json(
             { error: 'Day not found' },
             { status: 404 }
@@ -170,7 +188,7 @@ export async function POST(
         }
 
         // Find accommodation item
-        const accIndex = updatedPlan.plan.days[accDayIndex].items.findIndex(
+        const accIndex = rootAcc.days[accDayIndex].items.findIndex(
           (item: any) => item.type === 'accommodation'
         )
 
@@ -182,23 +200,41 @@ export async function POST(
         }
 
         if (name !== undefined) {
-          updatedPlan.plan.days[accDayIndex].items[accIndex].title = name
+          rootAcc.days[accDayIndex].items[accIndex].title = name
         }
         if (price !== undefined) {
-          updatedPlan.plan.days[accDayIndex].items[accIndex].costEstimate = price
+          rootAcc.days[accDayIndex].items[accIndex].costEstimate = price
         }
         break
 
       case 'tips':
-        // Update travel tips
+        // Update travel tips (support both shapes: plan.tips or tips)
         if (!Array.isArray(data.tips)) {
           return NextResponse.json(
             { error: 'Tips must be an array' },
             { status: 400 }
           )
         }
-        updatedPlan.plan.tips = data.tips
+        const rootTips: any = (updatedPlan as any)?.plan ? (updatedPlan as any).plan : updatedPlan
+        rootTips.tips = data.tips
         break
+
+      case 'days':
+        // Replace entire days array (used for add/delete/reorder/change-location bulk updates)
+        if (!Array.isArray((data as any)?.days)) {
+          return NextResponse.json(
+            { error: 'days must be an array' },
+            { status: 400 }
+          )
+        }
+        // Accept the array as provided by client editor
+        if ((updatedPlan as any)?.plan && Array.isArray((updatedPlan as any).plan?.days)) {
+          ;(updatedPlan as any).plan.days = (data as any).days
+        } else {
+          ;(updatedPlan as any).days = (data as any).days
+        }
+        break
+
 
       default:
         return NextResponse.json(

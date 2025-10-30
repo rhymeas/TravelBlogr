@@ -58,17 +58,29 @@ export function useTrips(userId?: string) {
           .select('id, trip_id, title, content, featured_image, post_date, order_index')
           .in('trip_id', tripIds)
 
-        // Fetch share links
-        const { data: shareLinks } = await supabase
-          .from('share_links')
-          .select('id, trip_id, slug, expires_at, is_active')
-          .in('trip_id', tripIds)
+        // Fetch share links (chunked to avoid URL-length 400 errors)
+        const chunk = <T,>(arr: T[], size: number) => arr.reduce((acc: T[][], _, i) => (
+          i % size ? acc : [...acc, arr.slice(i, i + size)]
+        ), [])
 
-        // Fetch trip stats
-        const { data: tripStats } = await supabase
-          .from('trip_stats')
-          .select('trip_id, total_views, unique_views')
-          .in('trip_id', tripIds)
+        let shareLinks: any[] = []
+        for (const ids of chunk(tripIds, 20)) {
+          const { data, error } = await supabase
+            .from('share_links')
+            .select('id, trip_id, slug, expires_at, is_active')
+            .in('trip_id', ids)
+          if (!error && data) shareLinks = shareLinks.concat(data)
+        }
+
+        // Fetch trip stats (chunked as well for safety)
+        let tripStats: any[] = []
+        for (const ids of chunk(tripIds, 50)) {
+          const { data, error } = await supabase
+            .from('trip_stats')
+            .select('trip_id, total_views, unique_views')
+            .in('trip_id', ids)
+          if (!error && data) tripStats = tripStats.concat(data)
+        }
 
         // Combine all data
         const transformedTrips = trips.map(trip => ({
