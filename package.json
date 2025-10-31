@@ -33,6 +33,8 @@
     "cache:delete": "tsx scripts/upstash-cache-inspector.ts delete",
     "cache:clear": "tsx scripts/upstash-cache-inspector.ts clear",
     "cache:stats": "tsx scripts/upstash-cache-inspector.ts stats",
+    "cleanup:travel-to-locations": "tsx scripts/cleanup-travel-to-locations.ts",
+    "cleanup:travel-to-locations:dry-run": "tsx scripts/cleanup-travel-to-locations.ts --dry-run",
     "prepare": "husky || true"
   },
   "dependencies": {
