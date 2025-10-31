@@ -229,7 +229,13 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
                 <Button
                   variant={isEditMode ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setIsEditMode(!isEditMode)}
+                  onClick={() => {
+                    if (isEditMode) {
+                      // Exiting edit mode - refresh page to load persisted changes
+                      router.refresh()
+                    }
+                    setIsEditMode(!isEditMode)
+                  }}
                   className={isEditMode ? "bg-blue-600 hover:bg-blue-700" : ""}
                 >
                   <Edit2 className="h-4 w-4 mr-2" />
@@ -844,7 +850,11 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
             </div>
             <Button
               size="sm"
-              onClick={() => setIsEditMode(false)}
+              onClick={() => {
+                // Refresh page to load persisted changes
+                router.refresh()
+                setIsEditMode(false)
+              }}
               className="bg-blue-600 hover:bg-blue-700"
             >
               Done Editing

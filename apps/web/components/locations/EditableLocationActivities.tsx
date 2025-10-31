@@ -134,6 +134,22 @@ export function EditableLocationActivities({
       if (json?.success && json.url) {
         console.log(`✅ Setting image for ${a.name}: ${json.url}`)
         setActivityImages(prev => ({ ...prev, [a.id]: json.url }))
+
+        // ✅ AUTO-PERSIST: Save image to database so it persists when exiting edit mode
+        try {
+          await fetch('/api/locations/update-activity-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              locationId,
+              activityId: a.id,
+              imageUrl: json.url
+            })
+          })
+          console.log(`💾 Auto-saved image for ${a.name} to database`)
+        } catch (saveError) {
+          console.error(`❌ Failed to auto-save image for ${a.name}:`, saveError)
+        }
       } else if ((a as any).link_url) {
         // Fallback: try to extract OG/Twitter image from the linked page
         try {
@@ -144,6 +160,22 @@ export function EditableLocationActivities({
           if (linkJson?.success && linkJson.image) {
             console.log(`✅ Setting image from link for ${a.name}: ${linkJson.image}`)
             setActivityImages(prev => ({ ...prev, [a.id]: linkJson.image }))
+
+            // ✅ AUTO-PERSIST: Save image to database
+            try {
+              await fetch('/api/locations/update-activity-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  locationId,
+                  activityId: a.id,
+                  imageUrl: linkJson.image
+                })
+              })
+              console.log(`💾 Auto-saved link image for ${a.name} to database`)
+            } catch (saveError) {
+              console.error(`❌ Failed to auto-save link image for ${a.name}:`, saveError)
+            }
           }
         } catch (e) {
           console.error(`❌ Link preview error for ${a.name}:`, e)
