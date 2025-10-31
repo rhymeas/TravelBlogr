@@ -44,10 +44,15 @@ export function HorizontalBannerAd({
   size = 'standard',
   className = '',
 }: HorizontalBannerAdProps) {
+  // Check if AdSense is configured first (can be checked on server)
+  if (!isAdSenseConfigured()) {
+    return null
+  }
+
   const { user } = useAuth()
 
-  // Don't show ads to Pro subscribers OR if AdSense not configured
-  if (!shouldShowAds(user) || !isAdSenseConfigured()) {
+  // Don't show ads to Pro subscribers
+  if (!shouldShowAds(user)) {
     return null
   }
 
