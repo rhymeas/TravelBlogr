@@ -161,8 +161,8 @@ export function CreateTripForm({ onSuccess, onCancel }: CreateTripFormProps) {
       if (onSuccess) {
         onSuccess(trip)
       } else {
-        // Redirect to manual trip editor (V2 Results template)
-        router.push(`/dashboard/trips/${trip.id}/edit`)
+        // Redirect to manual trip editor (V2 Results template) using slug
+        router.push(`/dashboard/trips/${trip.slug}/edit`)
       }
 
     } catch (error) {

@@ -12,7 +12,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 // Free tier limits per month
 export const FREE_TIER_MONTHLY_LIMIT_UNAUTH = 3      // Unauthenticated: 3 free plannings
-export const FREE_TIER_MONTHLY_LIMIT_AUTH = 20       // Authenticated: 20 free plannings
+export const FREE_TIER_MONTHLY_LIMIT_AUTH = 10       // Authenticated: 10 free plannings (reduced from 20)
 export const FREE_TIER_MONTHLY_LIMIT_PRO = 5         // Pro mode: 5 free plannings
 
 // Cost per planning (in cents)

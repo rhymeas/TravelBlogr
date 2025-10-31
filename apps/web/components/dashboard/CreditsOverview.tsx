@@ -36,6 +36,7 @@ interface CreditTransaction {
 interface TripPlanningHistory {
   id: string
   trip_title: string
+  trip_slug?: string
   created_at: string
   credits_used: number
   mode: 'standard' | 'pro'
@@ -93,6 +94,7 @@ export function CreditsOverview() {
           created_at,
           trips!inner (
             title,
+            slug,
             user_id
           )
         `)
@@ -104,6 +106,7 @@ export function CreditsOverview() {
         const history: TripPlanningHistory[] = planData.map((plan: any) => ({
           id: plan.id,
           trip_title: plan.trips?.title || 'Untitled Trip',
+          trip_slug: plan.trips?.slug,
           created_at: plan.created_at,
           credits_used: 0, // Free tier for now
           mode: plan.plan_data?.mode || 'standard',
@@ -135,26 +138,26 @@ export function CreditsOverview() {
       {/* Credit Balance Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Current Balance */}
-        <Card className="p-6 bg-gradient-to-br from-teal-50 to-blue-50 border-teal-200">
+        <Card className="p-6 bg-gray-100 border-gray-200">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-teal-600" />
+              <CreditCard className="h-5 w-5 text-gray-700" />
               <h3 className="font-semibold text-gray-900">Credit Balance</h3>
             </div>
           </div>
-          <div className="text-3xl font-bold text-teal-600 mb-1">{credits}</div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">{credits}</div>
           <p className="text-xs text-gray-600">Available credits</p>
         </Card>
 
         {/* Monthly Usage */}
-        <Card className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
+        <Card className="p-6 bg-gray-100 border-gray-200">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-purple-600" />
+              <TrendingUp className="h-5 w-5 text-gray-700" />
               <h3 className="font-semibold text-gray-900">Monthly Usage</h3>
             </div>
           </div>
-          <div className="text-3xl font-bold text-purple-600 mb-1">
+          <div className="text-3xl font-bold text-gray-900 mb-1">
             {monthlyUsage} / {FREE_TIER_MONTHLY_LIMIT_AUTH}
           </div>
           <p className="text-xs text-gray-600">Free AI generations this month</p>
@@ -234,13 +237,13 @@ export function CreditsOverview() {
                     </span>
                   </div>
                 </div>
-                {plan.trip_id && (
+                {(plan.trip_slug || plan.trip_id) && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => window.location.href = `/dashboard/trips/${plan.trip_id}`}
+                    onClick={() => window.location.href = `/dashboard/trips/${plan.trip_slug || plan.trip_id}/edit`}
                   >
-                    View Trip
+                    Edit Trip
                   </Button>
                 )}
               </div>
