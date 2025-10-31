@@ -9,8 +9,9 @@ import { getBrowserSupabase } from '@/lib/supabase'
 import { ResultsView } from '@/components/trip-planner-v2/ResultsView'
 import { QuickShareModal } from '@/components/trips/QuickShareModal'
 import { TripPrivacyModal } from '@/components/trips/TripPrivacyModal'
+import { ImportReservationsModal } from '@/components/trips/ImportReservationsModal'
 import { Button } from '@/components/ui/Button'
-import { Share2, Globe, Lock, Users, Key, Trash2 } from 'lucide-react'
+import { Share2, Globe, Lock, Users, Key, Trash2, Upload } from 'lucide-react'
 
 interface TripEditPageProps {
   params: {
@@ -39,6 +40,8 @@ export default function TripEditPage({ params }: TripEditPageProps) {
   const [shareOpen, setShareOpen] = useState(false)
   // Privacy modal state
   const [showPrivacyModal, setShowPrivacyModal] = useState(false)
+  // Import reservations modal state
+  const [showImportModal, setShowImportModal] = useState(false)
 
   const [existingShareLink, setExistingShareLink] = useState<any>(null)
 
@@ -418,6 +421,18 @@ export default function TripEditPage({ params }: TripEditPageProps) {
             <span className="text-sm capitalize">{trip.privacy || 'public'}</span>
           </Button>
 
+          {/* Import Reservations */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowImportModal(true)}
+            className="rounded-full text-gray-700 hover:bg-gray-100 gap-2"
+            aria-label="Import reservations"
+          >
+            <Upload className="h-4 w-4" />
+            <span className="text-sm">Import</span>
+          </Button>
+
           {/* Delete Trip */}
           <Button
             variant="outline"
@@ -497,6 +512,13 @@ export default function TripEditPage({ params }: TripEditPageProps) {
         tripId={trip?.id || ''}
         tripTitle={tripData.title || trip.title || 'Untitled Trip'}
         existingShareLink={existingShareLink}
+      />
+
+      {/* Import Reservations Modal */}
+      <ImportReservationsModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        tripId={trip?.id || ''}
       />
     </div>
   )
