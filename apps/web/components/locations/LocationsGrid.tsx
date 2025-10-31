@@ -260,7 +260,8 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
               {adPositions.has(index) && (
                 <InFeedAd
                   key={`ad-${index}`}
-                  slot={process.env.NEXT_PUBLIC_ADS_SLOT_LOCATIONS_INFEED || 'locations_infeed'}
+                  slot={process.env.NEXT_PUBLIC_ADS_SLOT_LOCATIONS_INFEED || '1402294778'}
+                  layoutKey={process.env.NEXT_PUBLIC_ADS_LAYOUT_KEY_INFEED || '-61+cm+4h-16-10'}
                   page="locations"
                 />
               )}

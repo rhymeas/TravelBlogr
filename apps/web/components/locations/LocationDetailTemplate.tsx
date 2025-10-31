@@ -376,7 +376,7 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
             {/* Horizontal Ad - Mid-content */}
             <div className="my-8">
               <HorizontalBannerAd
-                slot="location_detail_mid"
+                slot={process.env.NEXT_PUBLIC_ADS_SLOT_LOCATION_DETAIL_MID || '1402294778'}
                 page="location-detail"
                 size="standard"
               />
@@ -491,7 +491,7 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
           <div className="lg:col-span-1 space-y-6 prevent-overflow">
             {/* Sidebar Ad - Top Position */}
             <SidebarAd
-              slot="location_detail_sidebar"
+              slot={process.env.NEXT_PUBLIC_ADS_SLOT_LOCATION_DETAIL_SIDEBAR || '1402294778'}
               page="location-detail"
               size="medium"
               sticky={true}

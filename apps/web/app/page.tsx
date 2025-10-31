@@ -378,7 +378,7 @@ export default function HomePage() {
 
         {/* Horizontal Ad - After Hero */}
         <HorizontalBannerAd
-          slot="homepage_top"
+          slot={process.env.NEXT_PUBLIC_ADS_SLOT_HOMEPAGE_TOP || '1402294778'}
           page="homepage"
           size="large"
         />
@@ -480,7 +480,7 @@ export default function HomePage() {
 
         {/* Horizontal Ad - Mid-page */}
         <HorizontalBannerAd
-          slot="homepage_mid"
+          slot={process.env.NEXT_PUBLIC_ADS_SLOT_HOMEPAGE_MID || '1402294778'}
           page="homepage"
           size="standard"
         />
