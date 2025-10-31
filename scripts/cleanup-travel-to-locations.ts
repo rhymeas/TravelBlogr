@@ -2,28 +2,32 @@
 
 /**
  * Cleanup Script: Remove "Travel to" Locations
- * 
+ *
  * This script removes all locations with "Travel to" in their titles from the database.
- * It also removes all related data to maintain database integrity.
- * 
+ * It focuses ONLY on /locations cards and their direct user interactions.
+ *
+ * EXCLUDES:
+ * - Blog posts (location_posts) - NOT deleted
+ * - Trips library data - NOT affected
+ * - Private trips - NOT affected
+ *
  * Related tables cleaned up:
- * - locations (main table)
- * - location_ratings (user ratings)
- * - location_views (pixel tracking)
- * - location_comments (community comments)
- * - location_media (images/videos)
- * - location_posts (CMS posts about locations)
- * - location_tips (user tips)
+ * - locations (main table) - /locations cards
+ * - location_ratings (user ratings on location pages)
+ * - location_views (pixel tracking on location pages)
+ * - location_comments (community comments on location pages)
+ * - location_media (user-uploaded images on location pages)
+ * - location_tips (user tips on location pages)
  * - location_category_assignments (category relationships)
- * - user_locations (user customizations)
- * 
+ * - user_locations (user wishlists/customizations)
+ *
  * Usage:
  *   npm run cleanup:travel-to-locations
- *   
+ *
  * Options:
  *   --dry-run    Show what would be deleted without actually deleting
  *   --confirm    Skip confirmation prompt (use with caution!)
- * 
+ *
  * Examples:
  *   npm run cleanup:travel-to-locations -- --dry-run
  *   npm run cleanup:travel-to-locations -- --confirm
@@ -72,7 +76,6 @@ interface DeletionStats {
   location_views: number
   location_comments: number
   location_media: number
-  location_posts: number
   location_tips: number
   location_category_assignments: number
   user_locations: number
@@ -132,12 +135,7 @@ async function countRelatedRecords(locationId: string): Promise<Partial<Deletion
     .eq('location_id', locationId)
   stats.location_media = mediaCount || 0
 
-  // Count location_posts
-  const { count: postsCount } = await supabase
-    .from('location_posts')
-    .select('*', { count: 'exact', head: true })
-    .eq('location_id', locationId)
-  stats.location_posts = postsCount || 0
+  // NOTE: location_posts (blog posts) are NOT deleted - they remain in the database
 
   // Count location_tips
   const { count: tipsCount } = await supabase
@@ -201,13 +199,8 @@ async function deleteLocation(locationId: string): Promise<Partial<DeletionStats
   if (mediaError) throw mediaError
   stats.location_media = mediaCount || 0
 
-  // Delete location_posts
-  const { error: postsError, count: postsCount } = await supabase
-    .from('location_posts')
-    .delete({ count: 'exact' })
-    .eq('location_id', locationId)
-  if (postsError) throw postsError
-  stats.location_posts = postsCount || 0
+  // NOTE: location_posts (blog posts) are NOT deleted - they remain in the database
+  // This preserves blog content even when location cards are removed
 
   // Delete location_tips
   const { error: tipsError, count: tipsCount } = await supabase
@@ -296,14 +289,13 @@ async function main() {
 
   // Step 2: Count all related records
   console.log('📊 Counting related records...\n')
-  
+
   const totalStats: DeletionStats = {
     locations: locations.length,
     location_ratings: 0,
     location_views: 0,
     location_comments: 0,
     location_media: 0,
-    location_posts: 0,
     location_tips: 0,
     location_category_assignments: 0,
     user_locations: 0
@@ -315,25 +307,24 @@ async function main() {
     totalStats.location_views += stats.location_views || 0
     totalStats.location_comments += stats.location_comments || 0
     totalStats.location_media += stats.location_media || 0
-    totalStats.location_posts += stats.location_posts || 0
     totalStats.location_tips += stats.location_tips || 0
     totalStats.location_category_assignments += stats.location_category_assignments || 0
     totalStats.user_locations += stats.user_locations || 0
   }
 
   console.log('📊 Total records to be deleted:\n')
-  console.log(`   Locations:                    ${totalStats.locations}`)
-  console.log(`   Location Ratings:             ${totalStats.location_ratings}`)
-  console.log(`   Location Views:               ${totalStats.location_views}`)
-  console.log(`   Location Comments:            ${totalStats.location_comments}`)
-  console.log(`   Location Media:               ${totalStats.location_media}`)
-  console.log(`   Location Posts:               ${totalStats.location_posts}`)
-  console.log(`   Location Tips:                ${totalStats.location_tips}`)
+  console.log(`   Locations:                     ${totalStats.locations}`)
+  console.log(`   Location Ratings:              ${totalStats.location_ratings}`)
+  console.log(`   Location Views:                ${totalStats.location_views}`)
+  console.log(`   Location Comments:             ${totalStats.location_comments}`)
+  console.log(`   Location Media:                ${totalStats.location_media}`)
+  console.log(`   Location Tips:                 ${totalStats.location_tips}`)
   console.log(`   Location Category Assignments: ${totalStats.location_category_assignments}`)
-  console.log(`   User Locations:               ${totalStats.user_locations}`)
+  console.log(`   User Locations:                ${totalStats.user_locations}`)
   console.log(`   ─────────────────────────────────────────────────`)
   const totalRecords = Object.values(totalStats).reduce((sum, val) => sum + val, 0)
-  console.log(`   TOTAL:                        ${totalRecords}\n`)
+  console.log(`   TOTAL:                         ${totalRecords}`)
+  console.log(`\n   ℹ️  NOTE: Blog posts (location_posts) are NOT deleted\n`)
 
   if (isDryRun) {
     console.log('✅ DRY RUN COMPLETE - No data was deleted\n')
@@ -361,7 +352,6 @@ async function main() {
     location_views: 0,
     location_comments: 0,
     location_media: 0,
-    location_posts: 0,
     location_tips: 0,
     location_category_assignments: 0,
     user_locations: 0
@@ -371,17 +361,16 @@ async function main() {
     try {
       console.log(`   Deleting: ${loc.name}...`)
       const stats = await deleteLocation(loc.id)
-      
+
       deletionStats.locations += stats.locations || 0
       deletionStats.location_ratings += stats.location_ratings || 0
       deletionStats.location_views += stats.location_views || 0
       deletionStats.location_comments += stats.location_comments || 0
       deletionStats.location_media += stats.location_media || 0
-      deletionStats.location_posts += stats.location_posts || 0
       deletionStats.location_tips += stats.location_tips || 0
       deletionStats.location_category_assignments += stats.location_category_assignments || 0
       deletionStats.user_locations += stats.user_locations || 0
-      
+
       deletedCount++
       console.log(`   ✅ Deleted successfully\n`)
     } catch (error) {
@@ -395,18 +384,18 @@ async function main() {
   console.log('╚════════════════════════════════════════════════════════════════╝\n')
   console.log(`✅ Successfully deleted ${deletedCount} location(s)\n`)
   console.log('📊 Records deleted:\n')
-  console.log(`   Locations:                    ${deletionStats.locations}`)
-  console.log(`   Location Ratings:             ${deletionStats.location_ratings}`)
-  console.log(`   Location Views:               ${deletionStats.location_views}`)
-  console.log(`   Location Comments:            ${deletionStats.location_comments}`)
-  console.log(`   Location Media:               ${deletionStats.location_media}`)
-  console.log(`   Location Posts:               ${deletionStats.location_posts}`)
-  console.log(`   Location Tips:                ${deletionStats.location_tips}`)
+  console.log(`   Locations:                     ${deletionStats.locations}`)
+  console.log(`   Location Ratings:              ${deletionStats.location_ratings}`)
+  console.log(`   Location Views:                ${deletionStats.location_views}`)
+  console.log(`   Location Comments:             ${deletionStats.location_comments}`)
+  console.log(`   Location Media:                ${deletionStats.location_media}`)
+  console.log(`   Location Tips:                 ${deletionStats.location_tips}`)
   console.log(`   Location Category Assignments: ${deletionStats.location_category_assignments}`)
-  console.log(`   User Locations:               ${deletionStats.user_locations}`)
+  console.log(`   User Locations:                ${deletionStats.user_locations}`)
   console.log(`   ─────────────────────────────────────────────────`)
   const totalDeleted = Object.values(deletionStats).reduce((sum, val) => sum + val, 0)
-  console.log(`   TOTAL:                        ${totalDeleted}\n`)
+  console.log(`   TOTAL:                         ${totalDeleted}`)
+  console.log(`\n   ℹ️  NOTE: Blog posts (location_posts) were preserved\n`)
 }
 
 // Run the script

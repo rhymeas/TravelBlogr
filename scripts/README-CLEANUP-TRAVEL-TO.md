@@ -2,21 +2,25 @@
 
 ## Overview
 
-This script removes all locations with "Travel to" in their titles from the database, along with all related data to maintain database integrity.
+This script removes all locations with "Travel to" in their titles from the database. It focuses **ONLY on /locations cards** and their direct user interactions.
+
+**EXCLUDES:**
+- ❌ Blog posts (`location_posts`) - **NOT deleted** - Blog content is preserved
+- ❌ Trips library data - **NOT affected**
+- ❌ Private trips - **NOT affected**
 
 ## What Gets Deleted
 
 The script removes records from the following tables:
 
-1. **`locations`** - Main location records
-2. **`location_ratings`** - User ratings for locations
-3. **`location_views`** - Pixel tracking/view analytics
-4. **`location_comments`** - Community comments
-5. **`location_media`** - Images and videos
-6. **`location_posts`** - CMS posts about locations
-7. **`location_tips`** - User-contributed tips
-8. **`location_category_assignments`** - Category relationships
-9. **`user_locations`** - User customizations (wishlists, notes, etc.)
+1. **`locations`** - Main location records (/locations cards)
+2. **`location_ratings`** - User ratings on location pages
+3. **`location_views`** - Pixel tracking on location pages
+4. **`location_comments`** - Community comments on location pages
+5. **`location_media`** - User-uploaded images on location pages
+6. **`location_tips`** - User tips on location pages
+7. **`location_category_assignments`** - Category relationships
+8. **`user_locations`** - User wishlists/customizations
 
 ## Prerequisites
 
@@ -107,17 +111,18 @@ npm run cleanup:travel-to-locations -- --confirm
 
 📊 Total records to be deleted:
 
-   Locations:                    3
-   Location Ratings:             16
-   Location Views:               405
-   Location Comments:            12
-   Location Media:               24
-   Location Posts:               6
-   Location Tips:                9
+   Locations:                     3
+   Location Ratings:              16
+   Location Views:                405
+   Location Comments:             12
+   Location Media:                24
+   Location Tips:                 9
    Location Category Assignments: 8
-   User Locations:               15
+   User Locations:                15
    ─────────────────────────────────────────────────
-   TOTAL:                        498
+   TOTAL:                         492
+
+   ℹ️  NOTE: Blog posts (location_posts) are NOT deleted
 
 ✅ DRY RUN COMPLETE - No data was deleted
 ```
@@ -137,17 +142,18 @@ npm run cleanup:travel-to-locations -- --confirm
 
 📊 Total records to be deleted:
 
-   Locations:                    3
-   Location Ratings:             16
-   Location Views:               405
-   Location Comments:            12
-   Location Media:               24
-   Location Posts:               6
-   Location Tips:                9
+   Locations:                     3
+   Location Ratings:              16
+   Location Views:                405
+   Location Comments:             12
+   Location Media:                24
+   Location Tips:                 9
    Location Category Assignments: 8
-   User Locations:               15
+   User Locations:                15
    ─────────────────────────────────────────────────
-   TOTAL:                        498
+   TOTAL:                         492
+
+   ℹ️  NOTE: Blog posts (location_posts) are NOT deleted
 
 ⚠️  WARNING: This action cannot be undone!
 
@@ -172,17 +178,18 @@ Are you sure you want to delete these locations? (y/N): y
 
 📊 Records deleted:
 
-   Locations:                    3
-   Location Ratings:             16
-   Location Views:               405
-   Location Comments:            12
-   Location Media:               24
-   Location Posts:               6
-   Location Tips:                9
+   Locations:                     3
+   Location Ratings:              16
+   Location Views:                405
+   Location Comments:             12
+   Location Media:                24
+   Location Tips:                 9
    Location Category Assignments: 8
-   User Locations:               15
+   User Locations:                15
    ─────────────────────────────────────────────────
-   TOTAL:                        498
+   TOTAL:                         492
+
+   ℹ️  NOTE: Blog posts (location_posts) were preserved
 
 ✅ Script completed successfully
 ```
