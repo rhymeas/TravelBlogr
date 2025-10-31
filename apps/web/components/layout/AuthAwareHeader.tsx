@@ -402,21 +402,12 @@ export function AuthAwareHeader() {
 
                         <div className="border-t border-sleek-border-light mt-1 pt-1">
                           <Link
-                            href="/pricing"
+                            href="/dashboard/billing"
                             onClick={() => setShowUserMenu(false)}
                             className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-gray-100 hover:rounded-lg transition-all mx-2"
                           >
                             <CreditCard className="h-4 w-4 mr-2" />
-                            Billing & Subscription
-                          </Link>
-
-                          <Link
-                            href="/dashboard/credits"
-                            onClick={() => setShowUserMenu(false)}
-                            className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-gray-100 hover:rounded-lg transition-all mx-2"
-                          >
-                            <Wallet className="h-4 w-4 mr-2" />
-                            Credits & Usage
+                            Billing & Credits
                           </Link>
                         </div>
 
