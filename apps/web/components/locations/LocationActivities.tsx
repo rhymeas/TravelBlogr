@@ -85,10 +85,26 @@ export function LocationActivities({ activities, locationName }: LocationActivit
           if (visionCtx) params.append('context', visionCtx)
 
           const res = await fetch(`/api/brave/activity-image?${params.toString()}`)
+
+          if (!res.ok) {
+            console.warn(`⚠️ Activity image fetch failed for "${a.name}": ${res.status} ${res.statusText}`)
+            setLoadingIds(prev => { const next = new Set(prev); next.delete(a.id); return next })
+            continue
+          }
+
           const json = await res.json()
+
+          if (!json.success) {
+            console.warn(`⚠️ Activity image API error for "${a.name}":`, json.error)
+            setLoadingIds(prev => { const next = new Set(prev); next.delete(a.id); return next })
+            continue
+          }
 
           const images = Array.isArray(json?.data?.images) ? json.data.images : []
           const links = Array.isArray(json?.data?.links) ? json.data.links : []
+
+          console.log(`📸 Activity "${a.name}" - Got ${images.length} images, ${links.length} links`)
+
           let bestLink = links.find((l: any) => !!l?.url) || links[0] || null
 
           // GROQ fallback if Brave returns no link
@@ -106,10 +122,15 @@ export function LocationActivities({ activities, locationName }: LocationActivit
             } catch {}
           }
 
+          // CRITICAL: Use thumbnail first (Brave CDN URL), then fallback to url
+          const imageUrl = images?.[0]?.thumbnail || images?.[0]?.url || null
+
           const enrichment = {
             ...(bestLink || {}),
-            thumbnail: images?.[0]?.thumbnail || images?.[0]?.url || null
+            thumbnail: imageUrl
           }
+
+          console.log(`✅ Activity "${a.name}" enrichment:`, { thumbnail: imageUrl, link: bestLink?.url })
 
           if (!cancelled) {
             setEnrichments(prev => ({ ...prev, [a.id]: enrichment }))
@@ -152,9 +173,11 @@ export function LocationActivities({ activities, locationName }: LocationActivit
         {displayedActivities.map((activity) => {
           const IconComponent = categoryIcons[activity.category] || Mountain
           const isChecked = checkedActivities.has(activity.id)
-          
-          const imgUrl = activity.image_url || (activity as any).image || enrichments[activity.id]?.thumbnail
+
+          // Image priority: database image_url > enrichment thumbnail > fallback to icon
           const enrich = enrichments[activity.id] || {}
+          const imgUrl = activity.image_url || (activity as any).image || enrich.thumbnail || null
+
           // Be robust: use any available link from enrichment or activity
           const linkHref = activity.link_url
             || activity.website
