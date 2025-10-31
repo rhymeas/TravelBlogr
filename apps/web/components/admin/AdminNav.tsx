@@ -78,6 +78,13 @@ const navItems: NavItem[] = [
     category: 'Content'
   },
   {
+    name: 'Cleanup "Travel to"',
+    href: '/admin/cleanup-travel-to',
+    icon: Trash2,
+    description: 'Remove "Travel to" locations',
+    category: 'Content'
+  },
+  {
     name: 'User Management',
     href: '/admin/users',
     icon: Users,
