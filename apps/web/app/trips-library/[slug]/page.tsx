@@ -33,27 +33,56 @@ interface GuideDay {
 
 export default async function GalleryDetailPage({ params }: { params: { slug: string } }) {
   const supabase = await createServerSupabase()
-  
-  // Fetch guide
-  const { data: guide } = await supabase
-    .from('sample_travel_guides')
-    .select('*')
+
+  // Fetch trip template from unified trips table
+  const { data: trip } = await supabase
+    .from('trips')
+    .select(`
+      *,
+      posts (
+        id,
+        title,
+        content,
+        post_date,
+        order_index,
+        location
+      )
+    `)
     .eq('slug', params.slug)
+    .eq('is_public_template', true)
+    .eq('status', 'published')
     .single()
 
-  if (!guide) {
+  if (!trip) {
     notFound()
   }
 
-  // Fetch itinerary days
-  const { data: days } = await supabase
-    .from('sample_guide_days')
-    .select('*')
-    .eq('guide_id', guide.id)
-    .order('day_number', { ascending: true })
+  // Transform trip to match SampleGuide interface
+  const sampleGuide: SampleGuide = {
+    id: trip.id,
+    title: trip.title,
+    slug: trip.slug,
+    description: trip.description || '',
+    cover_image: trip.cover_image || '',
+    destination: trip.destination || '',
+    duration_days: trip.duration_days || 0,
+    trip_type: trip.trip_type || 'family',
+    highlights: trip.highlights || [],
+    is_featured: trip.is_featured || false,
+    view_count: 0
+  }
 
-  const sampleGuide = guide as SampleGuide
-  const guideDays = (days || []) as GuideDay[]
+  // Transform posts to guideDays format
+  const guideDays: GuideDay[] = (trip.posts || [])
+    .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+    .map((post: any, index: number) => ({
+      id: post.id,
+      day_number: index + 1,
+      title: post.title,
+      description: post.content || '',
+      activities: [], // Can be extracted from content if needed
+      tips: null
+    }))
 
   const tripTypeColors: Record<string, string> = {
     family: 'bg-blue-100 text-blue-700',
