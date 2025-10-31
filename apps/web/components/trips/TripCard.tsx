@@ -51,11 +51,13 @@ export function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
   const [isDuplicating, setIsDuplicating] = useState(false)
   const [heroImage, setHeroImage] = useState<string | null>(trip.cover_image || null)
   const [loadingImage, setLoadingImage] = useState(false)
+  const [fetchAttempted, setFetchAttempted] = useState(false)
 
-  // Fetch hero image if missing
+  // Fetch hero image if missing (only once per trip)
   useEffect(() => {
-    if (!trip.cover_image && !loadingImage) {
+    if (!trip.cover_image && !loadingImage && !fetchAttempted && !heroImage) {
       setLoadingImage(true)
+      setFetchAttempted(true)
       ensureTripHeroImage({
         id: trip.id,
         title: trip.title,
@@ -71,7 +73,7 @@ export function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
         setLoadingImage(false)
       })
     }
-  }, [trip.id, trip.cover_image, trip.title, trip.slug, trip.description, loadingImage])
+  }, [trip.id, trip.cover_image, fetchAttempted, heroImage, loadingImage])
   const [newTitle, setNewTitle] = useState(`${trip.title} (Copy)`)
 
   const statusColors = {

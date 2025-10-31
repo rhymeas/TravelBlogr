@@ -106,15 +106,22 @@ export async function fetchTripHeroImage(options: TripImageOptions): Promise<str
     console.log(`\n🔍 Strategy ${i + 1}/${queries.length}: "${query}"`)
 
     try {
-      const response = await fetch(`/api/brave/activity-image?query=${encodeURIComponent(query)}&limit=15`)
-      
+      // Use /api/images/search which accepts simple query parameter
+      const response = await fetch(`/api/images/search?query=${encodeURIComponent(query)}&source=brave&limit=15`)
+
       if (!response.ok) {
         console.warn(`⚠️ Strategy ${i + 1} failed: ${response.status} ${response.statusText}`)
         continue
       }
 
       const data = await response.json()
-      const images: BraveImageResult[] = data.images || []
+
+      if (!data.success) {
+        console.warn(`⚠️ Strategy ${i + 1} API error: ${data.error}`)
+        continue
+      }
+
+      const images = data.images || []
 
       console.log(`📊 Strategy ${i + 1} returned ${images.length} images`)
 

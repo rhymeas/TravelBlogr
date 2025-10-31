@@ -40,11 +40,13 @@ export function UnifiedTripCardV2({ trip, context, onEdit, onDelete, onShare }: 
   const [showMenu, setShowMenu] = useState(false)
   const [heroImage, setHeroImage] = useState<string | null>(trip.cover_image || null)
   const [loadingImage, setLoadingImage] = useState(false)
+  const [fetchAttempted, setFetchAttempted] = useState(false)
 
-  // Fetch hero image if missing
+  // Fetch hero image if missing (only once per trip)
   useEffect(() => {
-    if (!trip.cover_image && !loadingImage) {
+    if (!trip.cover_image && !loadingImage && !fetchAttempted && !heroImage) {
       setLoadingImage(true)
+      setFetchAttempted(true)
       ensureTripHeroImage({
         id: trip.id,
         title: trip.title,
@@ -60,7 +62,7 @@ export function UnifiedTripCardV2({ trip, context, onEdit, onDelete, onShare }: 
         setLoadingImage(false)
       })
     }
-  }, [trip.id, trip.cover_image, trip.title, trip.slug, trip.destination, trip.description, trip.trip_type, loadingImage])
+  }, [trip.id, trip.cover_image, fetchAttempted, heroImage, loadingImage])
 
   const tripTypeColors: Record<string, string> = {
     family: 'bg-blue-100 text-blue-700',

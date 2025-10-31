@@ -52,16 +52,18 @@ export function UnifiedTripCard({ trip, context, onEdit, onDelete, onCopy }: Uni
   const [isDeleting, setIsDeleting] = useState(false)
   const [heroImage, setHeroImage] = useState<string | null>(trip.cover_image || null)
   const [loadingImage, setLoadingImage] = useState(false)
+  const [fetchAttempted, setFetchAttempted] = useState(false)
 
   const isUserTrip = context === 'my-trips' || context === 'dashboard'
   const isPublicTemplate = trip.is_public_template
   const postsCount = trip.posts?.length || 0
   const shareLinksCount = trip.share_links?.length || 0
 
-  // Fetch hero image if missing
+  // Fetch hero image if missing (only once per trip)
   useEffect(() => {
-    if (!trip.cover_image && !loadingImage) {
+    if (!trip.cover_image && !loadingImage && !fetchAttempted && !heroImage) {
       setLoadingImage(true)
+      setFetchAttempted(true)
       ensureTripHeroImage({
         id: trip.id,
         title: trip.title,
@@ -77,7 +79,7 @@ export function UnifiedTripCard({ trip, context, onEdit, onDelete, onCopy }: Uni
         setLoadingImage(false)
       })
     }
-  }, [trip.id, trip.cover_image, trip.title, trip.slug, trip.destination, trip.description, loadingImage])
+  }, [trip.id, trip.cover_image, fetchAttempted, heroImage, loadingImage])
 
   // Determine link URL based on context
   const linkUrl = isPublicTemplate
