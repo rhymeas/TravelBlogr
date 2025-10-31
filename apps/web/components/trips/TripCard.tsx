@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import {
@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardFooter } from '@/components/ui/Card'
 import { DuplicateTripButton } from './DuplicateTripButton'
 import { ViewCountBadge } from '@/components/analytics/ViewCount'
+import { ensureTripHeroImage } from '@/lib/services/tripImageService'
 
 interface Trip {
   id: string
@@ -48,6 +49,29 @@ export function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDuplicateModal, setShowDuplicateModal] = useState(false)
   const [isDuplicating, setIsDuplicating] = useState(false)
+  const [heroImage, setHeroImage] = useState<string | null>(trip.cover_image || null)
+  const [loadingImage, setLoadingImage] = useState(false)
+
+  // Fetch hero image if missing
+  useEffect(() => {
+    if (!trip.cover_image && !loadingImage) {
+      setLoadingImage(true)
+      ensureTripHeroImage({
+        id: trip.id,
+        title: trip.title,
+        slug: trip.slug,
+        cover_image: trip.cover_image,
+        destination: trip.description, // Use description as destination fallback
+        trip_type: undefined
+      }).then(imageUrl => {
+        if (imageUrl) {
+          setHeroImage(imageUrl)
+        }
+      }).finally(() => {
+        setLoadingImage(false)
+      })
+    }
+  }, [trip.id, trip.cover_image, trip.title, trip.slug, trip.description, loadingImage])
   const [newTitle, setNewTitle] = useState(`${trip.title} (Copy)`)
 
   const statusColors = {
@@ -131,12 +155,16 @@ export function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
         <div className="relative">
           {/* Cover Image */}
           <div className="aspect-video bg-gradient-to-br from-blue-100 to-purple-100 rounded-t-lg overflow-hidden">
-            {trip.cover_image ? (
+            {heroImage ? (
               <img
-                src={trip.cover_image}
+                src={heroImage}
                 alt={trip.title}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
               />
+            ) : loadingImage ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              </div>
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <MapPin className="h-12 w-12 text-blue-400" />

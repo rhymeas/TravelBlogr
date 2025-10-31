@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import {
@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardFooter } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { ViewCountBadge } from '@/components/analytics/ViewCount'
+import { ensureTripHeroImage } from '@/lib/services/tripImageService'
 
 interface UnifiedTripCardProps {
   trip: {
@@ -49,11 +50,34 @@ interface UnifiedTripCardProps {
 export function UnifiedTripCard({ trip, context, onEdit, onDelete, onCopy }: UnifiedTripCardProps) {
   const [showMenu, setShowMenu] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [heroImage, setHeroImage] = useState<string | null>(trip.cover_image || null)
+  const [loadingImage, setLoadingImage] = useState(false)
 
   const isUserTrip = context === 'my-trips' || context === 'dashboard'
   const isPublicTemplate = trip.is_public_template
   const postsCount = trip.posts?.length || 0
   const shareLinksCount = trip.share_links?.length || 0
+
+  // Fetch hero image if missing
+  useEffect(() => {
+    if (!trip.cover_image && !loadingImage) {
+      setLoadingImage(true)
+      ensureTripHeroImage({
+        id: trip.id,
+        title: trip.title,
+        slug: trip.slug,
+        cover_image: trip.cover_image,
+        destination: trip.destination || trip.description,
+        trip_type: undefined
+      }).then(imageUrl => {
+        if (imageUrl) {
+          setHeroImage(imageUrl)
+        }
+      }).finally(() => {
+        setLoadingImage(false)
+      })
+    }
+  }, [trip.id, trip.cover_image, trip.title, trip.slug, trip.destination, trip.description, loadingImage])
 
   // Determine link URL based on context
   const linkUrl = isPublicTemplate
@@ -96,12 +120,16 @@ export function UnifiedTripCard({ trip, context, onEdit, onDelete, onCopy }: Uni
         <div className="relative">
           {/* Cover Image */}
           <div className="aspect-video bg-gradient-to-br from-blue-100 to-purple-100 rounded-t-lg overflow-hidden">
-            {trip.cover_image ? (
+            {heroImage ? (
               <img
-                src={trip.cover_image}
+                src={heroImage}
                 alt={trip.title}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
               />
+            ) : loadingImage ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              </div>
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <MapPin className="h-12 w-12 text-blue-400" />

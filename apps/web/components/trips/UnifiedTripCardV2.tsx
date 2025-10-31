@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/Card'
 import { SmartImage as Image } from '@/components/ui/SmartImage'
 import Link from 'next/link'
 import { MapPin, Calendar, Star, Eye, ArrowRight, Globe, Lock, MoreVertical, Edit, Trash2, Share2 } from 'lucide-react'
+import { ensureTripHeroImage } from '@/lib/services/tripImageService'
 
 interface Trip {
   id: string
@@ -37,6 +38,29 @@ interface UnifiedTripCardV2Props {
 
 export function UnifiedTripCardV2({ trip, context, onEdit, onDelete, onShare }: UnifiedTripCardV2Props) {
   const [showMenu, setShowMenu] = useState(false)
+  const [heroImage, setHeroImage] = useState<string | null>(trip.cover_image || null)
+  const [loadingImage, setLoadingImage] = useState(false)
+
+  // Fetch hero image if missing
+  useEffect(() => {
+    if (!trip.cover_image && !loadingImage) {
+      setLoadingImage(true)
+      ensureTripHeroImage({
+        id: trip.id,
+        title: trip.title,
+        slug: trip.slug,
+        cover_image: trip.cover_image,
+        destination: trip.destination || trip.description,
+        trip_type: trip.trip_type
+      }).then(imageUrl => {
+        if (imageUrl) {
+          setHeroImage(imageUrl)
+        }
+      }).finally(() => {
+        setLoadingImage(false)
+      })
+    }
+  }, [trip.id, trip.cover_image, trip.title, trip.slug, trip.destination, trip.description, trip.trip_type, loadingImage])
 
   const tripTypeColors: Record<string, string> = {
     family: 'bg-blue-100 text-blue-700',
@@ -65,13 +89,17 @@ export function UnifiedTripCardV2({ trip, context, onEdit, onDelete, onShare }: 
       <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 group h-full flex flex-col">
         {/* Image */}
         <div className="relative w-full aspect-[4/3] flex-shrink-0 overflow-hidden">
-          {trip.cover_image ? (
+          {heroImage ? (
             <Image
-              src={trip.cover_image}
+              src={heroImage}
               alt={trip.title}
               fill
               className="object-cover group-hover:scale-110 transition-transform duration-500"
             />
+          ) : loadingImage ? (
+            <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-gray-600"></div>
+            </div>
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-rausch-400 to-babu-500 flex items-center justify-center">
               <MapPin className="h-16 w-16 text-white opacity-50" />
