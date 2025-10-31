@@ -114,23 +114,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initializeAuth = async () => {
       console.log('🔄 Initializing auth...')
 
-      // Debug: Check what's in localStorage
-      if (typeof window !== 'undefined') {
+      // Debug: Check what's in localStorage (client-side only, after mount)
+      try {
         const storageKey = 'sb-nchhcxokrzabbkvhzsor-auth-token'
         const storedData = localStorage.getItem(storageKey)
         console.log('📦 localStorage check:', storedData ? '✅ Data exists' : '❌ No data')
         if (storedData) {
-          try {
-            const parsed = JSON.parse(storedData)
-            console.log('📦 Stored session:', {
-              hasAccessToken: !!parsed?.access_token,
-              hasRefreshToken: !!parsed?.refresh_token,
-              expiresAt: parsed?.expires_at ? new Date(parsed.expires_at * 1000).toISOString() : 'N/A'
-            })
-          } catch (e) {
-            console.error('❌ Failed to parse stored session:', e)
-          }
+          const parsed = JSON.parse(storedData)
+          console.log('📦 Stored session:', {
+            hasAccessToken: !!parsed?.access_token,
+            hasRefreshToken: !!parsed?.refresh_token,
+            expiresAt: parsed?.expires_at ? new Date(parsed.expires_at * 1000).toISOString() : 'N/A'
+          })
         }
+      } catch (e) {
+        // Silently fail if localStorage not available (SSR)
+        console.log('📦 localStorage not available (SSR)')
       }
 
       try {
