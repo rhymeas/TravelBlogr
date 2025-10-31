@@ -15,6 +15,10 @@ export function isValidImageUrl(url: string | null | undefined): boolean {
   if (url.includes('picsum.photos')) return false
   if (url.includes('random=')) return false
 
+  // Reject Alamy watermarked images (stock photos with watermarks)
+  if (url.includes('alamy.com')) return false
+  if (url.includes('alamy')) return false
+
   // Must be HTTP(S) or local path
   if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) return false
 

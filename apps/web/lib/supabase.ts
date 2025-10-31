@@ -67,7 +67,7 @@ export const createBrowserSupabase = () => {
     if (!w.__TB_authSyncAttached) {
       // Listen to auth state changes
       client.auth.onAuthStateChange(async (event, session) => {
-        console.log('🔐 [Supabase Client] Auth state changed:', event, session ? `✅ Session active (user: ${session.user.email})` : '❌ No session')
+        console.log('🔐 [Supabase Client] Auth state changed:', event, session ? '✅ Session active' : '❌ No session')
 
         try {
           console.log('🔐 [Supabase Client] Syncing to server API...')

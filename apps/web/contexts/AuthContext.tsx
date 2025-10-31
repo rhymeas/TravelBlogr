@@ -142,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (session?.user) {
-          console.log('✅ Session found on mount:', session.user.email)
+          console.log('✅ Session found on mount')
           // Make header instant: set user/session immediately
           setState({
             user: session.user,
@@ -171,7 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔐 Auth state change:', event, session ? `User: ${session.user.email}` : 'No session')
+      console.log('🔐 Auth state change:', event, session ? 'User authenticated' : 'No session')
 
       try {
         if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {

@@ -170,17 +170,30 @@ export async function searchImages(
     }
 
     const data = await response.json()
-    const results: BraveImageResult[] = (data.results || []).map((result: any) => ({
-      title: result.title || '',
-      url: result.url || '',
-      thumbnail: result.thumbnail?.src || result.url, // 16:9 thumbnail!
-      source: result.source || '',
-      properties: {
-        url: result.properties?.url || '',
-        width: result.properties?.width || 0,
-        height: result.properties?.height || 0,
-      },
-    }))
+    const results: BraveImageResult[] = (data.results || [])
+      .filter((result: any) => {
+        // Filter out Alamy watermarked images
+        const url = result.url || ''
+        const thumbnail = result.thumbnail?.src || ''
+        const source = result.source || ''
+
+        if (url.includes('alamy.com') || url.includes('alamy')) return false
+        if (thumbnail.includes('alamy.com') || thumbnail.includes('alamy')) return false
+        if (source.includes('alamy.com') || source.includes('alamy')) return false
+
+        return true
+      })
+      .map((result: any) => ({
+        title: result.title || '',
+        url: result.url || '',
+        thumbnail: result.thumbnail?.src || result.url, // 16:9 thumbnail!
+        source: result.source || '',
+        properties: {
+          url: result.properties?.url || '',
+          width: result.properties?.width || 0,
+          height: result.properties?.height || 0,
+        },
+      }))
 
     // Cache for 24 hours
     await setCached(cacheKey, results, CacheTTL.LONG)
