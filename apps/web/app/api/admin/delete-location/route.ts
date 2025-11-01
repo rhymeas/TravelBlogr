@@ -143,6 +143,7 @@ export async function POST(request: NextRequest) {
       // Clear Upstash cache
       await deleteCached(CacheKeys.location(location.slug))
       await deleteCached(`${CacheKeys.location(location.slug)}:related`)
+      await deleteCached(CacheKeys.locationsAll())
 
       // Revalidate Next.js cache
       revalidatePath(`/locations/${location.slug}`)

@@ -10,7 +10,6 @@ import { Star, Heart, Eye, MapPin, Calendar, Users, Share2, Bookmark, Edit2, Ref
 import { Location } from '@/lib/data/locationsData'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { LocationActivities } from './LocationActivities'
 import { LocationRestaurants } from './LocationRestaurants'
 import { LocationExperiences } from './LocationExperiences'
 import { LocationDidYouKnow } from './LocationDidYouKnow'
@@ -39,10 +38,10 @@ import { TripBookingWidgetsCompact } from '@/components/trips/TripBookingWidgets
 import { HorizontalBannerAd } from '@/components/ads/HorizontalBannerAd'
 import { LocationShareActions } from './LocationShareActions'
 import { CommunityContributorBadge } from './CommunityContributorBadge'
-import { CommunityActivityFeed } from './CommunityActivityFeed'
 import { MultipleImageUpload } from '@/components/upload/ImageUpload'
 import { uploadLocationImage } from '@/lib/services/imageUploadService'
 import { useRouter } from 'next/navigation'
+import { LocationFeedGrid } from '@/components/feed/LocationFeedGrid'
 
 // Dynamic import to avoid SSR issues with emoji-picker-react
 const LocationCommentSection = dynamic(
@@ -142,14 +141,16 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
       {/* View Tracker - Invisible pixel */}
       <LocationViewTracker locationSlug={location.slug} />
 
-      {/* Non-intrusive vignette for edit focus */}
-      {isEditMode && (
+      {/* Non-intrusive vignette for edit focus - render via portal to cover full viewport */}
+      {isEditMode && mountedPortal && createPortal(
         <div className="pointer-events-none fixed inset-0 z-30">
           <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/25 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/25 to-transparent" />
-          <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-black/15 to-transparent" />
-          <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-black/15 to-transparent" />
-        </div>
+          {/* Responsive side vignettes to adapt to viewport width */}
+          <div className="absolute inset-y-0 left-0 w-[clamp(48px,7vw,128px)] bg-gradient-to-r from-black/15 to-transparent" />
+          <div className="absolute inset-y-0 right-0 w-[clamp(48px,7vw,128px)] bg-gradient-to-l from-black/15 to-transparent" />
+        </div>,
+        document.body
       )}
 
       {/* Breadcrumb */}
@@ -165,6 +166,36 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
           <span className="text-sleek-gray">›</span>
           <span className="text-sleek-black">{location.name}</span>
         </nav>
+      </div>
+
+      {/* Floating view switcher: Guide / Map / Live Feed */}
+      <div className="mx-auto max-w-7xl px-6 lg:px-8 mb-4">
+        <div className="sticky top-20 z-40">
+          <div className="mx-auto max-w-md">
+            <div className="bg-white rounded-full border border-gray-200 shadow-md overflow-hidden">
+              <div className="flex items-center">
+                <button
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  className="flex-1 px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Guide
+                </button>
+                <button
+                  onClick={() => document.getElementById('location-map')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="flex-1 px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Map
+                </button>
+                <button
+                  onClick={() => router.push(`/locations/${location.slug}/live-feed`)}
+                  className="flex-1 px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Live Feed
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Title and Actions */}
@@ -268,6 +299,14 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
               </Button>
             )}
 
+            {/* Admin quick test links */}
+            {isAuthenticated && isAdmin(user?.email) && (
+              <div className="hidden sm:flex items-center gap-2">
+                <Link href="/test/brave-strategies" className="text-[12px] px-2 py-1 rounded-full border border-gray-200 hover:bg-gray-50 text-sleek-black">Brave Tests</Link>
+                <Link href="/test/activities" className="text-[12px] px-2 py-1 rounded-full border border-gray-200 hover:bg-gray-50 text-sleek-black">Activities Tests</Link>
+              </div>
+            )}
+
             {/* Share & Save Actions */}
             <LocationShareActions
               locationId={location.id}
@@ -283,7 +322,7 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
       </div>
 
       {/* Image Gallery - Modern Lightbox */}
-      <div className="mx-auto max-w-7xl px-6 lg:px-8 mb-12">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8 mb-6">
         <LocationImageGallery
           images={location.images}
           locationName={location.name}
@@ -293,8 +332,13 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
         />
       </div>
 
+      {/* Book Your Trip - under gallery (sleek, native, gray) */}
+      <div className="mx-auto max-w-7xl px-6 lg:px-8 mb-2">
+        <TripBookingWidgetsCompact location={location.name} />
+      </div>
+
       {/* Content Container */}
-      <div className="mx-auto max-w-7xl px-6 lg:px-8 py-8">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
           {/* Main Content Column */}
@@ -340,21 +384,14 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
 
             {/* CMS-Driven Content Sections - Editable */}
             <div className={isEditMode ? 'ring-2 ring-blue-300 ring-offset-4 rounded-lg transition-all' : ''}>
-              {isEditMode ? (
-                <EditableLocationActivities
-                  locationId={location.id}
-                  locationSlug={location.slug}
-                  activities={location.activities || []}
-                  locationName={location.name}
-                  country={location.country}
-                  enabled={isEditMode}
-                />
-              ) : (
-                <LocationActivities
-                  activities={location.activities || []}
-                  locationName={location.name}
-                />
-              )}
+              <EditableLocationActivities
+                locationId={location.id}
+                locationSlug={location.slug}
+                activities={location.activities || []}
+                locationName={location.name}
+                country={location.country}
+                enabled={isEditMode}
+              />
             </div>
 
             <div className={isEditMode ? 'ring-2 ring-blue-300 ring-offset-4 rounded-lg transition-all' : ''}>
@@ -402,7 +439,7 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
 
             {/* Map Section */}
             {location.latitude && location.longitude && (
-              <div className="mb-8">
+              <div id="location-map" className="mb-8">
                 <div className="flex items-center justify-between mb-2">
                   <button
                     type="button"
@@ -432,58 +469,10 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
               </div>
             )}
 
-            {/* Travel Stories Section */}
-            <Card className="card-elevated p-6 mb-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-title-medium font-semibold text-sleek-black">
-                  Recent Travel Stories
-                </h2>
-                <Link
-                  href={`/locations/${location.slug}/stories`}
-                  className="text-body-medium text-rausch-500 hover:text-rausch-600 font-semibold"
-                >
-                  View all stories
-                </Link>
-              </div>
 
-              <div className="space-y-6">
-                {location.posts.map((post) => (
-                  <div key={post.id} className="flex gap-4 p-4 rounded-sleek-medium hover:bg-gray-50 transition-colors cursor-pointer">
-                    <div className="relative w-24 h-24 rounded-sleek-small overflow-hidden flex-shrink-0">
-                      <Image
-                        src={post.image || '/placeholder-location.svg'}
-                        alt={post.title}
-                        fill
-                        className="object-cover"
-                        sizes="96px"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-body-large font-semibold text-sleek-black mb-1 truncate">
-                        {post.title}
-                      </h3>
-                      <p className="text-body-small text-sleek-dark-gray mb-2 line-clamp-2">
-                        {post.excerpt}
-                      </p>
-                      <div className="flex items-center justify-between text-body-small text-sleek-gray">
-                        <span>by {post.author}</span>
-                        <div className="flex items-center gap-3">
-                          <span className="flex items-center gap-1">
-                            <Heart className="h-3 w-3" />
-                            {post.likes}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Eye className="h-3 w-3" />
-                            {post.views}
-                          </span>
-                          <span>{post.date}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+
+
+
 
             {/* Community Comments Section */}
             <div className="mb-8">
@@ -531,13 +520,6 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
               />
             </Card>
 
-            {/* Community Activity Feed */}
-            <div className="mb-6">
-              <CommunityActivityFeed
-                locationId={location.id}
-                locationName={location.name}
-              />
-            </div>
 
             {/* Quick Stats */}
             <Card className="card-elevated p-6 mb-6">
@@ -839,8 +821,8 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
         </div>
       )}
 
-      {isEditMode && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4">
+      {isEditMode && mountedPortal && createPortal(
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[70] animate-in slide-in-from-bottom-4">
           <div className="bg-white rounded-full shadow-2xl px-8 py-4 flex items-center gap-4 border-2 border-blue-500">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
@@ -860,7 +842,8 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
               Done Editing
             </Button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Refetch Data Modal (rendered via portal to avoid transform/stacking issues) */}

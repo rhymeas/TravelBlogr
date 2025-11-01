@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, ChevronDown, MapPin, Navigation, Clock, ExternalLink } from 'lucide-react'
+import { Calendar, ChevronDown, MapPin, Navigation, Clock, ExternalLink, Lightbulb } from 'lucide-react'
 import { ActivityItem } from './ActivityItem'
 import { LocationMiniMap } from '../LocationMiniMap'
 import { formatLocationDisplay } from '@/lib/utils/locationFormatter'
@@ -282,6 +282,21 @@ export function DayCard({ day, index, isExpanded, onToggle, locationCoordinates 
                         {meals.map((item: any, idx: number) => (
                           <ActivityItem key={idx} item={item} index={idx} color="orange" />
                         ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Did You Know Box */}
+                  {day.didYouKnow && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <Lightbulb className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-amber-800 mb-1">Did you know?</p>
+                          <p className="text-sm text-amber-700 leading-relaxed">
+                            {day.didYouKnow}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   )}

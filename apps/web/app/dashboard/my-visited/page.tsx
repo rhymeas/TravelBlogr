@@ -5,6 +5,7 @@ import { Check, MapPin, Calendar, TrendingUp, Sparkles, Compass, Star, Globe } f
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import Image from 'next/image'
+import { OverlayAction } from '@/components/wishlist/OverlayAction'
 
 export const metadata = {
   title: 'My Visited Places | TravelBlogr',
@@ -210,12 +211,12 @@ export default async function MyVisitedPage() {
           </div>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {visited.map((item) => (
             <Link key={item.id} href={`/locations/${item.locations.slug}`}>
               <Card className="overflow-hidden hover:shadow-xl transition-all hover:scale-[1.02] group">
                 {/* Image */}
-                <div className="relative h-48 overflow-hidden bg-gray-200">
+                <div className="relative h-32 overflow-hidden bg-gray-200">
                   {item.locations.featured_image ? (
                     <Image
                       src={item.locations.featured_image}
@@ -228,15 +229,12 @@ export default async function MyVisitedPage() {
                       <MapPin className="h-12 w-12 text-green-400" />
                     </div>
                   )}
-                  {/* Visited badge */}
-                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full p-2">
-                    <Check className="h-4 w-4 text-green-600" />
-                  </div>
+                  <OverlayAction slug={item.locations.slug} variant="visited" />
                 </div>
 
                 {/* Content */}
-                <div className="p-5">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-green-600 transition-colors">
+                <div className="p-3">
+                  <h3 className="text-base font-semibold text-gray-900 mb-1.5 group-hover:text-green-600 transition-colors">
                     {item.locations.name}
                   </h3>
                   <p className="text-sm text-gray-600 mb-3 flex items-center gap-1">

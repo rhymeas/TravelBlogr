@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase, createServiceSupabase } from '@/lib/supabase-server'
+import { deleteCached, CacheKeys } from '@/lib/upstash'
+import { revalidatePath } from 'next/cache'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -41,7 +43,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to update image' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true })
+    // Fetch slug for cache invalidation
+    let slug: string | null = null
+    try {
+      const { data: loc, error: locErr } = await supabaseAdmin
+        .from('locations')
+        .select('slug')
+        .eq('id', locationId)
+        .single()
+      if (!locErr) slug = loc?.slug || null
+    } catch {}
+
+    // Invalidate caches (Upstash first, then Next.js) so non-edit mode sees fresh images
+    if (slug) {
+      try {
+        await deleteCached(CacheKeys.location(slug))
+        await deleteCached(`${CacheKeys.location(slug)}:related`)
+      } catch (cacheErr) {
+        console.log('⚠️ Upstash cache invalidation failed (non-critical):', cacheErr)
+      }
+      try {
+        revalidatePath(`/locations/${slug}`)
+        revalidatePath(`/locations/${slug}/photos`)
+        revalidatePath('/locations')
+      } catch (revalErr) {
+        console.log('⚠️ Next.js cache revalidation failed (non-critical):', revalErr)
+      }
+    }
+
+    return NextResponse.json({ success: true, slug, invalidated: !!slug })
   } catch (err) {
     console.error('update-activity-image error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

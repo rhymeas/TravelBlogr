@@ -1,12 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Card } from '@/components/ui/Card'
 import { SmartImage as Image } from '@/components/ui/SmartImage'
 import Link from 'next/link'
 import { MapPin, Calendar, Star, Eye, ArrowRight, LayoutGrid, List, CheckCircle2 } from 'lucide-react'
-import { InFeedAd } from '@/components/ads/InFeedAd'
-import { shouldShowTripsLibraryAd } from '@/lib/utils/adHelpers'
 
 interface SampleGuide {
   id: string
@@ -27,7 +25,7 @@ interface GalleryViewProps {
 }
 
 export function GalleryView({ guides }: GalleryViewProps) {
-  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards')
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('list')
 
   const tripTypeColors: Record<string, string> = {
     family: 'bg-blue-100 text-blue-700',
@@ -81,9 +79,8 @@ export function GalleryView({ guides }: GalleryViewProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {guides.map((guide, index) => {
             return (
-              <React.Fragment key={guide.id}>
-                <Link href={`/trips-library/${guide.slug}`}>
-                  <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 group h-full flex flex-col">
+              <Link key={guide.id} href={`/trips-library/${guide.slug}`}>
+                <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 group h-full flex flex-col">
                   {/* Image */}
                   <div className="relative w-full aspect-[4/3] flex-shrink-0 overflow-hidden">
                     <Image
@@ -163,89 +160,80 @@ export function GalleryView({ guides }: GalleryViewProps) {
                   </div>
                 </Card>
               </Link>
-
-              {/* In-feed ad with custom pattern: 5-6-4-6-5-4-3-7-5-4 */}
-              {shouldShowTripsLibraryAd(index) && (
-                <InFeedAd
-                  slot="trips_library_infeed"
-                  page="trips-library"
-                />
-              )}
-            </React.Fragment>
             )
           })}
         </div>
       )}
 
-      {/* Timeline/List View */}
+      {/* Timeline/List View - 50% Bigger */}
       {viewMode === 'list' && (
-        <div className="space-y-6">
+        <div className="space-y-9">
           {/* Timeline Line */}
           <div className="relative">
             {guides.map((guide, index) => (
-              <div key={guide.id} className="relative pb-8 last:pb-0">
+              <div key={guide.id} className="relative pb-12 last:pb-0">
                 {/* Timeline connector */}
                 {index !== guides.length - 1 && (
-                  <div className="absolute left-6 top-12 bottom-0 w-0.5 bg-gradient-to-b from-rausch-300 to-rausch-100" />
+                  <div className="absolute left-9 top-18 bottom-0 w-0.5 bg-gradient-to-b from-rausch-300 to-rausch-100" />
                 )}
 
                 <Link href={`/trips-library/${guide.slug}`}>
                   <Card className="hover:shadow-xl transition-all duration-300 group">
-                    <div className="flex gap-4 p-4">
-                      {/* Timeline Dot */}
+                    <div className="flex gap-6 p-6">
+                      {/* Timeline Dot - 50% bigger */}
                       <div className="flex-shrink-0 relative">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rausch-500 to-rausch-600 flex items-center justify-center text-white font-bold shadow-lg">
+                        <div className="w-18 h-18 rounded-full bg-gradient-to-br from-rausch-500 to-rausch-600 flex items-center justify-center text-white font-bold shadow-lg text-2xl">
                           {index + 1}
                         </div>
                         {guide.is_featured && (
-                          <div className="absolute -top-1 -right-1">
-                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <div className="absolute -top-1.5 -right-1.5">
+                            <Star className="h-6 w-6 fill-yellow-400 text-yellow-400" />
                           </div>
                         )}
                       </div>
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start gap-4">
+                        <div className="flex items-start gap-6">
                           {/* Text Content */}
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className={`px-2.5 py-0.5 ${tripTypeColors[guide.trip_type] || 'bg-gray-100 text-gray-700'} text-xs font-semibold rounded-full capitalize`}>
+                            <div className="flex items-center gap-3 mb-3">
+                              <span className={`px-3.5 py-1 ${tripTypeColors[guide.trip_type] || 'bg-gray-100 text-gray-700'} text-sm font-semibold rounded-full capitalize`}>
                                 {guide.trip_type.replace('-', ' ')}
                               </span>
-                              <div className="flex items-center gap-1 text-gray-500 text-xs">
-                                <Calendar className="h-3 w-3" />
+                              <div className="flex items-center gap-1.5 text-gray-500 text-sm">
+                                <Calendar className="h-4.5 w-4.5" />
                                 <span>{guide.duration_days} days</span>
                               </div>
                             </div>
 
-                            <h3 className="text-xl font-bold text-gray-900 mb-1.5 group-hover:text-rausch-500 transition-colors">
+                            <h3 className="text-3xl font-bold text-gray-900 mb-2.5 group-hover:text-rausch-500 transition-colors">
                               {guide.title}
                             </h3>
 
-                            <div className="flex items-center gap-1.5 text-gray-600 mb-2">
-                              <MapPin className="h-3.5 w-3.5" />
-                              <span className="text-sm">{guide.destination}</span>
+                            <div className="flex items-center gap-2 text-gray-600 mb-3">
+                              <MapPin className="h-5 w-5" />
+                              <span className="text-base">{guide.destination}</span>
                             </div>
 
-                            <p className="text-gray-700 text-sm mb-3 line-clamp-2">
+                            <p className="text-gray-700 text-base mb-4 line-clamp-3">
                               {guide.description}
                             </p>
 
                             {/* Highlights as checklist */}
                             {guide.highlights && guide.highlights.length > 0 && (
-                              <div className="mb-3">
-                                <p className="text-xs font-semibold text-gray-500 mb-2">Trip Highlights:</p>
-                                <ul className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                              <div className="mb-4">
+                                <p className="text-sm font-semibold text-gray-500 mb-3">Trip Highlights:</p>
+                                <ul className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                                   {guide.highlights.slice(0, 4).map((highlight, idx) => (
-                                    <li key={idx} className="flex items-start gap-1.5 text-xs text-gray-700">
-                                      <CheckCircle2 className="h-3.5 w-3.5 text-green-500 flex-shrink-0 mt-0.5" />
+                                    <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                                      <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
                                       <span>{highlight}</span>
                                     </li>
                                   ))}
                                 </ul>
                                 {guide.highlights.length > 4 && (
-                                  <p className="text-xs text-gray-500 mt-1.5">
+                                  <p className="text-sm text-gray-500 mt-2.5">
                                     +{guide.highlights.length - 4} more highlights
                                   </p>
                                 )}
@@ -253,21 +241,21 @@ export function GalleryView({ guides }: GalleryViewProps) {
                             )}
 
                             {/* Footer */}
-                            <div className="flex items-center gap-4 pt-2 border-t border-gray-100">
-                              <div className="flex items-center gap-1 text-gray-500 text-xs">
-                                <Eye className="h-3.5 w-3.5" />
+                            <div className="flex items-center gap-6 pt-3 border-t border-gray-100">
+                              <div className="flex items-center gap-1.5 text-gray-500 text-sm">
+                                <Eye className="h-5 w-5" />
                                 <span>{guide.view_count.toLocaleString()} views</span>
                               </div>
-                              <div className="flex items-center gap-1.5 text-rausch-500 font-semibold group-hover:gap-2.5 transition-all text-sm">
+                              <div className="flex items-center gap-2 text-rausch-500 font-semibold group-hover:gap-3 transition-all text-base">
                                 <span>View Full Guide</span>
-                                <ArrowRight className="h-3.5 w-3.5" />
+                                <ArrowRight className="h-5 w-5" />
                               </div>
                             </div>
                           </div>
 
-                          {/* Thumbnail - Full height with 16:9 aspect ratio */}
-                          <div className="hidden md:block flex-shrink-0 self-stretch">
-                            <div className="relative h-full aspect-video rounded-lg overflow-hidden shadow-lg min-w-[240px]">
+                          {/* Thumbnail - 50% bigger */}
+                          <div className="hidden md:block flex-shrink-0">
+                            <div className="relative w-72 h-48 rounded-lg overflow-hidden shadow-lg">
                               <Image
                                 src={guide.cover_image}
                                 alt={guide.title}

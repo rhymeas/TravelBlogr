@@ -426,6 +426,7 @@ export function TripPlannerV2({ showVersionToggle, onVersionToggle, currentVersi
                 className="w-[calc(100%+150px)] -mr-[150px] h-[600px] rounded-xl"
                 showElevation={false}
                 showProviderBadge={userIsAdmin}
+                showRouteOptions={false}
               />
             </div>
           </div>

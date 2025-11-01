@@ -131,7 +131,7 @@ export async function POST(
         customization: customization || getDefaultCustomization(),
         is_active: true,
         view_count: 0,
-        created_by: user.id
+        user_id: user.id
       })
       .select()
       .single()

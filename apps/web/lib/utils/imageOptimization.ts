@@ -1,6 +1,7 @@
 /**
  * Image Optimization Utilities
  * Provides helper functions for optimizing images across the app
+ * State-of-the-art: Progressive loading with quality enhancement
  */
 
 export interface ImageTransformOptions {
@@ -8,6 +9,14 @@ export interface ImageTransformOptions {
   height?: number
   quality?: number
   format?: 'webp' | 'avif' | 'auto'
+}
+
+export interface OptimizedImage {
+  thumbnail: Blob // Tiny blur placeholder (< 5KB)
+  low: Blob       // Low quality (< 50KB)
+  medium: Blob    // Medium quality (< 200KB)
+  high: Blob      // High quality (< 500KB)
+  original: File  // Original file
 }
 
 /**
@@ -285,3 +294,102 @@ export const imageCacheHeaders = {
   }
 }
 
+/**
+ * Create progressive image versions
+ * Returns multiple quality levels for progressive loading
+ */
+export async function createProgressiveImages(file: File): Promise<OptimizedImage> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const reader = new FileReader()
+
+    reader.onload = (e) => {
+      img.src = e.target?.result as string
+    }
+
+    img.onload = async () => {
+      try {
+        // Calculate dimensions maintaining aspect ratio
+        const maxWidth = 1920
+        const maxHeight = 1080
+        let width = img.width
+        let height = img.height
+
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height)
+          width = Math.floor(width * ratio)
+          height = Math.floor(height * ratio)
+        }
+
+        // Create canvas
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')!
+
+        // 1. Thumbnail (blur placeholder) - 20x20px, very low quality
+        canvas.width = 20
+        canvas.height = 20
+        ctx.drawImage(img, 0, 0, 20, 20)
+        const thumbnail = await canvasToBlob(canvas, 0.3)
+
+        // 2. Low quality - 25% size, 50% quality
+        canvas.width = Math.floor(width * 0.25)
+        canvas.height = Math.floor(height * 0.25)
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        const low = await canvasToBlob(canvas, 0.5)
+
+        // 3. Medium quality - 50% size, 70% quality
+        canvas.width = Math.floor(width * 0.5)
+        canvas.height = Math.floor(height * 0.5)
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        const medium = await canvasToBlob(canvas, 0.7)
+
+        // 4. High quality - 100% size, 85% quality
+        canvas.width = width
+        canvas.height = height
+        ctx.drawImage(img, 0, 0, width, height)
+        const high = await canvasToBlob(canvas, 0.85)
+
+        resolve({
+          thumbnail,
+          low,
+          medium,
+          high,
+          original: file
+        })
+      } catch (error) {
+        reject(error)
+      }
+    }
+
+    img.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+/**
+ * Convert canvas to blob with specified quality
+ */
+function canvasToBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob)
+        else reject(new Error('Failed to create blob'))
+      },
+      'image/jpeg',
+      quality
+    )
+  })
+}
+
+/**
+ * Create blur data URL for placeholder
+ */
+export function createBlurDataURL(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}

@@ -1,3 +1,4 @@
+"use client"
 /**
  * Smart Image Component
  * Automatically handles SVG files and Next.js Image optimization
@@ -79,6 +80,9 @@ function isLikelyImageUrl(url: string): boolean {
  * and routes external images through ImageKit CDN for optimization
  */
 export function SmartImage({ src, alt, fallbackSrc = '/placeholder-location.jpg', ...props }: SmartImageProps) {
+  // Allow onError from clients, but this is a Client Component, so safe
+  const { onError: onErrorProp, ...restProps } = props as Record<string, any>
+
   const safeSrc = isLikelyImageUrl(src) ? src : fallbackSrc
 
   // Check if the image is an SVG
@@ -91,7 +95,7 @@ export function SmartImage({ src, alt, fallbackSrc = '/placeholder-location.jpg'
         src={safeSrc}
         alt={alt}
         unoptimized
-        {...props}
+        {...(restProps as any)}
       />
     )
   }
@@ -102,7 +106,7 @@ export function SmartImage({ src, alt, fallbackSrc = '/placeholder-location.jpg'
       <Image
         src={safeSrc}
         alt={alt}
-        {...props}
+        {...(restProps as any)}
       />
     )
   }
@@ -116,7 +120,7 @@ export function SmartImage({ src, alt, fallbackSrc = '/placeholder-location.jpg'
         src={cdnSrc}
         alt={alt}
         unoptimized
-        {...props}
+        {...(restProps as any)}
       />
     )
   }
@@ -131,6 +135,7 @@ export function SmartImage({ src, alt, fallbackSrc = '/placeholder-location.jpg'
       className={props.className}
       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
       onError={(e) => {
+        try { if (typeof onErrorProp === 'function') onErrorProp(e) } catch {}
         const target = e.currentTarget as HTMLImageElement
         if (target.src !== fallbackSrc) target.src = fallbackSrc
       }}

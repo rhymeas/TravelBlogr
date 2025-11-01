@@ -10,6 +10,8 @@ import { QuickBookingLinks } from '@/components/locations/QuickBookingLinks'
 import { TripPasswordForm } from '@/components/trips/TripPasswordForm'
 import { TripPOISection } from '@/components/trips/TripPOISection'
 import { TripCommunityActivityFeed } from '@/components/trips/TripCommunityActivityFeed'
+import { TripFeedSection } from '@/components/trips/TripFeedSection'
+
 
 interface Trip {
   id: string
@@ -274,9 +276,15 @@ export default async function PublicTripPage({
                   {tripData.description}
                 </p>
               </Card>
+
+
             )}
 
             {/* Itinerary */}
+
+                {/* Trip Live Feed */}
+                <TripFeedSection tripId={tripData.id} canPost={isOwner} />
+
             {posts.length > 0 && (
               <Card className="p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">Day-by-Day Itinerary</h2>

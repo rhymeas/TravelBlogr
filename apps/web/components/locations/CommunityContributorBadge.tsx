@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Users, Award, Image as ImageIcon, Edit, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { SmartImage as Image } from '@/components/ui/SmartImage'
@@ -37,10 +38,27 @@ export function CommunityContributorBadge({
   const [showModal, setShowModal] = useState(false)
   const [realContributors, setRealContributors] = useState<Contributor[]>(contributors)
   const [loading, setLoading] = useState(true)
+  // Portal mount guard to ensure viewport-centered modal detached from layout stacking contexts
+  const [mountedPortal, setMountedPortal] = useState(false)
 
   useEffect(() => {
     fetchContributors()
   }, [locationId])
+
+  // Mount portal on client only
+  useEffect(() => {
+    setMountedPortal(true)
+  }, [])
+  // Close modal on Escape key
+  useEffect(() => {
+    if (!showModal) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowModal(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [showModal])
+
 
   const fetchContributors = async () => {
     try {
@@ -76,10 +94,10 @@ export function CommunityContributorBadge({
       <button
         onClick={() => setShowModal(true)}
         className={`
-          group flex items-center gap-2 px-3 py-1.5 
-          bg-gray-100 hover:bg-gray-200 
-          border border-gray-300 
-          rounded-full 
+          group flex items-center gap-2 px-3 py-1.5
+          bg-gray-100 hover:bg-gray-200
+          border border-gray-300
+          rounded-full
           transition-all duration-200
           ${className}
         `}
@@ -119,10 +137,18 @@ export function CommunityContributorBadge({
         <Users className="h-3.5 w-3.5 text-gray-500 group-hover:text-gray-700" />
       </button>
 
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
+      {/* Modal - viewport centered via portal */}
+      {showModal && mountedPortal && createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200"
+          onClick={() => setShowModal(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div>
@@ -150,7 +176,7 @@ export function CommunityContributorBadge({
                   Become a Local Representative
                 </h3>
                 <p className="text-sm text-gray-600 leading-relaxed">
-                  If your location doesn't exist yet, add it using the "Add Location" button. 
+                  If your location doesn't exist yet, add it using the "Add Location" button.
                   Share your knowledge of places you know best.
                 </p>
               </div>
@@ -185,7 +211,7 @@ export function CommunityContributorBadge({
                   Community Recognition
                 </h3>
                 <p className="text-sm text-gray-600 leading-relaxed">
-                  Each location shows top contributors with badges and recent editors, 
+                  Each location shows top contributors with badges and recent editors,
                   keeping everything transparent and collaborative.
                 </p>
               </div>
@@ -263,7 +289,8 @@ export function CommunityContributorBadge({
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )

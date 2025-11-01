@@ -55,19 +55,35 @@ export function FeedPost({ post, onLike, onBookmark, onComment, showFollowButton
 
     return (
       <div className="relative aspect-square">
-        <img
-          src={currentItem.url}
-          alt={`${post.caption} - Image ${currentImageIndex + 1}`}
-          className="w-full h-full object-cover"
-        />
-
-        {currentItem.type === 'video' && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-16 h-16 bg-black/50 rounded-full flex items-center justify-center">
-              <Play className="w-8 h-8 text-white ml-1" fill="white" />
-            </div>
-          </div>
+        {currentItem.type === 'video' ? (
+          <video
+            src={currentItem.url}
+            controls
+            playsInline
+            preload="metadata"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <img
+            src={currentItem.url}
+            alt={`${post.caption} - Image ${currentImageIndex + 1}`}
+            className="w-full h-full object-cover"
+            onError={async (e) => {
+              const el = e.currentTarget as HTMLImageElement
+              if ((el as any)._retried) return
+              ;(el as any)._retried = true
+              try {
+                const res = await fetch(`/api/storage/signed-read?url=${encodeURIComponent(currentItem.url)}`)
+                const json = await res.json()
+                if (json?.signedUrl) {
+                  el.src = json.signedUrl
+                }
+              } catch {}
+            }}
+          />
         )}
+
+
 
         {/* Navigation arrows for carousel */}
         {hasMultipleItems && (
@@ -110,16 +126,22 @@ export function FeedPost({ post, onLike, onBookmark, onComment, showFollowButton
       {/* Post Header */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full overflow-hidden">
+          <Link href={`/u/${post.user.username}`} className="w-8 h-8 rounded-full overflow-hidden block">
             <img
               src={post.user.avatar}
               alt={post.user.username}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                // Fallback to identicon if avatar fails
+                const el = e.currentTarget as HTMLImageElement
+                el.onerror = null
+                el.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(post.user.username || 'user')}`
+              }}
             />
-          </div>
+          </Link>
           <div>
             <div className="flex items-center gap-1">
-              <span className="font-semibold text-sm">{post.user.username}</span>
+              <Link href={`/u/${post.user.username}`} className="font-semibold text-sm hover:underline">{post.user.username}</Link>
               {post.user.verified && (
                 <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
                   <span className="text-white text-xs">✓</span>
@@ -204,7 +226,7 @@ export function FeedPost({ post, onLike, onBookmark, onComment, showFollowButton
 
         {/* Caption */}
         <div className="mb-2">
-          <span className="font-semibold text-sm mr-2">{post.user.username}</span>
+          <Link href={`/u/${post.user.username}`} className="font-semibold text-sm mr-2 hover:underline">{post.user.username}</Link>
           <span className="text-sm">{post.caption}</span>
         </div>
 

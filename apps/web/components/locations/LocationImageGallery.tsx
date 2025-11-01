@@ -13,6 +13,8 @@ import Zoom from 'yet-another-react-lightbox/plugins/zoom'
 import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen'
 import Counter from 'yet-another-react-lightbox/plugins/counter'
 import 'yet-another-react-lightbox/plugins/counter.css'
+import { Hotel, Home, Car, Ticket } from 'lucide-react'
+import { extractCityName, generateHotelLink, generateAirbnbLink, generateCarRentalLink, generateActivityLink } from '@/lib/services/travelpayouts'
 
 interface LocationImageGalleryProps {
   images: string[]
@@ -308,6 +310,54 @@ export function LocationImageGallery({ images, locationName, locationSlug, locat
           },
         }}
       />
+
+      {/* Inspirational booking bar under full-view image (overlay) */}
+      {lightboxOpen && (
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-6 z-[100000] pointer-events-auto">
+          <div className="flex items-center gap-2 bg-white/90 backdrop-blur px-3 py-2 rounded-full shadow-lg border border-gray-200">
+            {/* Hotels */}
+            <a
+              href={generateHotelLink({ city: extractCityName(locationName) })}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition"
+            >
+              <Hotel className="w-4 h-4 text-emerald-600" />
+              <span>Hotels</span>
+            </a>
+            {/* Airbnb */}
+            <a
+              href={generateAirbnbLink({ location: extractCityName(locationName) })}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition"
+            >
+              <Home className="w-4 h-4 text-rose-600" />
+              <span>Airbnb</span>
+            </a>
+            {/* Car Rental */}
+            <a
+              href={generateCarRentalLink({ location: extractCityName(locationName) })}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 transition"
+            >
+              <Car className="w-4 h-4 text-purple-600" />
+              <span>Car Rental</span>
+            </a>
+            {/* Activities */}
+            <a
+              href={generateActivityLink({ city: extractCityName(locationName) })}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition"
+            >
+              <Ticket className="w-4 h-4 text-amber-600" />
+              <span>Activities</span>
+            </a>
+          </div>
+        </div>
+      )}
     </>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Check, Clock, DollarSign, Mountain, Users, Utensils, Waves, Heart, Image as ImageIcon, Link as LinkIcon, Edit, Plus, Loader2, ExternalLink, Globe, Phone, MapPin } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
@@ -69,6 +69,13 @@ export function EditableLocationActivities({
   const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set())
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set())
 
+  // Manual refetch trigger counter (to re-run enrichment effects)
+  const [refetchCounter, setRefetchCounter] = useState(0)
+
+  // Fetch-once guards to avoid repeated refetching while editing
+  const hasFetchedImagesRef = useRef(false)
+  const hasFetchedLinksRef = useRef(false)
+
   const handleSelectImage = async (activityId: string, imageUrl: string, source: string) => {
     try {
       // Update activity image in database
@@ -102,6 +109,9 @@ export function EditableLocationActivities({
     // Only auto-enrich when editing to avoid extra network on public views
     if (!enabled) return
     if (!activities || activities.length === 0) return
+    // Ensure we fetch only once per edit session
+    if (hasFetchedImagesRef.current) return
+    hasFetchedImagesRef.current = true
 
     const timers: Array<ReturnType<typeof setTimeout>> = []
 
@@ -122,7 +132,7 @@ export function EditableLocationActivities({
       timers.forEach(clearTimeout)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activities, locationName, enabled])
+  }, [activities, locationName, enabled, refetchCounter])
 
   const handleFindImage = async (a: LocationActivity, locationName: string) => {
     setLoadingImage(prev => ({ ...prev, [a.id]: true }))
@@ -131,9 +141,10 @@ export function EditableLocationActivities({
       const res = await fetch(`/api/activities/find-image?activityName=${encodeURIComponent(a.name)}&locationName=${encodeURIComponent(locationName)}`)
       const json = await res.json()
       console.log(`📸 Activity image fetch for "${a.name}":`, json)
-      if (json?.success && json.url) {
-        console.log(`✅ Setting image for ${a.name}: ${json.url}`)
-        setActivityImages(prev => ({ ...prev, [a.id]: json.url }))
+      const chosenUrl = json?.thumbnail || json?.url
+      if (json?.success && chosenUrl) {
+        console.log(`✅ Setting image for ${a.name}: ${chosenUrl}`)
+        setActivityImages(prev => ({ ...prev, [a.id]: chosenUrl }))
 
         // ✅ AUTO-PERSIST: Save image to database so it persists when exiting edit mode
         try {
@@ -143,7 +154,7 @@ export function EditableLocationActivities({
             body: JSON.stringify({
               locationId,
               activityId: a.id,
-              imageUrl: json.url
+              imageUrl: chosenUrl
             })
           })
           console.log(`💾 Auto-saved image for ${a.name} to database`)
@@ -225,6 +236,9 @@ export function EditableLocationActivities({
     // Only fetch enrichment links in edit mode
     if (!enabled) return
     if (!activities || activities.length === 0) return
+    // Ensure we fetch only once per edit session
+    if (hasFetchedLinksRef.current) return
+    hasFetchedLinksRef.current = true
     let cancelled = false
     const toFetch = (showAll ? activities : activities.slice(0, INITIAL_DISPLAY_COUNT)).filter(a => !enrichments[a.id])
     if (toFetch.length === 0) return
@@ -233,9 +247,11 @@ export function EditableLocationActivities({
       for (const a of toFetch) {
         try {
           setLoadingIds(prev => new Set(prev).add(a.id))
-          const params = new URLSearchParams({ name: a.name, location: locationName, type: 'activity', count: '1' })
+          const params = new URLSearchParams({ name: a.name, location: locationName, type: 'activity', count: '3' })
           const res = await fetch(`/api/brave/activity-image?${params.toString()}`)
           const json = await res.json()
+          const firstImage = json?.data?.images?.[0]
+          const thumbnail = firstImage?.thumbnail || firstImage?.url || null
           let link = json?.data?.links?.[0] || null
 
           // GROQ fallback if Brave returns no link
@@ -253,7 +269,22 @@ export function EditableLocationActivities({
             } catch {}
           }
 
-          if (!cancelled) setEnrichments(prev => ({ ...prev, [a.id]: link || {} }))
+          // Persist description if we obtained one and DB is missing/short
+          try {
+            const incomingDesc: string | undefined = link?.description
+            const hasBetterDesc = incomingDesc && incomingDesc.trim().length > (a.description?.trim().length || 0)
+            if (incomingDesc && hasBetterDesc) {
+              await fetch('/api/locations/update-activity-description', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ locationId, activityId: a.id, description: incomingDesc, slug: locationSlug })
+              })
+              // Optimistically update local value too
+              a.description = incomingDesc
+            }
+          } catch {}
+
+          if (!cancelled) setEnrichments(prev => ({ ...prev, [a.id]: { ...(link || {}), thumbnail } }))
         } catch {}
         finally {
           setLoadingIds(prev => { const next = new Set(prev); next.delete(a.id); return next })
@@ -262,7 +293,7 @@ export function EditableLocationActivities({
     })()
 
     return () => { cancelled = true }
-  }, [activities, locationName, showAll, enabled])
+  }, [activities, locationName, showAll, enabled, refetchCounter])
 
   if (!activities || activities.length === 0) {
     return null
@@ -291,13 +322,31 @@ export function EditableLocationActivities({
         </div>
 
         {enabled && (
-          <button
-            onClick={() => setShowAddActivityModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 whitespace-nowrap"
-          >
-            <Plus className="h-4 w-4" />
-            Add Activity
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                // Reset guards and run enrichment again
+                hasFetchedImagesRef.current = false
+                hasFetchedLinksRef.current = false
+                setEnrichments({})
+                setRefetchCounter((c) => c + 1)
+                toast.success('Refetching activities data…')
+              }}
+              className="px-3 py-2 bg-white text-gray-800 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm"
+              title="Refetch images and links"
+            >
+              Refetch
+            </button>
+            <button
+              onClick={() => setShowAddActivityModal(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+            >
+              <Plus className="h-4 w-4" />
+              Add Activity
+            </button>
+          </div>
         )}
       </div>
       <div className="space-y-4">
@@ -305,9 +354,9 @@ export function EditableLocationActivities({
           const IconComponent = categoryIcons[activity.category] || Mountain
           const isChecked = checkedActivities.has(activity.id)
 
-
-	          const enrich = enrichments[activity.id] || {}
-	          const linkHref = (activity as any).link_url || (activity as any).website || enrich.url
+          // CRITICAL: Always use database-persisted fields first, then enrichment fallback
+          const enrich = enrichments[activity.id] || {}
+          const linkHref = (activity as any).link_url || (activity as any).website || enrich.url
 
           return (
             <div
@@ -352,17 +401,21 @@ export function EditableLocationActivities({
                 </h4>
                 {(() => {
                   const enrich = enrichments[activity.id] || {}
-                  const baseDesc = activity.description || ''
+                  // Prefer database description first, then enrichment; show a clean placeholder if missing
+                  const baseDesc = (activity as any).description || ''
                   const enrichDesc = enrich?.description || ''
-                  const finalDesc = enrichDesc || baseDesc
+                  const finalDesc = baseDesc || enrichDesc
                   const isExpanded = expandedDescriptions.has(activity.id)
-                  const needsShowMore = finalDesc.length > 100
                   const cleanDesc = finalDesc.replace(/<[^>]*>/g, '').trim()
+                  const needsShowMore = cleanDesc.length > 100
                   const displayDesc = needsShowMore && !isExpanded ? cleanDesc.slice(0, 100) + '...' : cleanDesc
+                  const hasDesc = !!cleanDesc
+                  const text = hasDesc ? displayDesc : 'Short description coming soon.'
+
                   return (
                     <div className="text-body-medium text-sleek-dark-gray mb-2">
-                      <p className="inline">{displayDesc}</p>
-                      {needsShowMore && (
+                      <p className="inline">{text}</p>
+                      {hasDesc && needsShowMore && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
@@ -447,6 +500,7 @@ export function EditableLocationActivities({
               >
                 {(() => {
                   const enrich = enrichments[activity.id] || {}
+                  // CRITICAL: Database image_url first, then local state, then enrichment thumbnail
                   const imgSrc = (activity as any).image_url || activityImages[activity.id] || enrich.thumbnail
                   if (imgSrc) {
                     return (

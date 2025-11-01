@@ -176,8 +176,8 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
       <div className="space-y-1.5">
         <h3 className="text-sm font-bold text-gray-900">Trip Type</h3>
 
-        {/* Quick access — 1 row, 3 columns */}
-        <div className="grid grid-cols-3 gap-2">
+        {/* Quick access — Vertically swipable on mobile/tablet, grid on desktop */}
+        <div className="lg:grid lg:grid-cols-3 lg:gap-2 lg:block hidden">
           {QUICK_TYPES.map((type) => {
             const IconComponent = type.icon
             const selected = selectedTripType === type.id
@@ -187,6 +187,38 @@ export function PhaseOne({ data, updateData, onNext }: PhaseProps) {
                 onClick={() => setSelectedTripType(type.id)}
                 aria-pressed={selected}
                 className={`w-full p-3 rounded-lg border transition-all text-left ${
+                  selected
+                    ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
+                    : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    selected ? 'bg-green-100' : 'bg-gray-100'
+                  }`}>
+                    <IconComponent className={`w-4 h-4 ${selected ? 'text-green-700' : 'text-gray-700'}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-gray-900 text-xs leading-tight">{type.label}</div>
+                    <div className="text-[9px] text-gray-600 leading-tight">{type.description}</div>
+                  </div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Mobile/Tablet: Vertical swipable scroll */}
+        <div className="lg:hidden overflow-y-auto snap-y snap-mandatory max-h-[280px] space-y-2 pr-1 scrollbar-thin">
+          {QUICK_TYPES.map((type) => {
+            const IconComponent = type.icon
+            const selected = selectedTripType === type.id
+            return (
+              <button
+                key={type.id}
+                onClick={() => setSelectedTripType(type.id)}
+                aria-pressed={selected}
+                className={`w-full p-3 rounded-lg border transition-all text-left snap-start ${
                   selected
                     ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
                     : 'border-gray-300 hover:border-gray-400 bg-white hover:shadow-sm'

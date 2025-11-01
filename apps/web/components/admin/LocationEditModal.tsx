@@ -86,15 +86,16 @@ export function LocationEditModal({ isOpen, onClose, location, onUpdate }: Locat
 
     try {
       setDeleting(true)
-      const supabase = getBrowserSupabase()
-
-      const { error } = await supabase
-        .from('locations')
-        .delete()
-        .eq('id', location.id)
-
-      if (error) throw error
-
+      const res = await fetch('/api/admin/delete-location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ locationId: location.id, locationName: location.name })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || `Failed to delete location (status ${res.status})`)
+      }
       alert('Location deleted successfully!')
       onUpdate()
       onClose()

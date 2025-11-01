@@ -45,7 +45,8 @@ export default async function GalleryDetailPage({ params }: { params: { slug: st
         content,
         post_date,
         order_index,
-        location
+        location,
+        tips
       )
     `)
     .eq('slug', params.slug)
@@ -81,7 +82,7 @@ export default async function GalleryDetailPage({ params }: { params: { slug: st
       title: post.title,
       description: post.content || '',
       activities: [], // Can be extracted from content if needed
-      tips: null
+      tips: post.tips || null
     }))
 
   const tripTypeColors: Record<string, string> = {
