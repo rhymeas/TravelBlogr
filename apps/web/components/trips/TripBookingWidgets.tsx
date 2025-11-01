@@ -165,6 +165,7 @@ function BookingButton({ icon, label, sublabel, href, color }: BookingButtonProp
 
 /**
  * Minimalistic Bubbly version for sidebar - TravelBlogr style
+ * Sleek gray, all in one line, native look
  */
 export function TripBookingWidgetsCompact({
   location,
@@ -174,66 +175,51 @@ export function TripBookingWidgetsCompact({
   const cityName = extractCityName(location)
 
   return (
-    <div className="space-y-2.5">
-      <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-        <span className="text-lg">✈️</span>
-        Book Your Trip
-      </h4>
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="text-sm font-semibold text-gray-900 mr-1">Book Your Trip to {cityName}</span>
 
-      {/* Hotels - Emerald bubbly */}
+      {/* Hotels */}
       <a
         href={generateHotelLink({ city: cityName, checkIn, checkOut, adults: 2 })}
         target="_blank"
         rel="noopener noreferrer"
-        className="group flex items-center gap-2.5 px-4 py-3 text-sm bg-gradient-to-br from-emerald-50 to-emerald-100 hover:from-emerald-100 hover:to-emerald-200 text-emerald-700 rounded-2xl border border-emerald-200 transition-all shadow-sm hover:shadow-md"
+        className="group inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-all"
       >
-        <div className="flex-shrink-0 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm">
-          <Hotel className="w-4 h-4 text-emerald-600" />
-        </div>
-        <span className="font-medium flex-1">Hotels</span>
-        <ExternalLink className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition" />
+        <Hotel className="w-3 h-3" />
+        <span className="font-medium">Hotels</span>
       </a>
 
-      {/* Airbnb - Rose bubbly */}
+      {/* Airbnb */}
       <a
         href={generateAirbnbLink({ location: cityName, checkIn, checkOut, adults: 2 })}
         target="_blank"
         rel="noopener noreferrer"
-        className="group flex items-center gap-2.5 px-4 py-3 text-sm bg-gradient-to-br from-rose-50 to-rose-100 hover:from-rose-100 hover:to-rose-200 text-rose-700 rounded-2xl border border-rose-200 transition-all shadow-sm hover:shadow-md"
+        className="group inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-all"
       >
-        <div className="flex-shrink-0 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm">
-          <Hotel className="w-4 h-4 text-rose-600" />
-        </div>
-        <span className="font-medium flex-1">Airbnb</span>
-        <ExternalLink className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition" />
+        <Hotel className="w-3 h-3" />
+        <span className="font-medium">Airbnb</span>
       </a>
 
-      {/* Car Rental - Purple bubbly */}
+      {/* Car Rental */}
       <a
         href={generateCarRentalLink({ location: cityName, pickupDate: checkIn, dropoffDate: checkOut })}
         target="_blank"
         rel="noopener noreferrer"
-        className="group flex items-center gap-2.5 px-4 py-3 text-sm bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 text-purple-700 rounded-2xl border border-purple-200 transition-all shadow-sm hover:shadow-md"
+        className="group inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-all"
       >
-        <div className="flex-shrink-0 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm">
-          <Car className="w-4 h-4 text-purple-600" />
-        </div>
-        <span className="font-medium flex-1">Car Rental</span>
-        <ExternalLink className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition" />
+        <Car className="w-3 h-3" />
+        <span className="font-medium">Car Rental</span>
       </a>
 
-      {/* Activities - Amber bubbly */}
+      {/* Activities */}
       <a
         href={generateActivityLink({ city: cityName })}
         target="_blank"
         rel="noopener noreferrer"
-        className="group flex items-center gap-2.5 px-4 py-3 text-sm bg-gradient-to-br from-amber-50 to-amber-100 hover:from-amber-100 hover:to-amber-200 text-amber-700 rounded-2xl border border-amber-200 transition-all shadow-sm hover:shadow-md"
+        className="group inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-all"
       >
-        <div className="flex-shrink-0 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm">
-          <Ticket className="w-4 h-4 text-amber-600" />
-        </div>
-        <span className="font-medium flex-1">Activities</span>
-        <ExternalLink className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition" />
+        <Ticket className="w-3 h-3" />
+        <span className="font-medium">Activities</span>
       </a>
     </div>
   )

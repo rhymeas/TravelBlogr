@@ -108,14 +108,14 @@
 │  │ ├─ id: 111cbe07-16b1-4c04-8cdb-1f808cfddbc4                   │ │
 │  │ ├─ email: rimas.albert@googlemail.com                          │ │
 │  │ └─ raw_user_meta_data:                                         │ │
-│  │    ├─ full_name: "Rimas Albert"                                │ │
+│  │    ├─ full_name: "Rhymeas"                                │ │
 │  │    └─ avatar_url: "https://lh3.googleusercontent.com/..."      │ │
 │  │                                                                │ │
 │  │ ▼ Trigger: on_auth_user_created                                │ │
 │  │                                                                │ │
 │  │ public.profiles                                                │ │
 │  │ ├─ id: 111cbe07-16b1-4c04-8cdb-1f808cfddbc4                   │ │
-│  │ ├─ full_name: "Rimas Albert"                                   │ │
+│  │ ├─ full_name: "Rhymeas"                                   │ │
 │  │ ├─ avatar_url: "https://lh3.googleusercontent.com/..."         │ │
 │  │ └─ username: null                                              │ │
 │  └────────────────────────────────────────────────────────────────┘ │
@@ -134,7 +134,7 @@
 │  │  │  └────────┘     initials if image fails)                │ │ │
 │  │  └──────────────────────────────────────────────────────────┘ │ │
 │  │                                                                │ │
-│  │  Welcome back, Rimas Albert!                                   │ │
+│  │  Welcome back, Rhymeas!                                   │ │
 │  │                                                                │ │
 │  │  [Create Trip]  [My Trips]  [Settings]                         │ │
 │  └────────────────────────────────────────────────────────────────┘ │

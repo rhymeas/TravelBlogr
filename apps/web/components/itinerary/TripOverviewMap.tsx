@@ -877,7 +877,7 @@ function nearestDistanceKmToRoute(lat: number, lng: number, coords: [number, num
 
       {/* Elevation Profile - Bubbly Map Overlay */}
       {showElevation && (
-        <div className="absolute bottom-4 left-4 z-10 pointer-events-auto w-[80%]">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 pointer-events-auto w-[80%] max-w-2xl">
           {elevationProfile && elevationProfile.elevations.length > 0 ? (
             <ElevationProfile
               elevations={elevationProfile.elevations}

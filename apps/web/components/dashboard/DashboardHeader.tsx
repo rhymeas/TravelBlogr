@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { User } from '@supabase/supabase-js'
-import { Bell, Search, ChevronDown, LogOut, Settings, User as UserIcon } from 'lucide-react'
+import { Bell, Search, ChevronDown, LogOut, Settings, User as UserIcon, Heart, Check } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { signOut } from '@/lib/supabase'
@@ -107,7 +107,7 @@ export function DashboardHeader({ user, profile }: DashboardHeaderProps) {
                       {user.email}
                     </div>
                   </div>
-                  
+
                   <button
                     onClick={() => {
                       setShowUserMenu(false)
@@ -118,7 +118,29 @@ export function DashboardHeader({ user, profile }: DashboardHeaderProps) {
                     <UserIcon className="h-4 w-4 mr-2" />
                     Profile
                   </button>
-                  
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false)
+                      router.push('/dashboard/my-wishlist')
+                    }}
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <Heart className="h-4 w-4 mr-2" />
+                    Wishlist
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false)
+                      router.push('/dashboard/my-visited')
+                    }}
+                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    Visited
+                  </button>
+
+
                   <button
                     onClick={() => {
                       setShowUserMenu(false)
@@ -129,7 +151,7 @@ export function DashboardHeader({ user, profile }: DashboardHeaderProps) {
                     <Settings className="h-4 w-4 mr-2" />
                     Settings
                   </button>
-                  
+
                   <div className="border-t border-gray-100">
                     <button
                       onClick={() => {

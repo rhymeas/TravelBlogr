@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 
 // Number of locations to load per batch (infinite scroll)
 const LOCATIONS_PER_PAGE = 20
@@ -16,7 +17,7 @@ import { getLocationFallbackImage, isPlaceholderImage } from '@/lib/services/fal
 import { formatLocationName } from '@/lib/utils/locationFormatter'
 import {
   MapPin, Star, Eye, Heart, Calendar,
-  Users, Camera, Clock, ArrowRight, MoreVertical, Edit, Trash2
+  Users, Camera, Clock, ArrowRight, MoreVertical, Edit, Trash2, Plus, Square, CheckSquare
 } from 'lucide-react'
 import { InFeedAd } from '@/components/ads/InFeedAd'
 import { generateRandomInFeedPositions } from '@/lib/utils/adHelpers'
@@ -73,8 +74,16 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
   // Track items being removed for fade-out animation
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
 
+  // Bulk select state (for collections)
+  const [bulkMode, setBulkMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [collectionsOpen, setCollectionsOpen] = useState(false)
+  const [collections, setCollections] = useState<Array<{ id: string; name: string }>>([])
+  const [collectionsLoading, setCollectionsLoading] = useState(false)
+
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const { profile, user } = useAuth()
+  const router = useRouter()
   const isAdmin = checkIsAdmin(user?.email)
 
   // Filter locations based on search params
@@ -141,6 +150,55 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
   const displayedLocations = filteredLocations.slice(0, displayedCount)
   const hasMore = displayedCount < filteredLocations.length
 
+  // Bulk helpers
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+  const selectAllDisplayed = () => {
+    setSelectedIds(new Set(displayedLocations.map((l) => l.id)))
+  }
+  const clearSelection = () => setSelectedIds(new Set())
+
+  const openCollectionsBulk = async () => {
+    setCollectionsOpen((v) => !v)
+    if (!collectionsOpen) {
+      try {
+        setCollectionsLoading(true)
+        const res = await fetch('/api/wishlist/collections', { cache: 'no-store' })
+        const json = await res.json()
+        setCollections(Array.isArray(json?.collections) ? json.collections : [])
+      } catch {
+        toast.error('Failed to load collections')
+      } finally {
+        setCollectionsLoading(false)
+      }
+    }
+  }
+
+  const addSelectedToCollection = async (collectionId: string) => {
+    if (selectedIds.size === 0) return
+    try {
+      const res = await fetch('/api/wishlist/collections/add-locations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ collectionId, locationIds: Array.from(selectedIds) })
+      })
+      if (!res.ok) throw new Error('Failed to add')
+      toast.success(`Added ${selectedIds.size} location(s) to collection`)
+      setCollectionsOpen(false)
+      setBulkMode(false)
+      clearSelection()
+    } catch {
+      toast.error('Could not add to collection')
+    }
+  }
+
   // Randomized in-feed ad positions (stable per day)
   const [adPositions, setAdPositions] = useState<Set<number>>(new Set())
   useEffect(() => {
@@ -179,6 +237,7 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
       const response = await fetch('/api/admin/delete-location', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           locationId: location.id,
           locationName: location.name
@@ -205,6 +264,8 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
       // Give the animation time to play, then remove from local state
       setTimeout(() => {
         setLocalLocations(prev => prev.filter(l => l.id !== location.id))
+        // Ensure server data is fresh and Upstash/Next cache invalidation is reflected
+        try { router.refresh() } catch {}
       }, 300)
     } catch (error) {
       console.error('❌ Delete error:', error)
@@ -216,7 +277,7 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
 
   return (
     <div className="space-y-6">
-      {/* View Mode Toggle */}
+      {/* View Mode + Bulk Select */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-600">
           Showing {displayedCount} of {filteredLocations.length} location{filteredLocations.length !== 1 ? 's' : ''}
@@ -240,8 +301,93 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
           >
             List
           </Button>
+
+          {/* Bulk select toggle */}
+          <Button
+            variant={bulkMode ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setBulkMode((v) => !v)}
+          >
+            {bulkMode ? 'Done' : 'Bulk select'}
+          </Button>
         </div>
       </div>
+
+      {/* Bulk actions toolbar */}
+      {(bulkMode || selectedIds.size > 0) && (
+        <div className="flex flex-wrap items-center gap-2 justify-between bg-gray-50 border border-gray-200 rounded-md px-3 py-2">
+          <div className="text-sm text-gray-700">
+            {selectedIds.size} selected
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={selectAllDisplayed}>Select all shown</Button>
+            <Button variant="outline" size="sm" onClick={clearSelection}>Clear</Button>
+            <div className="relative">
+              <Button variant="default" size="sm" onClick={openCollectionsBulk}>Add to collection</Button>
+              {collectionsOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 p-1 z-50">
+                  <div className="px-2 py-1 text-xs text-gray-500">Choose collection</div>
+                  {collectionsLoading ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">Loading…</div>
+                  ) : (
+                    <>
+                      {collections.length === 0 && (
+                        <button
+                          onClick={async () => {
+                            const name = prompt('Collection name')?.trim()
+                            if (!name) return
+                            try {
+                              const res = await fetch('/api/wishlist/collections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ name }) })
+                              const data = await res.json()
+                              if (!res.ok) throw new Error(data?.error || 'Failed to create')
+                              setCollections((prev) => [{ id: data.collection.id, name: data.collection.name }, ...prev])
+                              toast.success('Collection created')
+                            } catch (e: any) {
+                              toast.error(e?.message || 'Could not create collection')
+                            }
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
+                        >
+                          + Create new collection
+                        </button>
+                      )}
+                      {collections.map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => addSelectedToCollection(c.id)}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
+                        >
+                          {c.name}
+                        </button>
+                      ))}
+                      {collections.length > 0 && (
+                        <button
+                          onClick={async () => {
+                            const name = prompt('Collection name')?.trim()
+                            if (!name) return
+                            try {
+                              const res = await fetch('/api/wishlist/collections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ name }) })
+                              const data = await res.json()
+                              if (!res.ok) throw new Error(data?.error || 'Failed to create')
+                              setCollections((prev) => [{ id: data.collection.id, name: data.collection.name }, ...prev])
+                              toast.success('Collection created')
+                            } catch (e: any) {
+                              toast.error(e?.message || 'Could not create collection')
+                            }
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
+                        >
+                          + New collection…
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Grid View */}
       {viewMode === 'grid' && (
@@ -255,6 +401,9 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
                 onEdit={() => setEditingLocation(location)}
                 onDelete={handleDelete}
                 isDeletingItem={deletingIds.has(location.id)}
+                bulkMode={bulkMode}
+                isSelected={selectedIds.has(location.id)}
+                onToggleSelect={() => toggleSelect(location.id)}
               />
               {/* In-feed ad randomized between cards (min gap 4–7) */}
               {adPositions.has(index) && (
@@ -327,7 +476,10 @@ function LocationCard({
   isAdmin = false,
   onEdit,
   onDelete,
-  isDeletingItem = false
+  isDeletingItem = false,
+  bulkMode = false,
+  isSelected = false,
+  onToggleSelect
 }: {
   location: Location
   priority?: boolean
@@ -335,8 +487,95 @@ function LocationCard({
   onEdit?: () => void
   onDelete?: (location: Location) => void
   isDeletingItem?: boolean
+  bulkMode?: boolean
+  isSelected?: boolean
+  onToggleSelect?: () => void
 }) {
   const [showMenu, setShowMenu] = useState(false)
+  const [wishlisted, setWishlisted] = useState(false)
+  const [savingWishlist, setSavingWishlist] = useState(false)
+  const [showCollections, setShowCollections] = useState(false)
+  const [collections, setCollections] = useState<Array<{ id: string; name: string }>>([])
+  const [collectionsLoading, setCollectionsLoading] = useState(false)
+
+  const toggleWishlist = async (e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation()
+    if (savingWishlist) return
+    setSavingWishlist(true)
+    const newValue = !wishlisted
+    setWishlisted(newValue)
+    try {
+      const res = await fetch(`/api/locations/${location.slug}/customize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ isWishlisted: newValue })
+      })
+      if (!res.ok) throw new Error('Failed to save')
+      toast.success(newValue ? 'Added to wishlist' : 'Removed from wishlist')
+      // Broadcast so detail pages/widgets stay in sync
+      window.dispatchEvent(new CustomEvent('wishlistChanged' as any, { detail: { locationId: location.id, isWishlisted: newValue } }))
+    } catch (err) {
+      setWishlisted(!newValue) // revert
+      toast.error('Could not update wishlist')
+    } finally {
+      setSavingWishlist(false)
+    }
+  }
+
+  const openCollections = async (e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation()
+    setShowCollections((prev) => !prev)
+    if (!showCollections) {
+      try {
+        setCollectionsLoading(true)
+        const res = await fetch('/api/wishlist/collections', { cache: 'no-store' })
+        const json = await res.json()
+        setCollections(Array.isArray(json?.collections) ? json.collections : [])
+      } catch (e) {
+        toast.error('Failed to load collections')
+      } finally {
+        setCollectionsLoading(false)
+      }
+    }
+  }
+
+  const addToCollection = async (collectionId: string) => {
+    try {
+      const res = await fetch('/api/wishlist/collections/add-locations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ collectionId, locationIds: [location.id] })
+      })
+      if (!res.ok) throw new Error('Failed to add')
+      toast.success('Added to collection')
+      setShowCollections(false)
+    } catch {
+      toast.error('Could not add to collection')
+    }
+  }
+
+  const createCollection = async () => {
+    const name = prompt('Collection name')?.trim()
+    if (!name) return
+    try {
+      const res = await fetch('/api/wishlist/collections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || 'Failed to create')
+      toast.success('Collection created')
+      setCollections((prev) => [{ id: data.collection.id, name: data.collection.name }, ...prev])
+      setShowCollections(true)
+    } catch (e: any) {
+      toast.error(e?.message || 'Could not create collection')
+    }
+  }
+
   const latestPost = location.location_posts?.[0]
   const formatted = formatLocationName(location.name)
   const cardImage = (!location.featured_image || isPlaceholderImage(location.featured_image))
@@ -358,17 +597,71 @@ function LocationCard({
               className="object-cover group-hover:scale-105 transition-transform duration-500"
             />
 
-            {/* Heart Button */}
-            <button
-              className="absolute top-3 left-3 w-8 h-8 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center text-sleek-dark-gray hover:text-rausch-500 transition-colors shadow-sleek-light"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                // Handle favorite toggle
-              }}
-            >
-              <Heart className="h-4 w-4" />
-            </button>
+            {/* Bulk select checkbox */}
+            {bulkMode && (
+              <button
+                className="absolute top-3 left-3 w-8 h-8 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sleek-light"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleSelect?.() }}
+                aria-pressed={isSelected}
+                aria-label={isSelected ? 'Deselect location' : 'Select location'}
+              >
+                {isSelected ? (
+                  <CheckSquare className="h-4 w-4 text-rausch-500" />
+                ) : (
+                  <Square className="h-4 w-4 text-sleek-dark-gray" />
+                )}
+              </button>
+            )}
+
+
+            {/* Add to Collection */}
+            <div className={`absolute top-3 ${bulkMode ? 'left-12' : 'left-3'}`}>
+              <button
+                className="w-8 h-8 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center text-sleek-dark-gray hover:text-rausch-500 transition-colors shadow-sleek-light"
+                onClick={openCollections}
+                aria-haspopup="menu"
+                aria-expanded={showCollections}
+                aria-label="Add to collection"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+              {showCollections && (
+                <div className="absolute z-50 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 p-1">
+                  <div className="px-2 py-1 text-xs text-gray-500">Add to collection</div>
+                  {collectionsLoading ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">Loading…</div>
+                  ) : (
+                    <>
+                      {collections.length === 0 && (
+                        <button
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); createCollection() }}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
+                        >
+                          + Create new collection
+                        </button>
+                      )}
+                      {collections.map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCollection(c.id) }}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
+                        >
+                          {c.name}
+                        </button>
+                      ))}
+                      {collections.length > 0 && (
+                        <button
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); createCollection() }}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md"
+                        >
+                          + New collection…
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Admin Three-Dots Menu */}
             {isAdmin && (

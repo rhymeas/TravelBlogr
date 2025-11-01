@@ -25,15 +25,17 @@ import {
   MessageCircle,
   Share2
 } from 'lucide-react'
-import { ElevationProfile } from '@/components/maps/ElevationProfile'
 import { SidebarCTA } from '@/components/trips-library/SidebarCTA'
 import { AccommodationRecommendations } from '@/components/trips-library/AccommodationRecommendations'
 import { TransportOptions } from '@/components/trips-library/TransportOptions'
 import { ActivitiesAndTours } from '@/components/trips-library/ActivitiesAndTours'
-import { TripBookingWidgetsCompact } from '@/components/trips/TripBookingWidgets'
 
-import { LiveTripUpdates } from '@/components/realtime/LiveTripUpdates'
+import { AuthenticatedLiveFeed } from '@/components/feed/AuthenticatedLiveFeed'
+import { FeedPost } from '@/components/feed/FeedPost'
+import { InlineFeedPrompt } from '@/components/auth/SignUpPrompt'
+import { feedPosts } from '@/lib/data/feedData'
 import { getBrowserSupabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 // Dynamically import TripOverviewMap to avoid SSR issues (same as itinerary planner)
 const TripOverviewMap = dynamic(
   () => import('@/components/itinerary/TripOverviewMap').then(mod => ({ default: mod.TripOverviewMap })),
@@ -47,6 +49,9 @@ interface GuideDay {
   description: string
   activities: string[]
   tips: string | null
+  restaurants?: string[]
+  accommodation?: string
+  nights?: number
 }
 
 interface TripTimelineWithToggleProps {
@@ -69,18 +74,20 @@ function TripDayCardContent({ day, dayImages, isMobile = false }: {
 }) {
   return (
     <>
-      <div className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-3'}`}>
-        <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-sleek-black`}>
+      {/* Title with Day Badge */}
+      <div className={`flex items-start justify-between gap-3 ${isMobile ? 'mb-2' : 'mb-3'}`}>
+        <h3 className={`${isMobile ? 'text-base' : 'text-xl'} font-bold text-gray-900 flex-1 min-w-0`}>
           {day.title}
         </h3>
-        <div className={`flex items-center gap-1 text-teal-500 ${isMobile ? 'text-[10px]' : 'text-xs'} font-medium`}>
-          <Calendar className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'}`} />
-          Day {day.day_number}
+        <div className={`flex items-center gap-1.5 ${isMobile ? 'text-[10px]' : 'text-xs'} text-teal-600 font-medium bg-teal-50 px-2.5 py-1 rounded-full flex-shrink-0 whitespace-nowrap`}>
+          <Calendar className={`${isMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'}`} />
+          <span>Day {day.day_number}</span>
         </div>
       </div>
 
+      {/* Hero Image */}
       {dayImages[day.day_number] && (
-        <div className={`relative w-full ${isMobile ? 'h-28' : 'h-40'} rounded-md overflow-hidden ${isMobile ? 'mb-2' : 'mb-3'}`}>
+        <div className={`relative w-full ${isMobile ? 'h-32' : 'h-48'} rounded-lg overflow-hidden ${isMobile ? 'mb-3' : 'mb-4'}`}>
           <Image
             src={dayImages[day.day_number]}
             alt={day.title}
@@ -90,33 +97,82 @@ function TripDayCardContent({ day, dayImages, isMobile = false }: {
         </div>
       )}
 
-      <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-sleek-dark-gray ${isMobile ? 'mb-2' : 'mb-3'}`}>
-        {day.description}
-      </p>
-
-      {/* Activities */}
-      {day.activities && day.activities.length > 0 && (
-        <div className={`${isMobile ? 'mb-2' : 'mb-3'}`}>
-          <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} font-medium text-sleek-black mb-1`}>Activities</p>
-          <ul className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-sleek-gray space-y-1`}>
-            {day.activities.slice(0, 3).map((activity, index) => (
-              <li key={index} className="flex items-start gap-1">
-                <CheckCircle2 className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} text-green-500 flex-shrink-0 mt-0.5`} />
-                <span>{activity}</span>
-              </li>
-            ))}
+      {/* Two-Column Layout: Restaurants & Activities */}
+      <div className={`grid grid-cols-2 gap-3 ${isMobile ? 'mb-3' : 'mb-4'}`}>
+        {/* Restaurants Column */}
+        <div>
+          <div className="flex items-center gap-1.5 mb-2">
+            <MapPin className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-teal-500`} />
+            <p className={`${isMobile ? 'text-[11px]' : 'text-xs'} font-semibold text-gray-700`}>Restaurants</p>
+          </div>
+          <ul className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-gray-600 space-y-1`}>
+            {day.restaurants && day.restaurants.length > 0 ? (
+              day.restaurants.map((restaurant, index) => (
+                <li key={index} className="flex items-start gap-1">
+                  <span className="text-gray-400 flex-shrink-0">•</span>
+                  <span>{restaurant}</span>
+                </li>
+              ))
+            ) : (
+              <>
+                <li className="flex items-start gap-1">
+                  <span className="text-gray-400 flex-shrink-0">•</span>
+                  <span>Local cuisine spots</span>
+                </li>
+                <li className="flex items-start gap-1">
+                  <span className="text-gray-400 flex-shrink-0">•</span>
+                  <span>Traditional restaurants</span>
+                </li>
+              </>
+            )}
           </ul>
+        </div>
+
+        {/* Activities Column */}
+        <div>
+          <div className="flex items-center gap-1.5 mb-2">
+            <Star className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-yellow-500`} />
+            <p className={`${isMobile ? 'text-[11px]' : 'text-xs'} font-semibold text-gray-700`}>Activities</p>
+          </div>
+          <ul className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-gray-600 space-y-1`}>
+            {day.activities && day.activities.length > 0 ? (
+              day.activities.slice(0, 3).map((activity, index) => (
+                <li key={index} className="flex items-start gap-1">
+                  <span className="text-gray-400 flex-shrink-0">•</span>
+                  <span>{activity}</span>
+                </li>
+              ))
+            ) : (
+              <>
+                <li className="flex items-start gap-1">
+                  <span className="text-gray-400 flex-shrink-0">•</span>
+                  <span>Sightseeing</span>
+                </li>
+                <li className="flex items-start gap-1">
+                  <span className="text-gray-400 flex-shrink-0">•</span>
+                  <span>Local experiences</span>
+                </li>
+              </>
+            )}
+          </ul>
+        </div>
+      </div>
+
+      {/* Stay Information */}
+      {day.accommodation && (
+        <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-gray-600 ${isMobile ? 'mb-3' : 'mb-4'}`}>
+          <span className="font-semibold text-gray-700">Stay:</span> {day.accommodation} • {day.nights || 1} night{(day.nights || 1) > 1 ? 's' : ''}
         </div>
       )}
 
-      {/* Tips */}
+      {/* Did You Know Box */}
       {day.tips && (
-        <div className={`bg-yellow-50 border border-yellow-100 rounded-md ${isMobile ? 'p-1.5 mb-2' : 'p-2 mb-3'}`}>
+        <div className={`bg-amber-50 border border-amber-200 rounded-lg ${isMobile ? 'p-2.5 mb-3' : 'p-3 mb-4'}`}>
           <div className="flex items-start gap-2">
-            <div className={`text-orange-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>💡</div>
-            <div>
-              <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} font-medium text-orange-700 mb-1`}>Pro Tip</p>
-              <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-orange-600`}>
+            <Lightbulb className={`${isMobile ? 'h-4 w-4' : 'h-4 w-4'} text-amber-600 flex-shrink-0 mt-0.5`} />
+            <div className="flex-1">
+              <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} font-semibold text-amber-800 mb-1`}>Did you know?</p>
+              <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-amber-700 leading-relaxed`}>
                 {day.tips}
               </p>
             </div>
@@ -124,12 +180,13 @@ function TripDayCardContent({ day, dayImages, isMobile = false }: {
         </div>
       )}
 
-      {/* CTA Button - Link to Location Detail Page */}
+      {/* View Details Button - Tertiary Style */}
       <Link
         href={`/locations/${day.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`}
-        className={`block w-full text-center ${isMobile ? 'py-2 text-xs' : 'py-2.5 text-sm'} bg-rausch-500 text-white rounded-lg hover:bg-rausch-600 transition-colors font-medium`}
+        className={`inline-flex items-center gap-1 ${isMobile ? 'text-[10px] py-1.5 px-2.5' : 'text-xs py-2 px-3'} text-gray-500 hover:text-gray-700 transition-colors`}
       >
-        View Location Details →
+        View Details
+        <ArrowRight className={`${isMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'}`} />
       </Link>
     </>
   )
@@ -147,6 +204,7 @@ export function TripTimelineWithToggle({
   setViewMode
 }: TripTimelineWithToggleProps) {
   const [viewerId, setViewerId] = useState<string>('public-visitor')
+  const { isAuthenticated } = useAuth()
 
   useEffect(() => {
     const supabase = getBrowserSupabase()
@@ -155,36 +213,29 @@ export function TripTimelineWithToggle({
     })
   }, [])
 
-  // Day images resolved via Brave strategy (thumbnail first)
-  const [dayImages, setDayImages] = useState<Record<number, string>>({})
+  // Feed handlers
+  const handleLike = (postId: string) => {
+    console.log('Liked post:', postId)
+  }
 
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      const next: Record<number, string> = {}
-      for (const day of guideDays) {
-        const name = (day.activities && day.activities[0]) ? day.activities[0] : day.title
-        const params = new URLSearchParams({
-          name,
-          location: destination,
-          type: 'activity',
-          count: '1'
-        })
-        try {
-          const res = await fetch(`/api/brave/activity-image?${params.toString()}`)
-          if (!res.ok) continue
-          const json = await res.json()
-          const images = json?.data?.images || []
-          const url = images[0]?.thumbnail || images[0]?.url // Use thumbnail (Brave CDN) first
-          if (url) next[day.day_number] = url
-        } catch (err) {
-          // no-op
-        }
-      }
-      if (!cancelled) setDayImages(next)
-    })()
-    return () => { cancelled = true }
-  }, [guideDays, destination])
+  const handleBookmark = (postId: string) => {
+    console.log('Bookmarked post:', postId)
+  }
+
+  const handleComment = (postId: string) => {
+    console.log('Comment on post:', postId)
+  }
+
+  // Emotional images for each day (using Unsplash)
+  const dayImages: Record<number, string> = {
+    1: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=800&h=400&fit=crop', // Shibuya crossing
+    2: 'https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?w=800&h=400&fit=crop', // TeamLab
+    3: 'https://images.unsplash.com/photo-1513407030348-c983a97b98d8?w=800&h=400&fit=crop', // Harajuku
+    4: 'https://images.unsplash.com/photo-1624923686627-514dd5e57bae?w=800&h=400&fit=crop', // Disney
+    5: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=800&h=400&fit=crop', // Temple
+    6: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&h=400&fit=crop', // Food
+    7: 'https://images.unsplash.com/photo-1480796927426-f609979314bd?w=800&h=400&fit=crop', // Tokyo station
+  }
 
   // Convert guideDays to TripOverviewMap format (same as itinerary planner)
   // For demo, using Tokyo coordinates - in production, fetch real coordinates from location database
@@ -266,13 +317,6 @@ export function TripTimelineWithToggle({
 
             {/* CTA */}
             <SidebarCTA guideId={guideId} guideTitle={guideTitle} />
-
-            {/* Booking Widgets - Minimalistic Bubbly Style */}
-            <Card className="p-5">
-              <TripBookingWidgetsCompact
-                location={destination}
-              />
-            </Card>
 
             {/* Affiliate Links */}
             <AccommodationRecommendations destination={destination} />
@@ -379,7 +423,7 @@ export function TripTimelineWithToggle({
           {/* Map View - Same as Itinerary Planner */}
           {viewMode === 'map' && (
             <div className="space-y-4">
-              {/* Trip Overview Map - Exactly like itinerary planner */}
+              {/* Trip Overview Map - Larger with elevation profile inside */}
               <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl p-6 shadow-lg">
                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <MapPin className="h-5 w-5 text-teal-600" />
@@ -388,7 +432,9 @@ export function TripTimelineWithToggle({
                 <TripOverviewMap
                   locations={mapLocations}
                   transportMode="car"
-                  className="h-96 w-full rounded-lg overflow-hidden shadow-lg"
+                  className="h-[600px] w-full rounded-lg overflow-hidden shadow-lg"
+                  showElevation={true}
+                  showRouteOptions={false}
                 />
               </div>
 
@@ -421,16 +467,6 @@ export function TripTimelineWithToggle({
                   <p className="text-xs text-gray-600 mt-1">Travel style</p>
                 </Card>
               </div>
-
-              {/* Elevation Profile - Demo Data */}
-              <ElevationProfile
-                elevations={[100, 150, 200, 180, 220, 250, 230, 200, 180, 150]}
-                distances={[0, 5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000, 45000]}
-                ascent={150}
-                descent={100}
-                maxElevation={250}
-                minElevation={100}
-              />
 
               {/* Location List */}
               <Card className="p-5">
@@ -467,24 +503,59 @@ export function TripTimelineWithToggle({
             </div>
           )}
 
-          {/* Live Feed View - Trip-Specific Feed (Matches Global Live Feed Template) */}
+          {/* Live Feed View - Modern Feed with Photos, Videos, Carousels */}
           {viewMode === 'live-feed' && (
-            <div className="space-y-4">
-              <LiveTripUpdates tripId={guideId} userId={viewerId} />
+            <div className="space-y-0">
+              {isAuthenticated ? (
+                <AuthenticatedLiveFeed
+                  onLike={handleLike}
+                  onBookmark={handleBookmark}
+                  onComment={handleComment}
+                />
+              ) : (
+                <>
+                  {/* Show first 2 posts */}
+                  {feedPosts.slice(0, 2).map((post) => (
+                    <FeedPost
+                      key={post.id}
+                      post={post}
+                      onLike={handleLike}
+                      onBookmark={handleBookmark}
+                      onComment={handleComment}
+                      showFollowButton={false}
+                    />
+                  ))}
 
-              {/* CTA Card - Matches Global Template Style */}
-              <Card className="p-8 text-center bg-gradient-to-br from-rose-50 to-pink-50 border-rose-200">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center">
-                  <Heart className="w-8 h-8 text-rose-500" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Start Your Own Journey</h3>
-                <p className="text-gray-600 mb-4 max-w-md mx-auto">
-                  Copy this trip to your account and start documenting your journey with photos, videos, and real-time updates.
-                </p>
-                <button className="px-6 py-3 bg-rausch-500 text-white rounded-lg hover:bg-rausch-600 transition-colors font-medium">
-                  Copy Trip & Start Sharing
-                </button>
-              </Card>
+                  {/* Inline Sign-up Prompt */}
+                  <InlineFeedPrompt />
+
+                  {/* Show next 2 posts */}
+                  {feedPosts.slice(2, 4).map((post) => (
+                    <FeedPost
+                      key={post.id}
+                      post={post}
+                      onLike={handleLike}
+                      onBookmark={handleBookmark}
+                      onComment={handleComment}
+                      showFollowButton={false}
+                    />
+                  ))}
+
+                  {/* CTA Card - Matches Global Template Style */}
+                  <Card className="p-8 text-center bg-gradient-to-br from-rose-50 to-pink-50 border-rose-200 mt-4">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center">
+                      <Heart className="w-8 h-8 text-rose-500" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Start Your Own Journey</h3>
+                    <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                      Copy this trip to your account and start documenting your journey with photos, videos, and real-time updates.
+                    </p>
+                    <button className="px-6 py-3 bg-rausch-500 text-white rounded-lg hover:bg-rausch-600 transition-colors font-medium">
+                      Copy Trip & Start Sharing
+                    </button>
+                  </Card>
+                </>
+              )}
             </div>
           )}
         </div>

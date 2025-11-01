@@ -7,6 +7,7 @@ import { getOrSet, CacheKeys, CacheTTL } from '@/lib/upstash'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
 import { MapPin, Grid } from 'lucide-react'
 import { HorizontalBannerAd } from '@/components/ads/HorizontalBannerAd'
+import { AddLocationButton } from '@/components/locations/AddLocationButton'
 
 export const revalidate = 3600
 
@@ -35,29 +36,33 @@ export default async function LocationsPage() {
       {/* Header */}
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Explore Amazing Destinations
-            </h1>
-            <p className="text-xl text-gray-600 mb-6">
-              Discover detailed travel guides, insider tips, and stunning photography 
-              from destinations around the world.
-            </p>
-            
-            {/* Stats */}
-            <div className="flex justify-center gap-8 text-sm text-gray-500">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                <span>{locationStats.total} Locations</span>
+          <div className="flex items-start justify-between gap-4">
+            <div className="text-left max-w-3xl">
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                Explore Amazing Destinations
+              </h1>
+              <p className="text-xl text-gray-600 mb-6">
+                Discover detailed travel guides, insider tips, and stunning photography
+                from destinations around the world.
+              </p>
+              {/* Stats */}
+              <div className="flex flex-wrap gap-6 text-sm text-gray-500">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  <span>{locationStats.total} Locations</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span>🌍</span>
+                  <span>{locationStats.countries} Countries</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span>🗺️</span>
+                  <span>{locationStats.regions} Regions</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span>🌍</span>
-                <span>{locationStats.countries} Countries</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>🗺️</span>
-                <span>{locationStats.regions} Regions</span>
-              </div>
+            </div>
+            <div className="mt-1">
+              <AddLocationButton />
             </div>
           </div>
         </div>

@@ -2,21 +2,29 @@
 
 export const dynamic = 'force-dynamic'
 
+import { useState } from 'react'
 import dynamicImport from 'next/dynamic'
 import { useAuth } from '@/hooks/useAuth'
 
 // Dynamically import feed components with SSR disabled (like Facebook/Instagram feeds)
 const LocationFilters = dynamicImport(() => import('@/components/feed/LocationFilters').then(mod => ({ default: mod.LocationFilters })), { ssr: false })
 const FeedPost = dynamicImport(() => import('@/components/feed/FeedPost').then(mod => ({ default: mod.FeedPost })), { ssr: false })
+const RealTimeFeed = dynamicImport(() => import('@/components/feed/RealTimeFeed').then(mod => ({ default: mod.RealTimeFeed })), { ssr: false })
 const AuthenticatedLiveFeed = dynamicImport(() => import('@/components/feed/AuthenticatedLiveFeed').then(mod => ({ default: mod.AuthenticatedLiveFeed })), { ssr: false })
 const InlineFeedPrompt = dynamicImport(() => import('@/components/auth/SignUpPrompt').then(mod => ({ default: mod.InlineFeedPrompt })), { ssr: false })
 const StickySignUpPrompt = dynamicImport(() => import('@/components/auth/SignUpPrompt').then(mod => ({ default: mod.StickySignUpPrompt })), { ssr: false })
+const GlobalFeedGrid = dynamicImport(() => import('@/components/feed/GlobalFeedGrid').then(mod => ({ default: mod.GlobalFeedGrid })), { ssr: false })
+const FloatingUploadButton = dynamicImport(() => import('@/components/feed/FloatingUploadButton').then(mod => ({ default: mod.FloatingUploadButton })), { ssr: false })
+const UploadModal = dynamicImport(() => import('@/components/feed/UploadModal').then(mod => ({ default: mod.UploadModal })), { ssr: false })
+
 
 // Import data (safe for SSR)
 import { feedPosts, locationFilters } from '@/lib/data/feedData'
 
 export default function LiveFeedPage() {
   const { isAuthenticated, isLoading } = useAuth()
+  const [uploadModalOpen, setUploadModalOpen] = useState(false)
+  const [uploadType, setUploadType] = useState<'photo' | 'video' | 'location' | 'post'>('photo')
 
   const handleFilterChange = (filterId: string) => {
     console.log('Filter changed:', filterId)
@@ -32,6 +40,26 @@ export default function LiveFeedPage() {
 
   const handleComment = (postId: string) => {
     console.log('Comment on post:', postId)
+  }
+
+  const handleUploadPhoto = () => {
+    setUploadType('photo')
+    setUploadModalOpen(true)
+  }
+
+  const handleUploadVideo = () => {
+    setUploadType('video')
+    setUploadModalOpen(true)
+  }
+
+  const handleShareLocation = () => {
+    setUploadType('location')
+    setUploadModalOpen(true)
+  }
+
+  const handleCreatePost = () => {
+    setUploadType('post')
+    setUploadModalOpen(true)
   }
 
   if (isLoading) {
@@ -135,7 +163,36 @@ export default function LiveFeedPage() {
 
           {/* Sticky Sign-up Prompt for Mobile */}
           <StickySignUpPrompt />
+
+	      {/* Public Travelers' Moments (Global Pool) */}
+	      <div className="max-w-6xl mx-auto px-4 py-10">
+	        <h2 className="text-2xl font-bold text-gray-900 mb-4">Public Travelers' Moments</h2>
+	        <p className="text-sm text-gray-600 mb-6">Photos shared from public trips across TravelBlogr</p>
+	        <GlobalFeedGrid />
+	      </div>
+
         </div>
+      )}
+
+      {/* Floating Upload Button - Only show for authenticated users */}
+      {isAuthenticated && (
+        <>
+          <FloatingUploadButton
+            onUploadPhoto={handleUploadPhoto}
+            onUploadVideo={handleUploadVideo}
+            onShareLocation={handleShareLocation}
+            onCreatePost={handleCreatePost}
+          />
+          <UploadModal
+            isOpen={uploadModalOpen}
+            onClose={() => setUploadModalOpen(false)}
+            uploadType={uploadType}
+            onUploadSuccess={() => {
+              // Refresh the page to show new upload
+              window.location.reload()
+            }}
+          />
+        </>
       )}
     </div>
   )

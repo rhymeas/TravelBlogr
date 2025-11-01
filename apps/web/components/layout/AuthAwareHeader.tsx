@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -24,7 +24,9 @@ import {
   Coins,
   FileText,
   DollarSign,
-  Lightbulb
+  Lightbulb,
+  Heart,
+  Check
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { HeaderLogo } from '@/components/ui/Logo'
@@ -34,6 +36,7 @@ import { useAuthModal } from '@/contexts/AuthModalContext'
 import { useUserCredits } from '@/hooks/useUserCredits'
 import { CreditsModal } from '@/components/credits/CreditsModal'
 import toast from 'react-hot-toast'
+import { getBrowserSupabase } from '@/lib/supabase'
 
 // Helper function to get role badge info
 const getRoleBadge = (role?: string, unlimitedUntil?: string, couponType?: string) => {
@@ -98,6 +101,39 @@ export function AuthAwareHeader() {
   const { showSignIn } = useAuthModal()
   const { credits, loading: creditsLoading } = useUserCredits()
   const pathname = usePathname()
+
+  // Lazy-load counts when user menu opens
+  const [wishlistCount, setWishlistCount] = useState<number | null>(null)
+  const [visitedCount, setVisitedCount] = useState<number | null>(null)
+  const [countsLoaded, setCountsLoaded] = useState(false)
+
+  useEffect(() => {
+    if (!showUserMenu || !user?.id || countsLoaded) return
+    let cancelled = false
+    const supa = getBrowserSupabase()
+    ;(async () => {
+      try {
+        const { count: w } = await supa
+          .from('user_locations')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('is_wishlisted', true)
+        const { count: v } = await supa
+          .from('user_locations')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('is_visited', true)
+        if (!cancelled) {
+          setWishlistCount(w || 0)
+          setVisitedCount(v || 0)
+          setCountsLoaded(true)
+        }
+      } catch (e) {
+        // non-fatal
+      }
+    })()
+    return () => { cancelled = true }
+  }, [showUserMenu, user?.id, countsLoaded])
 
   // Get role badge info
   const roleBadge = getRoleBadge(profile?.role, profile?.unlimited_until, profile?.coupon_type)
@@ -399,6 +435,30 @@ export function AuthAwareHeader() {
                           My Trips
                         </Link>
 
+                        <Link
+                          href="/dashboard/my-wishlist"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-gray-100 hover:rounded-lg transition-all mx-2"
+                        >
+                          <Heart className="h-4 w-4 mr-2" />
+                          Wishlist
+                          <span className="ml-auto inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                            {wishlistCount ?? '—'}
+                          </span>
+                        </Link>
+
+                        <Link
+                          href="/dashboard/my-visited"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center w-full px-4 py-2 text-body-medium text-sleek-dark-gray hover:bg-gray-100 hover:rounded-lg transition-all mx-2"
+                        >
+                          <Check className="h-4 w-4 mr-2" />
+                          Visited
+                          <span className="ml-auto inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                            {visitedCount ?? '—'}
+                          </span>
+                        </Link>
+
 
                         <div className="border-t border-sleek-border-light mt-1 pt-1">
                           <Link
@@ -615,6 +675,29 @@ export function AuthAwareHeader() {
             </Link>
 
             <div className="border-t border-gray-200 my-2" />
+                <Link
+                  href="/dashboard/my-wishlist"
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  <Heart className="h-5 w-5 text-gray-500" />
+                  <span>Wishlist</span>
+                  <span className="ml-auto inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                    {wishlistCount ?? '\u2014'}
+                  </span>
+                </Link>
+                <Link
+                  href="/dashboard/my-visited"
+                  className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  <Check className="h-5 w-5 text-gray-500" />
+                  <span>Visited</span>
+                  <span className="ml-auto inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                    {visitedCount ?? '\u2014'}
+                  </span>
+                </Link>
+
 
             {/* User Actions */}
             {isAuthenticated ? (
