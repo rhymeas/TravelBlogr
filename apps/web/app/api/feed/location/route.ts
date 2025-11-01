@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
         location_name,
         location_coordinates,
         created_at,
-        user:profiles!user_id (
+        user:profiles!trip_feed_images_user_id_profiles_fkey (
           id,
           full_name,
           username,
