@@ -32,7 +32,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Failed to add locations' }, { status: 500 })
+    const msg = String(e?.message || '')
+    if ((msg.includes('collection_locations') || msg.includes('wishlist_collections')) && (msg.toLowerCase().includes('schema cache') || msg.toLowerCase().includes('relation'))) {
+      return NextResponse.json({ error: 'Wishlist collections feature not initialized. Please apply migration 015_wishlist_collections.' }, { status: 503 })
+    }
+    return NextResponse.json({ error: msg || 'Failed to add locations' }, { status: 500 })
   }
 }
 

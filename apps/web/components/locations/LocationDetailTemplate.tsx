@@ -469,73 +469,10 @@ export function LocationDetailTemplate({ location, relatedLocations }: LocationD
               </div>
             )}
 
-            {/* Travel Stories Section */}
-            <Card className="card-elevated p-6 mb-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-title-medium font-semibold text-sleek-black">
-                  Recent Travel Stories
-                </h2>
-                <Link
-                  href={`/locations/${location.slug}/stories`}
-                  className="text-body-medium text-rausch-500 hover:text-rausch-600 font-semibold"
-                >
-                  View all stories
-                </Link>
-              </div>
-
-              <div className="space-y-6">
-                {location.posts.map((post) => (
-                  <div key={post.id} className="flex gap-4 p-4 rounded-sleek-medium hover:bg-gray-50 transition-colors cursor-pointer">
-                    <div className="relative w-24 h-24 rounded-sleek-small overflow-hidden flex-shrink-0">
-                      <Image
-                        src={post.image || '/placeholder-location.svg'}
-                        alt={post.title}
-                        fill
-                        className="object-cover"
-                        sizes="96px"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-body-large font-semibold text-sleek-black mb-1 truncate">
-                        {post.title}
-                      </h3>
-                      <p className="text-body-small text-sleek-dark-gray mb-2 line-clamp-2">
-                        {post.excerpt}
-                      </p>
-                      <div className="flex items-center justify-between text-body-small text-sleek-gray">
-                        <span>by {post.author}</span>
-                        <div className="flex items-center gap-3">
-                          <span className="flex items-center gap-1">
-                            <Heart className="h-3 w-3" />
-                            {post.likes}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Eye className="h-3 w-3" />
-                            {post.views}
-                          </span>
-                          <span>{post.date}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
 
 
-            {/* Location Live Feed (100km radius) */}
-            <Card className="card-elevated p-6 mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-title-medium font-semibold text-sleek-black">
-                  Live Feed near {location.name}
-                </h2>
-                <div className="flex items-center gap-3 text-body-small text-sleek-gray">
-                  <span>Within 100km</span>
-                  <Link href={`/locations/${location.slug}/live-feed`} className="text-rausch-500 hover:text-rausch-600 font-semibold">View all</Link>
-                </div>
-              </div>
-              <LocationFeedGrid slug={location.slug} radiusKm={100} />
-            </Card>
+
+
 
             {/* Community Comments Section */}
             <div className="mb-8">

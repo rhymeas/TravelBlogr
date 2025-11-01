@@ -401,22 +401,21 @@ export function EditableLocationActivities({
                 </h4>
                 {(() => {
                   const enrich = enrichments[activity.id] || {}
-                  // CRITICAL: Always prefer database-persisted description first
+                  // Prefer database description first, then enrichment; show a clean placeholder if missing
                   const baseDesc = (activity as any).description || ''
                   const enrichDesc = enrich?.description || ''
-                  const finalDesc = baseDesc || enrichDesc  // Database first, then enrichment
+                  const finalDesc = baseDesc || enrichDesc
                   const isExpanded = expandedDescriptions.has(activity.id)
-                  const needsShowMore = finalDesc.length > 100
                   const cleanDesc = finalDesc.replace(/<[^>]*>/g, '').trim()
+                  const needsShowMore = cleanDesc.length > 100
                   const displayDesc = needsShowMore && !isExpanded ? cleanDesc.slice(0, 100) + '...' : cleanDesc
-
-                  // Only show description if it exists
-                  if (!finalDesc) return null
+                  const hasDesc = !!cleanDesc
+                  const text = hasDesc ? displayDesc : 'Short description coming soon.'
 
                   return (
                     <div className="text-body-medium text-sleek-dark-gray mb-2">
-                      <p className="inline">{displayDesc}</p>
-                      {needsShowMore && (
+                      <p className="inline">{text}</p>
+                      {hasDesc && needsShowMore && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation()

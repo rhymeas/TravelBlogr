@@ -19,7 +19,11 @@ export async function GET() {
 
     return NextResponse.json({ collections: data || [] })
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Failed to load collections' }, { status: 500 })
+    const msg = String(e?.message || '')
+    if (msg.includes('wishlist_collections') && (msg.toLowerCase().includes('schema cache') || msg.toLowerCase().includes('relation'))) {
+      return NextResponse.json({ error: 'Wishlist collections feature not initialized. Please apply migration 015_wishlist_collections.' }, { status: 503 })
+    }
+    return NextResponse.json({ error: msg || 'Failed to load collections' }, { status: 500 })
   }
 }
 
@@ -44,10 +48,14 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ collection: data }, { status: 201 })
   } catch (e: any) {
-    if (String(e?.message || '').includes('wishlist_collections_user_name_unique')) {
+    const msg = String(e?.message || '')
+    if (msg.includes('wishlist_collections_user_name_unique')) {
       return NextResponse.json({ error: 'You already have a collection with this name' }, { status: 409 })
     }
-    return NextResponse.json({ error: e?.message || 'Failed to create collection' }, { status: 500 })
+    if (msg.includes('wishlist_collections') && (msg.toLowerCase().includes('schema cache') || msg.toLowerCase().includes('relation'))) {
+      return NextResponse.json({ error: 'Wishlist collections feature not initialized. Please apply migration 015_wishlist_collections.' }, { status: 503 })
+    }
+    return NextResponse.json({ error: msg || 'Failed to create collection' }, { status: 500 })
   }
 }
 
